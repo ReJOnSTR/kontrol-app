@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Phone, Mail, Building2, MapPin, Briefcase, Info, Calendar, Pencil, Banknote, Eye, CheckCircle2, Search, Filter, Archive, ArchiveRestore, FileText, Plus, Trash2, Folder, AlertCircle, ChevronRight, Printer, FileDown, Settings, ChevronDown, Save } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Phone, Mail, Building2, MapPin, Briefcase, Info, Calendar, Pencil, Banknote, Eye, CheckCircle2, Search, Filter, Archive, ArchiveRestore, FileText, Plus, Trash2, Folder, AlertCircle, ChevronRight, Printer, FileDown, Settings, ChevronDown, Save, FilePlus } from 'lucide-react'
 import DataTable from '../components/DataTable'
 import TopProgressBar from '../components/TopProgressBar'
 import { formatDate, formatCurrency, generateUniqueFileName } from '../utils/helpers'
@@ -14,6 +14,7 @@ import { useTabs } from '../context/TabContext'
 import { useCompany } from '../context/CompanyContext'
 import DocumentForm from '../components/forms/DocumentForm'
 import DocumentPreviewModal from '../components/DocumentPreviewModal'
+import CustomerDocumentGeneratorModal from '../components/CustomerDocumentGeneratorModal'
 import CustomInput from '../components/CustomInput'
 import CustomSelect from '../components/CustomSelect'
 import ConfirmModal from '../components/ConfirmModal'
@@ -55,6 +56,7 @@ export default function CustomerDetail() {
     const [documents, setDocuments] = useState([])
     const [previewDoc, setPreviewDoc] = useState(null)
     const [uploadModalOpen, setUploadModalOpen] = useState(false)
+    const [isDocGeneratorOpen, setIsDocGeneratorOpen] = useState(false)
     const [documentCategories, setDocumentCategories] = useState([])
     const [documentFolders, setDocumentFolders] = useState([])
     const [customFolders, setCustomFolders] = useState([])
@@ -1191,6 +1193,19 @@ export default function CustomerDetail() {
                             {!showArchived && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <button 
+                                        onClick={() => setIsDocGeneratorOpen(true)} 
+                                        className="btn btn-primary" 
+                                        style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '8px',
+                                            background: 'linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%)',
+                                            boxShadow: '0 2px 8px color-mix(in srgb, var(--accent-primary) 30%, transparent)'
+                                        }}
+                                    >
+                                        <FilePlus size={16} /> Belge Oluştur (Sözleşme / Teklif)
+                                    </button>
+                                    <button 
                                         onClick={handleOpenCreateFolder} 
                                         className="btn btn-secondary" 
                                         style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -1199,10 +1214,10 @@ export default function CustomerDetail() {
                                     </button>
                                     <button 
                                         onClick={() => setUploadModalOpen(true)} 
-                                        className="btn btn-primary" 
+                                        className="btn btn-secondary" 
                                         style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                                     >
-                                        <Plus size={16} /> Belge Ekle
+                                        <Plus size={16} /> Belge Yükle
                                     </button>
                                 </div>
                             )}
@@ -1866,6 +1881,18 @@ export default function CustomerDetail() {
                     message={confirmModal?.message} 
                     confirmText={confirmModal?.confirmText}
                     type={confirmModal?.styleType}
+                />
+            )}
+            {isDocGeneratorOpen && customer && (
+                <CustomerDocumentGeneratorModal
+                    isOpen={isDocGeneratorOpen}
+                    onClose={() => setIsDocGeneratorOpen(false)}
+                    customer={customer}
+                    company={currentCompany}
+                    folders={documentFolders}
+                    onSuccess={() => {
+                        loadDocuments(currentCompany?.id)
+                    }}
                 />
             )}
         </div>

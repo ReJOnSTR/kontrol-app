@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Users, Pencil, Trash2, Building2, Phone, Mail, MapPin, DollarSign, Archive, ArchiveRestore } from 'lucide-react'
+import { Plus, Users, Pencil, Trash2, Building2, Phone, Mail, MapPin, DollarSign, Archive, ArchiveRestore, FilePlus } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCompany } from '../context/CompanyContext'
 import { useTabs } from '../context/TabContext'
@@ -7,6 +7,7 @@ import DataTable from '../components/DataTable'
 import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
 import CustomerForm from '../components/forms/CustomerForm'
+import CustomerDocumentGeneratorModal from '../components/CustomerDocumentGeneratorModal'
 import { formatCurrency } from '../utils/helpers'
 
 export default function Customers() {
@@ -21,6 +22,8 @@ export default function Customers() {
     const [saving, setSaving] = useState(false)
     const [confirmModal, setConfirmModal] = useState(null)
     const [showArchived, setShowArchived] = useState(false)
+    const [selectedDocCustomer, setSelectedDocCustomer] = useState(null)
+    const [isDocModalOpen, setIsDocModalOpen] = useState(false)
 
     useEffect(() => {
         if (searchParams.get('action') === 'new') {
@@ -284,6 +287,7 @@ export default function Customers() {
                 onToggleArchiveView={setShowArchived}
                 actions={(item) => (
                     <>
+                        <button className="btn-icon" title="Belge / Sözleşme Oluştur" onClick={() => { setSelectedDocCustomer(item); setIsDocModalOpen(true); }}><FilePlus size={16} /></button>
                         <button className="btn-icon" title="Düzenle" onClick={() => openEditModal(item)}><Pencil size={16} /></button>
                         <button 
                             className="btn-icon" 
@@ -310,14 +314,32 @@ export default function Customers() {
                     loading={saving}
                 />
             </Modal>
+            {confirmModal && (
+                <ConfirmModal 
+                    isOpen={!!confirmModal} 
+                    onClose={() => setConfirmModal(null)} 
+                    onConfirm={confirmModal?.onConfirm} 
+                    title={confirmModal?.title} 
+                    message={confirmModal?.message} 
+                    confirmText={confirmModal?.confirmText}
+                    type={confirmModal?.styleType}
+                />
+            )}
 
-            <ConfirmModal
-                isOpen={!!confirmModal}
-                onClose={() => setConfirmModal(null)}
-                onConfirm={handleConfirmDelete}
-                title={confirmModal?.title}
-                message={confirmModal?.message}
-            />
+            {isDocModalOpen && selectedDocCustomer && (
+                <CustomerDocumentGeneratorModal
+                    isOpen={isDocModalOpen}
+                    onClose={() => {
+                        setIsDocModalOpen(false)
+                        setSelectedDocCustomer(null)
+                    }}
+                    customer={selectedDocCustomer}
+                    company={currentCompany}
+                    onSuccess={() => {
+                        loadCustomers()
+                    }}
+                />
+            )}
         </div>
     )
 }
