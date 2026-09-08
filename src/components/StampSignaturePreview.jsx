@@ -659,14 +659,14 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                             {/* Personel İmzası — INTERACTIVE */}
                             <div style={{ textAlign: 'center', position: 'relative' }}>
                                 <p style={{ fontSize: '11px', fontWeight: 700, borderBottom: '1px solid #ddd', paddingBottom: '6px', marginBottom: '10px', textTransform: 'uppercase' }}>
-                                    PERSONEL İMZASI
+                                    {docData?.customerName ? 'MÜŞTERİ ONAYI' : 'PERSONEL İMZASI'}
                                 </p>
                                 <div style={{ height: `${containerH}px`, position: 'relative', overflow: 'visible' }}>
                                     {ss.placementMode !== 'free' && empSignatureSrc && (ss.showEmpSignature ?? true) && renderInteractive('empSignature', empSignatureSrc, 3)}
                                     {ss.placementMode !== 'free' && !(empSignatureSrc && (ss.showEmpSignature ?? true)) && (
                                         ((ss.showEmpSignature ?? true) && !empSignatureSrc) ? (
                                             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '11px' }}>
-                                                Personel imzası yok
+                                                {docData?.customerName ? 'Müşteri yetkilisi' : 'Personel imzası yok'}
                                             </div>
                                         ) : null
                                     )}
@@ -676,7 +676,7 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                                         </div>
                                     )}
                                 </div>
-                                <p style={{ fontSize: '12px', fontWeight: 600, margin: 0 }}>{docData?.employeeName}</p>
+                                <p style={{ fontSize: '12px', fontWeight: 600, margin: 0 }}>{docData?.customerName || docData?.employeeName}</p>
                             </div>
 
                             {/* Yetkili Onayi — INTERACTIVE */}
