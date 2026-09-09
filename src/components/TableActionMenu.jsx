@@ -173,24 +173,6 @@ export default function TableActionMenu({
 
         const rawButtons = extractActionButtons(children)
 
-        // If onRowClick is available and there are other action buttons, add "Detayı Görüntüle"
-        if (onRowClick && rawButtons.length > 0) {
-            result.push({
-                key: '__row_details',
-                label: 'Detayı Görüntüle',
-                icon: <Eye size={15} />,
-                onClick: (e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setIsOpen(false)
-                    onRowClick(e)
-                },
-                disabled: false,
-                isDanger: false,
-                isSuccess: false
-            })
-        }
-
         rawButtons.forEach((btn, index) => {
             const props = btn.props || {}
             const { title, onClick, className, style, disabled } = props
@@ -236,7 +218,7 @@ export default function TableActionMenu({
                 } else if (lowerIcon.includes('archive')) {
                     label = 'Arşivle'
                 } else if (lowerIcon.includes('eye') || lowerIcon.includes('view') || lowerClass.includes('detail')) {
-                    label = 'Detayı Görüntüle'
+                    label = 'Görüntüle'
                 } else if (lowerIcon.includes('printer') || lowerIcon.includes('print')) {
                     label = 'Yazdır'
                 } else if (lowerIcon.includes('file') || lowerIcon.includes('doc')) {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Users, Pencil, Trash2, Building2, Phone, Mail, MapPin, DollarSign, Archive, ArchiveRestore, FilePlus } from 'lucide-react'
+import { Plus, Users, Pencil, Trash2, Building2, Phone, Mail, MapPin, DollarSign, Archive, ArchiveRestore, FileText } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCompany } from '../context/CompanyContext'
 import { useTabs } from '../context/TabContext'
@@ -287,7 +287,7 @@ export default function Customers() {
                 onToggleArchiveView={setShowArchived}
                 actions={(item) => (
                     <>
-                        <button className="btn-icon" title="Belge / Sözleşme Oluştur" onClick={() => { setSelectedDocCustomer(item); setIsDocModalOpen(true); }}><FilePlus size={16} /></button>
+                        <button className="btn-icon" title="Belge Oluştur" onClick={() => { setSelectedDocCustomer(item); setIsDocModalOpen(true); }}><FileText size={16} /></button>
                         <button className="btn-icon" title="Düzenle" onClick={() => openEditModal(item)}><Pencil size={16} /></button>
                         <button 
                             className="btn-icon" 

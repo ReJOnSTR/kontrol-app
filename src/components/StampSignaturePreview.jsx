@@ -28,20 +28,20 @@ export const STAMP_DEFAULTS = {
 
 function InfoTable({ title, rows }) {
     const thStyle = {
-        background: '#f1f5f9', color: '#334155', fontSize: '11px', fontWeight: 800,
-        textAlign: 'left', padding: '6px 10px', border: '1px solid #e2e8f0',
+        background: '#0f172a', color: '#ffffff', fontSize: '10.5px', fontWeight: 800,
+        textAlign: 'left', padding: '6px 10px', border: 'none',
         textTransform: 'uppercase', letterSpacing: '0.05em',
     }
     const tdLabel = {
-        width: '200px', fontSize: '11px', fontWeight: 700, color: '#475569',
-        padding: '6px 10px', border: '1px solid #e2e8f0', background: '#f8fafc',
+        width: '130px', fontSize: '10px', fontWeight: 700, color: '#475569',
+        padding: '6px 10px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', background: '#f8fafc',
     }
     const tdVal = {
-        fontSize: '12px', fontWeight: 500, color: '#000',
-        padding: '6px 10px', border: '1px solid #e2e8f0',
+        fontSize: '11px', fontWeight: 600, color: '#0f172a',
+        padding: '6px 10px', borderBottom: '1px solid #e2e8f0',
     }
     return (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '15px', tableLayout: 'fixed' }}>
+        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', marginBottom: '15px', tableLayout: 'fixed' }}>
             <thead>
                 <tr><th colSpan="2" style={thStyle}>{title}</th></tr>
             </thead>
@@ -606,13 +606,14 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                     <div style={scaledDocStyle}>
 
                         {/* ── HEADER ── */}
+                        {/* ── HEADER (Tüm belgeler için standart) ── */}
                         <div style={{ borderBottom: '2px solid #000', paddingBottom: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <h2 style={{ fontSize: '16px', fontWeight: 800, textTransform: 'uppercase', color: '#000', margin: 0, letterSpacing: '-0.2px' }}>
                                 {docData?.companyName}
                             </h2>
                             <div style={{ textAlign: 'right' }}>
                                 <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569', margin: 0 }}>
-                                    Tarih: {formatDate(docData?.placeholders?.startDate || docData?.placeholders?.issueDate || new Date())}
+                                    Tarih: {formatDate(docData?.placeholders?.proposalDate || docData?.placeholders?.startDate || docData?.placeholders?.issueDate || new Date())}
                                 </p>
                             </div>
                         </div>
@@ -649,65 +650,225 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                                         {docData?.content}
                                     </div>
                                 </div>
+                            ) : docData?.templateId === 'customer_proposal' ? (
+                                <div style={{ fontSize: '11px', lineHeight: 1.5 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '12px' }}>
+                                        <InfoTable title="MÜŞTERİ BİLGİLERİ" rows={[
+                                            ['MÜŞTERİ ÜNVANI', docData?.customerName],
+                                            ['İLGİLİ KİŞİ', docData?.placeholders?.attentionPerson],
+                                            ['HİZMET YERİ / SAHA', docData?.placeholders?.workLocation],
+                                            ['VERGİ DAİRESİ / NO', docData?.customerTax],
+                                        ]} />
+                                        <InfoTable title="TEKLİF DETAYLARI" rows={[
+                                            ['TEKLİF NO', docData?.placeholders?.proposalNo],
+                                            ['TEKLİF TARİHİ', formatDate(docData?.placeholders?.proposalDate || new Date())],
+                                            ['GEÇERLİLİK SÜRESİ', docData?.placeholders?.validityDays || '15 Gün'],
+                                            ['HAZIRLAYAN YETKİLİ', docData?.placeholders?.preparedBy || docData?.companyName],
+                                        ]} />
+                                    </div>
+
+
+                                    <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', margin: '12px 0', fontSize: '11px' }}>
+                                        <thead>
+                                            <tr style={{ background: '#0f172a', color: '#ffffff' }}>
+                                                <th style={{ width: '30px', textAlign: 'center', padding: '7px 6px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px' }}>#</th>
+                                                <th style={{ textAlign: 'left', padding: '7px 10px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px', textTransform: 'uppercase' }}>Hizmet / Makine / İş Kalemi</th>
+                                                {docData?.priceColumns && docData.priceColumns.length > 0 ? (
+                                                    <>
+                                                        {docData.priceColumns.map((col, cIdx) => (
+                                                            <th key={col.id} style={{ textAlign: 'center', padding: '7px 8px', borderRight: cIdx === docData.priceColumns.length - 1 && !docData?.showConditionColumn ? 'none' : '1px solid rgba(255,255,255,0.15)', fontSize: '10px', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>
+                                                                {col.label}
+                                                            </th>
+                                                        ))}
+                                                        {docData?.showConditionColumn && (
+                                                            <th style={{ minWidth: '130px', textAlign: 'left', padding: '7px 8px', fontSize: '10px', textTransform: 'uppercase' }}>Çalışma Koşulu / Not</th>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <th style={{ width: '55px', textAlign: 'center', padding: '7px 8px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px' }}>Miktar</th>
+                                                        <th style={{ width: '55px', textAlign: 'center', padding: '7px 8px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px' }}>Birim</th>
+                                                        <th style={{ width: '90px', textAlign: 'right', padding: '7px 8px', fontSize: '10px' }}>Birim Fiyat</th>
+                                                    </>
+                                                )}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(docData?.items || []).map((item, idx) => (
+                                                <tr key={idx} style={{ background: idx % 2 === 1 ? '#f8fafc' : '#ffffff' }}>
+                                                    <td style={{ textAlign: 'center', padding: '6px 6px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', fontWeight: 600, color: '#64748b' }}>{idx + 1}</td>
+                                                    <td style={{ fontWeight: 600, padding: '6px 10px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', color: '#0f172a' }}>{item.description || item.name}</td>
+                                                    {docData?.priceColumns && docData.priceColumns.length > 0 ? (
+                                                        <>
+                                                            {docData.priceColumns.map((col, cIdx) => (
+                                                                <td key={col.id} style={{ textAlign: 'center', fontWeight: 700, color: '#0f172a', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: cIdx === docData.priceColumns.length - 1 && !docData?.showConditionColumn ? 'none' : '1px solid #e2e8f0', background: 'rgba(241, 245, 249, 0.4)' }}>
+                                                                    {item.prices?.[col.id] || '-'}
+                                                                </td>
+                                                            ))}
+                                                            {docData?.showConditionColumn && (
+                                                                <td style={{ color: '#475569', fontSize: '10.5px', padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
+                                                                    {item.condition || '-'}
+                                                                </td>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.quantity}</td>
+                                                            <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.unit || 'Adet'}</td>
+                                                            <td style={{ textAlign: 'right', fontWeight: 600, padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
+                                                                {typeof item.unitPrice === 'number' ? item.unitPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : item.unitPrice} ₺
+                                                            </td>
+                                                        </>
+                                                    )}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+
+                                    {docData?.terms && (
+                                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', marginTop: '14px', marginBottom: 0, fontSize: '11px' }}>
+                                            <thead>
+                                                <tr>
+                                                    <th style={{ background: '#0f172a', color: '#ffffff', fontSize: '10.5px', fontWeight: 800, textAlign: 'left', padding: '6px 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                        TEKLİF ŞARTLARI VE GENEL HÜKÜMLER
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td style={{ padding: '8px 12px', fontSize: '11px', color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                                                        {docData.terms}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            ) : docData?.templateId === 'customer_contract' ? (
+                                <div className="customer-contract-doc">
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '14px' }}>
+                                        <InfoTable title="HİZMET VEREN (YÜKLENİCİ)" rows={[
+                                            ['ÜNVANI', docData?.companyName],
+                                            ['ADRESİ', docData?.companyAddress || '-'],
+                                            ['VERGİ DAİRESİ / NO', docData?.companyTax || '-'],
+                                        ]} />
+                                        <InfoTable title="HİZMET ALAN (MÜŞTERİ)" rows={[
+                                            ['ÜNVANI', docData?.customerName],
+                                            ['ADRESİ', docData?.customerAddress || docData?.placeholders?.workLocation || '-'],
+                                            ['VERGİ DAİRESİ / NO', docData?.customerTax || '-'],
+                                        ]} />
+                                    </div>
+
+                                    <div className="contract-articles" style={{ marginTop: '12px' }}>
+                                        {(docData?.articles || []).map((art, idx) => (
+                                            <div key={idx} style={{ marginBottom: '14px' }}>
+                                                <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.02em' }}>{art.title}</div>
+                                                <div style={{ fontSize: '11.5px', lineHeight: 1.6, color: '#334155', textAlign: 'justify' }}>{art.renderedContent || art.content}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : docData?.templateId === 'customer_reconciliation' ? (
+                                <div className="customer-reconciliation-doc">
+                                    <div style={{ fontSize: '12.5px', lineHeight: 1.7, color: '#1e293b', whiteSpace: 'pre-line', marginBottom: '16px' }}>
+                                        {docData?.content}
+                                    </div>
+                                    <div style={{ marginTop: '24px', borderTop: '1px dashed #94a3b8', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
+                                        <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                            MUTABAKAT BEYANI (MÜŞTERİ TARAFINDAN ONAYLANACAKTIR):
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                                            <span style={{ width: '16px', height: '16px', border: '1.5px solid #475569', display: 'inline-block' }}></span>
+                                            <span>Yukarıda belirtilen bakiye şirketimiz kayıtlarıyla <strong>MUTABIKTIR</strong>.</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                                            <span style={{ width: '16px', height: '16px', border: '1.5px solid #475569', display: 'inline-block' }}></span>
+                                            <span>Kayıtlarımızla <strong>MUTABIK DEĞİLDİR</strong>. (Şirketimiz kayıtlarına göre bakiye: ________________ ₺)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : docData?.templateId === 'customer_delivery' ? (
+                                <div className="customer-delivery-doc">
+                                    <InfoTable title="TESLİM EDİLEN EKİPMAN VE HİZMET BİLGİLERİ" rows={[
+                                        ['MÜŞTERİ / PROJE', docData?.customerName],
+                                        ['TESLİM EDİLEN EKİPMAN', docData?.placeholders?.equipmentInfo || '-'],
+                                        ['PLAKA / SERİ NO', docData?.placeholders?.serialPlateNo || '-'],
+                                        ['ÇALIŞMA SAATİ / KM', docData?.placeholders?.workingHoursKm || '-'],
+                                        ['TESLİM TARİHİ & SAATİ', `${formatDate(docData?.placeholders?.deliveryDate)} - ${docData?.placeholders?.deliveryTime || ''}`],
+                                        ['TESLİM YERİ / ŞANTİYE', docData?.placeholders?.deliveryLocation || '-'],
+                                        ['DURUM & ÖZEL NOTLAR', docData?.placeholders?.notes || '-'],
+                                    ]} />
+                                    <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#475569', marginBottom: '16px', lineHeight: 1.6 }}>
+                                        {docData?.content}
+                                    </div>
+                                </div>
                             ) : (
                                 <div style={{ whiteSpace: 'pre-wrap', textAlign: 'justify' }}>{docData?.content}</div>
                             )}
                         </div>
 
                         {/* ── FOOTER / SIGNATURES ── */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', marginTop: 'auto' }}>
-                            {/* Personel İmzası — INTERACTIVE */}
-                            <div style={{ textAlign: 'center', position: 'relative' }}>
-                                <p style={{ fontSize: '11px', fontWeight: 700, borderBottom: '1px solid #ddd', paddingBottom: '6px', marginBottom: '10px', textTransform: 'uppercase' }}>
-                                    {docData?.customerName ? 'MÜŞTERİ ONAYI' : 'PERSONEL İMZASI'}
-                                </p>
-                                <div style={{ height: `${containerH}px`, position: 'relative', overflow: 'visible' }}>
-                                    {ss.placementMode !== 'free' && empSignatureSrc && (ss.showEmpSignature ?? true) && renderInteractive('empSignature', empSignatureSrc, 3)}
-                                    {ss.placementMode !== 'free' && !(empSignatureSrc && (ss.showEmpSignature ?? true)) && (
-                                        ((ss.showEmpSignature ?? true) && !empSignatureSrc) ? (
-                                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '11px' }}>
-                                                {docData?.customerName ? 'Müşteri yetkilisi' : 'Personel imzası yok'}
+                        {(docData?.showSignatures !== false && docData?.includeStamp !== false && settings?.showSignatures !== false && settings?.includeStamp !== false) && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', marginTop: 'auto' }}>
+                                {/* Personel / Müşteri İmzası — INTERACTIVE */}
+                                <div style={{ textAlign: 'center', position: 'relative' }}>
+                                    <p style={{ fontSize: '11px', fontWeight: 700, borderBottom: '1px solid #ddd', paddingBottom: '6px', marginBottom: '10px', textTransform: 'uppercase' }}>
+                                        {docData?.customerName ? 'MÜŞTERİ / HİZMET ALAN' : 'PERSONEL İMZASI'}
+                                    </p>
+                                    <div style={{ height: `${containerH}px`, position: 'relative', overflow: 'visible', marginBottom: '10px' }}>
+                                        {ss.placementMode !== 'free' && empSignatureSrc && (ss.showEmpSignature ?? true) && renderInteractive('empSignature', empSignatureSrc, 3)}
+                                        {ss.placementMode !== 'free' && !(empSignatureSrc && (ss.showEmpSignature ?? true)) && (
+                                            ((ss.showEmpSignature ?? true) && !empSignatureSrc) ? (
+                                                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '11px' }}>
+                                                    {docData?.customerName ? 'Müşteri yetkilisi' : 'Personel imzası yok'}
+                                                </div>
+                                            ) : null
+                                        )}
+                                        {ss.placementMode === 'free' && (
+                                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '11px', fontStyle: 'italic' }}>
+                                                (Serbest Yerleşim Aktif)
                                             </div>
-                                        ) : null
-                                    )}
-                                    {ss.placementMode === 'free' && (
-                                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '11px', fontStyle: 'italic' }}>
-                                            (Serbest Yerleşim Aktif)
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
+                                    <p style={{ fontSize: '12px', fontWeight: 600, margin: 0 }}>{docData?.customerName || docData?.employeeName}</p>
+                                    {docData?.customerName && <span style={{ fontSize: '10.5px', color: '#64748b' }}>Yetkili Kaşe & İmza</span>}
                                 </div>
-                                <p style={{ fontSize: '12px', fontWeight: 600, margin: 0 }}>{docData?.customerName || docData?.employeeName}</p>
-                            </div>
 
-                            {/* Yetkili Onayi — INTERACTIVE */}
-                            <div style={{ textAlign: 'center', position: 'relative' }}>
-                                <p style={{ fontSize: '11px', fontWeight: 700, borderBottom: '1px solid #ddd', paddingBottom: '6px', marginBottom: '10px', textTransform: 'uppercase' }}>
-                                    YETKİLİ ONAYI
-                                </p>
-                                <div style={{ height: `${containerH}px`, position: 'relative', overflow: 'visible' }}>
-                                    {ss.placementMode !== 'free' && stampSrc && (ss.showStamp ?? true) && renderInteractive('stamp',     stampSrc,     1)}
-                                    {ss.placementMode !== 'free' && signatureSrc && (ss.showSignature ?? true) && renderInteractive('signature', signatureSrc, 2)}
-                                    {ss.placementMode !== 'free' && !(stampSrc && (ss.showStamp ?? true)) && !(signatureSrc && (ss.showSignature ?? true)) && (
-                                        (((ss.showStamp ?? true) && !stampSrc) || ((ss.showSignature ?? true) && !signatureSrc)) ? (
-                                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '11px' }}>
-                                                Kaşe / imza yüklenmemiş
+                                {/* Yetkili Onayı / Hizmet Veren — INTERACTIVE */}
+                                <div style={{ textAlign: 'center', position: 'relative' }}>
+                                    <p style={{ fontSize: '11px', fontWeight: 700, borderBottom: '1px solid #ddd', paddingBottom: '6px', marginBottom: '10px', textTransform: 'uppercase' }}>
+                                        {docData?.customerName ? 'HİZMET VEREN (YÜKLENİCİ)' : 'YETKİLİ ONAYI'}
+                                    </p>
+                                    <div style={{ height: `${containerH}px`, position: 'relative', overflow: 'visible', marginBottom: '10px' }}>
+                                        {ss.placementMode !== 'free' && stampSrc && (ss.showStamp ?? true) && renderInteractive('stamp',     stampSrc,     1)}
+                                        {ss.placementMode !== 'free' && signatureSrc && (ss.showSignature ?? true) && renderInteractive('signature', signatureSrc, 2)}
+                                        {ss.placementMode !== 'free' && !(stampSrc && (ss.showStamp ?? true)) && !(signatureSrc && (ss.showSignature ?? true)) && (
+                                            (((ss.showStamp ?? true) && !stampSrc) || ((ss.showSignature ?? true) && !signatureSrc)) ? (
+                                                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '11px' }}>
+                                                    Kaşe / imza yüklenmemiş
+                                                </div>
+                                            ) : null
+                                        )}
+                                        {ss.placementMode === 'free' && (
+                                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '11px', fontStyle: 'italic' }}>
+                                                (Serbest Yerleşim Aktif)
                                             </div>
-                                        ) : null
-                                    )}
-                                    {ss.placementMode === 'free' && (
-                                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '11px', fontStyle: 'italic' }}>
-                                            (Serbest Yerleşim Aktif)
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
+                                    <p style={{ fontSize: '12px', fontWeight: 600, margin: 0 }}>{docData?.companyName}</p>
+                                    {docData?.customerName && <span style={{ fontSize: '10.5px', color: '#64748b' }}>Firma Kaşe & İmza</span>}
                                 </div>
-                                <p style={{ fontSize: '12px', fontWeight: 600, margin: 0 }}>{docData?.companyName}</p>
                             </div>
-                        </div>
+                        )}
 
                         {/* Eğer Serbest Yerleşim modu ise, kaşe ve imzaları A4 sayfasının relative scope'unda render et */}
-                        {ss.placementMode === 'free' && stampSrc && (ss.showStamp ?? true) && renderInteractive('stamp', stampSrc, 10)}
-                        {ss.placementMode === 'free' && signatureSrc && (ss.showSignature ?? true) && renderInteractive('signature', signatureSrc, 11)}
-                        {ss.placementMode === 'free' && empSignatureSrc && (ss.showEmpSignature ?? true) && renderInteractive('empSignature', empSignatureSrc, 12)}
+                        {(docData?.showSignatures !== false && docData?.includeStamp !== false && settings?.showSignatures !== false && settings?.includeStamp !== false) && (
+                            <>
+                                {ss.placementMode === 'free' && stampSrc && (ss.showStamp ?? true) && renderInteractive('stamp', stampSrc, 10)}
+                                {ss.placementMode === 'free' && signatureSrc && (ss.showSignature ?? true) && renderInteractive('signature', signatureSrc, 11)}
+                                {ss.placementMode === 'free' && empSignatureSrc && (ss.showEmpSignature ?? true) && renderInteractive('empSignature', empSignatureSrc, 12)}
+                            </>
+                        )}
 
                     </div>
                 </div>

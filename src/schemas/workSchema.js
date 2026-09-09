@@ -10,6 +10,7 @@ export const workHeaderSchema = z.object({
     location: z.string().max(200, 'Konum en fazla 200 karakter olabilir').optional(),
     work_start_time: z.string().optional().default('08:00'),
     work_end_time: z.string().optional().default('17:00'),
+    disable_overtime: z.boolean().optional().default(false),
     status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).default('pending'),
     pazar_multiplier: z.union([z.string(), z.number()]).optional().default(1.5).transform((val) => {
         const num = Number(val) || 1.5;

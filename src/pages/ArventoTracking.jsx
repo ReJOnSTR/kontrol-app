@@ -403,6 +403,36 @@ export default function ArventoTracking() {
     const [selectedAreaVisit, setSelectedAreaVisit] = useState(null)
     const [areaSearchQuery, setAreaSearchQuery] = useState('')
     const [expandedAreaResult, setExpandedAreaResult] = useState(null)
+    const [areaModalPos, setAreaModalPos] = useState({ x: 0, y: 0 })
+    const [hasAreaQueried, setHasAreaQueried] = useState(false)
+
+    const handleAreaModalMouseDown = (e) => {
+        if (e.button !== 0) return
+        if (e.target.closest('button') || e.target.closest('input')) return
+
+        e.preventDefault()
+        const startX = e.clientX
+        const startY = e.clientY
+        const initialPosX = areaModalPos.x
+        const initialPosY = areaModalPos.y
+
+        const onMouseMove = (moveEvt) => {
+            const dx = moveEvt.clientX - startX
+            const dy = moveEvt.clientY - startY
+            setAreaModalPos({
+                x: initialPosX + dx,
+                y: initialPosY + dy
+            })
+        }
+
+        const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove)
+            window.removeEventListener('mouseup', onMouseUp)
+        }
+
+        window.addEventListener('mousemove', onMouseMove)
+        window.addEventListener('mouseup', onMouseUp)
+    }
 
     // Map Search & Distance states
     const [mapSearchQuery, setMapSearchQuery] = useState('')
@@ -2176,6 +2206,7 @@ export default function ArventoTracking() {
         setAreaQueryResults([])
         setSelectedAreaVisit(null)
         setAreaProgress({ current: 0, total: 0, plate: '' })
+        setHasAreaQueried(true)
         
         try {
             // Find all vehicles mapped to Arvento
@@ -2302,6 +2333,7 @@ export default function ArventoTracking() {
             setShowAreaQueryModal(true)
             setAreaQueryModalMinimized(false)
             setExpandedAreaResult(null)
+            setHasAreaQueried(false)
             
             startLatLng = null
             tempRect = null
@@ -3303,29 +3335,6 @@ export default function ArventoTracking() {
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <div style={{ 
-                        background: 'rgba(59, 130, 246, 0.1)',
-                        border: '1px solid rgba(59, 130, 246, 0.2)',
-                        color: '#3b82f6',
-                        padding: '6px 12px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                    }}>
-                        <Globe size={14} />
-                        <span>Kullanıcı: <strong>{userArventoCreds.username}</strong></span>
-                        <button
-                            onClick={handleArventoUserLogout}
-                            style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', marginLeft: '4px' }}
-                            title="Arvento Oturumunu Kapat"
-                        >
-                            Çıkış Yap
-                        </button>
-                    </div>
-
                     <button 
                         className="btn btn-secondary btn-icon" 
                         onClick={handleRefresh} 
@@ -3913,15 +3922,25 @@ export default function ArventoTracking() {
                                 {/* Area Analysis Rectangle Draw Tool Toggle */}
                                 <button 
                                     onClick={() => {
+                                        if (showAreaQueryModal && areaQueryModalMinimized) {
+                                            setAreaQueryModalMinimized(false)
+                                            return
+                                        }
+                                        if (areaBounds && !showAreaQueryModal) {
+                                            setShowAreaQueryModal(true)
+                                            setAreaQueryModalMinimized(false)
+                                            return
+                                        }
                                         setIsDrawingAreaMode(prev => !prev)
                                         if (!isDrawingAreaMode) {
                                             setAreaBounds(null)
                                             setSelectedAreaVisit(null)
                                             setAreaQueryResults([])
+                                            setHasAreaQueried(false)
                                         }
                                     }}
                                     title={isDrawingAreaMode ? 'Çizmeyi İptal Et' : 'Bölge Analizi (Kare Çiz)'}
-                                    className={`map-control-btn ${isDrawingAreaMode ? 'active' : ''}`}
+                                    className={`map-control-btn ${isDrawingAreaMode || showAreaQueryModal ? 'active' : ''}`}
                                 >
                                     <Square size={16} />
                                 </button>
@@ -4119,22 +4138,49 @@ export default function ArventoTracking() {
                                 </div>
                             )}
 
-                            {/* Centered/fixed Area Analysis modal */}
+                            {/* Draggable & Scrollable Area Analysis modal */}
                             {showAreaQueryModal && (
-                                <div className="floating-area-modal">
+                                <div 
+                                    className="floating-area-modal"
+                                    style={{
+                                        transform: `translate(calc(-50% + ${areaModalPos.x}px), calc(-50% + ${areaModalPos.y}px))`
+                                    }}
+                                >
                                     {/* Modal Header */}
-                                    <div className="floating-area-modal-header">
+                                    <div 
+                                        className="floating-area-modal-header"
+                                        onMouseDown={handleAreaModalMouseDown}
+                                        style={{ cursor: 'grab' }}
+                                    >
                                         <div className="floating-area-modal-title">
-                                            <Square size={13} style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }} />
-                                            <span>Bölge Analizi Sonuçları</span>
+                                            <Square size={14} style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }} />
+                                            <span>Bölge Analizi</span>
+                                            {areaQueryResults.length > 0 && (
+                                                <span className="area-results-count-badge">
+                                                    {filteredAreaResults.length} Araç
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="floating-area-modal-actions" onMouseDown={e => e.stopPropagation()}>
+                                            <button
+                                                onClick={() => {
+                                                    setIsDrawingAreaMode(true)
+                                                    setAreaBounds(null)
+                                                    setSelectedAreaVisit(null)
+                                                    setAreaQueryResults([])
+                                                    setHasAreaQueried(false)
+                                                }}
+                                                className="modal-action-btn"
+                                                title="Yeni Bölge Çiz"
+                                            >
+                                                <Plus size={13} />
+                                            </button>
                                             <button 
                                                 onClick={() => setAreaQueryModalMinimized(prev => !prev)}
                                                 className="modal-action-btn"
                                                 title={areaQueryModalMinimized ? "Genişlet" : "Küçült"}
                                             >
-                                                {areaQueryModalMinimized ? <Maximize2 size={12} /> : <Minimize2 size={12} />}
+                                                {areaQueryModalMinimized ? <Maximize2 size={13} /> : <Minimize2 size={13} />}
                                             </button>
                                             <button 
                                                 onClick={() => {
@@ -4142,11 +4188,13 @@ export default function ArventoTracking() {
                                                     setAreaBounds(null);
                                                     setSelectedAreaVisit(null);
                                                     setAreaQueryResults([]);
+                                                    setHasAreaQueried(false);
+                                                    setAreaModalPos({ x: 0, y: 0 });
                                                 }}
                                                 className="modal-action-btn close"
                                                 title="Kapat"
                                             >
-                                                <X size={12} />
+                                                <X size={13} />
                                             </button>
                                         </div>
                                     </div>
@@ -4158,7 +4206,7 @@ export default function ArventoTracking() {
                                             <div className="floating-area-modal-section">
                                                 <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                                                     <div style={{ flex: 1 }}>
-                                                        <label className="field-label-compact">Başlangıç</label>
+                                                        <label className="field-label-compact">Başlangıç Tarihi</label>
                                                         <input 
                                                             type="date"
                                                             className="date-input-compact"
@@ -4173,7 +4221,7 @@ export default function ArventoTracking() {
                                                         />
                                                     </div>
                                                     <div style={{ flex: 1 }}>
-                                                        <label className="field-label-compact">Bitiş</label>
+                                                        <label className="field-label-compact">Bitiş Tarihi</label>
                                                         <input 
                                                             type="date"
                                                             className="date-input-compact"
@@ -4193,7 +4241,7 @@ export default function ArventoTracking() {
                                                     {areaQueryLoading ? (
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                                             <Loader2 size={14} className="spin" />
-                                                            <span>Sorgulanıyor...</span>
+                                                            <span>Bölge Sorgulanıyor...</span>
                                                         </div>
                                                     ) : 'Bölgeyi Sorgula'}
                                                 </button>
@@ -4209,8 +4257,8 @@ export default function ArventoTracking() {
                                                         ></div>
                                                     </div>
                                                     <div className="progress-text-compact">
-                                                        <span>Sorgulanan plaka: {areaProgress.plate}</span>
-                                                        <span>{areaProgress.current}/{areaProgress.total}</span>
+                                                        <span>Sorgulanıyor: {areaProgress.plate || '...'}</span>
+                                                        <span>{areaProgress.current} / {areaProgress.total}</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -4222,7 +4270,7 @@ export default function ArventoTracking() {
                                                         <div className="search-box-compact">
                                                             <input 
                                                                 type="text" 
-                                                                placeholder="Plaka veya marka ara..."
+                                                                placeholder="Plaka veya araç ara..."
                                                                 value={areaSearchQuery}
                                                                 onChange={(e) => setAreaSearchQuery(e.target.value)}
                                                             />
@@ -4230,13 +4278,17 @@ export default function ArventoTracking() {
                                                     )}
 
                                                     <div className="floating-area-results-list">
-                                                        {areaQueryResults.length === 0 ? (
+                                                        {!hasAreaQueried ? (
                                                             <div className="no-results-compact">
-                                                                Tarih aralığı seçip sorgulamayı başlatın.
+                                                                Tarih aralığı belirleyip <strong>Bölgeyi Sorgula</strong> butonuna tıklayarak bu alana giren araçları listeleyebilirsiniz.
+                                                            </div>
+                                                        ) : areaQueryResults.length === 0 ? (
+                                                            <div className="no-results-compact">
+                                                                Seçilen tarih aralığında bu bölgeye giriş yapan araç tespit edilmedi.
                                                             </div>
                                                         ) : filteredAreaResults.length === 0 ? (
                                                             <div className="no-results-compact">
-                                                                Eşleşen sonuç bulunamadı.
+                                                                Aramaya uygun sonuç bulunamadı.
                                                             </div>
                                                         ) : (
                                                             filteredAreaResults.map((result, idx) => {
@@ -4250,11 +4302,13 @@ export default function ArventoTracking() {
                                                                             className="area-result-card-header"
                                                                             onClick={() => setExpandedAreaResult(isExpanded ? null : result.plate)}
                                                                         >
-                                                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                                                                 <span className="plate-label">{result.plate}</span>
-                                                                                <span className="brand-label">{result.brand} {result.model}</span>
+                                                                                {(result.brand || result.model) && (
+                                                                                    <span className="brand-label">{result.brand} {result.model}</span>
+                                                                                )}
                                                                             </div>
-                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                                                 <span className="visits-count-badge">{result.visits.length} Giriş</span>
                                                                                 <ChevronDown size={14} className={`chevron-icon ${isExpanded ? 'rotated' : ''}`} />
                                                                             </div>
@@ -4270,9 +4324,10 @@ export default function ArventoTracking() {
                                                                                     
                                                                                     return (
                                                                                         <div 
-                                                                                            key={vIdx}
+                                                                                            key={vIdx} 
                                                                                             className={`area-visit-row-compact ${isSelected ? 'active' : ''}`}
                                                                                             onClick={() => setSelectedAreaVisit(isSelected ? null : visit)}
+                                                                                            title="Haritada güzergahı görüntülemek için tıklayın"
                                                                                         >
                                                                                             <div className="visit-times">
                                                                                                 <div className="time-row entry">
@@ -4285,9 +4340,12 @@ export default function ArventoTracking() {
                                                                                                 </div>
                                                                                             </div>
                                                                                             <div className="visit-metrics">
-                                                                                                <span className="metric-tag dur">⌛ {formatDurationCompact(visit.durationMs)}</span>
+                                                                                                <span className="metric-tag dur">
+                                                                                                    <Clock size={11} style={{ verticalAlign: 'middle', marginRight: '3px' }} />
+                                                                                                    {formatDurationCompact(visit.durationMs)}
+                                                                                                </span>
                                                                                                 <span className="metric-tag speed">
-                                                                                                    {isParked ? 'Hareketsiz/Park' : `En Fazla ${visit.maxSpeed.toFixed(0)} km/h`}
+                                                                                                    {isParked ? 'Hareketsiz / Park' : `En Fazla ${visit.maxSpeed.toFixed(0)} km/h`}
                                                                                                 </span>
                                                                                             </div>
                                                                                         </div>

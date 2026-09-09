@@ -19,6 +19,59 @@ const DEFAULT_STAMP_SETTINGS = {
     empSignatureOpacity: 0.9,
 }
 
+function InfoTable({ title, rows, style }) {
+    const thStyle = {
+        background: '#0f172a',
+        color: '#ffffff',
+        fontSize: '10.5px',
+        fontWeight: 800,
+        textAlign: 'left',
+        padding: '6px 10px',
+        border: 'none',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact',
+    };
+    const tdLabel = {
+        width: '130px',
+        fontSize: '10px',
+        fontWeight: 700,
+        color: '#475569',
+        padding: '6px 10px',
+        borderBottom: '1px solid #e2e8f0',
+        borderRight: '1px solid #e2e8f0',
+        background: '#f8fafc',
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact',
+    };
+    const tdVal = {
+        fontSize: '11px',
+        fontWeight: 600,
+        color: '#0f172a',
+        padding: '6px 10px',
+        borderBottom: '1px solid #e2e8f0',
+        background: '#ffffff',
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact',
+    };
+    return (
+        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', marginBottom: '15px', tableLayout: 'fixed', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', ...(style || {}) }}>
+            <thead>
+                <tr><th colSpan="2" style={thStyle}>{title}</th></tr>
+            </thead>
+            <tbody>
+                {rows.map(([label, value], i) => (
+                    <tr key={i}>
+                        <td style={tdLabel}>{label}</td>
+                        <td style={tdVal}>{value || '-'}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    );
+}
+
 function SingleDoc({ docItem }) {
     const [signatureSrc, setSignatureSrc] = useState(null);
     const [stampSrc, setStampSrc] = useState(null);
@@ -55,13 +108,14 @@ function SingleDoc({ docItem }) {
     return (
         <div className="a4-page" style={{ position: 'relative', pageBreakAfter: 'always', breakAfter: 'page' }}>
             {/* Header */}
+            {/* Header (Tüm belgeler için standart) */}
             <div style={{ borderBottom: '2px solid #000', paddingBottom: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <h2 style={{ fontSize: '16px', fontWeight: 800, textTransform: 'uppercase', color: '#000', margin: 0, letterSpacing: '-0.2px' }}>
                     {docItem.companyName}
                 </h2>
                 <div style={{ textAlign: 'right' }}>
                     <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569', margin: 0 }}>
-                        Tarih: {formatDate(docItem.placeholders?.startDate || docItem.placeholders?.issueDate || new Date())}
+                        Tarih: {formatDate(docItem.placeholders?.proposalDate || docItem.placeholders?.startDate || docItem.placeholders?.issueDate || new Date())}
                     </p>
                 </div>
             </div>
@@ -74,147 +128,137 @@ function SingleDoc({ docItem }) {
             </div>
 
             {/* Body Content */}
-            <div className="doc-body">
+            <div className="doc-body" style={{ flexGrow: 1 }}>
                 {docItem.templateId === 'assignment' ? (
                     <div className="assignment-tables">
-                        <table className="info-table">
-                            <thead>
-                                <tr><th colSpan="2" className="section-title">İŞVEREN BİLGİLERİ</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr><td className="label-cell">ADI-SOYADI / ÜNVANI</td><td className="value-cell">{docItem.companyName || '-'}</td></tr>
-                                <tr><td className="label-cell">İŞYERİ ADRESİ</td><td className="value-cell">{docItem.companyAddress || '-'}</td></tr>
-                                <tr><td className="label-cell">İŞYERİ SGK NO</td><td className="value-cell">{docItem.companySgk || '-'}</td></tr>
-                                <tr><td className="label-cell">VERGİ DAİRESİ / NO</td><td className="value-cell">{docItem.companyTax || '-'}</td></tr>
-                            </tbody>
-                        </table>
-
-                        <table className="info-table">
-                            <thead>
-                                <tr><th colSpan="2" className="section-title">PERSONEL BİLGİLERİ</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr><td className="label-cell">ADI - SOYADI</td><td className="value-cell">{docItem.employeeName || '-'}</td></tr>
-                                <tr><td className="label-cell">T.C. KİMLİK NO</td><td className="value-cell">{docItem.tcNo || '-'}</td></tr>
-                            </tbody>
-                        </table>
-
-                        <table className="info-table">
-                            <thead>
-                                <tr><th colSpan="2" className="section-title">GÖREVLENDİRME DETAYLARI</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr><td className="label-cell">GİDİLECEK İŞYERİ</td><td className="value-cell">{docItem.placeholders?.workplaceName || '-'}</td></tr>
-                                <tr><td className="label-cell">İŞYERİ ADRESİ</td><td className="value-cell">{docItem.placeholders?.workplaceAddress || '-'}</td></tr>
-                                <tr><td className="label-cell">YAPILACAK İŞ</td><td className="value-cell">{docItem.placeholders?.workType || '-'}</td></tr>
-                                <tr><td className="label-cell">GİDİŞ TARİHİ</td><td className="value-cell">{docItem.placeholders?.startDate ? formatDate(docItem.placeholders.startDate) : '-'}</td></tr>
-                                <tr><td className="label-cell">DÖNÜŞ TARİHİ</td><td className="value-cell">{docItem.placeholders?.endDate ? formatDate(docItem.placeholders.endDate) : '-'}</td></tr>
-                            </tbody>
-                        </table>
+                        <InfoTable title="İŞVEREN BİLGİLERİ" rows={[
+                            ['ADI-SOYADI / ÜNVANI', docItem.companyName],
+                            ['İŞYERİ ADRESİ', docItem.companyAddress],
+                            ['İŞYERİ SGK NO', docItem.companySgk],
+                            ['VERGİ DAİRESİ / NO', docItem.companyTax],
+                        ]} />
+                        <InfoTable title="PERSONEL BİLGİLERİ" rows={[
+                            ['ADI - SOYADI', docItem.employeeName],
+                            ['T.C. KİMLİK NO', docItem.tcNo || '-'],
+                        ]} />
+                        <InfoTable title="GÖREVLENDİRME DETAYLARI" rows={[
+                            ['GİDİLECEK İŞYERİ', docItem.placeholders?.workplaceName],
+                            ['İŞYERİ ADRESİ', docItem.placeholders?.workplaceAddress],
+                            ['YAPILACAK İŞ', docItem.placeholders?.workType],
+                            ['GİDİŞ TARİHİ', docItem.placeholders?.startDate ? formatDate(docItem.placeholders.startDate) : null],
+                            ['DÖNÜŞ TARİHİ', docItem.placeholders?.endDate ? formatDate(docItem.placeholders.endDate) : null],
+                        ]} />
 
                         <div className="assignment-text" style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '12px', fontSize: '12px', fontStyle: 'italic' }}>
                             {docItem.content}
                         </div>
                     </div>
                 ) : docItem.templateId === 'customer_proposal' ? (
-                    <div className="customer-proposal-doc">
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '14px' }}>
-                            <table className="info-table" style={{ margin: 0 }}>
-                                <thead><tr><th colSpan="2" className="section-title">MÜŞTERİ BİLGİLERİ</th></tr></thead>
-                                <tbody>
-                                    <tr><td className="label-cell">MÜŞTERİ ÜNVANI</td><td className="value-cell" style={{ fontWeight: 700 }}>{docItem.customerName || '-'}</td></tr>
-                                    <tr><td className="label-cell">İLGİLİ KİŞİ</td><td className="value-cell">{docItem.placeholders?.attentionPerson || '-'}</td></tr>
-                                    <tr><td className="label-cell">HİZMET YERİ / SAHA</td><td className="value-cell">{docItem.placeholders?.workLocation || '-'}</td></tr>
-                                    <tr><td className="label-cell">VERGİ DAİRESİ / NO</td><td className="value-cell">{docItem.customerTax || '-'}</td></tr>
-                                </tbody>
-                            </table>
-                            <table className="info-table" style={{ margin: 0 }}>
-                                <thead><tr><th colSpan="2" className="section-title">TEKLİF DETAYLARI</th></tr></thead>
-                                <tbody>
-                                    <tr><td className="label-cell">TEKLİF NO</td><td className="value-cell" style={{ fontWeight: 700 }}>{docItem.placeholders?.proposalNo || '-'}</td></tr>
-                                    <tr><td className="label-cell">TEKLİF TARİHİ</td><td className="value-cell">{formatDate(docItem.placeholders?.proposalDate || new Date())}</td></tr>
-                                    <tr><td className="label-cell">GEÇERLİLİK SÜRESİ</td><td className="value-cell">{docItem.placeholders?.validityDays || '15 Gün'}</td></tr>
-                                    <tr><td className="label-cell">HAZIRLAYAN YETKİLİ</td><td className="value-cell">{docItem.placeholders?.preparedBy || docItem.companyName}</td></tr>
-                                </tbody>
-                            </table>
+                    <div className="customer-proposal-doc" style={{ fontSize: '11px', lineHeight: 1.5 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '12px' }}>
+                            <InfoTable title="MÜŞTERİ BİLGİLERİ" rows={[
+                                ['MÜŞTERİ ÜNVANI', docItem.customerName],
+                                ['İLGİLİ KİŞİ', docItem.placeholders?.attentionPerson],
+                                ['HİZMET YERİ / SAHA', docItem.placeholders?.workLocation],
+                                ['VERGİ DAİRESİ / NO', docItem.customerTax],
+                            ]} style={{ margin: 0 }} />
+                            <InfoTable title="TEKLİF DETAYLARI" rows={[
+                                ['TEKLİF NO', docItem.placeholders?.proposalNo],
+                                ['TEKLİF TARİHİ', formatDate(docItem.placeholders?.proposalDate || new Date())],
+                                ['GEÇERLİLİK SÜRESİ', docItem.placeholders?.validityDays || '15 Gün'],
+                                ['HAZIRLAYAN YETKİLİ', docItem.placeholders?.preparedBy || docItem.companyName],
+                            ]} style={{ margin: 0 }} />
                         </div>
 
-                        {docItem.placeholders?.projectSubject && (
-                            <div style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', marginBottom: '12px', fontSize: '11.5px' }}>
-                                <strong style={{ color: '#0f172a' }}>KONU:</strong> {docItem.placeholders.projectSubject}
-                            </div>
-                        )}
-
-                        <table className="proposal-table">
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', margin: '12px 0', fontSize: '11px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                             <thead>
-                                <tr>
-                                    <th style={{ width: '30px', textAlign: 'center' }}>#</th>
-                                    <th>Hizmet / Kalem Açıklaması</th>
-                                    <th style={{ width: '60px', textAlign: 'center' }}>Miktar</th>
-                                    <th style={{ width: '60px', textAlign: 'center' }}>Birim</th>
-                                    <th style={{ width: '100px', textAlign: 'right' }}>Birim Fiyat</th>
-                                    <th style={{ width: '110px', textAlign: 'right' }}>Toplam (₺)</th>
+                                <tr style={{ background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                    <th style={{ width: '30px', textAlign: 'center', padding: '7px 6px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>#</th>
+                                    <th style={{ textAlign: 'left', padding: '7px 10px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px', textTransform: 'uppercase', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Hizmet / Makine / İş Kalemi</th>
+                                    {docItem.priceColumns && docItem.priceColumns.length > 0 ? (
+                                        <>
+                                            {docItem.priceColumns.map((col, cIdx) => (
+                                                <th key={col.id} style={{ textAlign: 'center', padding: '7px 8px', borderRight: cIdx === docItem.priceColumns.length - 1 && !docItem?.showConditionColumn ? 'none' : '1px solid rgba(255,255,255,0.15)', fontSize: '10px', whiteSpace: 'nowrap', textTransform: 'uppercase', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                                    {col.label}
+                                                </th>
+                                            ))}
+                                            {docItem.showConditionColumn && (
+                                                <th style={{ minWidth: '150px', padding: '7px 10px', fontSize: '10px', textTransform: 'uppercase', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Çalışma Koşulu / Not</th>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <th style={{ width: '60px', textAlign: 'center', padding: '7px 6px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Miktar</th>
+                                            <th style={{ width: '60px', textAlign: 'center', padding: '7px 6px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Birim</th>
+                                            <th style={{ width: '100px', textAlign: 'right', padding: '7px 10px', fontSize: '10px', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Birim Fiyat</th>
+                                        </>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody>
                                 {(docItem.items || []).map((item, idx) => (
-                                    <tr key={idx}>
-                                        <td style={{ textAlign: 'center' }}>{idx + 1}</td>
-                                        <td style={{ fontWeight: 600 }}>{item.description || item.name}</td>
-                                        <td style={{ textAlign: 'center' }}>{item.quantity}</td>
-                                        <td style={{ textAlign: 'center' }}>{item.unit || 'Adet'}</td>
-                                        <td style={{ textAlign: 'right' }}>{typeof item.unitPrice === 'number' ? item.unitPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : item.unitPrice} ₺</td>
-                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                                    <tr key={idx} style={{ background: idx % 2 === 1 ? '#f8fafc' : '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                        <td style={{ textAlign: 'center', fontWeight: 600, padding: '6px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', color: '#64748b' }}>{idx + 1}</td>
+                                        <td style={{ fontWeight: 600, padding: '6px 10px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', color: '#0f172a' }}>{item.description || item.name}</td>
+                                        {docItem.priceColumns && docItem.priceColumns.length > 0 ? (
+                                            <>
+                                                {docItem.priceColumns.map((col, cIdx) => (
+                                                    <td key={col.id} style={{ textAlign: 'center', fontWeight: 700, color: '#0f172a', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: cIdx === docItem.priceColumns.length - 1 && !docItem?.showConditionColumn ? 'none' : '1px solid #e2e8f0', background: 'rgba(241, 245, 249, 0.4)', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                                        {item.prices?.[col.id] || '-'}
+                                                    </td>
+                                                ))}
+                                                {docItem.showConditionColumn && (
+                                                    <td style={{ color: '#475569', fontSize: '10.5px', padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
+                                                        {item.condition || '-'}
+                                                    </td>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.quantity}</td>
+                                                <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.unit || 'Adet'}</td>
+                                                <td style={{ textAlign: 'right', fontWeight: 600, padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
+                                                    {typeof item.unitPrice === 'number' ? item.unitPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : item.unitPrice} ₺
+                                                </td>
+                                            </>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
 
-                        <div className="proposal-summary-wrap">
-                            <table className="proposal-summary-table">
+                        {docItem.terms && (
+                            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', marginTop: '14px', marginBottom: 0, fontSize: '11px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ background: '#0f172a', color: '#ffffff', fontSize: '10.5px', fontWeight: 800, textAlign: 'left', padding: '6px 10px', textTransform: 'uppercase', letterSpacing: '0.05em', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                            TEKLİF ŞARTLARI VE GENEL HÜKÜMLER
+                                        </th>
+                                    </tr>
+                                </thead>
                                 <tbody>
                                     <tr>
-                                        <td className="sum-label">ARA TOPLAM</td>
-                                        <td className="sum-val">{Number(docItem.subtotal || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="sum-label">KDV (%{docItem.vatRate ?? 20})</td>
-                                        <td className="sum-val">{Number(docItem.vatAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
-                                    </tr>
-                                    <tr className="grand-total">
-                                        <td className="sum-label">GENEL TOPLAM</td>
-                                        <td className="sum-val">{Number(docItem.grandTotal || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                                        <td style={{ padding: '8px 12px', fontSize: '11px', color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                                            {docItem.terms}
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>
-
-                        {docItem.terms && (
-                            <div style={{ marginTop: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', padding: '10px 12px', borderRadius: '4px' }}>
-                                <div style={{ fontSize: '10px', fontWeight: 800, color: '#334155', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.04em' }}>TEKLİF ŞARTLARI VE NOTLAR</div>
-                                <div style={{ fontSize: '10.5px', color: '#475569', lineHeight: 1.55, whiteSpace: 'pre-line' }}>{docItem.terms}</div>
-                            </div>
                         )}
                     </div>
                 ) : docItem.templateId === 'customer_contract' ? (
                     <div className="customer-contract-doc">
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '14px' }}>
-                            <table className="info-table" style={{ margin: 0 }}>
-                                <thead><tr><th colSpan="2" className="section-title">HİZMET VEREN (YÜKLENİCİ)</th></tr></thead>
-                                <tbody>
-                                    <tr><td className="label-cell">ÜNVANI</td><td className="value-cell" style={{ fontWeight: 700 }}>{docItem.companyName}</td></tr>
-                                    <tr><td className="label-cell">ADRESİ</td><td className="value-cell">{docItem.companyAddress || '-'}</td></tr>
-                                    <tr><td className="label-cell">VERGİ DAİRESİ / NO</td><td className="value-cell">{docItem.companyTax || '-'}</td></tr>
-                                </tbody>
-                            </table>
-                            <table className="info-table" style={{ margin: 0 }}>
-                                <thead><tr><th colSpan="2" className="section-title">HİZMET ALAN (MÜŞTERİ)</th></tr></thead>
-                                <tbody>
-                                    <tr><td className="label-cell">ÜNVANI</td><td className="value-cell" style={{ fontWeight: 700 }}>{docItem.customerName}</td></tr>
-                                    <tr><td className="label-cell">ADRESİ</td><td className="value-cell">{docItem.customerAddress || docItem.placeholders?.workLocation || '-'}</td></tr>
-                                    <tr><td className="label-cell">VERGİ DAİRESİ / NO</td><td className="value-cell">{docItem.customerTax || '-'}</td></tr>
-                                </tbody>
-                            </table>
+                            <InfoTable title="HİZMET VEREN (YÜKLENİCİ)" rows={[
+                                ['ÜNVANI', docItem.companyName],
+                                ['ADRESİ', docItem.companyAddress || '-'],
+                                ['VERGİ DAİRESİ / NO', docItem.companyTax || '-'],
+                            ]} style={{ margin: 0 }} />
+                            <InfoTable title="HİZMET ALAN (MÜŞTERİ)" rows={[
+                                ['ÜNVANI', docItem.customerName],
+                                ['ADRESİ', docItem.customerAddress || docItem.placeholders?.workLocation || '-'],
+                                ['VERGİ DAİRESİ / NO', docItem.customerTax || '-'],
+                            ]} style={{ margin: 0 }} />
                         </div>
 
                         <div className="contract-articles" style={{ marginTop: '12px' }}>
@@ -247,18 +291,15 @@ function SingleDoc({ docItem }) {
                     </div>
                 ) : docItem.templateId === 'customer_delivery' ? (
                     <div className="customer-delivery-doc">
-                        <table className="info-table" style={{ marginBottom: '14px' }}>
-                            <thead><tr><th colSpan="2" className="section-title">TESLİM EDİLEN EKİPMAN VE HİZMET BİLGİLERİ</th></tr></thead>
-                            <tbody>
-                                <tr><td className="label-cell">MÜŞTERİ / PROJE</td><td className="value-cell" style={{ fontWeight: 700 }}>{docItem.customerName}</td></tr>
-                                <tr><td className="label-cell">TESLİM EDİLEN EKİPMAN</td><td className="value-cell">{docItem.placeholders?.equipmentInfo || '-'}</td></tr>
-                                <tr><td className="label-cell">PLAKA / SERİ NO</td><td className="value-cell">{docItem.placeholders?.serialPlateNo || '-'}</td></tr>
-                                <tr><td className="label-cell">ÇALIŞMA SAATİ / KM</td><td className="value-cell">{docItem.placeholders?.workingHoursKm || '-'}</td></tr>
-                                <tr><td className="label-cell">TESLİM TARİHİ & SAATİ</td><td className="value-cell">{formatDate(docItem.placeholders?.deliveryDate)} - {docItem.placeholders?.deliveryTime || ''}</td></tr>
-                                <tr><td className="label-cell">TESLİM YERİ / ŞANTİYE</td><td className="value-cell">{docItem.placeholders?.deliveryLocation || '-'}</td></tr>
-                                <tr><td className="label-cell">DURUM & ÖZEL NOTLAR</td><td className="value-cell">{docItem.placeholders?.notes || '-'}</td></tr>
-                            </tbody>
-                        </table>
+                        <InfoTable title="TESLİM EDİLEN EKİPMAN VE HİZMET BİLGİLERİ" rows={[
+                            ['MÜŞTERİ / PROJE', docItem.customerName],
+                            ['TESLİM EDİLEN EKİPMAN', docItem.placeholders?.equipmentInfo || '-'],
+                            ['PLAKA / SERİ NO', docItem.placeholders?.serialPlateNo || '-'],
+                            ['ÇALIŞMA SAATİ / KM', docItem.placeholders?.workingHoursKm || '-'],
+                            ['TESLİM TARİHİ & SAATİ', `${formatDate(docItem.placeholders?.deliveryDate)} - ${docItem.placeholders?.deliveryTime || ''}`],
+                            ['TESLİM YERİ / ŞANTİYE', docItem.placeholders?.deliveryLocation || '-'],
+                            ['DURUM & ÖZEL NOTLAR', docItem.placeholders?.notes || '-'],
+                        ]} style={{ marginBottom: '14px' }} />
                         <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#475569', marginBottom: '16px', lineHeight: 1.6 }}>
                             {docItem.content}
                         </div>
@@ -272,6 +313,9 @@ function SingleDoc({ docItem }) {
 
             {/* Footer / Signatures */}
             {(() => {
+                const showSignatures = docItem.showSignatures !== false && docItem.includeStamp !== false && docItem.stampSettings?.includeStamp !== false && docItem.stampSettings?.showSignatures !== false;
+                if (!showSignatures) return null;
+
                 const isCustomerDoc = docItem.docCategory === 'customer' || !!docItem.customerName || String(docItem.templateId || '').startsWith('customer_');
                 return (
                     <div className="doc-footer" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', marginTop: 'auto', paddingTop: '16px' }}>
@@ -367,7 +411,7 @@ function SingleDoc({ docItem }) {
             })()}
 
             {/* Free Placement Mode */}
-            {ss.placementMode === 'free' && stampSrc && (ss.showStamp ?? true) && (
+            {(docItem.showSignatures !== false && docItem.includeStamp !== false && docItem.stampSettings?.includeStamp !== false && docItem.stampSettings?.showSignatures !== false) && ss.placementMode === 'free' && stampSrc && (ss.showStamp ?? true) && (
                 <img
                     src={stampSrc}
                     alt="Kaşe"
@@ -384,7 +428,7 @@ function SingleDoc({ docItem }) {
                     }}
                 />
             )}
-            {ss.placementMode === 'free' && signatureSrc && (ss.showSignature ?? true) && (
+            {(docItem.showSignatures !== false && docItem.includeStamp !== false && docItem.stampSettings?.includeStamp !== false && docItem.stampSettings?.showSignatures !== false) && ss.placementMode === 'free' && signatureSrc && (ss.showSignature ?? true) && (
                 <img
                     src={signatureSrc}
                     alt="İmza"
@@ -401,7 +445,7 @@ function SingleDoc({ docItem }) {
                     }}
                 />
             )}
-            {ss.placementMode === 'free' && empSignatureSrc && (ss.showEmpSignature ?? true) && (
+            {(docItem.showSignatures !== false && docItem.includeStamp !== false && docItem.stampSettings?.includeStamp !== false && docItem.stampSettings?.showSignatures !== false) && ss.placementMode === 'free' && empSignatureSrc && (ss.showEmpSignature ?? true) && (
                 <img
                     src={empSignatureSrc}
                     alt="Personel İmzası"

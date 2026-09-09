@@ -1193,19 +1193,6 @@ export default function CustomerDetail() {
                             {!showArchived && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <button 
-                                        onClick={() => setIsDocGeneratorOpen(true)} 
-                                        className="btn btn-primary" 
-                                        style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '8px',
-                                            background: 'linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%)',
-                                            boxShadow: '0 2px 8px color-mix(in srgb, var(--accent-primary) 30%, transparent)'
-                                        }}
-                                    >
-                                        <FilePlus size={16} /> Belge Oluştur (Sözleşme / Teklif)
-                                    </button>
-                                    <button 
                                         onClick={handleOpenCreateFolder} 
                                         className="btn btn-secondary" 
                                         style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -1213,8 +1200,15 @@ export default function CustomerDetail() {
                                         <Plus size={16} /> Yeni Klasör
                                     </button>
                                     <button 
-                                        onClick={() => setUploadModalOpen(true)} 
+                                        onClick={() => setIsDocGeneratorOpen(true)} 
                                         className="btn btn-secondary" 
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        <FileText size={16} /> Belge Oluştur
+                                    </button>
+                                    <button 
+                                        onClick={() => setUploadModalOpen(true)} 
+                                        className="btn btn-primary" 
                                         style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                                     >
                                         <Plus size={16} /> Belge Yükle

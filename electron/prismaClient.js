@@ -877,9 +877,13 @@ async function runAutoMigrations() {
                 await p.$executeRawUnsafe("ALTER TABLE works ADD COLUMN work_end_time TEXT DEFAULT '17:00'");
                 log.info('Migration: Added work_end_time to works');
             }
+            if (!wCols2.some(c => c.name === 'disable_overtime')) {
+                await p.$executeRawUnsafe("ALTER TABLE works ADD COLUMN disable_overtime INTEGER DEFAULT 0");
+                log.info('Migration: Added disable_overtime to works');
+            }
         }
     } catch (error) {
-        log.error('Migration step 14 (work_start/end_time) error:', error.message);
+        log.error('Migration step 14 (work_start/end_time, disable_overtime) error:', error.message);
     }
 
     // 15. Companies & Customers: tax_office, sgk_no, tax_number (Sync with schema)

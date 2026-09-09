@@ -118,6 +118,7 @@ async function createWork(data) {
                 location: data.location,
                 work_start_time: data.work_start_time || '08:00',
                 work_end_time: data.work_end_time || '17:00',
+                disable_overtime: data.disable_overtime ? 1 : 0,
                 start_date: data.startDate ? new Date(data.startDate) : null,
                 end_date: data.endDate ? new Date(data.endDate) : null,
                 pazar_multiplier: data.pazar_multiplier !== undefined ? parseFloat(data.pazar_multiplier) : 1.5,
@@ -142,6 +143,8 @@ async function updateWork(data) {
 
         const newStartTime = data.work_start_time !== undefined ? data.work_start_time : currentWork?.work_start_time;
         const newEndTime = data.work_end_time !== undefined ? data.work_end_time : currentWork?.work_end_time;
+        const isDisableOvertime = data.disable_overtime !== undefined ? (data.disable_overtime ? 1 : 0) : (currentWork?.disable_overtime ? 1 : 0);
+        const disableOvertimeChanged = data.disable_overtime !== undefined && (data.disable_overtime ? 1 : 0) !== (currentWork?.disable_overtime ? 1 : 0);
 
         const updated = await prisma.works.update({
             where: { id: workId },
@@ -154,6 +157,7 @@ async function updateWork(data) {
                 location: data.location !== undefined ? data.location : undefined,
                 work_start_time: data.work_start_time !== undefined ? data.work_start_time : undefined,
                 work_end_time: data.work_end_time !== undefined ? data.work_end_time : undefined,
+                disable_overtime: data.disable_overtime !== undefined ? (data.disable_overtime ? 1 : 0) : undefined,
                 start_date: data.startDate !== undefined ? (data.startDate ? new Date(data.startDate) : null) : undefined,
                 end_date: data.endDate !== undefined ? (data.endDate ? new Date(data.endDate) : null) : undefined,
                 pazar_multiplier: data.pazar_multiplier !== undefined ? parseFloat(data.pazar_multiplier) : undefined,
@@ -163,7 +167,8 @@ async function updateWork(data) {
 
         if (currentWork && currentWork.work_items && currentWork.work_items.length > 0 &&
             ((data.work_start_time !== undefined && data.work_start_time !== currentWork.work_start_time) ||
-             (data.work_end_time !== undefined && data.work_end_time !== currentWork.work_end_time))) {
+             (data.work_end_time !== undefined && data.work_end_time !== currentWork.work_end_time) ||
+             disableOvertimeChanged)) {
             
             for (const item of currentWork.work_items) {
                 if (item.start_time && item.end_time) {
@@ -174,7 +179,8 @@ async function updateWork(data) {
                         item.end_time,
                         isHourly ? 'hourly' : 'daily',
                         newStartTime || '08:00',
-                        newEndTime || '17:00'
+                        newEndTime || '17:00',
+                        !!isDisableOvertime
                     );
 
                     await prisma.work_items.update({

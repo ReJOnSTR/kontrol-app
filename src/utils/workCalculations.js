@@ -8,7 +8,7 @@
  * @param {Array} items - work_items array
  * @returns {Object} calculated stats
  */
-export function calculateAutoHours(startTime, endTime, pricingType, workStartStr = '08:00', workEndStr = '17:00') {
+export function calculateAutoHours(startTime, endTime, pricingType, workStartStr = '08:00', workEndStr = '17:00', disableOvertime = false) {
     if (!startTime || !endTime) return { hours: 1, overtimeHours: 0 };
 
     const [startH, startM] = startTime.split(':').map(Number);
@@ -22,6 +22,9 @@ export function calculateAutoHours(startTime, endTime, pricingType, workStartStr
 
     if (pricingType === 'hourly') {
         calculatedHours = parseFloat(diffHours.toFixed(2));
+        calculatedOvertime = 0;
+    } else if (disableOvertime) {
+        calculatedHours = 1;
         calculatedOvertime = 0;
     } else {
         const [wSH, wSM] = (workStartStr || '08:00').split(':').map(Number);

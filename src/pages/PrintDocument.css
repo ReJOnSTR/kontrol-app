@@ -1,15 +1,23 @@
+*, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+}
+
 .a4-page {
     width: 210mm;
     min-height: 297mm;
-    padding: 18mm;
+    padding: 16mm 18mm;
     margin: 10mm auto;
-    background: white !important;
+    background: #ffffff !important;
     color: #1a1a1a !important;
     box-sizing: border-box;
-    font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     display: flex;
     flex-direction: column;
     position: relative;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
 }
 
 @media print {
@@ -17,24 +25,28 @@
         size: A4 portrait;
         margin: 0mm;
     }
+    html, body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
     .web-print-toolbar {
         display: none !important;
     }
-    body {
-        background: none;
-        margin: 0;
-        padding: 0;
-    }
     .a4-page {
-        margin: 0;
-        box-shadow: none;
-        width: 210mm;
-        height: 297mm;
-        padding: 15mm;
+        margin: 0 !important;
+        box-shadow: none !important;
+        width: 210mm !important;
+        min-height: 297mm !important;
+        height: auto !important;
+        padding: 16mm 18mm !important;
         page-break-inside: avoid;
         page-break-after: avoid;
-        overflow: hidden;
-        box-sizing: border-box;
+        box-sizing: border-box !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 }
 
@@ -69,39 +81,58 @@
 
 .info-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px;
+    overflow: hidden;
     margin-bottom: 15px;
     table-layout: fixed;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
 }
 
 .section-title {
-    background-color: #f1f5f9;
-    color: #334155;
-    font-size: 11px;
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    font-size: 10.5px;
     font-weight: 800;
     text-align: left;
     padding: 6px 10px;
-    border: 1px solid #e2e8f0;
+    border: none;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
 }
 
 .label-cell {
-    width: 200px;
-    font-size: 11px;
+    width: 130px;
+    font-size: 10px;
     font-weight: 700;
     color: #475569;
     padding: 6px 10px;
-    border: 1px solid #e2e8f0;
-    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    background-color: #f8fafc !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
 }
 
 .value-cell {
-    font-size: 12px;
-    font-weight: 500;
-    color: #000;
+    font-size: 11px;
+    font-weight: 600;
+    color: #0f172a;
     padding: 6px 10px;
-    border: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    background-color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+.info-table tbody tr:last-child .label-cell,
+.info-table tbody tr:last-child .value-cell {
+    border-bottom: none;
 }
 
 .assignment-text {
@@ -114,27 +145,56 @@
 /* Customer Proposal & Contract Styles */
 .proposal-table {
     width: 100%;
-    border-collapse: collapse;
-    margin: 14px 0;
-    font-size: 11.5px;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 12px 0;
+    font-size: 11px;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
 }
 
 .proposal-table th {
-    background-color: #0f172a;
-    color: #ffffff;
+    background-color: #0f172a !important;
+    color: #ffffff !important;
     font-weight: 700;
-    padding: 7px 10px;
-    border: 1px solid #0f172a;
+    padding: 8px 10px;
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
     text-align: left;
     text-transform: uppercase;
     font-size: 10px;
     letter-spacing: 0.04em;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+.proposal-table th:last-child {
+    border-right: none;
 }
 
 .proposal-table td {
     padding: 7px 10px;
-    border: 1px solid #cbd5e1;
+    border-bottom: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
     color: #1e293b;
+    vertical-align: middle;
+}
+
+.proposal-table td:last-child {
+    border-right: none;
+}
+
+.proposal-table tbody tr:nth-child(even) {
+    background-color: #f8fafc !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+.proposal-table tbody tr:last-child td {
+    border-bottom: none;
 }
 
 .proposal-table tbody tr:nth-child(even) {

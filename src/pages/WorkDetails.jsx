@@ -187,6 +187,9 @@ export default function WorkDetails(props) {
         if (pricingType === 'hourly') {
             calculatedHours = parseFloat(diffHours.toFixed(2));
             calculatedOvertime = 0;
+        } else if (work?.disable_overtime) {
+            calculatedHours = 1;
+            calculatedOvertime = 0;
         } else {
             // 'daily' or 'monthly' pricing
             // Standard Window from work settings, defaulting to 08:00 - 17:00 (9 hours total)

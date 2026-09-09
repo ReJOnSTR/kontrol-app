@@ -512,6 +512,7 @@ model works {
   end_date        DateTime?
   work_start_time String?      @default("08:00")
   work_end_time   String?      @default("17:00")
+  disable_overtime Int?        @default(0)
   is_archived     Int?         @default(0)
   pazar_multiplier Float?      @default(1.5)
   mesai_multiplier Float?      @default(1.5)

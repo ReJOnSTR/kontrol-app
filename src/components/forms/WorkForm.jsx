@@ -21,6 +21,7 @@ export default function WorkForm({ initialData, onSubmit, onCancel, loading, cus
         control,
         handleSubmit,
         reset,
+        watch,
         formState: { errors }
     } = useForm({
         resolver: zodResolver(workHeaderSchema),
@@ -33,10 +34,13 @@ export default function WorkForm({ initialData, onSubmit, onCancel, loading, cus
             location: '',
             work_start_time: '08:00',
             work_end_time: '17:00',
+            disable_overtime: false,
             pazar_multiplier: 1.5,
             mesai_multiplier: 1.5
         }
     })
+
+    const watchDisableOvertime = watch('disable_overtime')
 
     useEffect(() => {
         if (initialData) {
@@ -49,6 +53,7 @@ export default function WorkForm({ initialData, onSubmit, onCancel, loading, cus
                 location: initialData.location || '',
                 work_start_time: initialData.work_start_time || '08:00',
                 work_end_time: initialData.work_end_time || '17:00',
+                disable_overtime: !!initialData.disable_overtime,
                 pazar_multiplier: initialData.pazar_multiplier !== undefined && initialData.pazar_multiplier !== null ? initialData.pazar_multiplier : 1.5,
                 mesai_multiplier: initialData.mesai_multiplier !== undefined && initialData.mesai_multiplier !== null ? initialData.mesai_multiplier : 1.5
             })
@@ -62,6 +67,7 @@ export default function WorkForm({ initialData, onSubmit, onCancel, loading, cus
                 location: '',
                 work_start_time: '08:00',
                 work_end_time: '17:00',
+                disable_overtime: false,
                 pazar_multiplier: 1.5,
                 mesai_multiplier: 1.5
             })
@@ -164,6 +170,7 @@ export default function WorkForm({ initialData, onSubmit, onCancel, loading, cus
                                 value={field.value}
                                 onChange={field.onChange}
                                 error={errors.work_start_time?.message}
+                                disabled={watchDisableOvertime}
                             />
                         )}
                     />
@@ -179,10 +186,46 @@ export default function WorkForm({ initialData, onSubmit, onCancel, loading, cus
                                 value={field.value}
                                 onChange={field.onChange}
                                 error={errors.work_end_time?.message}
+                                disabled={watchDisableOvertime}
                             />
                         )}
                     />
                 </div>
+            </div>
+
+            <div style={{
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-secondary)',
+                gap: '12px'
+            }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Mesaileri Sayma (Fazla Mesai Hesaplanmasın)
+                    </span>
+                    <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                        Aktif edildiğinde bu işe ait günlük puantaj kayıtlarında fazla mesai süresi 0 kabul edilir.
+                    </span>
+                </div>
+                <Controller
+                    name="disable_overtime"
+                    control={control}
+                    render={({ field }) => (
+                        <label className="toggle-switch" style={{ flexShrink: 0 }}>
+                            <input
+                                type="checkbox"
+                                checked={!!field.value}
+                                onChange={(e) => field.onChange(e.target.checked)}
+                            />
+                            <span className="toggle-slider"></span>
+                        </label>
+                    )}
+                />
             </div>
 
             <div className="form-row" style={{ marginBottom: '16px' }}>

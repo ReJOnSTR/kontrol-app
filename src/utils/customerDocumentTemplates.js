@@ -3,36 +3,48 @@ export const customerDocumentTemplates = [
         id: 'customer_proposal',
         name: 'Fiyat Teklifi / Proforma',
         title: 'FİYAT TEKLİF FORMU',
-        content: `Sayın {{customerName}} Yetkilisi,
-
-Firmanızın talebi doğrultusunda, {{projectSubject}} işi kapsamında verilecek hizmet ve makine kiralama şartlarına ilişkin fiyat teklifimiz aşağıda bilgilerinize sunulmuştur:
-
-HİZMET VE ÇALIŞMA DETAYLARI:
-• Hizmet / İş Konusu: {{serviceDetail}}
-• Çalışma / Şantiye Sahası: {{workLocation}}
-• Hizmet Bedeli: {{offerAmount}}
-• Geçerlilik Süresi: {{validityDays}}
-
-TEKLİF VE ÇALIŞMA ŞARTLARI:
-1. Teklifimiz hazırlandığı tarihten itibaren {{validityDays}} süreyle geçerlidir.
-2. Fiyatlarımıza KDV dahil değildir, yasal KDV oranı ayrıca ilave edilecektir.
-3. Ödeme Koşulu: {{paymentTerms}}.
-4. Çalışma sahasında iş sağlığı ve güvenliği önlemleri ile zemin emniyeti müşteri tarafından sağlanacaktır.
-5. Yakıt firmamıza ait olup, operatörlerin mesleki yeterlilik ve periyodik muayene evrakları eksiksizdir.
-
-Teklifimizin kabulünü ve onaylı bir nüshasının tarafımıza iletilmesini rica eder, iyi çalışmalar dileriz.`,
+        isProposal: true,
         placeholders: [
             { key: 'customerName', label: 'Müşteri / Firma Adı', source: 'customer', keyInCust: 'name' },
             { key: 'proposalNo', label: 'Teklif No', type: 'text', default: 'TEK-' + new Date().getFullYear() + '-' + Math.floor(100 + Math.random() * 900) },
             { key: 'proposalDate', label: 'Teklif Tarihi', type: 'date', default: 'today' },
-            { key: 'projectSubject', label: 'İş / Proje Konusu', type: 'text', default: 'Vinç Operasyon ve Ağır Nakliye Hizmeti' },
-            { key: 'serviceDetail', label: 'Hizmet Detayı / Makine', type: 'text', default: 'Mobil Vinç ve Uzman Operatörlü Kaldırma Hizmeti' },
-            { key: 'workLocation', label: 'Çalışma / Şantiye Sahası', type: 'text', default: 'Müşteri Proje Sahası' },
-            { key: 'offerAmount', label: 'Teklif Bedeli', type: 'text', default: '25.000,00 ₺ + KDV' },
             { key: 'validityDays', label: 'Geçerlilik Süresi', type: 'text', default: '15 Gün' },
-            { key: 'paymentTerms', label: 'Ödeme Koşulu', type: 'text', default: 'Hizmet bitimi fatura kesimini müteakip nakden/havale' },
+            { key: 'attentionPerson', label: 'İlgili Kişi / Yetkili', type: 'text', default: '' },
+            { key: 'workLocation', label: 'Çalışma / Şantiye Sahası', type: 'text', default: 'Müşteri Proje Sahası' },
             { key: 'preparedBy', label: 'Hazırlayan Yetkili', type: 'text', source: 'company', keyInComp: 'name' }
-        ]
+        ],
+        priceColumns: [
+            { id: 'daily', label: 'Günlük Fiyat' },
+            { id: 'monthly', label: 'Aylık Fiyat' },
+            { id: 'hourly', label: 'Saatlik / Mesai' }
+        ],
+        defaultShowConditionColumn: false,
+        defaultItems: [
+            { 
+                id: '1', 
+                description: '50 Tonluk Teleskopik Mobil Vinç', 
+                condition: 'Operatör dahil, yakıt hariç',
+                prices: { daily: '25.000 ₺', monthly: '350.000 ₺', hourly: '4.500 ₺ (Min. 4 Saat)' }
+            },
+            { 
+                id: '2', 
+                description: 'Sepetli Platform (30 Metre)', 
+                condition: 'Operatörlü, tek vardiya',
+                prices: { daily: '15.000 ₺', monthly: '220.000 ₺', hourly: '2.500 ₺' }
+            },
+            { 
+                id: '3', 
+                description: 'Lowbed Ağır Nakliye Taşıma Hizmeti', 
+                condition: 'Gidiş-Dönüş / Sefer başı',
+                prices: { daily: '-', monthly: '-', hourly: '12.500 ₺ / Sefer' }
+            }
+        ],
+        defaultVatNote: 'Fiyatlarımıza %20 yasal KDV ayrıca ilave edilecektir.',
+        defaultTerms: `1. Belirtilen fiyatlarımıza yasal KDV oranı ayrıca ilave edilecektir.
+2. Teklifimiz hazırlandığı tarihten itibaren belirtilen geçerlilik süresince geçerlidir.
+3. Çalışma sahasında zemin emniyeti, yük altı güvenliği ve İSG tedbirleri müşteri/işveren sorumluluğundadır.
+4. Vinç ve makineler periyodik kontrol belgeli ve operatörler sertifikalıdır.
+5. Çalışma saatleri aksi kararlaştırılmadıkça günlük 8 saat üzerinden hesaplanır.`
     },
     {
         id: 'customer_contract',
