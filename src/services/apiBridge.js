@@ -54,12 +54,16 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                 return async () => ({ success: true });
             }
 
+            if (prop === 'getPathForFile') {
+                return (file) => file?.path || null;
+            }
+
             // Web file picker & auto-upload with hierarchical folder routing
             if (prop === 'selectFile') {
                 return (options = {}) => new Promise((resolve) => {
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.multiple = options?.multiple || false;
+                    input.multiple = options?.multiple !== false;
                     input.accept = options?.accept || '*/*';
                     input.style.display = 'none';
                     document.body.appendChild(input);

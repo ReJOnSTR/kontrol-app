@@ -1011,8 +1011,12 @@ ipcMain.handle('employeeDocuments:create', async (event, data) => {
             fs.mkdirSync(filesDir, { recursive: true })
         }
 
-        const sourcePath = data.filePath
-        const ext = path.extname(sourcePath)
+        const sourcePath = typeof data.filePath === 'object' && data.filePath !== null ? data.filePath.path : data.filePath
+        if (!sourcePath) {
+            return { success: false, error: 'Dosya yolu bulunamadı.' }
+        }
+
+        const ext = path.extname(sourcePath || '')
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
         const destPath = path.join(filesDir, fileName)
 
@@ -1022,7 +1026,7 @@ ipcMain.handle('employeeDocuments:create', async (event, data) => {
         // Save to DB with the NEW path (the filename in our storage)
         const result = await db.addEmployeeDocument({
             ...data,
-            fileName: data.fileName || path.basename(sourcePath), // Prioritize provided name
+            fileName: data.fileName || (typeof data.filePath === 'object' && data.filePath !== null ? data.filePath.name : null) || path.basename(sourcePath), // Prioritize provided name
             filePath: fileName // New storage name (timestamped)
         })
 
@@ -1915,10 +1919,11 @@ ipcMain.on('app:openExternal', (event, url) => {
 })
 
 // File handlers
-ipcMain.handle('files:select', async () => {
+ipcMain.handle('files:select', async (event, options = {}) => {
+    const properties = options?.multiple === false ? ['openFile'] : ['openFile', 'multiSelections']
     const result = await dialog.showOpenDialog({
-        properties: ['openFile', 'multiSelections'],
-        filters: [
+        properties,
+        filters: options?.filters || [
             { name: 'Tüm Desteklenen Dosyalar', extensions: ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'doc', 'docx', 'xls', 'xlsx'] },
             { name: 'Görseller (PNG, JPG, SVG, WEBP, BMP)', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] },
             { name: 'Belgeler (PDF, Word, Excel)', extensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx'] }

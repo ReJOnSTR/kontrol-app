@@ -1645,8 +1645,8 @@ export default function EmployeeDetail() {
         setSaving(true)
         try {
             for (const doc of docs) {
-                const ext = doc.originalName.split('.').pop().toLowerCase()
-                await window.electronAPI.createEmployeeDocument({
+                const ext = (doc.originalName || doc.displayName || '').split('.').pop().toLowerCase()
+                const res = await window.electronAPI.createEmployeeDocument({
                     employeeId: parseInt(id),
                     fileName: doc.displayName,
                     filePath: doc.path,
@@ -1657,11 +1657,16 @@ export default function EmployeeDetail() {
                     startDate: doc.startDate || null,
                     expiryDate: doc.endDate || null
                 })
+                if (res && res.success === false) {
+                    throw new Error(res.error || `"${doc.displayName}" yüklenemedi.`)
+                }
             }
-            await loadEmployeeData()
+            await loadEmployeeData(true)
+            return { success: true }
         } catch (err) { 
             console.error('Upload failed:', err)
-            alert('Belgeler yüklenirken bir hata oluştu.')
+            alert('Belgeler yüklenirken bir hata oluştu: ' + (err.message || 'Bilinmeyen hata'))
+            throw err
         } finally {
             setSaving(false)
         }

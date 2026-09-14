@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatDate } from '../utils/helpers';
+import { DEFAULT_CONTRACT_ANNEX_ITEMS, DEFAULT_CONTRACT_NOTICE, DEFAULT_CONTRACT_ARTICLES } from '../utils/customerDocumentTemplates';
 import './PrintDocument.css';
 import html2pdf from 'html2pdf.js';
 
@@ -17,6 +18,370 @@ const DEFAULT_STAMP_SETTINGS = {
     empSignatureOffsetX: 0,
     empSignatureOffsetY: 0,
     empSignatureOpacity: 0.9,
+}
+
+function renderArticleText(text, placeholders = {}, docItem = {}) {
+    if (!text) return '';
+    let result = text;
+    const all = { ...placeholders, ...(docItem.placeholders || {}) };
+    Object.entries(all).forEach(([k, v]) => {
+        result = result.replace(new RegExp(`{{${k}}}`, 'g'), v !== undefined && v !== null ? v : `[${k}]`);
+    });
+    const pageCountNote = docItem.includeContractAnnex !== false ? 'ekler dahil 4 sayfadan' : '3 sayfadan';
+    result = result.replace(new RegExp(`{{pageCountNote}}`, 'g'), pageCountNote);
+    return result;
+}
+
+function ContractSignatureBlock({ docItem, stampSrc, signatureSrc, empSignatureSrc, ss, containerH }) {
+    const showSignatures = docItem.showSignatures !== false && docItem.includeStamp !== false && docItem.stampSettings?.includeStamp !== false && docItem.stampSettings?.showSignatures !== false;
+    
+    return (
+        <div style={{ marginTop: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px' }}>
+                {/* KİRALAYAN FİRMA */}
+                <div style={{ textAlign: 'center', position: 'relative' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 900, textDecoration: 'underline', color: '#000', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.04em' }}>
+                        KİRALAYAN FİRMA
+                    </div>
+                    {showSignatures && (
+                        <div style={{
+                            height: `${containerH}px`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative',
+                            marginBottom: '6px'
+                        }}>
+                            {ss.placementMode !== 'free' && stampSrc && (ss.showStamp ?? true) && (
+                                <img
+                                    src={stampSrc}
+                                    alt="Kaşe"
+                                    style={{
+                                        width: `${ss.stampSize}px`,
+                                        height: `${ss.stampSize}px`,
+                                        objectFit: 'contain',
+                                        opacity: ss.stampOpacity,
+                                        position: 'absolute',
+                                        top: `calc(50% + ${ss.stampOffsetY ?? 0}px)`,
+                                        left: `calc(50% + ${ss.stampOffsetX ?? 0}px)`,
+                                        transform: 'translate(-50%, -50%)',
+                                        zIndex: 1,
+                                    }}
+                                />
+                            )}
+                            {ss.placementMode !== 'free' && signatureSrc && (ss.showSignature ?? true) && (
+                                <img
+                                    src={signatureSrc}
+                                    alt="İmza"
+                                    style={{
+                                        width: `${ss.signatureSize}px`,
+                                        height: `${ss.signatureSize}px`,
+                                        objectFit: 'contain',
+                                        opacity: ss.signatureOpacity,
+                                        position: 'absolute',
+                                        top: `calc(50% + ${ss.signatureOffsetY}px)`,
+                                        left: `calc(50% + ${ss.signatureOffsetX}px)`,
+                                        transform: 'translate(-50%, -50%)',
+                                        zIndex: 2,
+                                    }}
+                                />
+                            )}
+                            {ss.placementMode !== 'free' && (!stampSrc || !(ss.showStamp ?? true)) && (!signatureSrc || !(ss.showSignature ?? true)) && (
+                                <div style={{ height: `${containerH}px` }}></div>
+                            )}
+                        </div>
+                    )}
+                    {!showSignatures && <div style={{ height: '60px' }}></div>}
+                </div>
+
+                {/* KİRACI FİRMA */}
+                <div style={{ textAlign: 'center', position: 'relative' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 900, textDecoration: 'underline', color: '#000', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.04em' }}>
+                        KİRACI FİRMA
+                    </div>
+                    {showSignatures && (
+                        <div style={{
+                            height: `${containerH}px`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative',
+                            marginBottom: '6px'
+                        }}>
+                            {ss.placementMode !== 'free' && empSignatureSrc && (ss.showEmpSignature ?? true) && (
+                                <img
+                                    src={empSignatureSrc}
+                                    alt="İmza"
+                                    style={{
+                                        width: `${ss.empSignatureSize ?? 80}px`,
+                                        height: `${ss.empSignatureSize ?? 80}px`,
+                                        objectFit: 'contain',
+                                        opacity: ss.empSignatureOpacity ?? 0.9,
+                                        position: 'absolute',
+                                        top: `calc(50% + ${ss.empSignatureOffsetY ?? 0}px)`,
+                                        left: `calc(50% + ${ss.empSignatureOffsetX ?? 0}px)`,
+                                        transform: 'translate(-50%, -50%)',
+                                        zIndex: 3,
+                                    }}
+                                />
+                            )}
+                            {ss.placementMode !== 'free' && (!empSignatureSrc || !(ss.showEmpSignature ?? true)) && (
+                                <div style={{ height: `${containerH}px` }}></div>
+                            )}
+                        </div>
+                    )}
+                    {!showSignatures && <div style={{ height: '60px' }}></div>}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ContractDocumentPages({ docItem, stampSrc, signatureSrc, empSignatureSrc, ss, containerH }) {
+    const p = docItem.placeholders || {};
+    const companyName = docItem.companyName || p.companyName || 'SAK PETROL OTOMOTİV TİCARET LİMİTED ŞİRKETİ';
+    const companyAddress = docItem.companyAddress || p.companyAddress || 'Atatürk Bul. Şaban Oğlu Mah. No: 304 Tekkeköy/Samsun';
+    const companyPhone = p.companyPhone || docItem.companyPhone || '0 (532) 766 75 85';
+    const companyEmail = p.companyEmail || docItem.companyEmail || 'hasan@sakvinc.com.tr';
+    const companyTaxOffice = docItem.companyTaxOffice || p.companyTaxOffice || '19 Mayıs';
+    const companyTaxNumber = docItem.companyTaxNumber || p.companyTaxNumber || '739 005 9946';
+
+    const customerName = docItem.customerName || p.customerName || '';
+    const customerAddress = docItem.customerAddress || p.customerAddress || p.workLocation || '';
+    const customerPhone = p.customerPhone || docItem.customerPhone || '';
+    const customerEmail = p.customerEmail || docItem.customerEmail || '';
+    const customerTaxOffice = p.customerTaxOffice || docItem.customerTaxOffice || '';
+    const customerTaxNumber = p.customerTaxNumber || docItem.customerTaxNumber || docItem.customerTax || '';
+
+    const startDate = p.startDate || new Date().toISOString().split('T')[0];
+    const workStartDate = p.workStartDate || startDate;
+    const workEndDate = p.workEndDate || '';
+    const paymentDays = p.paymentDays || '20';
+    const bankIban = p.bankIban || 'TR68 0001 2001 3860 0010 1005 09';
+    const bankName = p.bankName || 'HALK BANKASI';
+
+    const rawArticles = docItem.contractArticles || DEFAULT_CONTRACT_ARTICLES;
+    const allArticles = rawArticles.map((art, idx) => ({
+        ...art,
+        num: idx + 1
+    }));
+    const articlesPage2 = allArticles.slice(0, 10);
+    const articlesPage3 = allArticles.slice(10);
+    const annexItems = docItem.contractAnnexItems || DEFAULT_CONTRACT_ANNEX_ITEMS;
+    const includeAnnex = docItem.includeContractAnnex !== false;
+
+    return (
+        <React.Fragment>
+            {/* SAYFA 1: TARAFLARA İLİŞKİN BİLGİLER & NOT */}
+            <div className="a4-page contract-page" style={{ position: 'relative', pageBreakAfter: 'always', breakAfter: 'page' }}>
+                {/* Logo */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '6px', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '36px', fontWeight: 900, color: '#f97316', letterSpacing: '2px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>SAK</span>
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', letterSpacing: '4px', marginTop: '-6px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>VİNÇ</div>
+                </div>
+
+                {/* Başlık */}
+                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                    <h1 style={{ fontSize: '14.5px', fontWeight: 900, textTransform: 'uppercase', color: '#000', margin: 0, letterSpacing: '0.2px', lineHeight: 1.4 }}>
+                        {docItem.title || 'SAK PETROL OTOMATİV LTD. ŞTİ. İŞ MAKİNASI KİRA SÖZLEŞMESİ'}
+                    </h1>
+                </div>
+
+                {/* Taraflara İlişkin Bilgiler */}
+                <div style={{ marginBottom: '24px' }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#000', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.03em' }}>
+                        TARAFLARA İLİŞKİN BİLGİLER:
+                    </div>
+
+                    {/* KİRALAYAN */}
+                    <div style={{ marginBottom: '20px', fontSize: '11.5px', lineHeight: 1.8, color: '#000' }}>
+                        <div style={{ fontWeight: 800, marginBottom: '4px' }}>KİRALAYAN:</div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>Adı:</span>
+                            <span>{companyName}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>Adresi:</span>
+                            <span>{companyAddress}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>Telefon Numarası:</span>
+                            <span>{companyPhone}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>E-Postası:</span>
+                            <span style={{ textDecoration: 'underline', color: '#1e40af' }}>{companyEmail}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>Vergi Dairesi:</span>
+                            <span>{companyTaxOffice}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>Vergi No:</span>
+                            <span>{companyTaxNumber}</span>
+                        </div>
+                    </div>
+
+                    {/* KİRACI */}
+                    <div style={{ marginBottom: '24px', fontSize: '11.5px', lineHeight: 1.8, color: '#000' }}>
+                        <div style={{ fontWeight: 800, marginBottom: '4px' }}>KİRACI:</div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>Adı:</span>
+                            <span style={{ fontWeight: 700 }}>{customerName}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>Adresi:</span>
+                            <span>{customerAddress}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>Telefon Numarası:</span>
+                            <span>{customerPhone || ''}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>E-Postası:</span>
+                            <span style={{ textDecoration: customerEmail ? 'underline' : 'none', color: customerEmail ? '#1e40af' : '#000' }}>
+                                {customerEmail || ''}
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>Vergi Dairesi:</span>
+                            <span>{customerTaxOffice || ''}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <span style={{ fontWeight: 800, width: '135px' }}>Vergi No:</span>
+                            <span>{customerTaxNumber || ''}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* NOT */}
+                <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#000', marginBottom: '8px' }}>
+                        NOT:
+                    </div>
+                    <p style={{ fontSize: '11px', lineHeight: 1.65, textAlign: 'justify', color: '#000', margin: 0 }}>
+                        {docItem.contractNotice || DEFAULT_CONTRACT_NOTICE}
+                    </p>
+                </div>
+            </div>
+
+            {/* SAYFA 2: BAŞLAMA TARİHİ, İŞE BAŞLAMA, ÖDEME ŞEKLİ VE ÖZEL ŞARTLAR (1-10) */}
+            <div className="a4-page contract-page" style={{ position: 'relative', pageBreakAfter: 'always', breakAfter: 'page' }}>
+                {/* SÖZLEŞME BAŞLAMA TARİHİ */}
+                <div style={{ marginBottom: '14px' }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#000', textTransform: 'uppercase', marginBottom: '4px' }}>
+                        SÖZLEŞME BAŞLAMA TARİHİ:
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: '#000' }}>
+                        <span style={{ fontWeight: 800 }}>Tarih: </span>
+                        <span>{formatDate(startDate)}</span>
+                    </div>
+                </div>
+
+                {/* İŞE BAŞLAMA / İŞİ BİTİRME TARİHİ */}
+                <div style={{ marginBottom: '18px' }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#000', textTransform: 'uppercase', marginBottom: '4px' }}>
+                        İŞE BAŞLAMA /İŞİ BİTİRME TARİHİ:
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: '#000' }}>
+                        <span style={{ fontWeight: 800 }}>Tarih: </span>
+                        <span>{workStartDate && workEndDate ? `${formatDate(workStartDate)} - ${formatDate(workEndDate)}` : formatDate(workStartDate || startDate)}</span>
+                    </div>
+                </div>
+
+                {/* ÖDEME ŞEKLİ */}
+                <div style={{ marginBottom: '22px' }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#000', textTransform: 'uppercase', marginBottom: '6px' }}>
+                        ÖDEME ŞEKLİ:
+                    </div>
+                    <p style={{ fontSize: '11px', lineHeight: 1.65, textAlign: 'justify', color: '#000', margin: 0 }}>
+                        Aylık Kira bedeli, fatura kesim tarihinden itibaren {paymentDays} iş günü içerisinde kiralayan firmaya ait <strong style={{ textDecoration: 'underline' }}>{bankIban}</strong> <strong style={{ textDecoration: 'underline' }}>{bankName}</strong> nolu banka hesabına peşin olarak ödenecektir. Kira ödemesinin başka bir şubeden havale/eft edilmesi halinde aynı süre içinde kiraya verenin hesabında olacak şekilde işlem yapılması gerekmekte olup aksi takdirde temerrüt hükümleri uygulanacaktır.
+                    </p>
+                </div>
+
+                {/* ÖZEL ŞARTLAR: 1 - 10 */}
+                <div style={{ flexGrow: 1 }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#000', textTransform: 'uppercase', marginBottom: '12px' }}>
+                        ÖZEL ŞARTLAR:
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {articlesPage2.map((art) => (
+                            <div key={art.num} style={{ fontSize: '11px', lineHeight: 1.6, textAlign: 'justify', color: '#000' }}>
+                                <strong style={{ fontWeight: 800 }}>{art.num}. </strong>
+                                <span>{renderArticleText(art.text, p, docItem)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* SAYFA 3: ÖZEL ŞARTLARIN DEVAMI (11-14) VE İMZA ALANI */}
+            <div className="a4-page contract-page" style={{ position: 'relative', pageBreakAfter: includeAnnex ? 'always' : 'auto', breakAfter: includeAnnex ? 'page' : 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '40px' }}>
+                    {articlesPage3.map((art) => (
+                        <div key={art.num} style={{ fontSize: '11px', lineHeight: 1.65, textAlign: 'justify', color: '#000' }}>
+                            <strong style={{ fontWeight: 800 }}>{art.num}. </strong>
+                            <span>{renderArticleText(art.text, p, docItem)}</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div style={{ marginTop: 'auto', paddingTop: '30px' }}>
+                    <ContractSignatureBlock
+                        docItem={docItem}
+                        stampSrc={stampSrc}
+                        signatureSrc={signatureSrc}
+                        empSignatureSrc={empSignatureSrc}
+                        ss={ss}
+                        containerH={containerH}
+                    />
+                </div>
+            </div>
+
+            {/* SAYFA 4: SÖZLEŞME EKLERİ (FİYAT TABLOSU & İMZA ALANI) */}
+            {includeAnnex && (
+                <div className="a4-page contract-page" style={{ position: 'relative' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#000', textTransform: 'uppercase', marginBottom: '14px', letterSpacing: '0.02em' }}>
+                        SÖZLEŞME EKLERİ:
+                    </div>
+
+                    <table className="contract-annex-table">
+                        <thead>
+                            <tr>
+                                <th style={{ width: '45px', textAlign: 'center' }}>No</th>
+                                <th style={{ textAlign: 'center' }}>İş Makinaları</th>
+                                <th style={{ width: '130px', textAlign: 'center' }}>Günlük</th>
+                                <th style={{ width: '140px', textAlign: 'center' }}>Aylık</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {annexItems.map((item, idx) => (
+                                <tr key={item.id || idx}>
+                                    <td style={{ textAlign: 'center', fontWeight: 600 }}>{idx + 1}</td>
+                                    <td style={{ textAlign: 'center', fontWeight: 600 }}>{item.name}</td>
+                                    <td style={{ textAlign: 'center', fontWeight: 600 }}>{item.dailyPrice || ''}</td>
+                                    <td style={{ textAlign: 'center', fontWeight: 600 }}>{item.monthlyPrice || ''}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    <div style={{ marginTop: 'auto', paddingTop: '30px' }}>
+                        <ContractSignatureBlock
+                            docItem={docItem}
+                            stampSrc={stampSrc}
+                            signatureSrc={signatureSrc}
+                            empSignatureSrc={empSignatureSrc}
+                            ss={ss}
+                            containerH={containerH}
+                        />
+                    </div>
+                </div>
+            )}
+        </React.Fragment>
+    );
 }
 
 function InfoTable({ title, rows, style }) {
@@ -104,6 +469,19 @@ function SingleDoc({ docItem }) {
 
     const ss = { ...DEFAULT_STAMP_SETTINGS, ...(docItem.stampSettings || {}) };
     const containerH = ss.placementMode === 'free' ? 40 : 80;
+
+    if (docItem.templateId === 'customer_contract' || docItem.isContract) {
+        return (
+            <ContractDocumentPages
+                docItem={docItem}
+                stampSrc={stampSrc}
+                signatureSrc={signatureSrc}
+                empSignatureSrc={empSignatureSrc}
+                ss={ss}
+                containerH={containerH}
+            />
+        );
+    }
 
     return (
         <div className="a4-page" style={{ position: 'relative', pageBreakAfter: 'always', breakAfter: 'page' }}>
@@ -524,7 +902,7 @@ export default function PrintDocument() {
     }, []);
 
     const downloadPdfDirectly = () => {
-        const el = document.querySelector('.a4-page') || document.body;
+        const el = document.querySelector('.print-pages-container') || document.querySelector('.a4-page') || document.body;
         const filename = `Belge_${new Date().toISOString().split('T')[0]}.pdf`;
 
         const opt = {
@@ -604,13 +982,15 @@ export default function PrintDocument() {
     return (
         <div>
             {renderToolbar()}
-            {data.isBulk && Array.isArray(data.documents) ? (
-                data.documents.map((docItem, index) => (
-                    <SingleDoc key={index} docItem={docItem} />
-                ))
-            ) : (
-                <SingleDoc docItem={data} />
-            )}
+            <div className="print-pages-container">
+                {data.isBulk && Array.isArray(data.documents) ? (
+                    data.documents.map((docItem, index) => (
+                        <SingleDoc key={index} docItem={docItem} />
+                    ))
+                ) : (
+                    <SingleDoc docItem={data} />
+                )}
+            </div>
         </div>
     );
 }

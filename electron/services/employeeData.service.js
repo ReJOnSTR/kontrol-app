@@ -318,7 +318,7 @@ async function getEmployeeDocuments(employeeId, isArchived = 0) {
         const data = await prisma.employee_documents.findMany({
             where: { 
                 employee_id: parseInt(employeeId),
-                is_archived: isArchived ? 1 : 0
+                ...(isArchived ? { is_archived: 1 } : { OR: [{ is_archived: 0 }, { is_archived: null }] })
             },
             orderBy: { created_at: 'desc' }
         });
@@ -336,9 +336,10 @@ async function addEmployeeDocument(data) {
                 file_type: data.fileType || null,
                 category: data.category || null,
                 folder: data.folder || null,
-                issue_date: new Date(), // Always today for new uploads
+                issue_date: data.issueDate ? new Date(data.issueDate) : new Date(),
                 start_date: data.startDate ? new Date(data.startDate) : null,
-                expiry_date: data.expiryDate ? new Date(data.expiryDate) : null
+                expiry_date: data.expiryDate ? new Date(data.expiryDate) : null,
+                is_archived: 0
             }
         });
         return { success: true, id: result.id };

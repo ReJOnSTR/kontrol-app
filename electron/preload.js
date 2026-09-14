@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
     // Auth
@@ -207,9 +207,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     showNotification: (title, body) => ipcRenderer.invoke('notification:show', { title, body }),
 
     // File Handlers
-    selectFile: () => ipcRenderer.invoke('files:select'),
+    selectFile: (options) => ipcRenderer.invoke('files:select', options),
     saveFile: (sourcePath) => ipcRenderer.invoke('files:save', sourcePath),
     openFile: (fileName) => ipcRenderer.invoke('files:open', fileName),
+    getPathForFile: (file) => {
+        try {
+            if (webUtils && typeof webUtils.getPathForFile === 'function') {
+                return webUtils.getPathForFile(file)
+            }
+        } catch (e) {
+            console.warn('webUtils.getPathForFile failed:', e)
+        }
+        return file?.path || null
+    },
 
     // Document Management
     addDocument: (data) => ipcRenderer.invoke('documents:add', data),

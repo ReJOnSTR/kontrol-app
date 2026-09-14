@@ -1538,7 +1538,7 @@ export default function CustomerDetail() {
                         onSubmit={handleUploadConfirm}
                         onCancel={() => setUploadModalOpen(false)}
                         loading={saving}
-                        targetType="employee"
+                        targetType="customer"
                     />
                 </Modal>
             )}
