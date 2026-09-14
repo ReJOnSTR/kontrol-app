@@ -125,7 +125,13 @@ app.use('/uploads', async (req, res, next) => {
         if (!relativePath) return res.status(404).send('File not found');
 
         const localFile = path.join(filesDir, relativePath);
+        const ext = path.extname(relativePath).toLowerCase();
+        const mime = ext === '.pdf' ? 'application/pdf' : (ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'application/octet-stream'));
+
         if (fs.existsSync(localFile) && fs.statSync(localFile).isFile()) {
+            res.setHeader('Content-Type', mime);
+            res.setHeader('Content-Disposition', 'inline; filename="' + encodeURIComponent(path.basename(relativePath)) + '"');
+            res.setHeader('Cache-Control', 'public, max-age=86400');
             return res.sendFile(localFile);
         }
         const { downloadFromStorage } = require('./electron/services/supabase.service');
@@ -137,9 +143,10 @@ app.use('/uploads', async (req, res, next) => {
                 fs.mkdirSync(localDir, { recursive: true });
             }
             fs.writeFileSync(localFile, buf);
-            const ext = path.extname(relativePath).toLowerCase();
-            const mime = ext === '.pdf' ? 'application/pdf' : (ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'application/octet-stream'));
             res.setHeader('Content-Type', mime);
+            res.setHeader('Content-Disposition', 'inline; filename="' + encodeURIComponent(path.basename(relativePath)) + '"');
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            res.setHeader('Accept-Ranges', 'bytes');
             return res.send(buf);
         }
     } catch (e) {

@@ -297,7 +297,13 @@ export default function Settings() {
         try {
             const res = await window.electronAPI.migrateToPostgres(postgresUrl)
             if (res.success) {
-                alert('Aktarım başarıyla tamamlandı!')
+                const stats = []
+                if (res.migratedCompanies) stats.push(`${res.migratedCompanies} Şirket`)
+                if (res.migratedVehicles) stats.push(`${res.migratedVehicles} Araç`)
+                if (res.migratedEmployees) stats.push(`${res.migratedEmployees} Personel`)
+                if (res.migratedWorks) stats.push(`${res.migratedWorks} Operasyon`)
+                const statsText = stats.length > 0 ? `\n\nAktarılan: ${stats.join(', ')}` : ''
+                alert(`Aktarım başarıyla tamamlandı! Tüm veriler buluta güvenle yüklendi.${statsText}`)
             } else {
                 alert(`Aktarım hatası: ${res.error}`)
             }
@@ -1197,7 +1203,7 @@ export default function Settings() {
                                     <div className="settings-item-content" style={{ width: '100%' }}>
                                         <div className="settings-item-label">Veritabanını Sunucuya Kopyala</div>
                                         <div className="settings-item-desc" style={{ marginBottom: '16px' }}>
-                                            Yerel bilgisayarınızdaki tüm verileri Dokploy veya sunucunuzdaki PostgreSQL veritabanınıza kopyalar.
+                                            Yerel bilgisayarınızdaki verileri buluttaki PostgreSQL veritabanınıza aktarır. Farklı bilgisayarlardan sırayla aktarım yapabilirsiniz; şirketler ve hesaplar birbirine karışmaz, önceki bilgisayarların verileri silinmez.
                                         </div>
                                         
                                         <div className="form-group floating-label-group has-value" style={{ maxWidth: '600px', marginBottom: '16px' }}>
