@@ -2221,8 +2221,9 @@ ipcMain.handle('documents:downloadFile', async (event, { filePath, base64Data, d
 
 ipcMain.handle('documents:readData', async (event, fileName) => {
     try {
-        if (!fileName) return { success: false, error: 'No filename' }
+        if (!fileName) return { success: false, notFound: true, error: 'Dosya adı belirtilmedi' }
         const userDataPath = app.getPath('userData')
+        const cleanName = path.basename(fileName)
         
         let filePath = fileName
         if (!path.isAbsolute(fileName)) {
@@ -2230,15 +2231,23 @@ ipcMain.handle('documents:readData', async (event, fileName) => {
         }
 
         if (!fs.existsSync(filePath)) {
-            const fallbackPath = path.join(userDataPath, 'files', path.basename(fileName))
-            if (fs.existsSync(fallbackPath)) {
-                filePath = fallbackPath
+            // Check possible local folders
+            const candidatePaths = [
+                path.join(userDataPath, 'files', cleanName),
+                path.join(userDataPath, 'data', cleanName),
+                path.join(userDataPath, 'uploads', cleanName),
+                path.join(userDataPath, 'data', 'files', cleanName),
+                path.join(__dirname, '../data/files', cleanName)
+            ]
+            const foundLocal = candidatePaths.find(p => fs.existsSync(p))
+
+            if (foundLocal) {
+                filePath = foundLocal
             } else {
-                // Fetch from Supabase Storage for cross-PC synchronization
+                // 1. Fetch from Supabase Storage for cross-PC synchronization
                 let fetchedFromCloud = false;
                 try {
                     const { downloadFromStorage } = require('./services/supabase.service');
-                    const cleanName = path.basename(fileName);
                     const storageRes = await downloadFromStorage(cleanName, 'documents');
                     if (storageRes && storageRes.success && storageRes.buffer) {
                         const filesDir = path.join(userDataPath, 'files');
@@ -2252,8 +2261,49 @@ ipcMain.handle('documents:readData', async (event, fileName) => {
                     console.warn('[Cloud Storage Fetch Notice]:', cloudErr.message);
                 }
 
+                // 2. Fetch from Central Web Server /uploads/ as secondary fallback
                 if (!fetchedFromCloud && !fs.existsSync(filePath)) {
-                    return { success: false, error: 'File not found locally or on Supabase Storage: ' + filePath };
+                    try {
+                        const https = require('https');
+                        const fetchFromServer = (url) => new Promise((resolve) => {
+                            const req = https.get(url, (res) => {
+                                if (res.statusCode === 200 && res.headers['content-type'] && !res.headers['content-type'].includes('text/html')) {
+                                    const chunks = [];
+                                    res.on('data', d => chunks.push(d));
+                                    res.on('end', () => resolve(Buffer.concat(chunks)));
+                                } else {
+                                    resolve(null);
+                                }
+                            });
+                            req.on('error', () => resolve(null));
+                            req.setTimeout(5000, () => {
+                                req.destroy();
+                                resolve(null);
+                            });
+                        });
+
+                        const serverBuf = await fetchFromServer(`https://kontrol-app.com/uploads/${encodeURIComponent(cleanName)}`);
+                        if (serverBuf && serverBuf.length > 0) {
+                            const filesDir = path.join(userDataPath, 'files');
+                            if (!fs.existsSync(filesDir)) fs.mkdirSync(filesDir, { recursive: true });
+                            const cachedPath = path.join(filesDir, cleanName);
+                            fs.writeFileSync(cachedPath, serverBuf);
+                            filePath = cachedPath;
+                            fetchedFromCloud = true;
+                        }
+                    } catch (netErr) {
+                        console.warn('[Server fallback fetch notice]:', netErr.message);
+                    }
+                }
+
+                if (!fetchedFromCloud && !fs.existsSync(filePath)) {
+                    return { 
+                        success: false, 
+                        notFound: true, 
+                        error: 'Belge dosyası diskte veya bulutta bulunamadı.',
+                        fileName: cleanName,
+                        filePath 
+                    };
                 }
             }
         }

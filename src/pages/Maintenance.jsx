@@ -348,12 +348,24 @@ export default function Maintenance() {
                     data: res.data
                 })
             } else {
-                alert('Belge okunamadı: ' + res.error)
+                setPreviewDoc({
+                    id: doc.id,
+                    name: doc.file_name,
+                    path: doc.file_path,
+                    notFound: true,
+                    error: res.error
+                })
             }
         } else {
             const result = await window.electronAPI.openDocument(doc.file_path)
             if (!result.success) {
-                alert('Dosya açılamadı: ' + result.error)
+                setPreviewDoc({
+                    id: doc.id,
+                    name: doc.file_name,
+                    path: doc.file_path,
+                    notFound: true,
+                    error: result.error
+                })
             }
         }
     }

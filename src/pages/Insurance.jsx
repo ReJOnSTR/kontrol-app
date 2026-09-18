@@ -340,11 +340,13 @@ export default function Insurance() {
             if (result.success) {
                 setPreviewDoc({ ...doc, data: result.data, name: doc.file_name, path: doc.file_path })
             } else {
-                alert('Dosya önizlemesi yüklenemedi: ' + result.error)
+                setPreviewDoc({ ...doc, notFound: true, error: result.error, name: doc.file_name, path: doc.file_path })
             }
         } else {
             const error = await window.electronAPI.openDocument(doc.file_path)
-            if (error) alert('Dosya açılamadı: ' + error)
+            if (error) {
+                setPreviewDoc({ ...doc, notFound: true, error: typeof error === 'string' ? error : 'Dosya açılamadı', name: doc.file_name, path: doc.file_path })
+            }
         }
     }
 

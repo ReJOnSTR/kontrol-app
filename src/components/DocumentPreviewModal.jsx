@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { 
     ExternalLink, Trash2, ChevronLeft, ChevronRight, Loader2, 
-    RotateCw, FileText, Download, File, Maximize2, Printer 
+    RotateCw, FileText, Download, File, Maximize2, Printer, AlertCircle 
 } from 'lucide-react'
 import Modal from './Modal'
 import { Document, Page, pdfjs } from 'react-pdf'
@@ -9,12 +9,10 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
-// Configure worker locally with fallback CDN (jsdelivr is much faster and more reliable than unpkg)
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+
 try {
-    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-        'pdfjs-dist/build/pdf.worker.min.mjs',
-        import.meta.url
-    ).toString()
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker || '/pdf.worker.min.mjs'
 } catch (e) {
     pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 }
@@ -47,6 +45,48 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
         }
     }, [doc])
 
+    const [pdfBlobUrl, setPdfBlobUrl] = useState(null)
+
+    const isNotFound = Boolean(doc?.notFound || (!doc?.data && !doc?.url && !doc?.path && !doc?.file_path))
+
+    // Convert PDF base64 to Blob URL for fast & lightweight rendering
+    useEffect(() => {
+        if (!doc) {
+            setPdfBlobUrl(null)
+            return
+        }
+
+        let createdBlobUrl = null
+        if (doc.data && typeof doc.data === 'string') {
+            if (doc.data.startsWith('blob:') || doc.data.startsWith('http://') || doc.data.startsWith('https://')) {
+                createdBlobUrl = doc.data
+            } else {
+                try {
+                    const base64Clean = doc.data.includes(',') ? doc.data.split(',')[1] : doc.data
+                    const binaryStr = atob(base64Clean.trim())
+                    const bytes = new Uint8Array(binaryStr.length)
+                    for (let i = 0; i < binaryStr.length; i++) {
+                        bytes[i] = binaryStr.charCodeAt(i)
+                    }
+                    const blob = new Blob([bytes], { type: 'application/pdf' })
+                    createdBlobUrl = URL.createObjectURL(blob)
+                } catch (e) {
+                    console.warn('PDF blob creation error:', e)
+                }
+            }
+        } else if (doc.url) {
+            createdBlobUrl = doc.url
+        }
+
+        setPdfBlobUrl(createdBlobUrl)
+
+        return () => {
+            if (createdBlobUrl && createdBlobUrl.startsWith('blob:')) {
+                try { URL.revokeObjectURL(createdBlobUrl) } catch (e) {}
+            }
+        }
+    }, [doc])
+
     const fileName = doc?.name || doc?.file_name || doc?.fileName || 'Belge'
     const ext = (fileName.substring(fileName.lastIndexOf('.')).toLowerCase()) || doc?.ext || ''
     const cleanFileName = String(doc?.path || doc?.file_path || doc?.name || doc?.fileName || doc?.file_name || '').split(/[\\/]/).pop()
@@ -54,6 +94,7 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
 
     const formattedPdfSource = React.useMemo(() => {
         if (!doc) return null
+        if (pdfBlobUrl) return pdfBlobUrl
         if (doc.data) {
             if (typeof doc.data === 'string') {
                 if (doc.data.startsWith('data:application/pdf')) return doc.data
@@ -65,9 +106,8 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
             }
         }
         if (doc.url) return doc.url
-        if (pdfUrl) return pdfUrl
         return null
-    }, [doc, pdfUrl])
+    }, [doc, pdfBlobUrl])
 
     const formattedImageSource = React.useMemo(() => {
         if (!doc) return null
@@ -257,20 +297,31 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
     )
 
     const footer = (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+            <div>
+                {onDelete && (
+                    <button className="btn btn-danger" onClick={onDelete} style={{ gap: '6px' }}>
+                        <Trash2 size={16} /> Belgeyi Sil
+                    </button>
+                )}
+            </div>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <button className="btn btn-secondary" onClick={onClose}>
                     Kapat
                 </button>
-                <button className="btn btn-secondary" onClick={handleDownload} style={{ gap: '6px' }}>
-                    <Download size={16} /> İndir
-                </button>
-                <button className="btn btn-secondary" onClick={handlePrint} style={{ gap: '6px' }}>
-                    <Printer size={16} /> Yazdır
-                </button>
-                <button className="btn btn-primary" onClick={handleExternalOpen} style={{ gap: '6px' }}>
-                    <ExternalLink size={16} /> Yeni Sekmede Aç
-                </button>
+                {!isNotFound && (
+                    <>
+                        <button className="btn btn-secondary" onClick={handleDownload} style={{ gap: '6px' }}>
+                            <Download size={16} /> İndir
+                        </button>
+                        <button className="btn btn-secondary" onClick={handlePrint} style={{ gap: '6px' }}>
+                            <Printer size={16} /> Yazdır
+                        </button>
+                        <button className="btn btn-primary" onClick={handleExternalOpen} style={{ gap: '6px' }}>
+                            <ExternalLink size={16} /> Yeni Sekmede Aç
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     )
@@ -285,266 +336,350 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
             bodyStyle={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}
         >
             <div style={{ display: 'flex', flexDirection: 'column', height: '75vh', overflow: 'hidden' }}>
-                {/* Sleek Toolbar */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'var(--bg-secondary)',
-                    padding: '8px 16px',
-                    borderBottom: '1px solid var(--border-color)',
-                    gap: '12px',
-                    userSelect: 'none',
-                    zIndex: 2
-                }}>
-                    {/* - Zoom Out */}
-                    <button
-                        onClick={handleZoomOut}
-                        title="Uzaklaştır (-)"
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '18px',
-                            fontWeight: 500,
-                            lineHeight: 1,
-                            transition: 'all 0.15s ease'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                        −
-                    </button>
-
-                    {/* + Zoom In */}
-                    <button
-                        onClick={handleZoomIn}
-                        title="Yakınlaştır (+)"
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '18px',
-                            fontWeight: 500,
-                            lineHeight: 1,
-                            transition: 'all 0.15s ease'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                        +
-                    </button>
-
-                    {/* Fit to View Button */}
-                    <button
-                        onClick={handleResetZoom}
-                        title="Genişliğe Sığdır (%100)"
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer',
-                            padding: '6px 8px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.15s ease'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                        <Maximize2 size={15} />
-                    </button>
-
-                    {/* Page Counter Box / Percentage */}
-                    {isPdf ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <button
-                                disabled={pageNumber <= 1}
-                                onClick={previousPage}
-                                title="Önceki Sayfa"
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: pageNumber <= 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-                                    cursor: pageNumber <= 1 ? 'default' : 'pointer',
-                                    padding: '4px',
-                                    borderRadius: '4px',
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                }}
-                            >
-                                <ChevronLeft size={16} />
-                            </button>
-
-                            <input
-                                type="number"
-                                min={1}
-                                max={numPages || 1}
-                                value={pageNumber}
-                                onChange={(e) => {
-                                    const val = parseInt(e.target.value)
-                                    if (!isNaN(val)) {
-                                        setPageNumber(Math.min(Math.max(1, val), numPages || 1))
-                                    }
-                                }}
-                                style={{
-                                    width: '42px',
-                                    height: '28px',
-                                    textAlign: 'center',
-                                    backgroundColor: 'var(--bg-tertiary)',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '6px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '13px',
-                                    fontWeight: 600,
-                                    outline: 'none'
-                                }}
-                            />
-
-                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                                / {numPages || 1}
-                            </span>
-
-                            <button
-                                disabled={pageNumber >= (numPages || 1)}
-                                onClick={nextPage}
-                                title="Sonraki Sayfa"
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: pageNumber >= (numPages || 1) ? 'var(--text-muted)' : 'var(--text-primary)',
-                                    cursor: pageNumber >= (numPages || 1) ? 'default' : 'pointer',
-                                    padding: '4px',
-                                    borderRadius: '4px',
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                }}
-                            >
-                                <ChevronRight size={16} />
-                            </button>
-                        </div>
-                    ) : (
-                        <div style={{
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: 'var(--text-primary)',
-                            backgroundColor: 'var(--bg-tertiary)',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border-color)'
-                        }}>
-                            {Math.round(zoomLevel * 100)}%
-                        </div>
-                    )}
-
-                    {/* Divider */}
-                    <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--border-color)', margin: '0 4px' }} />
-
-                    {/* Rotate Button */}
-                    <button
-                        onClick={handleRotate}
-                        title="90° Döndür"
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer',
-                            padding: '6px 8px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.15s ease'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                        <RotateCw size={15} />
-                    </button>
-                </div>
-
-                {/* Reader Canvas */}
-                <div
-                    ref={containerRef}
-                    onWheel={handleWheel}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                    style={{
+                {isNotFound ? (
+                    <div style={{
                         flex: 1,
                         backgroundColor: '#0c0d12',
-                        overflow: 'auto',
-                        position: 'relative',
                         display: 'flex',
-                        alignItems: zoomLevel > 1.1 ? 'flex-start' : 'center',
-                        justifyContent: zoomLevel > 1.1 ? 'flex-start' : 'center',
-                        cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
-                        userSelect: 'none'
-                    }}
-                >
-                    {isPdf ? (
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '24px'
+                    }}>
                         <div style={{
                             display: 'flex',
-                            justifyContent: 'center',
+                            flexDirection: 'column',
                             alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '40px 32px',
+                            backgroundColor: '#161b22',
+                            borderRadius: '16px',
+                            border: '1px solid #30363d',
+                            textAlign: 'center',
+                            maxWidth: '480px',
                             width: '100%',
-                            height: '100%',
-                            minHeight: '65vh'
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
                         }}>
-                            {!pdfError ? (
-                                <Document
-                                    file={formattedPdfSource}
-                                    onLoadSuccess={onDocumentLoadSuccess}
-                                    onLoadError={(err) => {
-                                        console.warn('React-PDF load error, attempting iframe fallback:', err)
-                                        setPdfError(true)
-                                        setPdfLoading(false)
-                                    }}
-                                    loading={
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#8892b0', gap: '12px' }}>
-                                            <Loader2 className="spin" size={36} style={{ color: 'var(--accent-primary)' }} />
-                                            <span style={{ fontSize: '13px', fontWeight: 500 }}>PDF Yükleniyor...</span>
-                                        </div>
-                                    }
-                                >
-                                    <Page
-                                        pageNumber={pageNumber}
-                                        scale={zoomLevel}
-                                        rotate={rotation}
-                                        renderTextLayer={false}
-                                        renderAnnotationLayer={false}
-                                    />
-                                </Document>
-                            ) : (
-                                <iframe
-                                    src={pdfUrl || formattedPdfSource}
-                                    title={fileName}
-                                    style={{
-                                        width: '100%',
-                                        height: '70vh',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        backgroundColor: '#fff'
-                                    }}
-                                />
-                            )}
+                            <div style={{
+                                width: '64px',
+                                height: '64px',
+                                borderRadius: '16px',
+                                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                color: '#ef4444',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: '16px'
+                            }}>
+                                <AlertCircle size={32} />
+                            </div>
+                            <h3 style={{ fontSize: '17px', fontWeight: 600, color: '#f0f6fc', margin: '0 0 8px 0' }}>
+                                Belge Dosyası Bulunamadı
+                            </h3>
+                            <p style={{ fontSize: '13px', color: '#8b949e', margin: '0 0 20px 0', lineHeight: 1.5 }}>
+                                Bu evrak kaydı sistemde kayıtlı ancak fiziksel dosya yerel diskte veya bulut depolamada bulunamadı (farklı bir cihazdan yüklenmiş veya silinmiş olabilir).
+                            </p>
+                            <div style={{
+                                backgroundColor: '#0d1117',
+                                border: '1px solid #30363d',
+                                borderRadius: '8px',
+                                padding: '12px 16px',
+                                width: '100%',
+                                boxSizing: 'border-box',
+                                marginBottom: '24px',
+                                textAlign: 'left',
+                                fontSize: '12px',
+                                color: '#c9d1d9'
+                            }}>
+                                <div style={{ marginBottom: '6px' }}><strong style={{ color: '#8b949e' }}>Evrak Adı:</strong> {fileName}</div>
+                                {doc?.category && <div style={{ marginBottom: '6px' }}><strong style={{ color: '#8b949e' }}>Kategori:</strong> {doc.category}</div>}
+                                <div><strong style={{ color: '#8b949e' }}>Dosya:</strong> <span style={{ fontFamily: 'monospace', color: '#f85149' }}>{cleanFileName || 'Bilinmiyor'}</span></div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                {onDelete && (
+                                    <button className="btn btn-danger" onClick={onDelete} style={{ gap: '6px' }}>
+                                        <Trash2 size={16} /> Kaydı Sil
+                                    </button>
+                                )}
+                                <button className="btn btn-secondary" onClick={onClose}>
+                                    Kapat
+                                </button>
+                            </div>
                         </div>
-                    ) : isImage ? (
+                    </div>
+                ) : (
+                    <>
+                        {/* Sleek Toolbar */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: 'var(--bg-secondary)',
+                            padding: '8px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            gap: '12px',
+                            userSelect: 'none',
+                            zIndex: 2
+                        }}>
+                            {/* - Zoom Out */}
+                            <button
+                                onClick={handleZoomOut}
+                                title="Uzaklaştır (-)"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '18px',
+                                    fontWeight: 500,
+                                    lineHeight: 1,
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                −
+                            </button>
+
+                            {/* + Zoom In */}
+                            <button
+                                onClick={handleZoomIn}
+                                title="Yakınlaştır (+)"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '18px',
+                                    fontWeight: 500,
+                                    lineHeight: 1,
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                +
+                            </button>
+
+                            {/* Fit to View Button */}
+                            <button
+                                onClick={handleResetZoom}
+                                title="Genişliğe Sığdır (%100)"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    padding: '6px 8px',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <Maximize2 size={15} />
+                            </button>
+
+                            {/* Page Counter Box / Percentage */}
+                            {isPdf ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <button
+                                        disabled={pageNumber <= 1}
+                                        onClick={previousPage}
+                                        title="Önceki Sayfa"
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: pageNumber <= 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                                            cursor: pageNumber <= 1 ? 'default' : 'pointer',
+                                            padding: '4px',
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
+
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={numPages || 1}
+                                        value={pageNumber}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value)
+                                            if (!isNaN(val)) {
+                                                setPageNumber(Math.min(Math.max(1, val), numPages || 1))
+                                            }
+                                        }}
+                                        style={{
+                                            width: '42px',
+                                            height: '28px',
+                                            textAlign: 'center',
+                                            backgroundColor: 'var(--bg-tertiary)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '6px',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            outline: 'none'
+                                        }}
+                                    />
+
+                                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                        / {numPages || 1}
+                                    </span>
+
+                                    <button
+                                        disabled={pageNumber >= (numPages || 1)}
+                                        onClick={nextPage}
+                                        title="Sonraki Sayfa"
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: pageNumber >= (numPages || 1) ? 'var(--text-muted)' : 'var(--text-primary)',
+                                            cursor: pageNumber >= (numPages || 1) ? 'default' : 'pointer',
+                                            padding: '4px',
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    color: 'var(--text-primary)',
+                                    backgroundColor: 'var(--bg-tertiary)',
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)'
+                                }}>
+                                    {Math.round(zoomLevel * 100)}%
+                                </div>
+                            )}
+
+                            {/* Divider */}
+                            <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--border-color)', margin: '0 4px' }} />
+
+                            {/* Rotate Button */}
+                            <button
+                                onClick={handleRotate}
+                                title="90° Döndür"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    padding: '6px 8px',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <RotateCw size={15} />
+                            </button>
+                        </div>
+
+                        {/* Reader Canvas */}
+                        <div
+                            ref={containerRef}
+                            onWheel={handleWheel}
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                            onMouseLeave={handleMouseUp}
+                            style={{
+                                flex: 1,
+                                backgroundColor: '#0c0d12',
+                                overflow: 'auto',
+                                position: 'relative',
+                                display: 'flex',
+                                alignItems: zoomLevel > 1.1 ? 'flex-start' : 'center',
+                                justifyContent: zoomLevel > 1.1 ? 'flex-start' : 'center',
+                                cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+                                userSelect: 'none'
+                            }}
+                        >
+                            {isPdf ? (
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    width: '100%',
+                                    height: '100%',
+                                    minHeight: '65vh'
+                                }}>
+                                    {!pdfError && formattedPdfSource ? (
+                                        <Document
+                                            file={formattedPdfSource}
+                                            onLoadSuccess={onDocumentLoadSuccess}
+                                            onLoadError={(err) => {
+                                                console.warn('React-PDF load error, switching to embed:', err)
+                                                setPdfError(true)
+                                                setPdfLoading(false)
+                                            }}
+                                            loading={
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#8892b0', gap: '12px' }}>
+                                                    <Loader2 className="spin" size={36} style={{ color: 'var(--accent-primary)' }} />
+                                                    <span style={{ fontSize: '13px', fontWeight: 500 }}>PDF Yükleniyor...</span>
+                                                </div>
+                                            }
+                                        >
+                                            <Page
+                                                pageNumber={pageNumber}
+                                                scale={zoomLevel}
+                                                rotate={rotation}
+                                                renderTextLayer={false}
+                                                renderAnnotationLayer={false}
+                                            />
+                                        </Document>
+                                    ) : formattedPdfSource ? (
+                                        <embed
+                                            src={formattedPdfSource}
+                                            type="application/pdf"
+                                            style={{
+                                                width: '100%',
+                                                height: '70vh',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                backgroundColor: '#1e293b'
+                                            }}
+                                        />
+                                    ) : (
+                                        <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            color: '#8b949e',
+                                            gap: '12px',
+                                            padding: '30px'
+                                        }}>
+                                            <AlertCircle size={36} style={{ color: '#ef4444' }} />
+                                            <span style={{ fontSize: '14px', color: '#f0f6fc', fontWeight: 600 }}>PDF İçeriği Yüklenemedi</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : isImage ? (
                         <div style={{
                             transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel}) rotate(${rotation}deg)`,
                             transition: isDragging ? 'none' : 'transform 0.15s ease-out',
@@ -640,6 +775,8 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
                         </div>
                     )}
                 </div>
+                </>
+                )}
             </div>
         </Modal>
     )

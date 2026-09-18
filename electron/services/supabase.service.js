@@ -270,19 +270,81 @@ async function uploadToStorage(buffer, storagePath, mimeType = 'application/octe
 }
 
 /**
+ * Search for a file across root and subfolders in Supabase Storage
+ */
+async function findFileInStorage(targetFileName, bucket = 'documents') {
+    try {
+        const path = require('path')
+        const baseName = path.basename(targetFileName)
+        
+        // 1. Direct search at root
+        const rootSearch = await supabaseAdmin.storage.from(bucket).list('', { search: baseName, limit: 10 })
+        if (rootSearch.data && rootSearch.data.length > 0) {
+            const match = rootSearch.data.find(f => f.name === baseName)
+            if (match) return match.name
+        }
+
+        // 2. Search common subdirectories like company_*
+        const rootFolders = await supabaseAdmin.storage.from(bucket).list('', { limit: 100 })
+        if (rootFolders.data) {
+            for (const item of rootFolders.data) {
+                if (item.id === null) {
+                    // It's a folder, search inside
+                    const subSearch = await supabaseAdmin.storage.from(bucket).list(item.name, { search: baseName, limit: 10 })
+                    if (subSearch.data && subSearch.data.length > 0) {
+                        const match = subSearch.data.find(f => f.name === baseName)
+                        if (match) return `${item.name}/${match.name}`
+                    }
+                    // Try 2 levels deep
+                    const deeperFolders = await supabaseAdmin.storage.from(bucket).list(item.name, { limit: 50 })
+                    if (deeperFolders.data) {
+                        for (const deepItem of deeperFolders.data) {
+                            if (deepItem.id === null) {
+                                const deepSearch = await supabaseAdmin.storage.from(bucket).list(`${item.name}/${deepItem.name}`, { search: baseName, limit: 10 })
+                                if (deepSearch.data && deepSearch.data.length > 0) {
+                                    const match = deepSearch.data.find(f => f.name === baseName)
+                                    if (match) return `${item.name}/${deepItem.name}/${match.name}`
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null
+    } catch (e) {
+        return null
+    }
+}
+
+/**
  * Download a file buffer from a Supabase Storage Bucket
  */
 async function downloadFromStorage(storagePath, bucket = 'documents') {
     try {
+        const path = require('path')
         const cleanPath = storagePath.replace(/^\/+/, '')
-        const { data, error } = await supabaseAdmin.storage
+        let { data, error } = await supabaseAdmin.storage
             .from(bucket)
             .download(cleanPath)
 
-        if (error) throw error
+        if (!error && data) {
+            const arrayBuffer = await data.arrayBuffer()
+            return { success: true, buffer: Buffer.from(arrayBuffer) }
+        }
 
-        const arrayBuffer = await data.arrayBuffer()
-        return { success: true, buffer: Buffer.from(arrayBuffer) }
+        // Try searching subfolders if exact path failed
+        const baseName = path.basename(cleanPath)
+        const foundPath = await findFileInStorage(baseName, bucket)
+        if (foundPath && foundPath !== cleanPath) {
+            const retry = await supabaseAdmin.storage.from(bucket).download(foundPath)
+            if (!retry.error && retry.data) {
+                const arrayBuffer = await retry.data.arrayBuffer()
+                return { success: true, buffer: Buffer.from(arrayBuffer), resolvedPath: foundPath }
+            }
+        }
+
+        return { success: false, error: error ? error.message : 'Object not found' }
     } catch (err) {
         console.error('[Supabase Storage Download Error]:', err.message)
         return { success: false, error: err.message }
