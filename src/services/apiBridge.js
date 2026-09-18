@@ -159,24 +159,6 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                 };
             }
 
-            // Web readDocumentData fast stream bridge (instant 0ms response, zero Base64 overhead)
-            if (prop === 'readDocumentData') {
-                return async (fileNameOrPath) => {
-                    if (!fileNameOrPath) return { success: false, error: 'No file specified' };
-                    const relativePath = String(fileNameOrPath).replace(/^\/+/, '');
-                    const cleanName = relativePath.split(/[\\/]/).pop();
-                    const ext = (cleanName.substring(cleanName.lastIndexOf('.')).toLowerCase()) || '';
-                    const url = `/uploads/${encodeURIComponent(cleanName)}`;
-                    return {
-                        success: true,
-                        fileName: cleanName,
-                        path: relativePath,
-                        url: url,
-                        data: url,
-                        ext: ext
-                    };
-                };
-            }
 
             // Web saveAsPdf / saveReportPdf (opens report preview & print in new tab)
             if (prop === 'saveReportPdf') {
