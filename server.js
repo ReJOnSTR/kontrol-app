@@ -252,6 +252,7 @@ const rpcMap = {
     resendVerificationEmail: authService.resendVerificationEmail,
     activateUserByEmail: authService.activateUserByEmail,
     updateProfile: authService.updateProfile,
+    getUserProfile: authService.getUserProfile,
     createEmployeeUser: authService.createEmployeeUser,
     syncEmployeesToSupabaseAuth: async (companyId) => {
         const { syncAllEmployeesToSupabaseAuth } = require('./electron/services/supabase.service');

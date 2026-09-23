@@ -1363,6 +1363,53 @@ async function activateUserByEmail(data) {
     }
 }
 
+async function getUserProfile(userId) {
+    try {
+        const uid = Number(userId);
+        if (!uid) return { success: false, error: 'Invalid user ID' };
+        const user = await prisma.users.findUnique({
+            where: { id: uid },
+            include: {
+                employee: true,
+                companies: true
+            }
+        });
+        if (!user) return { success: false, error: 'User not found' };
+
+        let permissionsData = [];
+        if (user.role_id) {
+            try {
+                const roleWithPerms = await prisma.roles.findUnique({
+                    where: { id: user.role_id },
+                    include: { permissions: true }
+                });
+                if (roleWithPerms?.permissions) {
+                    permissionsData = roleWithPerms.permissions;
+                }
+            } catch (e) {}
+        }
+
+        const safeUser = {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            full_name: user.full_name,
+            role: user.role || 'company_admin',
+            role_id: user.role_id,
+            employee_id: user.employee_id,
+            company_id: user.company_id || user.employee?.company_id || user.companies?.[0]?.id || null,
+            two_factor_enabled: user.two_factor_enabled === 1,
+            mustChangePassword: user.must_change_password === 1,
+            employee: user.employee || null,
+            companies: user.companies || [],
+            permissions: permissionsData
+        };
+        return { success: true, user: safeUser };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+}
+
 module.exports = {
     registerUser,
     loginUser,
@@ -1376,5 +1423,6 @@ module.exports = {
     updateProfile,
     getUserPasswordHash,
     createEmployeeUser,
-    ensureSuperAdminExists
+    ensureSuperAdminExists,
+    getUserProfile
 };

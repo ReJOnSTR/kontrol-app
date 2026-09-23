@@ -192,6 +192,10 @@ export default function Header() {
                                             <span>Platform Yönetimi</span>
                                         </div>
                                     )}
+                                    <div className="user-dropdown-item" onClick={() => { navigate('/settings'); setShowUserDropdown(false) }}>
+                                        <Settings size={16} />
+                                        <span>Genel Ayarlar</span>
+                                    </div>
                                     <div className="user-dropdown-item" onClick={() => { navigate('/profile'); setShowUserDropdown(false) }}>
                                         <Settings size={16} />
                                         <span>Profil Ayarları</span>

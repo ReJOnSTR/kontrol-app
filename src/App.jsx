@@ -101,10 +101,10 @@ function ProtectedRoute({ children }) {
 }
 
 function AdminRoute({ children }) {
-    const { isAdmin, loading } = useAuth()
+    const { isPersonnel, loading } = useAuth()
 
     if (loading) return null
-    if (!isAdmin) return <Navigate to="/portal" replace />
+    if (isPersonnel) return <Navigate to="/personnel-profile" replace />
     return children
 }
 
@@ -121,10 +121,10 @@ function PermissionRoute({ module, action = 'can_read', children }) {
     const { hasPermission, isAdmin, isPersonnel, loading } = useAuth()
 
     if (loading) return null
-    if (isAdmin) return children
+    if (isAdmin || !isPersonnel) return children
 
     if (!hasPermission(module, action)) {
-        return <Navigate to={isPersonnel ? "/personnel-profile" : "/portal"} replace />
+        return <Navigate to="/personnel-profile" replace />
     }
     return children
 }

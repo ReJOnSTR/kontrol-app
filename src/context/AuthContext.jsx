@@ -13,7 +13,31 @@ export function AuthProvider({ children }) {
         const storedUser = localStorage.getItem('aractakip_user')
         if (storedUser) {
             try {
-                setUser(JSON.parse(storedUser))
+                const parsed = JSON.parse(storedUser)
+                setUser(parsed)
+
+                // Asynchronously fetch fresh user profile from server so role changes apply immediately
+                if (parsed.id) {
+                    const fetchFresh = async () => {
+                        try {
+                            let res;
+                            if (window.electronAPI?.getUserProfile) {
+                                res = await window.electronAPI.getUserProfile(parsed.id)
+                            } else {
+                                res = await fetch('/api/rpc/getUserProfile', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ args: [parsed.id] })
+                                }).then(r => r.json()).catch(() => null)
+                            }
+                            if (res && res.success && res.user) {
+                                setUser(res.user)
+                                localStorage.setItem('aractakip_user', JSON.stringify(res.user))
+                            }
+                        } catch (e) {}
+                    }
+                    fetchFresh()
+                }
             } catch (e) {
                 localStorage.removeItem('aractakip_user')
             }
@@ -199,14 +223,10 @@ export function AuthProvider({ children }) {
 
     const normalizedRole = (user?.role || '').toLowerCase()
     const isSuperAdmin = normalizedRole === 'superadmin'
-    const isPersonnel = normalizedRole === 'personnel' || normalizedRole === 'employee' || !!user?.employee_id
-    const isAdmin = normalizedRole === 'admin' || 
-                    normalizedRole === 'superadmin' || 
-                    normalizedRole === 'company_admin' || 
-                    normalizedRole === 'company_owner' || 
-                    normalizedRole === 'manager' || 
-                    (!isPersonnel && !user?.role_id)
-    const isManager = normalizedRole === 'manager' || isAdmin
+    const isPersonnel = normalizedRole === 'personnel' || normalizedRole === 'employee'
+    // Every user who is not a restricted field employee/driver has full access to companies, settings, and modules
+    const isAdmin = isSuperAdmin || !isPersonnel
+    const isManager = isAdmin
 
     const hasPermission = (moduleOrAction, action = 'can_read') => {
         if (isAdmin) return true;

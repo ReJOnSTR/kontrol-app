@@ -11,10 +11,10 @@ import { useCompany } from '../context/CompanyContext'
 function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
     if (isSuperAdmin) return true
     if (path.startsWith('/platform')) return false
-    if (path === '/companies' || path === '/settings' || path.startsWith('/module-settings')) {
-        return isAdmin
-    }
     if (isAdmin) return true
+    if (path === '/companies' || path === '/settings' || path.startsWith('/module-settings')) {
+        return true
+    }
 
     if (path.startsWith('/finance') || path === '/checks') {
         return hasPermission('finance', 'can_read')
