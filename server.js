@@ -408,6 +408,8 @@ const rpcMap = {
     addWork: db.createWork,
     updateWork: db.updateWork,
     deleteWork: db.deleteWork,
+    deleteWorks: db.deleteWorks,
+    archiveWorks: db.archiveWorks,
     addWorkItem: db.addWorkItem,
     addBulkWorkItems: db.addBulkWorkItems,
     updateWorkItem: db.updateWorkItem,
@@ -490,6 +492,7 @@ const rpcMap = {
     getRecentActivity: db.getRecentActivity,
     searchGlobal: db.searchGlobal,
     archiveItem: db.archiveItem,
+    archiveItems: db.archiveItems,
 
     // Backup & Data Export / Import
     exportCompanyData: async (payload) => {
@@ -604,7 +607,9 @@ const rpcMap = {
     toggleAnnouncementStatus: db.toggleAnnouncementStatus,
     deletePlatformAnnouncement: db.deletePlatformAnnouncement,
     createPlatformCompany: db.createPlatformCompany,
+    updatePlatformCompany: db.updatePlatformCompany,
     deletePlatformCompany: db.deletePlatformCompany,
+    getCompanyUsers: db.getCompanyUsers,
     generateMfaSetup: mfaService.generateMfaSetup,
     enableMfa: mfaService.enableMfa,
     disableMfa: mfaService.disableMfa,

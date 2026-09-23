@@ -81,6 +81,19 @@ async function saveBase64File(fileName, fileData) {
 
     const buffer = Buffer.from(fileData, 'base64');
     await fs.promises.writeFile(destPath, buffer);
+
+    try {
+        const { uploadToStorage } = require('./supabase.service');
+        let mimeType = 'application/octet-stream';
+        const extLower = ext.toLowerCase();
+        if (extLower === '.pdf') mimeType = 'application/pdf';
+        else if (extLower === '.jpg' || extLower === '.jpeg') mimeType = 'image/jpeg';
+        else if (extLower === '.png') mimeType = 'image/png';
+        uploadToStorage(buffer, newFileName, mimeType, 'documents').catch(err => {
+            console.warn('[saveBase64 Cloud Upload Notice]:', err.message);
+        });
+    } catch (e) {}
+
     return newFileName;
 }
 
@@ -198,6 +211,21 @@ async function syncOperationDocument(relatedType, relatedId, data) {
             const destPath = path.join(filesDir, base);
             await copyOrCloneFile(filePath, destPath);
             savedFileName = base;
+
+            try {
+                const { uploadToStorage } = require('./supabase.service');
+                const fileBuf = await fs.promises.readFile(destPath);
+                let mimeType = 'application/octet-stream';
+                const extLower = ext.toLowerCase();
+                if (extLower === '.pdf') mimeType = 'application/pdf';
+                else if (extLower === '.jpg' || extLower === '.jpeg') mimeType = 'image/jpeg';
+                else if (extLower === '.png') mimeType = 'image/png';
+                uploadToStorage(fileBuf, base, mimeType, 'documents').catch(err => {
+                    console.warn('[Operation Cloud Upload Notice]:', err.message);
+                });
+            } catch (uErr) {
+                console.warn('[Operation Cloud Upload Notice]:', uErr.message);
+            }
         }
     }
 

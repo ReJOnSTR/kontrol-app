@@ -48,7 +48,24 @@ async function migrateSqliteToPostgres(sender, postgresUrl) {
         await pgClient.query(postgresDdlSql);
         sendLog('✓ Veritabanı şeması hazır.');
 
-        const sqlitePath = getDbPath();
+        let sqlitePath = getDbPath();
+        if (!fs.existsSync(sqlitePath)) {
+            const home = process.env.HOME || process.env.USERPROFILE || '';
+            const appData = process.env.APPDATA || (process.platform === 'darwin' ? path.join(home, 'Library/Application Support') : '');
+            const candidates = [
+                path.join(appData, 'kontrol-app/data/aractakip.db'),
+                path.join(appData, 'Kontrol/data/aractakip.db'),
+                path.join(appData, 'AracTakip/data/aractakip.db'),
+                path.join(home, 'Library/Application Support/kontrol-app/data/aractakip.db'),
+                path.join(__dirname, '../../data/aractakip.db'),
+                path.join(process.cwd(), 'data/aractakip.db'),
+                path.join(process.cwd(), 'aractakip.db')
+            ];
+            const found = candidates.find(c => fs.existsSync(c));
+            if (found) {
+                sqlitePath = found;
+            }
+        }
         sendLog(`Aktarılacak yerel veritabanı: ${sqlitePath}`);
 
         if (!fs.existsSync(sqlitePath)) {

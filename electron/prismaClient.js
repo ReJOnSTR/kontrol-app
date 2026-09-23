@@ -151,9 +151,11 @@ function getGeneratedProvider() {
     return 'postgresql';
 }
 
+const DEFAULT_POSTGRES_URL = 'postgresql://postgres:eyaeaj0djlbjhybz04ma4vrw7otatabf@45.147.47.56:5432/postgres';
+
 /**
  * Initializes and exports the Prisma Singleton
- * Dynamically binds the correct user data folder path or PostgreSQL connection.
+ * Dynamically binds PostgreSQL connection by default across PC, Web and Mobile.
  */
 function getPrismaClient() {
     if (!prisma) {
@@ -161,16 +163,28 @@ function getPrismaClient() {
             // Ensure local .env is loaded if available
             try { require('dotenv').config(); } catch (e) {}
 
-            const generatedProvider = getGeneratedProvider();
-            let dbUrl = process.env.DATABASE_URL;
-            const isPostgres = (dbUrl && (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://'))) || (process.env.USE_POSTGRES === 'true' && dbUrl) || (generatedProvider === 'postgresql' && dbUrl);
+            let customDbUrl = null;
+            try {
+                const Store = require('electron-store');
+                const store = new Store();
+                customDbUrl = store.get('customDatabaseUrl') || store.get('databaseUrl');
+            } catch (e) {}
+
+            const forceSqlite = process.env.FORCE_SQLITE === 'true';
+            let dbUrl = process.env.DATABASE_URL || customDbUrl || DEFAULT_POSTGRES_URL;
+
+            const isPostgres = !forceSqlite && (
+                dbUrl.startsWith('postgres://') ||
+                dbUrl.startsWith('postgresql://') ||
+                process.env.USE_POSTGRES === 'true'
+            );
 
             if (isPostgres) {
                 log.info(`Initializing Prisma Client with PostgreSQL (${dbUrl.split('@')[1] || 'remote'})`);
                 if (PrismaPg && pg) {
                     const pool = new pg.Pool({
                         connectionString: dbUrl,
-                        connectionTimeoutMillis: 5000,
+                        connectionTimeoutMillis: 10000,
                         idleTimeoutMillis: 30000,
                         max: 20,
                         keepAlive: true,
@@ -183,9 +197,9 @@ function getPrismaClient() {
                 }
             } else {
                 const dbPath = getDbPath();
-                log.info(`Initializing Prisma Client on SQLite DB: ${dbPath}`);
+                log.info(`Initializing Prisma Client on fallback SQLite DB: ${dbPath}`);
                 process.env.DATABASE_URL = `file:${dbPath}?connection_limit=1`;
-                if (PrismaBetterSqlite3 && generatedProvider === 'sqlite') {
+                if (PrismaBetterSqlite3 && getGeneratedProvider() === 'sqlite') {
                     const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
                     prisma = new PrismaClient({ adapter });
                 } else {
@@ -1480,4 +1494,4 @@ async function seedDefaultPublicHolidays(prisma) {
     }
 }
 
-module.exports = { getPrismaClient, runAutoMigrations, getDbPath, hasValidData };
+module.exports = { getPrismaClient, runAutoMigrations, getDbPath, hasValidData, DEFAULT_POSTGRES_URL };

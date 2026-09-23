@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 model assignments {
@@ -53,7 +53,6 @@ model companies {
   meal_price_history     meal_price_history[]
   public_holidays        public_holidays[]
   roles                  roles[]
-  audit_logs             audit_logs[]
   requests               requests[]
 
   @@index([user_id], map: "idx_companies_user")
@@ -427,16 +426,16 @@ model users {
   role                 String?             @default("user")
   role_id              Int?
   employee_id          Int?                @unique(map: "sqlite_autoindex_users_3")
-  must_change_password     Int?                @default(0)
-  is_active                Int?                @default(1)
+  must_change_password Int?                @default(0)
+  is_active            Int?                @default(1)
   two_factor_secret        String?
   two_factor_enabled       Int?                @default(0)
   two_factor_backup_codes  String?
-  companies                companies[]
-  employee                 employees?          @relation(fields: [employee_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  custom_role              roles?              @relation(fields: [role_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  created_requests         requests[]          @relation("RequestCreator")
-  approval_actions         request_approvals[] @relation("ApprovalActor")
+  companies            companies[]
+  employee             employees?          @relation(fields: [employee_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  custom_role          roles?              @relation(fields: [role_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  created_requests     requests[]          @relation("RequestCreator")
+  approval_actions     request_approvals[] @relation("ApprovalActor")
 }
 
 model vehicles {
@@ -513,6 +512,7 @@ model works {
   end_date        DateTime?
   work_start_time String?      @default("08:00")
   work_end_time   String?      @default("17:00")
+  disable_overtime Int?        @default(0)
   is_archived     Int?         @default(0)
   pazar_multiplier Float?      @default(1.5)
   mesai_multiplier Float?      @default(1.5)
@@ -653,50 +653,4 @@ model request_approvals {
 
   @@index([request_id], map: "idx_request_approvals_request")
 }
-
-model system_announcements {
-  id             Int       @id @default(autoincrement())
-  title          String
-  message        String
-  type           String?   @default("info")
-  company_id     Int?
-  created_by     Int?
-  is_active      Int?      @default(1)
-  is_dismissible Int?      @default(1)
-  show_popup     Int?      @default(0)
-  expires_at     DateTime?
-  created_at     DateTime? @default(now())
-  updated_at     DateTime? @default(now())
-
-  @@index([company_id], map: "idx_announcements_company")
-  @@index([is_active], map: "idx_announcements_active")
-}
-
-model audit_logs {
-  id           Int       @id @default(autoincrement())
-  company_id   Int?
-  user_id      Int?
-  username     String?
-  user_role    String?
-  action       String    // CREATE, UPDATE, DELETE, LOGIN_SUCCESS, LOGIN_FAILED, IMPERSONATE, SECURITY
-  entity_type  String    // vehicle, employee, transaction, work, user, company, auth
-  entity_id    String?
-  entity_name  String?
-  description  String
-  details      String?   // JSON formatted
-  ip_address   String?
-  user_agent   String?
-  severity     String?   @default("info")
-  created_at   DateTime? @default(now())
-
-  companies    companies? @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([company_id], map: "idx_audit_company")
-  @@index([user_id], map: "idx_audit_user")
-  @@index([action], map: "idx_audit_action")
-  @@index([entity_type], map: "idx_audit_entity")
-  @@index([severity], map: "idx_audit_severity")
-  @@index([created_at], map: "idx_audit_created")
-}
-
 
