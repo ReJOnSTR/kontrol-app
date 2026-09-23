@@ -12,7 +12,7 @@ async function getCompanies(userId) {
 
             if (user) {
                 const role = (user.role || '').toLowerCase();
-                if (role === 'superadmin') {
+                if (role === 'superadmin' || role === 'admin' || role === 'company_admin' || role === 'company_owner' || role === 'manager' || !user.employee_id) {
                     companies = await prisma.companies.findMany({
                         orderBy: { name: 'asc' }
                     });
@@ -29,30 +29,18 @@ async function getCompanies(userId) {
                         companies = await prisma.companies.findMany();
                     }
                 } else {
-                    // For admin / manager / company_admin / company_owner: return companies owned by this user or unassigned
                     companies = await prisma.companies.findMany({
                         where: {
                             OR: [
                                 { user_id: uid },
                                 { user_id: null }
                             ]
-                        }
+                        },
+                        orderBy: { name: 'asc' }
                     });
 
-                    // If no company found specifically for this user, fallback to existing companies
                     if (companies.length === 0) {
-                        const allComps = await prisma.companies.findMany();
-                        if (allComps.length > 0) {
-                            companies = allComps;
-                        } else {
-                            const newComp = await prisma.companies.create({
-                                data: {
-                                    name: (user.username || 'Şirketim') + ' Filo',
-                                    user_id: uid
-                                }
-                            });
-                            companies = [newComp];
-                        }
+                        companies = await prisma.companies.findMany({ orderBy: { name: 'asc' } });
                     }
                 }
             }

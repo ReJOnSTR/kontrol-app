@@ -59,7 +59,8 @@ export default function Settings() {
     const [testingConnection, setTestingConnection] = useState(false)
     const [connectionTestResult, setConnectionTestResult] = useState(null)
 
-    const [postgresUrl, setPostgresUrl] = useState(() => localStorage.getItem('aractakip_postgres_migration_url') || '')
+    const DEFAULT_CLOUD_PG_URL = 'postgresql://postgres:eyaeaj0djlbjhybz04ma4vrw7otatabf@45.147.47.56:5432/postgres'
+    const [postgresUrl, setPostgresUrl] = useState(() => localStorage.getItem('aractakip_postgres_migration_url') || DEFAULT_CLOUD_PG_URL)
     const [migrating, setMigrating] = useState(false)
     const [migrationLogs, setMigrationLogs] = useState([])
 
@@ -285,17 +286,21 @@ export default function Settings() {
     }
 
     const handlePostgresMigration = async () => {
-        if (!postgresUrl) return
-        localStorage.setItem('aractakip_postgres_migration_url', postgresUrl)
+        const urlToUse = (postgresUrl || DEFAULT_CLOUD_PG_URL).trim()
+        localStorage.setItem('aractakip_postgres_migration_url', urlToUse)
         setMigrating(true)
         setMigrationLogs([])
         
-        const unsubscribe = window.electronAPI.onMigrationLog((logText) => {
+        const unsubscribe = window.electronAPI?.onMigrationLog ? window.electronAPI.onMigrationLog((logText) => {
             setMigrationLogs(prev => [...prev, logText])
-        })
+        }) : () => {}
         
         try {
-            const res = await window.electronAPI.migrateToPostgres(postgresUrl)
+            if (!window.electronAPI?.migrateToPostgres) {
+                alert('Bu işlem yalnızca Masaüstü uygulamasında (Electron) yerel veritabanını aktarmak için kullanılır.')
+                return
+            }
+            const res = await window.electronAPI.migrateToPostgres(urlToUse)
             if (res.success) {
                 const stats = []
                 if (res.migratedCompanies) stats.push(`${res.migratedCompanies} Şirket`)
@@ -310,7 +315,7 @@ export default function Settings() {
         } catch (err) {
             alert(`Sistem hatası: ${err.message}`)
         } finally {
-            unsubscribe()
+            if (typeof unsubscribe === 'function') unsubscribe()
             setMigrating(false)
         }
     }
@@ -1223,7 +1228,7 @@ export default function Settings() {
                                         <button 
                                             className="btn btn-primary" 
                                             onClick={handlePostgresMigration} 
-                                            disabled={migrating || !postgresUrl}
+                                            disabled={migrating}
                                             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                                         >
                                             {migrating ? <RefreshCw size={16} className="spin" /> : <Database size={16} />}

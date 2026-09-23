@@ -4,7 +4,7 @@ const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { postgresDdlSql } = require('../utils/postgresDdl');
-const { getDbPath } = require('../prismaClient');
+const { getDbPath, DEFAULT_POSTGRES_URL } = require('../prismaClient');
 const log = require('../logger');
 
 /**
@@ -39,8 +39,9 @@ async function migrateSqliteToPostgres(sender, postgresUrl) {
     let pgClient = null;
 
     try {
+        const targetUrl = postgresUrl || process.env.DATABASE_URL || DEFAULT_POSTGRES_URL;
         sendLog('PostgreSQL bulut sunucusuna bağlanılıyor...');
-        pgClient = new Client({ connectionString: postgresUrl });
+        pgClient = new Client({ connectionString: targetUrl });
         await pgClient.connect();
         sendLog('✓ PostgreSQL bağlantısı sağlandı.');
 
@@ -135,11 +136,15 @@ async function migrateSqliteToPostgres(sender, postgresUrl) {
 
                     if (existingRes.rows.length > 0) {
                         const existingUser = existingRes.rows[0];
-                        // If exact match on username and email, reuse the account
-                        if (existingUser.username.toLowerCase() === u.username.toLowerCase() &&
-                            existingUser.email.toLowerCase() === u.email.toLowerCase()) {
+                        // If match on username or email, reuse the account
+                        const usernameMatch = existingUser.username && u.username && existingUser.username.toLowerCase() === u.username.toLowerCase();
+                        const emailMatch = existingUser.email && u.email && existingUser.email.toLowerCase() === u.email.toLowerCase();
+
+                        if (usernameMatch || emailMatch) {
                             userMap.set(u.id, existingUser.id);
-                            sendLog(`  • Kullanıcı "${u.username}" bulutta mevcut, eşleştirildi (ID: ${existingUser.id}).`);
+                            const targetRole = u.role && u.role !== 'user' ? u.role : (u.employee_id ? 'personnel' : 'company_admin');
+                            await pgClient.query('UPDATE users SET role = $1 WHERE id = $2', [targetRole, existingUser.id]);
+                            sendLog(`  • Kullanıcı "${u.username}" bulutta mevcut, eşleştirildi (ID: ${existingUser.id}, Rol: ${targetRole}).`);
                             continue;
                         }
 
@@ -161,6 +166,7 @@ async function migrateSqliteToPostgres(sender, postgresUrl) {
                             uniqueEmail = `${emailParts[0]}_${eCounter++}@${emailParts[1] || 'kontrol.app'}`;
                         }
 
+                        const targetRole = u.role && u.role !== 'user' ? u.role : (u.employee_id ? 'personnel' : 'company_admin');
                         const insertRes = await pgClient.query(`
                             INSERT INTO users (username, email, full_name, password_hash, role, must_change_password, is_active, status, created_at)
                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -170,7 +176,7 @@ async function migrateSqliteToPostgres(sender, postgresUrl) {
                             uniqueEmail,
                             u.full_name || uniqueUsername,
                             u.password_hash,
-                            u.role || 'user',
+                            targetRole,
                             u.must_change_password || 0,
                             u.is_active !== undefined ? u.is_active : 1,
                             u.status || 'active',
@@ -182,6 +188,7 @@ async function migrateSqliteToPostgres(sender, postgresUrl) {
                         sendLog(`  • Kullanıcı "${u.username}" çakışmayı önlemek için "${uniqueUsername}" olarak oluşturuldu (ID: ${newId}).`);
                     } else {
                         // Brand new user
+                        const targetRole = u.role && u.role !== 'user' ? u.role : (u.employee_id ? 'personnel' : 'company_admin');
                         const insertRes = await pgClient.query(`
                             INSERT INTO users (username, email, full_name, password_hash, role, must_change_password, is_active, status, created_at)
                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -191,7 +198,7 @@ async function migrateSqliteToPostgres(sender, postgresUrl) {
                             u.email,
                             u.full_name || u.username,
                             u.password_hash,
-                            u.role || 'user',
+                            targetRole,
                             u.must_change_password || 0,
                             u.is_active !== undefined ? u.is_active : 1,
                             u.status || 'active',
@@ -200,7 +207,7 @@ async function migrateSqliteToPostgres(sender, postgresUrl) {
 
                         const newId = insertRes.rows[0].id;
                         userMap.set(u.id, newId);
-                        sendLog(`  • Kullanıcı "${u.username}" başarıyla aktarıldı (ID: ${newId}).`);
+                        sendLog(`  • Kullanıcı "${u.username}" başarıyla aktarıldı (ID: ${newId}, Rol: ${targetRole}).`);
                     }
                 } catch (uErr) {
                     sendLog(`  ! Kullanıcı "${u.username}" aktarılırken hata: ${uErr.message}`);

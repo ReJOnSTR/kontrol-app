@@ -198,10 +198,15 @@ export function AuthProvider({ children }) {
     }
 
     const normalizedRole = (user?.role || '').toLowerCase()
-    const isAdmin = normalizedRole === 'admin' || normalizedRole === 'superadmin' || normalizedRole === 'company_admin' || normalizedRole === 'company_owner' || normalizedRole === 'manager'
     const isSuperAdmin = normalizedRole === 'superadmin'
+    const isPersonnel = normalizedRole === 'personnel' || normalizedRole === 'employee' || !!user?.employee_id
+    const isAdmin = normalizedRole === 'admin' || 
+                    normalizedRole === 'superadmin' || 
+                    normalizedRole === 'company_admin' || 
+                    normalizedRole === 'company_owner' || 
+                    normalizedRole === 'manager' || 
+                    (!isPersonnel && !user?.role_id)
     const isManager = normalizedRole === 'manager' || isAdmin
-    const isPersonnel = normalizedRole === 'personnel' || normalizedRole === 'employee'
 
     const hasPermission = (moduleOrAction, action = 'can_read') => {
         if (isAdmin) return true;

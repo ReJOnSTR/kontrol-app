@@ -520,7 +520,7 @@ const rpcMap = {
             const sPath = path.join(dataDir, 'settings.json');
             if (fs.existsSync(sPath)) return JSON.parse(fs.readFileSync(sPath, 'utf8'));
         } catch (e) {}
-        return { success: true, settings: {} };
+        return { autoBackup: false, frequency: 'daily', backupPath: '', lastBackup: {} };
     },
     saveSettings: (settings) => {
         try {
