@@ -294,7 +294,7 @@ export default function EmployeeReports() {
     }
 
     return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div>
             <TopProgressBar loading={loading} />
             <div className="page-header">
                 <div>
@@ -328,25 +328,23 @@ export default function EmployeeReports() {
                 ))}
             </div>
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                <DataTable persistenceKey={`EmployeeReports_table_${activeTab}`}
-                    columns={columns}
-                    data={activeTab === 'all' ? employees : employees.filter(e => e.department === activeTab)}
-                    showSearch={true}
-                    selectable={true}
-                    onSelectionChange={setSelectedIds}
-                    actions={(employee) => (
-                        <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => openReportModal([employee])}
-                            title="Raporu Görüntüle"
-                        >
-                            <Eye size={16} />
-                            <span style={{ marginLeft: '6px' }}>Görüntüle</span>
-                        </button>
-                    )}
-                />
-            </div>
+            <DataTable persistenceKey={`EmployeeReports_table_${activeTab}`}
+                columns={columns}
+                data={activeTab === 'all' ? employees : employees.filter(e => e.department === activeTab)}
+                showSearch={true}
+                selectable={true}
+                onSelectionChange={setSelectedIds}
+                actions={(employee) => (
+                    <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => openReportModal([employee])}
+                        title="Raporu Görüntüle"
+                    >
+                        <Eye size={16} />
+                        <span style={{ marginLeft: '6px' }}>Görüntüle</span>
+                    </button>
+                )}
+            />
 
             {/* Preview & Print Modal */}
             {isModalOpen && selectedEmployees.length > 0 && (

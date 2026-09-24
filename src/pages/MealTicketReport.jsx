@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useCompany } from '../context/CompanyContext'
 import TopProgressBar from '../components/TopProgressBar'
 import { FileText, Users, TrendingUp, ChevronLeft, ChevronRight, Printer, UtensilsCrossed } from 'lucide-react'
+import DataTable from '../components/DataTable'
 
 export default function MealTicketReport() {
     const { currentCompany } = useCompany()
@@ -282,74 +283,65 @@ export default function MealTicketReport() {
                     </div>
 
                     {/* Report Table */}
-                    <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr>
-                                    {['#', 'Tarih', 'Kişi Sayısı', 'Tutar', 'Not'].map((label, i) => (
-                                        <th key={i} style={{
-                                            padding: '12px 16px',
-                                            textAlign: i === 3 ? 'right' : 'left',
-                                            fontWeight: '600', fontSize: '12px',
-                                            color: 'var(--text-secondary)',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            borderBottom: '1px solid var(--border-color)',
-                                            background: 'var(--bg-secondary)'
-                                        }}>
-                                            {label}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {report.tickets.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
-                                            Bu ay için kayıt bulunmuyor.
-                                        </td>
-                                    </tr>
-                                ) : report.tickets.map((ticket, idx) => (
-                                    <tr key={ticket.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                        <td style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--text-muted)' }}>{idx + 1}</td>
-                                        <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: '500' }}>{formatDate(ticket.date)}</td>
-                                        <td style={{ padding: '10px 16px', fontSize: '13px' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <Users size={13} style={{ color: 'var(--primary)' }} />
-                                                    <span style={{ fontWeight: '600' }}>{ticket.person_count}</span>
-                                                    <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>kişi</span>
-                                                </div>
-                                                {ticket.price_per_person > 0 && (
-                                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', paddingLeft: '19px' }}>
-                                                        Birim: {formatCurrency(ticket.price_per_person)}
-                                                    </div>
-                                                )}
+                    {(() => {
+                        const columns = [
+                            { 
+                                key: 'date', 
+                                label: 'Tarih', 
+                                render: (val) => formatDate(val), 
+                                sortable: true 
+                            },
+                            { 
+                                key: 'person_count', 
+                                label: 'Kişi Sayısı', 
+                                render: (val, row) => (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Users size={13} style={{ color: 'var(--primary)' }} />
+                                            <span style={{ fontWeight: '600' }}>{val}</span>
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>kişi</span>
+                                        </div>
+                                        {row.price_per_person > 0 && (
+                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', paddingLeft: '19px' }}>
+                                                Birim: {formatCurrency(row.price_per_person)}
                                             </div>
-                                        </td>
-                                        <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: '600', color: 'var(--primary)', textAlign: 'right' }}>
-                                            {formatCurrency(ticket.person_count * (ticket.price_per_person || report.pricePerPerson || 0))}
-                                        </td>
-                                        <td style={{ padding: '10px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                                            {ticket.notes || '-'}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                            {report.tickets.length > 0 && (
-                                <tfoot>
-                                    <tr style={{ background: 'var(--bg-secondary)' }}>
-                                        <td colSpan={2} style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700' }}>TOPLAM</td>
-                                        <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700' }}>{report.totalPersons} kişi</td>
-                                        <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: 'var(--danger)', textAlign: 'right' }}>
-                                            {formatCurrency(report.totalCost)}
-                                        </td>
-                                        <td style={{ padding: '14px 16px' }}></td>
-                                    </tr>
-                                </tfoot>
-                            )}
-                        </table>
-                    </div>
+                                        )}
+                                    </div>
+                                ),
+                                sortable: true 
+                            },
+                            { 
+                                key: 'total_amount', 
+                                label: 'Tutar', 
+                                align: 'right',
+                                render: (_, row) => (
+                                    <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
+                                        {formatCurrency(row.person_count * (row.price_per_person || report.pricePerPerson || 0))}
+                                    </span>
+                                ),
+                                sortable: true 
+                            },
+                            { 
+                                key: 'notes', 
+                                label: 'Not', 
+                                render: (val) => val || '-' 
+                            }
+                        ]
+
+                        return (
+                            <DataTable
+                                persistenceKey="MealTicketReport_table"
+                                columns={columns}
+                                data={report.tickets || []}
+                                showRowNumbers={true}
+                                showSearch={true}
+                                showCheckboxes={false}
+                                emptyMessage="Bu ay için kayıt bulunmuyor."
+                                searchPlaceholder="Tarih veya not ara..."
+                                searchKeys={['notes']}
+                            />
+                        )
+                    })()}
                 </>
             )}
         </div>

@@ -397,7 +397,7 @@ export default function Reports() {
     }
 
     return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div>
             <TopProgressBar loading={loading} />
             <div className="page-header">
                 <div>
@@ -439,27 +439,25 @@ export default function Reports() {
                 </div>
             )}
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                {!loading || vehicles.length > 0 ? (
-                    <DataTable persistenceKey={`Reports_table_${activeTab}`}
-                        columns={columns}
-                        data={activeTab === 'all' ? vehicles : vehicles.filter(v => v.type === activeTab)}
-                        showSearch={true}
-                        selectable={true}
-                        onSelectionChange={setSelectedIds}
-                        actions={(vehicle) => (
-                            <button
-                                className="btn btn-secondary btn-sm"
-                                onClick={() => openReportModal([vehicle])}
-                                title="Raporu Görüntüle"
-                            >
-                                <Eye size={16} />
-                                <span style={{ marginLeft: '6px' }}>Görüntüle</span>
-                            </button>
-                        )}
-                    />
-                ) : null}
-            </div>
+            {(!loading || vehicles.length > 0) && (
+                <DataTable persistenceKey={`Reports_table_${activeTab}`}
+                    columns={columns}
+                    data={activeTab === 'all' ? vehicles : vehicles.filter(v => v.type === activeTab)}
+                    showSearch={true}
+                    selectable={true}
+                    onSelectionChange={setSelectedIds}
+                    actions={(vehicle) => (
+                        <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => openReportModal([vehicle])}
+                            title="Raporu Görüntüle"
+                        >
+                            <Eye size={16} />
+                            <span style={{ marginLeft: '6px' }}>Görüntüle</span>
+                        </button>
+                    )}
+                />
+            )}
 
             {/* Preview & Print Modal */}
             {isModalOpen && selectedVehicles.length > 0 && (
