@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatDate } from '../utils/helpers'
-import { RotateCcw, Sliders, Move, Eye, HelpCircle, Check, Info, ZoomIn, ZoomOut } from 'lucide-react'
+import { RotateCcw, Sliders, Move, Eye, HelpCircle, Check, Info, ZoomIn, ZoomOut, FileText } from 'lucide-react'
 import {
     DEFAULT_CONTRACT_ANNEX_ITEMS,
     DEFAULT_CONTRACT_NOTICE,
@@ -148,14 +148,18 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
         }
     }, [company, docData])
 
-    // Auto-scroll to footer when component mounts (in footer mode)
+    // Auto-scroll: in stamp-preview footer mode jump to footer; in previewOnly mode start at top
     useEffect(() => {
-        if (scrollRef.current && ss.placementMode === 'footer') {
-            setTimeout(() => {
-                scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-            }, 150)
+        if (scrollRef.current) {
+            if (!previewOnly && ss.placementMode === 'footer') {
+                setTimeout(() => {
+                    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+                }, 150)
+            } else {
+                scrollRef.current.scrollTop = 0
+            }
         }
-    }, [ss.placementMode])
+    }, [ss.placementMode, previewOnly])
 
     // --- Drag handler ---
     const startDrag = (e, which) => {
@@ -294,20 +298,30 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
         width: `${A4W}px`,
         minHeight: `${A4H}px`,
         transform: `scale(${zoomScale})`,
-        transformOrigin: 'top center',
+        transformOrigin: 'top left',
         background: 'white',
         padding: `${PAD}px`,
         boxSizing: 'border-box',
-        boxShadow: '0 12px 36px rgba(0,0,0,0.25)',
+        boxShadow: 'none',
         fontFamily: "'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
         color: '#1a1a1a',
         display: 'flex',
         flexDirection: 'column',
-        position: 'relative',
+        position: 'absolute',
+        top: 0,
+        left: 0,
     }
 
     return (
-        <div style={{ display: 'flex', gap: '24px', height: '76vh', minHeight: '540px' }}>
+        <div style={{
+            display: 'flex',
+            gap: previewOnly ? 0 : '16px',
+            height: '100%',
+            minHeight: '620px',
+            width: '100%',
+            flex: 1,
+            overflow: 'hidden'
+        }}>
             
             {/* ── LEFT PANEL: CONFIGURATION ── */}
             {!previewOnly && (
@@ -646,142 +660,234 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
             <div style={{
                 flexGrow: 1,
                 width: previewOnly ? '100%' : 'auto',
-                background: '#2d2d30', // Acrobat style dark layout background
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                overflow: 'auto',
-                position: 'relative',
+                height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center',
-                padding: '30px 20px',
-                boxShadow: 'inset 0 4px 20px rgba(0,0,0,0.3)'
-            }} ref={scrollRef}>
-                
-                {/* Üst Bar: Sayfa Seçici (Sözleşme Modu) & Yakınlaştırma (Zoom) */}
+                background: '#1a1d24',
+                border: previewOnly ? 'none' : '1px solid var(--border-color)',
+                borderRadius: previewOnly ? '8px' : '12px',
+                overflow: 'hidden',
+                boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.3)'
+            }}>
+                {/* ── TOP TOOLBAR: Pinned Header ── */}
                 <div style={{
+                    height: '52px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '12px',
-                    marginBottom: '20px',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 20,
-                    background: 'rgba(30, 41, 59, 0.95)',
-                    backdropFilter: 'blur(8px)',
-                    padding: '6px 14px',
-                    borderRadius: '30px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)'
+                    justifyContent: 'space-between',
+                    padding: '0 20px',
+                    background: '#13151a',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                    flexShrink: 0,
+                    zIndex: 10,
+                    gap: '16px'
                 }}>
-                    {isContract && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            {[
-                                { num: 1, label: '1. Sayfa: Taraflar & Not' },
-                                { num: 2, label: '2. Sayfa: Şartlar (1-10)' },
-                                { num: 3, label: '3. Sayfa: Hükümler & İmza' },
-                                ...(includeAnnex ? [{ num: 4, label: '4. Sayfa: Ek Fiyat Listesi & İmza' }] : [])
-                            ].map(item => (
-                                <button
-                                    key={item.num}
-                                    type="button"
-                                    onClick={() => setContractPreviewPage(item.num)}
-                                    style={{
-                                        padding: '5px 12px',
-                                        borderRadius: '20px',
-                                        fontSize: '11.5px',
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        border: contractPreviewPage === item.num ? '1px solid #3b82f6' : '1px solid transparent',
-                                        background: contractPreviewPage === item.num ? '#2563eb' : 'transparent',
-                                        color: contractPreviewPage === item.num ? '#ffffff' : '#cbd5e1',
-                                        boxShadow: contractPreviewPage === item.num ? '0 2px 8px rgba(37,99,235,0.4)' : 'none',
-                                        transition: 'all 0.15s ease'
-                                    }}
-                                >
-                                    {item.label}
-                                </button>
-                            ))}
+                    {/* Left: Document info or Page selector */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {isContract ? (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                padding: '3px',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                gap: '4px'
+                            }}>
+                                {[
+                                    { num: 1, label: '1. Sayfa (Taraflar)' },
+                                    { num: 2, label: '2. Sayfa (Şartlar)' },
+                                    { num: 3, label: '3. Sayfa (İmza)' },
+                                    ...(includeAnnex ? [{ num: 4, label: '4. Sayfa (Ek Liste)' }] : [])
+                                ].map(item => {
+                                    const isActive = contractPreviewPage === item.num
+                                    return (
+                                        <button
+                                            key={item.num}
+                                            type="button"
+                                            onClick={() => setContractPreviewPage(item.num)}
+                                            style={{
+                                                padding: '5px 12px',
+                                                borderRadius: '6px',
+                                                fontSize: '11.5px',
+                                                fontWeight: isActive ? 700 : 500,
+                                                cursor: 'pointer',
+                                                border: 'none',
+                                                background: isActive ? '#3b82f6' : 'transparent',
+                                                color: isActive ? '#ffffff' : '#94a3b8',
+                                                transition: 'all 0.15s ease',
+                                                boxShadow: isActive ? '0 1px 4px rgba(59,130,246,0.4)' : 'none'
+                                            }}
+                                        >
+                                            {item.label}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '5px 12px',
+                                borderRadius: '8px',
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)'
+                            }}>
+                                <FileText size={14} style={{ color: '#38bdf8' }} />
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }}>
+                                    {docData?.title || 'Belge Önizleme'}
+                                </span>
+                                <span style={{ fontSize: '10.5px', fontWeight: 500, color: '#94a3b8', background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: '4px' }}>
+                                    A4 (210×297 mm)
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right: Modern Zoom Controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {/* Segmented Zoom Controller */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            padding: '2px'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setZoomScale(s => Math.max(0.4, Math.round((s - 0.1) * 10) / 10))}
+                                disabled={zoomScale <= 0.4}
+                                title="Uzaklaştır (%10)"
+                                style={{
+                                    width: '30px',
+                                    height: '28px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    color: zoomScale <= 0.4 ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
+                                    cursor: zoomScale <= 0.4 ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                <ZoomOut size={15} />
+                            </button>
+
+                            <span style={{
+                                padding: '0 10px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                color: '#f8fafc',
+                                minWidth: '50px',
+                                textAlign: 'center',
+                                userSelect: 'none',
+                                fontVariantNumeric: 'tabular-nums'
+                            }}>
+                                {Math.round(zoomScale * 100)}%
+                            </span>
+
+                            <button
+                                type="button"
+                                onClick={() => setZoomScale(s => Math.min(1.5, Math.round((s + 0.1) * 10) / 10))}
+                                disabled={zoomScale >= 1.5}
+                                title="Yakınlaştır (%10)"
+                                style={{
+                                    width: '30px',
+                                    height: '28px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    color: zoomScale >= 1.5 ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
+                                    cursor: zoomScale >= 1.5 ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                <ZoomIn size={15} />
+                            </button>
                         </div>
-                    )}
 
-                    {isContract && <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.2)' }} />}
-
-                    {/* Zoom / Yakınlaştırma Kontrolleri */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                            type="button"
-                            onClick={() => setZoomScale(s => Math.max(0.4, Math.round((s - 0.1) * 10) / 10))}
-                            title="Uzaklaştır"
-                            style={{
-                                width: '26px',
-                                height: '26px',
-                                borderRadius: '50%',
-                                border: '1px solid rgba(255,255,255,0.2)',
-                                background: 'rgba(255,255,255,0.1)',
-                                color: 'white',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                            }}
-                        >
-                            <ZoomOut size={13} />
-                        </button>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.9)', minWidth: '38px', textAlign: 'center', fontFamily: 'monospace' }}>
-                            {Math.round(zoomScale * 100)}%
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => setZoomScale(s => Math.min(1.4, Math.round((s + 0.1) * 10) / 10))}
-                            title="Yakınlaştır"
-                            style={{
-                                width: '26px',
-                                height: '26px',
-                                borderRadius: '50%',
-                                border: '1px solid rgba(255,255,255,0.2)',
-                                background: 'rgba(255,255,255,0.1)',
-                                color: 'white',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                            }}
-                        >
-                            <ZoomIn size={13} />
-                        </button>
+                        {/* Quick Zoom Presets */}
                         <button
                             type="button"
                             onClick={() => setZoomScale(previewOnly ? 0.8 : DEFAULT_SCALE)}
-                            title="Ölçeği Sıfırla"
+                            title="Sayfayı ekrana sığdır"
                             style={{
-                                padding: '3px 8px',
-                                borderRadius: '12px',
-                                border: '1px solid rgba(255,255,255,0.2)',
-                                background: 'rgba(255,255,255,0.1)',
-                                color: '#cbd5e1',
-                                fontSize: '10.5px',
+                                height: '32px',
+                                padding: '0 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: Math.round(zoomScale * 100) === Math.round((previewOnly ? 0.8 : DEFAULT_SCALE) * 100) ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.06)',
+                                border: Math.round(zoomScale * 100) === Math.round((previewOnly ? 0.8 : DEFAULT_SCALE) * 100) ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '8px',
+                                color: Math.round(zoomScale * 100) === Math.round((previewOnly ? 0.8 : DEFAULT_SCALE) * 100) ? '#60a5fa' : '#cbd5e1',
+                                fontSize: '11.5px',
                                 fontWeight: 600,
                                 cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                                marginLeft: '2px'
+                                transition: 'all 0.15s ease'
                             }}
                         >
-                            Sıfırla
+                            <RotateCcw size={12} />
+                            Sığdır
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setZoomScale(1.0)}
+                            title="Gerçek Boyut (%100)"
+                            style={{
+                                height: '32px',
+                                padding: '0 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                background: Math.round(zoomScale * 100) === 100 ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.06)',
+                                border: Math.round(zoomScale * 100) === 100 ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '8px',
+                                color: Math.round(zoomScale * 100) === 100 ? '#60a5fa' : '#cbd5e1',
+                                fontSize: '11.5px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                            }}
+                        >
+                            %100
                         </button>
                     </div>
                 </div>
 
-                {/* Document wrapper that matches scaled A4 bounds */}
+                {/* ── SCROLLABLE CANVAS ── */}
                 <div style={{
-                    width: `${A4W * zoomScale}px`,
-                    height: `${A4H * zoomScale}px`,
-                    position: 'relative',
-                    flexShrink: 0
-                }}>
-                    <div style={scaledDocStyle}>
+                    flex: 1,
+                    overflow: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: '32px 24px 64px 24px',
+                    background: '#22252c',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                }} ref={scrollRef}>
+                    
+                    {/* Document wrapper that matches scaled A4 bounds */}
+                    <div style={{
+                        width: `${Math.round(A4W * zoomScale)}px`,
+                        height: `${Math.round(A4H * zoomScale)}px`,
+                        position: 'relative',
+                        flexShrink: 0,
+                        margin: '0 auto',
+                        boxShadow: '0 20px 48px -10px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+                        borderRadius: '3px',
+                        background: '#ffffff'
+                    }}>
+                        <div style={scaledDocStyle}>
 
                         {isContract ? (
                             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: `${A4H - PAD * 2}px` }}>
@@ -1249,7 +1355,8 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                     </div>
                 </div>
             </div>
-
         </div>
-    )
+
+    </div>
+)
 }

@@ -282,6 +282,7 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
             onClose={onClose}
             title={`Toplu Belge Oluştur (${selectedEmployees.length} Personel Seçili)`}
             size={step === 'stamp-preview' ? 'fullscreen' : 'xl'}
+            bodyStyle={step === 'stamp-preview' ? { display: 'flex', flexDirection: 'column', height: '100%', padding: 0, overflow: 'hidden' } : undefined}
             footer={modalFooter}
         >
             {step === 'edit' && (
@@ -518,7 +519,7 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
             )}
 
             {step === 'stamp-preview' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', width: '100%', overflow: 'hidden' }}>
                     <StampSignaturePreview
                         docData={{
                             templateId: selectedTemplate.id,

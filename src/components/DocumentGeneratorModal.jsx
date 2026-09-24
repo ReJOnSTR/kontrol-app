@@ -250,6 +250,7 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
             onClose={onClose}
             title={step === 'stamp-preview' ? 'Kaşe & İmza Konumlandırma — PDF Önizleme' : 'Personel Belgesi Oluştur'}
             size={step === 'stamp-preview' ? 'fullscreen' : 'xl'}
+            bodyStyle={step === 'stamp-preview' ? { display: 'flex', flexDirection: 'column', height: '100%', padding: 0, overflow: 'hidden' } : undefined}
             footer={modalFooter}
         >
             {step === 'edit' && (
@@ -376,7 +377,7 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
             )}
 
             {step === 'stamp-preview' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', width: '100%', overflow: 'hidden' }}>
                     <StampSignaturePreview
                         docData={{
                             templateId: selectedTemplate.id,
