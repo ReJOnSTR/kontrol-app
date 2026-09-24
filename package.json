@@ -1,6 +1,6 @@
 {
   "name": "kontrol-app",
-  "version": "1.13.105",
+  "version": "1.13.106",
   "description": "Kontrol - Filo Yönetim Sistemi",
   "author": "Halil Sak",
   "main": "electron/main.js",
@@ -18,7 +18,8 @@
     "backup": "node scripts/supabase-backup-manager.js backup",
     "backup:db": "node scripts/supabase-backup-manager.js backup-db",
     "backup:storage": "node scripts/supabase-backup-manager.js backup-storage",
-    "backup:restore": "node scripts/supabase-backup-manager.js restore"
+    "backup:restore": "node scripts/supabase-backup-manager.js restore",
+    "rls:apply": "node scripts/apply-supabase-rls.js"
   },
   "engines": {
     "node": ">=22.0.0"

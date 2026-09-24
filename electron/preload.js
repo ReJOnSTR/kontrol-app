@@ -356,4 +356,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getEmailSettings: () => ipcRenderer.invoke('platform:getEmailSettings'),
     saveEmailSettings: (data) => ipcRenderer.invoke('platform:saveEmailSettings', data),
     testSmtpConnection: (data) => ipcRenderer.invoke('platform:testSmtpConnection', data),
+
+    // Company Audit Log & Notification Engine APIs
+    getCompanyAuditLogs: (params) => ipcRenderer.invoke('company:getAuditLogs', params),
+    getCompanyNotificationSettings: (companyId) => ipcRenderer.invoke('notification:getCompanySettings', companyId),
+    saveCompanyNotificationSettings: (companyId, settings) => ipcRenderer.invoke('notification:saveCompanySettings', { companyId, settings }),
+    runCompanyNotificationScan: (companyId, options) => ipcRenderer.invoke('notification:runCompanyScan', { companyId, options }),
+    sendTestNotificationEmail: (data) => ipcRenderer.invoke('notification:sendTestEmail', data),
 })
+

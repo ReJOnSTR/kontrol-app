@@ -20,6 +20,7 @@ const mfaService = require('./electron/services/mfa.service');
 const auditService = require('./electron/services/audit.service');
 const sessionService = require('./electron/services/session.service');
 const emailTemplateService = require('./electron/services/emailTemplate.service');
+const notificationEngine = require('./electron/services/notification-engine.service');
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -644,7 +645,25 @@ const rpcMap = {
     getEmailSettings: emailTemplateService.getEmailSettings,
     saveEmailSettings: emailTemplateService.saveEmailSettings,
     testSmtpConnection: emailTemplateService.testSmtpConnection,
+
+    // Notification Engine & Company Audit Logs RPC
+    getCompanyAuditLogs: auditService.getPlatformAuditLogs,
+    getCompanyNotificationSettings: notificationEngine.getCompanyNotificationSettings,
+    saveCompanyNotificationSettings: async (arg1, arg2) => {
+        if (arg1 && typeof arg1 === 'object' && arg1.companyId) {
+            return await notificationEngine.saveCompanyNotificationSettings(arg1.companyId, arg1.settings);
+        }
+        return await notificationEngine.saveCompanyNotificationSettings(arg1, arg2);
+    },
+    runCompanyNotificationScan: async (arg1, arg2) => {
+        if (arg1 && typeof arg1 === 'object' && arg1.companyId) {
+            return await notificationEngine.runCompanyNotificationScan(arg1.companyId, arg1.options);
+        }
+        return await notificationEngine.runCompanyNotificationScan(arg1, arg2);
+    },
+    sendTestNotificationEmail: notificationEngine.sendTestNotificationEmail,
 };
+
 
 // Generic RPC Router
 app.post('/api/rpc/:method', async (req, res) => {

@@ -1853,6 +1853,15 @@ async function checkAndNotifySummary() {
                 }).show()
             }
             notifiedEvents.add(eventKey)
+
+            // Trigger Email Notification Engine for each company
+            for (const company of companies.data) {
+                try {
+                    await notificationEngine.runCompanyNotificationScan(company.id);
+                } catch (scanErr) {
+                    log.error(`Auto email notification scan failed for company ${company.id}:`, scanErr.message);
+                }
+            }
         }
     } catch (error) {
         log.error('Summary notification failed:', error)
@@ -2773,10 +2782,29 @@ ipcMain.handle('platform:openImpersonateWindow', async (event, { companyId, comp
             impersonateWin.focus();
         });
 
-        return { success: true };
-    } catch (err) {
-        log.error('Failed to open impersonate window:', err);
-        return { success: false, error: err.message };
-    }
+// Notification Engine & Role-Based Alert Dispatch IPC Handlers
+const notificationEngine = require('./services/notification-engine.service');
+
+ipcMain.handle('notification:getCompanySettings', async (event, companyId) => {
+    return await notificationEngine.getCompanyNotificationSettings(companyId);
 });
+ipcMain.handle('notification:saveCompanySettings', async (event, arg1, arg2) => {
+    if (arg1 && typeof arg1 === 'object' && arg1.companyId) {
+        return await notificationEngine.saveCompanyNotificationSettings(arg1.companyId, arg1.settings);
+    }
+    return await notificationEngine.saveCompanyNotificationSettings(arg1, arg2);
+});
+ipcMain.handle('notification:runCompanyScan', async (event, arg1, arg2) => {
+    if (arg1 && typeof arg1 === 'object' && arg1.companyId) {
+        return await notificationEngine.runCompanyNotificationScan(arg1.companyId, arg1.options);
+    }
+    return await notificationEngine.runCompanyNotificationScan(arg1, arg2);
+});
+ipcMain.handle('notification:sendTestEmail', async (event, data) => {
+    return await notificationEngine.sendTestNotificationEmail(data);
+});
+ipcMain.handle('company:getAuditLogs', async (event, params) => {
+    return await auditService.getPlatformAuditLogs(params);
+});
+
 

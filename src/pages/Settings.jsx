@@ -10,8 +10,10 @@ import {
     Sun, Moon, Shield, Database, Palette, HardDrive, Lock, Globe, 
     Bell, Zap, Download, Upload, RefreshCw, Folder, User, Users, Wallet, 
     Wrench, FileSearch, ClipboardCheck, Layout, Cog, Eye, EyeOff, Clock, CheckCircle,
-    UserPlus, Key, Unlock, Trash2, Edit2, ShieldAlert, Check, X, Building2, Sparkles
+    UserPlus, Key, Unlock, Trash2, Edit2, ShieldAlert, Check, X, Building2, Sparkles,
+    Mail, Send, CheckCircle2, AlertCircle, Filter, Calendar, FileText
 } from 'lucide-react'
+
 import TopProgressBar from '../components/TopProgressBar'
 
 export default function Settings() {
@@ -130,6 +132,236 @@ export default function Settings() {
             loadCompanyUsers()
         }
     }, [activeTab, currentCompany?.id])
+
+    // ── ROLE-BASED NOTIFICATION & EMAIL ENGINE STATE ──
+    const [notificationConfig, setNotificationConfig] = useState({
+        emailNotificationsEnabled: true,
+        notificationEmails: '',
+        dailySummaryEnabled: true,
+        dailySummaryTime: '09:00',
+        rolePreferences: {
+            admin: {
+                label: 'Şirket Yöneticisi & Admin',
+                description: 'Tüm operasyonel, finansal ve güvenlik süreçlerine tam yetkili erişim.',
+                items: {
+                    inspection: { label: 'Araç Muayene & Periyodik Kontrol', inApp: true, email: true },
+                    insurance: { label: 'Trafik Sigortası ve Kasko Bitişleri', inApp: true, email: true },
+                    finance_check: { label: 'Vadesi Gelen Çek & Senetler', inApp: true, email: true },
+                    approval_center: { label: 'Onay Bekleyen Personel Talepleri (İzin/Mesai)', inApp: true, email: true },
+                    employee_document: { label: 'Personel Belge & Ehliyet/SRC Süreleri', inApp: true, email: true },
+                    security_alerts: { label: 'Kritik Güvenlik Olayları & Silme Hareketleri', inApp: true, email: true },
+                    daily_summary: { label: 'Konsolide Günlük Şirket Özeti', inApp: true, email: true }
+                }
+            },
+            accounting: {
+                label: 'Muhasebe & Finans',
+                description: 'Finansal vadeler, çek/senet, kasa ve avans ödemeleri yönetimi.',
+                items: {
+                    finance_check: { label: 'Vadesi Yaklaşan Çekler ve Senetler', inApp: true, email: true },
+                    advance_requests: { label: 'Personel Avans ve Masraf Talepleri', inApp: true, email: true },
+                    cash_flow_warning: { label: 'Kritik Kasa & Bakiye Hatırlatıcıları', inApp: true, email: false },
+                    daily_summary: { label: 'Günlük Finansal Durum Özeti', inApp: true, email: true }
+                }
+            },
+            fleet: {
+                label: 'Filo & Saha Operasyon',
+                description: 'Araç muayeneleri, sigorta, periyodik bakım ve servis takibi.',
+                items: {
+                    inspection: { label: 'Muayene & Egzoz Süresi Biten / Yaklaşan Araçlar', inApp: true, email: true },
+                    insurance: { label: 'Kasko & Trafik Sigortası Bitişleri', inApp: true, email: true },
+                    maintenance: { label: 'Periyodik Bakım & Kilometre Sayaç Uyarıları', inApp: true, email: true },
+                    daily_summary: { label: 'Günlük Filo ve Araç Takip Özeti', inApp: true, email: false }
+                }
+            },
+            personnel: {
+                label: 'Personel & Şoför',
+                description: 'Sürücü ve saha personeli ehliyet, SRC belgeleri ve talep bildirimleri.',
+                items: {
+                    employee_document: { label: 'Ehliyet, SRC ve Sağlık Raporu Süre Sonu', inApp: true, email: true },
+                    leave_results: { label: 'İzin & Mesai Talebi Onay / Red Bildirimi', inApp: true, email: true },
+                    vehicle_assignment: { label: 'Zimmetli Araç & Görev Atama Bildirimleri', inApp: true, email: false }
+                }
+            }
+        }
+    })
+    const [savingNotificationConfig, setSavingNotificationConfig] = useState(false)
+    const [testEmailLoading, setTestEmailLoading] = useState(false)
+    const [selectedTestRole, setSelectedTestRole] = useState('admin')
+    const [scanLoading, setScanLoading] = useState(false)
+    const [notificationStatusMsg, setNotificationStatusMsg] = useState(null)
+
+    // ── COMPANY AUDIT LOG TRAIL STATE ──
+    const [auditLogs, setAuditLogs] = useState([])
+    const [auditMetrics, setAuditMetrics] = useState({ total24h: 0, failedLogins24h: 0, criticalDeletes24h: 0, securityEvents24h: 0 })
+    const [loadingAudit, setLoadingAudit] = useState(false)
+    const [auditFilters, setAuditFilters] = useState({
+        action: 'all',
+        entityType: 'all',
+        severity: 'all',
+        search: '',
+        startDate: '',
+        endDate: '',
+        page: 1,
+        limit: 25
+    })
+    const [auditPagination, setAuditPagination] = useState({ total: 0, page: 1, totalPages: 1 })
+    const [selectedAuditLog, setSelectedAuditLog] = useState(null)
+
+    const loadNotificationSettings = async () => {
+        if (!currentCompany?.id) return
+        try {
+            const res = await window.electronAPI?.getCompanyNotificationSettings?.(currentCompany.id)
+            if (res?.success && res.data) {
+                setNotificationConfig(res.data)
+            }
+        } catch (e) {
+            console.error('Failed to load company notification settings:', e)
+        }
+    }
+
+    const handleSaveNotificationConfig = async (newConfig = notificationConfig) => {
+        if (!currentCompany?.id) return
+        setSavingNotificationConfig(true)
+        try {
+            const res = await window.electronAPI?.saveCompanyNotificationSettings?.(currentCompany.id, newConfig)
+            if (res?.success) {
+                setNotificationStatusMsg({ type: 'success', text: 'Bildirim tercihleri ve e-posta onayları başarıyla kaydedildi!' })
+            } else {
+                setNotificationStatusMsg({ type: 'error', text: res?.error || 'Ayarlar kaydedilemedi.' })
+            }
+        } catch (e) {
+            setNotificationStatusMsg({ type: 'error', text: e.message })
+        } finally {
+            setSavingNotificationConfig(false)
+            setTimeout(() => setNotificationStatusMsg(null), 4000)
+        }
+    }
+
+    const toggleRoleItem = (roleKey, itemKey, field) => {
+        setNotificationConfig(prev => {
+            const role = prev.rolePreferences?.[roleKey] || {}
+            const items = role.items || {}
+            const currentItem = items[itemKey] || { inApp: true, email: true }
+            const updatedItem = {
+                ...currentItem,
+                [field]: !currentItem[field]
+            }
+
+            const updatedRole = {
+                ...role,
+                items: {
+                    ...items,
+                    [itemKey]: updatedItem
+                }
+            }
+
+            const updatedConfig = {
+                ...prev,
+                rolePreferences: {
+                    ...prev.rolePreferences,
+                    [roleKey]: updatedRole
+                }
+            }
+
+            if (field === 'inApp') {
+                localStorage.setItem(`notify_${itemKey}`, updatedItem.inApp)
+                setNotifications(n => ({ ...n, [itemKey]: updatedItem.inApp }))
+            }
+
+            handleSaveNotificationConfig(updatedConfig)
+            return updatedConfig
+        })
+    }
+
+    const handleSendTestNotificationEmail = async () => {
+        const emailToUse = (notificationConfig.notificationEmails || user?.email || '').split(',')[0].trim()
+        if (!emailToUse || !emailToUse.includes('@')) {
+            alert('Lütfen bildirim e-posta adresini belirleyiniz.')
+            return
+        }
+        setTestEmailLoading(true)
+        setNotificationStatusMsg(null)
+        try {
+            const res = await window.electronAPI?.sendTestNotificationEmail?.({
+                companyId: currentCompany?.id,
+                recipientEmail: emailToUse,
+                roleKey: selectedTestRole
+            })
+            if (res?.success) {
+                setNotificationStatusMsg({ type: 'success', text: res.message || 'Test e-postası başarıyla gönderildi!' })
+            } else {
+                setNotificationStatusMsg({ type: 'error', text: res?.error || 'Test e-postası gönderilemedi.' })
+            }
+        } catch (e) {
+            setNotificationStatusMsg({ type: 'error', text: e.message })
+        } finally {
+            setTestEmailLoading(false)
+            setTimeout(() => setNotificationStatusMsg(null), 6000)
+        }
+    }
+
+    const handleRunNotificationScan = async () => {
+        if (!currentCompany?.id) return
+        setScanLoading(true)
+        setNotificationStatusMsg(null)
+        try {
+            const res = await window.electronAPI?.runCompanyNotificationScan?.(currentCompany.id, { force: true })
+            if (res?.success) {
+                setNotificationStatusMsg({ type: 'success', text: res.message || 'Tarama tamamlandı ve e-postalar iletildi!' })
+            } else {
+                setNotificationStatusMsg({ type: 'error', text: res?.error || 'Tarama tamamlanamadı.' })
+            }
+        } catch (e) {
+            setNotificationStatusMsg({ type: 'error', text: e.message })
+        } finally {
+            setScanLoading(false)
+            setTimeout(() => setNotificationStatusMsg(null), 6000)
+        }
+    }
+
+    const loadAuditLogs = async () => {
+        if (!currentCompany?.id) return
+        setLoadingAudit(true)
+        try {
+            const params = {
+                companyId: currentCompany.id,
+                action: auditFilters.action,
+                entityType: auditFilters.entityType,
+                severity: auditFilters.severity,
+                search: auditFilters.search,
+                startDate: auditFilters.startDate,
+                endDate: auditFilters.endDate,
+                page: auditFilters.page,
+                limit: auditFilters.limit
+            }
+            const [logsRes, metricsRes] = await Promise.all([
+                window.electronAPI?.getCompanyAuditLogs ? window.electronAPI.getCompanyAuditLogs(params) : (window.electronAPI?.getPlatformAuditLogs ? window.electronAPI.getPlatformAuditLogs(params) : { success: false, logs: [] }),
+                window.electronAPI?.getAuditSummaryMetrics ? window.electronAPI.getAuditSummaryMetrics() : { success: false }
+            ])
+
+            if (logsRes?.success) {
+                setAuditLogs(logsRes.logs || [])
+                setAuditPagination(logsRes.pagination || { total: 0, page: 1, totalPages: 1 })
+            }
+            if (metricsRes?.success && metricsRes.metrics) {
+                setAuditMetrics(metricsRes.metrics)
+            }
+        } catch (e) {
+            console.error('Failed to load audit logs:', e)
+        } finally {
+            setLoadingAudit(false)
+        }
+    }
+
+    useEffect(() => {
+        if (activeTab === 'notifications' && currentCompany?.id) {
+            loadNotificationSettings()
+        }
+        if (activeTab === 'audit' && currentCompany?.id) {
+            loadAuditLogs()
+        }
+    }, [activeTab, currentCompany?.id, auditFilters.page, auditFilters.action, auditFilters.entityType, auditFilters.severity])
+
 
     const handleEmployeeSelect = (empId) => {
         setSelectedEmployeeId(empId)
@@ -536,11 +768,13 @@ export default function Settings() {
         { id: 'general', label: 'Genel', icon: <Cog size={18} /> },
         { id: 'users', label: 'Kullanıcılar & Yetkiler', icon: <Users size={18} /> },
         { id: 'appearance', label: 'Görünüm', icon: <Palette size={18} /> },
-        { id: 'security', label: 'Güvenlik', icon: <Shield size={18} /> },
-        { id: 'notifications', label: 'Bildirimler', icon: <Bell size={18} /> },
-        { id: 'data', label: 'Veri Yönetimi', icon: <Database size={18} /> },
+        { id: 'security', label: 'Güvenlik & Kilit', icon: <Shield size={18} /> },
+        { id: 'audit', label: 'Güvenlik Günlüğü (Audit)', icon: <ShieldAlert size={18} /> },
+        { id: 'notifications', label: 'Bildirimler & E-Posta Motoru', icon: <Bell size={18} /> },
+        { id: 'data', label: 'Veri Yönetimi & Supabase RLS', icon: <Database size={18} /> },
         { id: 'arvento', label: 'Arvento Entegrasyonu', icon: <Globe size={18} /> },
     ]
+
 
     return (
         <div className="settings-page">
@@ -996,116 +1230,428 @@ export default function Settings() {
 
                     {activeTab === 'notifications' && (
                         <div className="tab-fade-in">
+                            {notificationStatusMsg && (
+                                <div style={{
+                                    padding: '14px 18px',
+                                    borderRadius: '12px',
+                                    marginBottom: '20px',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    backgroundColor: notificationStatusMsg.type === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                                    color: notificationStatusMsg.type === 'success' ? '#10b981' : '#ef4444',
+                                    border: `1px solid ${notificationStatusMsg.type === 'success' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`
+                                }}>
+                                    {notificationStatusMsg.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+                                    <span>{notificationStatusMsg.text}</span>
+                                </div>
+                            )}
+
+                            {/* Main Notification & Email Dispatcher Settings Card */}
                             <div className="settings-card">
-                                <h2 className="settings-card-title"><Bell size={20} className="text-primary" /> Bildirim Tercihleri</h2>
-                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                                    Hangi işlemler için hatırlatma almak istediğinizi buradan yönetebilirsiniz.
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                                    <div>
+                                        <h2 className="settings-card-title" style={{ margin: 0 }}>
+                                            <Bell size={20} className="text-primary" /> Akıllı Bildirim & E-Posta Motoru
+                                        </h2>
+                                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px', maxWidth: '650px' }}>
+                                            Kritik muayene, sigorta, finans ve personel işlemlerini rol bazında hem uygulama içinde gösterin hem de ilgili personelin e-postasına otomatik olarak iletin.
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={handleRunNotificationScan}
+                                            disabled={scanLoading || !currentCompany}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        >
+                                            {scanLoading ? <RefreshCw size={15} className="spin" /> : <Zap size={15} />}
+                                            {scanLoading ? 'Taranıyor...' : 'Şimdi Uyarı Taraması Yap'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={() => handleSaveNotificationConfig()}
+                                            disabled={savingNotificationConfig || !currentCompany}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        >
+                                            {savingNotificationConfig ? <RefreshCw size={15} className="spin" /> : <Check size={15} />}
+                                            {savingNotificationConfig ? 'Kaydediliyor...' : 'Tercihleri Kaydet'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* General Email Dispatch Controls */}
+                                <div style={{
+                                    background: 'var(--bg-tertiary)',
+                                    borderRadius: '14px',
+                                    padding: '20px',
+                                    border: '1px solid var(--border-color)',
+                                    marginBottom: '25px'
+                                }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <label style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Mail size={16} className="text-primary" /> E-Posta İletimi Açık / Kapalı
+                                                </label>
+                                                <label className="toggle-switch">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={notificationConfig.emailNotificationsEnabled !== false} 
+                                                        onChange={(e) => {
+                                                            const updated = { ...notificationConfig, emailNotificationsEnabled: e.target.checked }
+                                                            setNotificationConfig(updated)
+                                                            handleSaveNotificationConfig(updated)
+                                                        }} 
+                                                    />
+                                                    <span className="toggle-slider"></span>
+                                                </label>
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                Açık olduğunda, onaylanan bildirim kategorileri personelin e-postasına HTML şablonla gönderilir.
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                                                Bildirim Alacak E-Posta Adresleri
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-input" 
+                                                placeholder="ornek@sirket.com, filo@sirket.com (virgülle ayırın)"
+                                                value={notificationConfig.notificationEmails || ''}
+                                                onChange={(e) => setNotificationConfig(prev => ({ ...prev, notificationEmails: e.target.value }))}
+                                                onBlur={() => handleSaveNotificationConfig()}
+                                                style={{ width: '100%', fontSize: '13px' }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Test Email Dispatcher Section */}
+                                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>Test Şablonu:</span>
+                                            <select 
+                                                className="form-select" 
+                                                value={selectedTestRole} 
+                                                onChange={(e) => setSelectedTestRole(e.target.value)}
+                                                style={{ padding: '6px 12px', fontSize: '12px', width: 'auto' }}
+                                            >
+                                                <option value="admin">Şirket Yöneticisi & Admin</option>
+                                                <option value="accounting">Muhasebe & Finans</option>
+                                                <option value="fleet">Filo & Saha Operasyon</option>
+                                                <option value="personnel">Personel & Şoför</option>
+                                            </select>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={handleSendTestNotificationEmail}
+                                            disabled={testEmailLoading}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 14px' }}
+                                        >
+                                            {testEmailLoading ? <RefreshCw size={14} className="spin" /> : <Send size={14} />}
+                                            {testEmailLoading ? 'Gönderiliyor...' : 'Test E-Postası Gönder'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Role-Based Notification Segregation */}
+                                <h3 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Users size={18} className="text-primary" /> Kullanıcı Türlerine Göre Bildirim & E-Posta İletim Onayları
+                                </h3>
+                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '22px' }}>
+                                    Aşağıda her bir personel rolü için hem <strong>Uygulama İçi Bildirim</strong> hem de <strong>E-Posta ile İletim Onayı</strong> seçenekleri ayrı ayrı sunulmuştur:
                                 </p>
-                                
-                                <div className="settings-grid">
-                                    <div className="settings-item card-style">
-                                        <div className="settings-item-icon"><Wrench size={18} /></div>
-                                        <div className="settings-item-content">
-                                            <div className="settings-item-label">Bakım Bildirimleri</div>
-                                            <div className="settings-item-desc">Servis ve periyodik bakımlar</div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    {/* 1. Şirket Yöneticisi & Admin */}
+                                    <div style={{ border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', background: 'var(--bg-card)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Shield size={20} />
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                                        Şirket Yöneticisi & Admin (Yönetim Ekibi)
+                                                    </div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                        Tüm operasyonel, finansal ve güvenlik süreçlerine ilişkin tam yetkili uyarılar.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span className="badge" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', fontWeight: '600', padding: '4px 10px', borderRadius: '8px', fontSize: '11px' }}>
+                                                Tam Yetkili Yönetici
+                                            </span>
                                         </div>
-                                        <label className="toggle-switch">
-                                            <input type="checkbox" checked={notifications.maintenance} onChange={() => toggleNotification('maintenance')} />
-                                            <span className="toggle-slider"></span>
-                                        </label>
+
+                                        <div className="settings-grid">
+                                            {[
+                                                { key: 'inspection', icon: <ClipboardCheck size={16} />, label: 'Araç Muayene & Periyodik Kontrol', desc: 'Tüvtürk ve teknik kontrol süreleri' },
+                                                { key: 'insurance', icon: <Shield size={16} />, label: 'Trafik Sigortası & Kasko Bitişleri', desc: 'Poliçe vadesi yaklaşan araçlar' },
+                                                { key: 'finance_check', icon: <Wallet size={16} />, label: 'Vadesi Gelen Çek & Senetler', desc: 'Ödeme ve tahsilat vadeleri' },
+                                                { key: 'approval_center', icon: <CheckCircle2 size={16} />, label: 'Personel Onay Bekleyen Talepler', desc: 'İzin, mesai ve avans talepleri' },
+                                                { key: 'employee_document', icon: <User size={16} />, label: 'Personel Belge & Ehliyet/SRC Süreleri', desc: 'Süresi yaklaşan çalışan evrakları' },
+                                                { key: 'security_alerts', icon: <ShieldAlert size={16} />, label: 'Kritik Güvenlik & Silme Günlüğü', desc: 'Yetkisiz girişler ve kritik veri silme' },
+                                                { key: 'daily_summary', icon: <Clock size={16} />, label: 'Konsolide Günlük Şirket Özeti', desc: 'Her sabah toplu yönetici raporu' },
+                                            ].map(item => {
+                                                const current = notificationConfig.rolePreferences?.admin?.items?.[item.key] || { inApp: true, email: true }
+                                                return (
+                                                    <div key={item.key} className="settings-item card-style" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                            <div className="settings-item-icon" style={{ width: '32px', height: '32px', minWidth: '32px' }}>{item.icon}</div>
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div className="settings-item-label" style={{ fontSize: '13px' }}>{item.label}</div>
+                                                                <div className="settings-item-desc" style={{ fontSize: '11px' }}>{item.desc}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid var(--border-color)', marginTop: '2px' }}>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={current.inApp} 
+                                                                    onChange={() => toggleRoleItem('admin', item.key, 'inApp')} 
+                                                                />
+                                                                <span>📲 Uygulama İçi</span>
+                                                            </label>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: current.email ? 'var(--success)' : 'var(--text-secondary)', fontWeight: current.email ? '600' : 'normal' }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={current.email} 
+                                                                    onChange={() => toggleRoleItem('admin', item.key, 'email')} 
+                                                                />
+                                                                <span>✉️ E-Posta İlet</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
                                     </div>
 
-                                    <div className="settings-item card-style">
-                                        <div className="settings-item-icon"><ClipboardCheck size={18} /></div>
-                                        <div className="settings-item-content">
-                                            <div className="settings-item-label">Muayene Bildirimleri</div>
-                                            <div className="settings-item-desc">Trafik ve egzoz muayeneleri</div>
+                                    {/* 2. Muhasebe & Finans */}
+                                    <div style={{ border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', background: 'var(--bg-card)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Wallet size={20} />
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                                        Muhasebe & Finans Yetkilisi
+                                                    </div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                        Finansal vadeler, çek/senet, kasa ve avans ödemeleri yönetimi.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span className="badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: '600', padding: '4px 10px', borderRadius: '8px', fontSize: '11px' }}>
+                                                Mali İşler
+                                            </span>
                                         </div>
-                                        <label className="toggle-switch">
-                                            <input type="checkbox" checked={notifications.inspection} onChange={() => toggleNotification('inspection')} />
-                                            <span className="toggle-slider"></span>
-                                        </label>
+
+                                        <div className="settings-grid">
+                                            {[
+                                                { key: 'finance_check', icon: <Wallet size={16} />, label: 'Vadesi Yaklaşan Çekler ve Senetler', desc: '7 gün ve daha az kalan çekler' },
+                                                { key: 'advance_requests', icon: <CheckCircle2 size={16} />, label: 'Personel Avans ve Masraf Talepleri', desc: 'Onay bekleyen finansal talepler' },
+                                                { key: 'cash_flow_warning', icon: <AlertCircle size={16} />, label: 'Kritik Kasa & Bakiye Hatırlatıcıları', desc: 'Eşik altı kasa veya banka bakiyesi' },
+                                                { key: 'daily_summary', icon: <Clock size={16} />, label: 'Günlük Finansal Durum Özeti', desc: 'Günün çek/ödeme vadeleri tablosu' },
+                                            ].map(item => {
+                                                const current = notificationConfig.rolePreferences?.accounting?.items?.[item.key] || { inApp: true, email: true }
+                                                return (
+                                                    <div key={item.key} className="settings-item card-style" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                            <div className="settings-item-icon" style={{ width: '32px', height: '32px', minWidth: '32px' }}>{item.icon}</div>
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div className="settings-item-label" style={{ fontSize: '13px' }}>{item.label}</div>
+                                                                <div className="settings-item-desc" style={{ fontSize: '11px' }}>{item.desc}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid var(--border-color)', marginTop: '2px' }}>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={current.inApp} 
+                                                                    onChange={() => toggleRoleItem('accounting', item.key, 'inApp')} 
+                                                                />
+                                                                <span>📲 Uygulama İçi</span>
+                                                            </label>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: current.email ? 'var(--success)' : 'var(--text-secondary)', fontWeight: current.email ? '600' : 'normal' }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={current.email} 
+                                                                    onChange={() => toggleRoleItem('accounting', item.key, 'email')} 
+                                                                />
+                                                                <span>✉️ E-Posta İlet</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
                                     </div>
 
-                                    <div className="settings-item card-style">
-                                        <div className="settings-item-icon"><Shield size={18} /></div>
-                                        <div className="settings-item-content">
-                                            <div className="settings-item-label">Sigorta Bildirimleri</div>
-                                            <div className="settings-item-desc">Kasko ve trafik sigortaları</div>
+                                    {/* 3. Filo & Saha Operasyon */}
+                                    <div style={{ border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', background: 'var(--bg-card)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Wrench size={20} />
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                                        Filo & Saha Operasyon Yöneticisi
+                                                    </div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                        Araç muayeneleri, sigorta, periyodik bakım ve servis takibi.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span className="badge" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', fontWeight: '600', padding: '4px 10px', borderRadius: '8px', fontSize: '11px' }}>
+                                                Filo & Servis
+                                            </span>
                                         </div>
-                                        <label className="toggle-switch">
-                                            <input type="checkbox" checked={notifications.insurance} onChange={() => toggleNotification('insurance')} />
-                                            <span className="toggle-slider"></span>
-                                        </label>
+
+                                        <div className="settings-grid">
+                                            {[
+                                                { key: 'inspection', icon: <ClipboardCheck size={16} />, label: 'Muayene & Egzoz Süresi Biten / Yaklaşan Araçlar', desc: '15 gün kala ve geciken muayeneler' },
+                                                { key: 'insurance', icon: <Shield size={16} />, label: 'Kasko & Trafik Sigortası Bitişleri', desc: 'Poliçe yenileme uyarıları' },
+                                                { key: 'maintenance', icon: <Wrench size={16} />, label: 'Periyodik Bakım & Kilometre Sayaç Uyarıları', desc: 'Servis ve yağ bakım zamanları' },
+                                                { key: 'daily_summary', icon: <Clock size={16} />, label: 'Günlük Filo ve Araç Takip Özeti', desc: 'Filo durumu ve acil aksiyon listesi' },
+                                            ].map(item => {
+                                                const current = notificationConfig.rolePreferences?.fleet?.items?.[item.key] || { inApp: true, email: true }
+                                                return (
+                                                    <div key={item.key} className="settings-item card-style" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                            <div className="settings-item-icon" style={{ width: '32px', height: '32px', minWidth: '32px' }}>{item.icon}</div>
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div className="settings-item-label" style={{ fontSize: '13px' }}>{item.label}</div>
+                                                                <div className="settings-item-desc" style={{ fontSize: '11px' }}>{item.desc}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid var(--border-color)', marginTop: '2px' }}>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={current.inApp} 
+                                                                    onChange={() => toggleRoleItem('fleet', item.key, 'inApp')} 
+                                                                />
+                                                                <span>📲 Uygulama İçi</span>
+                                                            </label>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: current.email ? 'var(--success)' : 'var(--text-secondary)', fontWeight: current.email ? '600' : 'normal' }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={current.email} 
+                                                                    onChange={() => toggleRoleItem('fleet', item.key, 'email')} 
+                                                                />
+                                                                <span>✉️ E-Posta İlet</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
                                     </div>
 
-                                    <div className="settings-item card-style">
-                                        <div className="settings-item-icon"><User size={18} /></div>
-                                        <div className="settings-item-content">
-                                            <div className="settings-item-label">Personel Belgeleri</div>
-                                            <div className="settings-item-desc">Ehliyet, SRC ve diğer belgeler</div>
+                                    {/* 4. Personel & Şoför */}
+                                    <div style={{ border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', background: 'var(--bg-card)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(139, 92, 246, 0.12)', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <User size={20} />
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                                        Personel & Şoför (Saha ve Sürücü Ekibi)
+                                                    </div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                        Sürücü ehliyet, SRC belgeleri ve talep geri bildirimleri.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span className="badge" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', fontWeight: '600', padding: '4px 10px', borderRadius: '8px', fontSize: '11px' }}>
+                                                Sürücü & Saha
+                                            </span>
                                         </div>
-                                        <label className="toggle-switch">
-                                            <input type="checkbox" checked={notifications.employee_document} onChange={() => toggleNotification('employee_document')} />
-                                            <span className="toggle-slider"></span>
-                                        </label>
-                                    </div>
 
-                                    <div className="settings-item card-style">
-                                        <div className="settings-item-icon"><Wallet size={18} /></div>
-                                        <div className="settings-item-content">
-                                            <div className="settings-item-label">Finans Bildirimleri</div>
-                                            <div className="settings-item-desc">Çek ve senet vadesi uyarıları</div>
+                                        <div className="settings-grid">
+                                            {[
+                                                { key: 'employee_document', icon: <User size={16} />, label: 'Ehliyet, SRC ve Sağlık Raporu Süre Sonu', desc: '15 gün kala sürücüye otomatik uyarı' },
+                                                { key: 'leave_results', icon: <CheckCircle2 size={16} />, label: 'İzin & Mesai Talebi Onay / Red Bildirimi', desc: 'Talep sonuçlandığında anında iletim' },
+                                                { key: 'vehicle_assignment', icon: <ClipboardCheck size={16} />, label: 'Zimmetli Araç & Görev Atama Bildirimleri', desc: 'Yeni araç veya operasyon zimmetlendiğinde' },
+                                            ].map(item => {
+                                                const current = notificationConfig.rolePreferences?.personnel?.items?.[item.key] || { inApp: true, email: true }
+                                                return (
+                                                    <div key={item.key} className="settings-item card-style" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                            <div className="settings-item-icon" style={{ width: '32px', height: '32px', minWidth: '32px' }}>{item.icon}</div>
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div className="settings-item-label" style={{ fontSize: '13px' }}>{item.label}</div>
+                                                                <div className="settings-item-desc" style={{ fontSize: '11px' }}>{item.desc}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid var(--border-color)', marginTop: '2px' }}>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={current.inApp} 
+                                                                    onChange={() => toggleRoleItem('personnel', item.key, 'inApp')} 
+                                                                />
+                                                                <span>📲 Uygulama İçi</span>
+                                                            </label>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: current.email ? 'var(--success)' : 'var(--text-secondary)', fontWeight: current.email ? '600' : 'normal' }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={current.email} 
+                                                                    onChange={() => toggleRoleItem('personnel', item.key, 'email')} 
+                                                                />
+                                                                <span>✉️ E-Posta İlet</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
                                         </div>
-                                        <label className="toggle-switch">
-                                            <input type="checkbox" checked={notifications.finance_check} onChange={() => toggleNotification('finance_check')} />
-                                            <span className="toggle-slider"></span>
-                                        </label>
-                                    </div>
-
-                                    <div className="settings-item card-style">
-                                        <div className="settings-item-icon"><CheckCircle size={18} /></div>
-                                        <div className="settings-item-content">
-                                            <div className="settings-item-label">Personel Onay Merkezi</div>
-                                            <div className="settings-item-desc">İzin, mesai, avans ve onay talepleri</div>
-                                        </div>
-                                        <label className="toggle-switch">
-                                            <input type="checkbox" checked={notifications.approval_center} onChange={() => toggleNotification('approval_center')} />
-                                            <span className="toggle-slider"></span>
-                                        </label>
                                     </div>
                                 </div>
 
                                 <div className="settings-section-divider" style={{ margin: '30px 0', borderTop: '1px solid var(--border-color)' }}></div>
 
+                                {/* Daily Summary Scheduler */}
                                 <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <Clock size={18} className="text-primary" /> Günlük Hatırlatıcı Özeti
+                                    <Clock size={18} className="text-primary" /> Konsolide Günlük Hatırlatıcı & Özet Gönderim Saati
                                 </h3>
                                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                                    Belirlediğiniz saatte, yaklaşan ve geciken tüm işlemlerin toplu özetini bildirim olarak alın.
+                                    Belirlediğiniz saatte, yaklaşan ve geciken tüm işlemler taranır ve hem masaüstü/mobil bildirimi hem de e-posta özeti olarak gönderilir.
                                 </p>
 
                                 <div className="settings-list">
                                     <div className="settings-item card-style">
                                         <div className="settings-item-content">
                                             <div className="settings-item-label">Günlük Özet Bildirimi</div>
-                                            <div className="settings-item-desc">Tüm yaklaşan/gecikmiş işleri tek bildirimde raporlar.</div>
+                                            <div className="settings-item-desc">Tüm yaklaşan ve gecikmiş işleri tek bildirim ve e-postada özetler.</div>
                                         </div>
                                         <label className="toggle-switch">
                                             <input 
                                                 type="checkbox" 
-                                                checked={settings.notificationSummaryEnabled || false} 
+                                                checked={settings.notificationSummaryEnabled !== false} 
                                                 onChange={(e) => handleSettingChange('notificationSummaryEnabled', e.target.checked)} 
                                             />
                                             <span className="toggle-slider"></span>
                                         </label>
                                     </div>
 
-                                    {settings.notificationSummaryEnabled && (
+                                    {settings.notificationSummaryEnabled !== false && (
                                         <div className="settings-item card-style">
                                             <div className="settings-item-content">
                                                 <div className="settings-item-label">Hatırlatma Saati</div>
-                                                <div className="settings-item-desc">Özet bildirimi her gün saat kaçta gönderilsin?</div>
+                                                <div className="settings-item-desc">Konsolide özet her gün saat kaçta taranıp e-postayla iletilsin?</div>
                                             </div>
                                             <input 
                                                 type="time" 
@@ -1120,6 +1666,282 @@ export default function Settings() {
                             </div>
                         </div>
                     )}
+
+                    {/* AUDIT LOG TAB */}
+                    {activeTab === 'audit' && (
+                        <div className="tab-fade-in">
+                            <div className="settings-card">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                                    <div>
+                                        <h2 className="settings-card-title" style={{ margin: 0 }}>
+                                            <ShieldAlert size={20} className="text-primary" /> Şirket Denetim İzi & Güvenlik Günlüğü (Audit Log)
+                                        </h2>
+                                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                                            Şirketinizde hangi personelin hangi tarihte hangi kaydı oluşturduğunu, güncellediğini veya sildiğini güvenle denetleyin.
+                                        </p>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-secondary" 
+                                        onClick={loadAuditLogs} 
+                                        disabled={loadingAudit}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                                    >
+                                        <RefreshCw size={15} className={loadingAudit ? 'spin' : ''} />
+                                        <span>Yenile</span>
+                                    </button>
+                                </div>
+
+                                {/* Summary Metric Cards */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '25px' }}>
+                                    <div style={{ padding: '16px 20px', borderRadius: '14px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>Son 24 Saat Toplam İşlem</div>
+                                        <div style={{ fontSize: '26px', fontWeight: '800', color: 'var(--text-primary)', marginTop: '4px' }}>
+                                            {auditMetrics.total24h || 0}
+                                        </div>
+                                    </div>
+                                    <div style={{ padding: '16px 20px', borderRadius: '14px', background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                        <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>Başarısız Giriş Denemeleri</div>
+                                        <div style={{ fontSize: '26px', fontWeight: '800', color: '#ef4444', marginTop: '4px' }}>
+                                            {auditMetrics.failedLogins24h || 0}
+                                        </div>
+                                    </div>
+                                    <div style={{ padding: '16px 20px', borderRadius: '14px', background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                                        <div style={{ fontSize: '12px', color: '#f59e0b', fontWeight: '600' }}>Silme İşlemleri (24s)</div>
+                                        <div style={{ fontSize: '26px', fontWeight: '800', color: '#f59e0b', marginTop: '4px' }}>
+                                            {auditMetrics.criticalDeletes24h || 0}
+                                        </div>
+                                    </div>
+                                    <div style={{ padding: '16px 20px', borderRadius: '14px', background: 'rgba(59, 130, 246, 0.06)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                                        <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '600' }}>Aktif Kullanıcı Hacmi (7 Gün)</div>
+                                        <div style={{ fontSize: '26px', fontWeight: '800', color: '#3b82f6', marginTop: '4px' }}>
+                                            {auditMetrics.activeUsersCount || companyUsers.length}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Filter Controls */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                                    <input 
+                                        type="text" 
+                                        className="form-input" 
+                                        placeholder="Kullanıcı, eylem veya arama..." 
+                                        value={auditFilters.search}
+                                        onChange={(e) => setAuditFilters(f => ({ ...f, search: e.target.value, page: 1 }))}
+                                        style={{ fontSize: '13px' }}
+                                    />
+                                    <select 
+                                        className="form-select"
+                                        value={auditFilters.action}
+                                        onChange={(e) => setAuditFilters(f => ({ ...f, action: e.target.value, page: 1 }))}
+                                        style={{ fontSize: '13px' }}
+                                    >
+                                        <option value="all">Tüm Eylemler</option>
+                                        <option value="LOGIN">Giriş Yapıldı (LOGIN)</option>
+                                        <option value="LOGIN_FAILED">Başarısız Giriş</option>
+                                        <option value="CREATE">Kayıt Oluşturma (CREATE)</option>
+                                        <option value="UPDATE">Kayıt Güncelleme (UPDATE)</option>
+                                        <option value="DELETE">Kayıt Silme (DELETE)</option>
+                                        <option value="PERMISSION_UPDATE">Yetki Değişikliği</option>
+                                    </select>
+                                    <select 
+                                        className="form-select"
+                                        value={auditFilters.entityType}
+                                        onChange={(e) => setAuditFilters(f => ({ ...f, entityType: e.target.value, page: 1 }))}
+                                        style={{ fontSize: '13px' }}
+                                    >
+                                        <option value="all">Tüm Modüller</option>
+                                        <option value="vehicle">Araçlar & Filo</option>
+                                        <option value="employee">Personel</option>
+                                        <option value="work">Operasyon / Teklif</option>
+                                        <option value="transaction">Finans / Kasa</option>
+                                        <option value="user">Kullanıcılar</option>
+                                    </select>
+                                    <input 
+                                        type="date" 
+                                        className="form-input" 
+                                        value={auditFilters.startDate}
+                                        onChange={(e) => setAuditFilters(f => ({ ...f, startDate: e.target.value, page: 1 }))}
+                                        style={{ fontSize: '13px' }}
+                                    />
+                                </div>
+
+                                {/* Logs Table */}
+                                <div style={{ border: '1px solid var(--border-color)', borderRadius: '14px', overflow: 'hidden' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                        <thead>
+                                            <tr style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-secondary)' }}>
+                                                <th style={{ padding: '12px 16px' }}>Zaman</th>
+                                                <th style={{ padding: '12px 16px' }}>Kullanıcı</th>
+                                                <th style={{ padding: '12px 16px' }}>Eylem</th>
+                                                <th style={{ padding: '12px 16px' }}>Modül / Kayıt</th>
+                                                <th style={{ padding: '12px 16px' }}>Açıklama</th>
+                                                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Detay</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {loadingAudit ? (
+                                                <tr>
+                                                    <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                                        <RefreshCw size={24} className="spin" style={{ margin: '0 auto 10px auto' }} />
+                                                        <div>Denetim kayıtları yükleniyor...</div>
+                                                    </td>
+                                                </tr>
+                                            ) : auditLogs.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                                        <ShieldAlert size={28} style={{ opacity: 0.4, margin: '0 auto 8px auto' }} />
+                                                        <div>Filtrelere uygun denetim kaydı bulunamadı.</div>
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                auditLogs.map((log) => {
+                                                    let badgeBg = 'rgba(59, 130, 246, 0.12)';
+                                                    let badgeColor = '#3b82f6';
+                                                    if (log.action === 'CREATE') {
+                                                        badgeBg = 'rgba(16, 185, 129, 0.12)';
+                                                        badgeColor = '#10b981';
+                                                    } else if (log.action === 'DELETE') {
+                                                        badgeBg = 'rgba(239, 68, 68, 0.12)';
+                                                        badgeColor = '#ef4444';
+                                                    } else if (log.action?.includes('FAIL')) {
+                                                        badgeBg = 'rgba(239, 68, 68, 0.15)';
+                                                        badgeColor = '#ef4444';
+                                                    } else if (log.action === 'LOGIN') {
+                                                        badgeBg = 'rgba(245, 158, 11, 0.12)';
+                                                        badgeColor = '#f59e0b';
+                                                    }
+
+                                                    const dateStr = log.createdAt ? new Date(log.createdAt).toLocaleString('tr-TR') : '-';
+
+                                                    return (
+                                                        <tr key={log.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.15s' }}>
+                                                            <td style={{ padding: '12px 16px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                                                {dateStr}
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px' }}>
+                                                                <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{log.username || 'Sistem'}</div>
+                                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{log.userRole || '-'}</div>
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px' }}>
+                                                                <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', background: badgeBg, color: badgeColor }}>
+                                                                    {log.action}
+                                                                </span>
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px' }}>
+                                                                <div style={{ fontWeight: '500' }}>{log.entityName || (log.entityId ? `#${log.entityId}` : '-')}</div>
+                                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{log.entityType || 'Genel'}</div>
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                {log.description || '-'}
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                                <button 
+                                                                    className="btn btn-secondary" 
+                                                                    style={{ padding: '4px 10px', fontSize: '11px' }}
+                                                                    onClick={() => setSelectedAuditLog(log)}
+                                                                >
+                                                                    İncele
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Pagination Controls */}
+                                {auditPagination.totalPages > 1 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', fontSize: '13px' }}>
+                                        <div style={{ color: 'var(--text-secondary)' }}>
+                                            Toplam {auditPagination.total} kayıttan {(auditPagination.page - 1) * auditPagination.limit + 1} - {Math.min(auditPagination.page * auditPagination.limit, auditPagination.total)} gösteriliyor
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button 
+                                                className="btn btn-secondary" 
+                                                disabled={auditPagination.page <= 1}
+                                                onClick={() => setAuditFilters(f => ({ ...f, page: f.page - 1 }))}
+                                                style={{ padding: '4px 12px', fontSize: '12px' }}
+                                            >
+                                                Önceki
+                                            </button>
+                                            <span style={{ display: 'flex', alignItems: 'center', padding: '0 8px', fontWeight: '600' }}>
+                                                {auditPagination.page} / {auditPagination.totalPages}
+                                            </span>
+                                            <button 
+                                                className="btn btn-secondary" 
+                                                disabled={auditPagination.page >= auditPagination.totalPages}
+                                                onClick={() => setAuditFilters(f => ({ ...f, page: f.page + 1 }))}
+                                                style={{ padding: '4px 12px', fontSize: '12px' }}
+                                            >
+                                                Sonraki
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Audit Log Detail Modal */}
+                            {selectedAuditLog && (
+                                <Modal isOpen={!!selectedAuditLog} onClose={() => setSelectedAuditLog(null)} title="Denetim İzi Kayıt Detayı">
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                            <div>
+                                                <div style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Kullanıcı:</div>
+                                                <div style={{ fontWeight: '600' }}>{selectedAuditLog.username} ({selectedAuditLog.userRole})</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Tarih / Saat:</div>
+                                                <div style={{ fontWeight: '600' }}>{new Date(selectedAuditLog.createdAt).toLocaleString('tr-TR')}</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>İşlem / Eylem:</div>
+                                                <div style={{ fontWeight: '600' }}>{selectedAuditLog.action}</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Modül / Varlık:</div>
+                                                <div style={{ fontWeight: '600' }}>{selectedAuditLog.entityType} #{selectedAuditLog.entityId}</div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginBottom: '4px' }}>Açıklama:</div>
+                                            <div style={{ padding: '10px', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                                                {selectedAuditLog.description || 'Açıklama bulunmuyor.'}
+                                            </div>
+                                        </div>
+
+                                        {selectedAuditLog.details && (
+                                            <div>
+                                                <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginBottom: '4px' }}>Teknik Detaylar (Payload):</div>
+                                                <pre style={{
+                                                    background: 'var(--bg-tertiary)',
+                                                    padding: '12px',
+                                                    borderRadius: '8px',
+                                                    maxHeight: '220px',
+                                                    overflowY: 'auto',
+                                                    fontSize: '11px',
+                                                    fontFamily: 'monospace',
+                                                    color: 'var(--text-primary)'
+                                                }}>
+                                                    {typeof selectedAuditLog.details === 'object' ? JSON.stringify(selectedAuditLog.details, null, 2) : String(selectedAuditLog.details)}
+                                                </pre>
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                                            <button className="btn btn-secondary" onClick={() => setSelectedAuditLog(null)}>
+                                                Kapat
+                                            </button>
+                                        </div>
+                                    </div>
+                                </Modal>
+                            )}
+                        </div>
+                    )}
+
 
                     {activeTab === 'data' && (
                         <div className="tab-fade-in">
@@ -1259,6 +2081,76 @@ export default function Settings() {
                                                 ))}
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Supabase Row-Level Security (RLS) Hardening Card */}
+                            <div className="settings-card" style={{ marginTop: '24px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                                    <div>
+                                        <h2 className="settings-card-title" style={{ margin: 0 }}>
+                                            <Lock size={20} className="text-primary" /> Supabase Row-Level Security (RLS) Sertleştirmesi
+                                        </h2>
+                                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                                            Şirket verilerinizin diğer kiracılardan (tenant) bağımsız olarak doğrudan PostgreSQL çekirdeğinde korunması.
+                                        </p>
+                                    </div>
+                                    <span className="badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981', fontWeight: '700', padding: '6px 14px', borderRadius: '9999px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <CheckCircle size={14} /> Çekirdek RLS Aktif
+                                    </span>
+                                </div>
+
+                                <div style={{ background: 'var(--bg-tertiary)', borderRadius: '14px', padding: '20px', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                                        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+                                            <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                                                🏢 Multi-Tenant İzolasyonu
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                                                Her sorguda <code style={{ color: 'var(--primary)', fontWeight: 'bold' }}>company_id = auth_company_id()</code> kuralı PostgreSQL seviyesinde zorunlu tutulur.
+                                            </div>
+                                        </div>
+
+                                        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+                                            <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                                                🛡️ Superadmin & Destek İstisnası
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                                                Sistem yöneticileri platform genelinde arıza ve destek müdahalesi için bypass politikasına sahiptir.
+                                            </div>
+                                        </div>
+
+                                        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+                                            <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                                                🔒 24 Tablo Koruma Altında
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                                                Araçlar, personel, muhasebe, teklifler, sözleşmeler ve belgelerin tamamı kilitlenmiştir.
+                                            </div>
+                                        </div>
+
+                                        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+                                            <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                                                ⚡ Otomatik CLI Dağıtımı
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                                                Terminal üzerinden <code style={{ color: 'var(--primary)', fontWeight: 'bold' }}>npm run rls:apply</code> komutu ile Supabase RLS migration'ı tek adımda çalıştırılır.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                            Migration Dosyası: <code style={{ color: 'var(--text-primary)' }}>supabase/migrations/20260924_enable_rls_hardening.sql</code>
+                                        </div>
+                                        <button 
+                                            className="btn btn-secondary"
+                                            onClick={() => alert('Supabase RLS Sertleştirme kuralları veritabanı migration dosyasında tanımlıdır.\n\nUygulamak için terminalde:\n  npm run rls:apply\nkomutunu çalıştırabilirsiniz.')}
+                                            style={{ fontSize: '12px', padding: '6px 14px' }}
+                                        >
+                                            RLS Dağıtım Bilgisini Göster
+                                        </button>
                                     </div>
                                 </div>
                             </div>
