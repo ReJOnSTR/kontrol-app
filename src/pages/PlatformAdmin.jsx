@@ -48,7 +48,8 @@ import {
     ShieldAlert,
     Copy,
     Filter,
-    UserCog
+    UserCog,
+    Download
 } from 'lucide-react'
 import './PlatformAdmin.css'
 
@@ -1115,14 +1116,39 @@ export default function PlatformAdmin({ section }) {
     ]
 
     const backupColumns = [
-        { key: 'fileName', label: 'Yedek Dosyası', render: (val) => (
+        { key: 'fileName', label: 'Yedek Dosyası', render: (val, row) => (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Database size={15} style={{ color: '#10b981' }} />
+                <Database size={15} style={{ color: row.isUnified ? '#3b82f6' : '#10b981' }} />
                 <code style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{val}</code>
             </div>
         )},
+        { key: 'type', label: 'Yedek Türü', render: (val) => (
+            <span style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '3px 8px',
+                borderRadius: '6px',
+                background: val?.includes('Tam') ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                color: val?.includes('Tam') ? '#60a5fa' : '#34d399',
+                border: val?.includes('Tam') ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)'
+            }}>
+                {val || 'Veritabanı'}
+            </span>
+        )},
         { key: 'sizeFormatted', label: 'Boyut' },
-        { key: 'createdAt', label: 'Yedek Tarihi', render: (val) => new Date(val).toLocaleString('tr-TR') }
+        { key: 'createdAt', label: 'Yedek Tarihi', render: (val) => new Date(val).toLocaleString('tr-TR') },
+        { key: 'actions', label: 'İşlem', render: (_, row) => (
+            <a
+                href={`/api/admin/backup/download/${encodeURIComponent(row.fileName)}`}
+                download={row.fileName}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11.5px', textDecoration: 'none' }}
+                title="Çevrimdışı / Yerel İndir (Air-Gap)"
+            >
+                <Download size={13} />
+                İndir
+            </a>
+        )}
     ]
 
     return (
@@ -1630,9 +1656,9 @@ export default function PlatformAdmin({ section }) {
                 <div>
                     <div className="page-header">
                         <div>
-                            <h1 className="page-title">Veritabanı Yedekleri</h1>
+                            <h1 className="page-title">Sistem &amp; Veritabanı Yedekleri</h1>
                             <p style={{ marginTop: '5px', color: 'var(--text-secondary)' }}>
-                                Sistem her gece 03:00'te otomatik tam gzip yedeği alır. İstediğiniz zaman anlık yedek de oluşturabilirsiniz.
+                                Supabase veritabanı (SQL/JSON) ve Supabase Storage dosyalarını (PDF, imza, kaşe, evraklar) kapsayan tam sistem yedekleri.
                             </p>
                         </div>
                         <div className="page-actions" style={{ display: 'flex', gap: '8px' }}>

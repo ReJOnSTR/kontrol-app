@@ -15,10 +15,18 @@ if (!fs.existsSync(BACKUP_DIR)) {
 }
 
 /**
- * Perform a full automated PostgreSQL database backup
+ * Perform a full automated database & storage backup
  */
 async function performBackup() {
-    console.log(`[Backup ${new Date().toISOString()}] Starting automated database backup...`);
+    try {
+        const { performUnifiedBackup } = require('./supabase-backup-manager');
+        const res = await performUnifiedBackup({ includeDb: true, includeStorage: true });
+        return res;
+    } catch (unifiedErr) {
+        console.warn('⚠️ Unified backup failed, falling back to basic DB JSON dump:', unifiedErr.message);
+    }
+
+    console.log(`[Backup ${new Date().toISOString()}] Starting automated database backup fallback...`);
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
         console.error('❌ [Backup Error]: DATABASE_URL is not set in environment.');

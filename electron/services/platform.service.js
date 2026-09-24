@@ -468,13 +468,16 @@ async function getPlatformBackups() {
         }
 
         const files = fs.readdirSync(backupDir)
-            .filter(f => f.endsWith('.sql.gz') || f.endsWith('.json.gz') || f.endsWith('.sql'))
+            .filter(f => f.endsWith('.zip') || f.endsWith('.enc') || f.endsWith('.sql.gz') || f.endsWith('.json.gz') || f.endsWith('.sql'))
             .map(f => {
                 const fullPath = path.join(backupDir, f);
                 const stats = fs.statSync(fullPath);
                 const sizeMb = (stats.size / (1024 * 1024)).toFixed(2);
+                const isUnified = f.includes('unified') || f.endsWith('.zip') || f.endsWith('.enc');
                 return {
                     fileName: f,
+                    type: isUnified ? 'Tam Sistem (DB + Dosyalar)' : 'Veritabanı',
+                    isUnified,
                     sizeBytes: stats.size,
                     sizeFormatted: sizeMb > 0.05 ? `${sizeMb} MB` : `${(stats.size / 1024).toFixed(1)} KB`,
                     createdAt: stats.birthtime || stats.mtime

@@ -111,6 +111,20 @@ app.post('/api/admin/backup', async (req, res) => {
     res.json(result);
 });
 
+// Download Backup File Endpoint
+app.get('/api/admin/backup/download/:fileName', (req, res) => {
+    const { fileName } = req.params;
+    const safeName = path.basename(fileName);
+    const backupDir = process.env.BACKUP_DIR || path.join(__dirname, 'backups');
+    const filePath = path.join(backupDir, safeName);
+
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ success: false, error: 'Yedek dosyası bulunamadı' });
+    }
+
+    res.download(filePath, safeName);
+});
+
 // Uploads directory configuration
 const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
 const filesDir = path.join(dataDir, 'files');

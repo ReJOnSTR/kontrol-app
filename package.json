@@ -1,6 +1,6 @@
 {
   "name": "kontrol-app",
-  "version": "1.13.103",
+  "version": "1.13.104",
   "description": "Kontrol - Filo Yönetim Sistemi",
   "author": "Halil Sak",
   "main": "electron/main.js",
@@ -14,7 +14,11 @@
     "publish": "npx prisma generate && vite build && electron-builder --publish always",
     "preview": "vite preview",
     "rebuild": "npx electron-rebuild -f -w better-sqlite3",
-    "reset:superadmin": "node scripts/reset-superadmin.js"
+    "reset:superadmin": "node scripts/reset-superadmin.js",
+    "backup": "node scripts/supabase-backup-manager.js backup",
+    "backup:db": "node scripts/supabase-backup-manager.js backup-db",
+    "backup:storage": "node scripts/supabase-backup-manager.js backup-storage",
+    "backup:restore": "node scripts/supabase-backup-manager.js restore"
   },
   "engines": {
     "node": ">=22.0.0"
