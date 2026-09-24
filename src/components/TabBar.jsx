@@ -272,18 +272,6 @@ export default function TabBar() {
                         </div>
                     )}
 
-                    {/* Direct Settings Button */}
-                    {user?.role !== 'personnel' && (
-                        <button
-                            className="company-selector-btn"
-                            style={{ padding: '6px 9px', minWidth: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            onClick={() => openNewTab('/settings?module=portal', false, 'Ayarlar')}
-                            title="Sistem & Uygulama Ayarları"
-                        >
-                            <Settings size={15} />
-                        </button>
-                    )}
-
                     {/* User Menu */}
                     <div className="user-menu">
                         <button
