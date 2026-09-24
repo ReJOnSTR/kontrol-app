@@ -261,15 +261,27 @@ export default function TabBar() {
                                         )}
                                         <div
                                             className="company-dropdown-item management-action"
-                                            onClick={() => { navigate('/companies'); setShowCompanyDropdown(false) }}
+                                            onClick={() => { openNewTab('/companies', false, 'Şirket Yönetimi'); setShowCompanyDropdown(false) }}
                                         >
-                                            <Settings size={16} />
+                                            <Building2 size={16} />
                                             <span>Şirket Yönetimi</span>
                                         </div>
                                     </div>
                                 </>
                             )}
                         </div>
+                    )}
+
+                    {/* Direct Settings Button */}
+                    {user?.role !== 'personnel' && (
+                        <button
+                            className="company-selector-btn"
+                            style={{ padding: '6px 9px', minWidth: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            onClick={() => openNewTab('/settings?module=portal', false, 'Ayarlar')}
+                            title="Sistem & Uygulama Ayarları"
+                        >
+                            <Settings size={15} />
+                        </button>
                     )}
 
                     {/* User Menu */}

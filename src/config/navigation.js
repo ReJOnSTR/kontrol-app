@@ -238,8 +238,9 @@ export const getRouteInfo = (path) => {
     if (path === '/platform/backups') return { label: 'Veritabanı Yedekleri', icon: Database }
     if (path.startsWith('/platform')) return { label: 'Platform Yönetimi', icon: Crown }
 
-    // Fallback for global settings
+    // Fallback for global settings and company management
     if (path === '/settings') return { label: 'Ayarlar', icon: Settings }
+    if (path === '/companies') return { label: 'Şirket Yönetimi', icon: Building2 }
 
     // Fallback for module settings
     if (path.startsWith('/module-settings/')) {

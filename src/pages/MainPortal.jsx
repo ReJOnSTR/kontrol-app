@@ -213,32 +213,6 @@ export default function MainPortal() {
             active: true,
             features: ['Müşteri profili', 'Açık bakiyeler', 'İletişim bilgileri', 'Geçmiş işler']
         },
-        {
-            id: 'companies',
-            title: 'Şirket Yönetimi',
-            description: 'Kayıtlı şirketler, kaşe/imza ve şirket geçişleri.',
-            icon: Building2,
-            gradient: 'linear-gradient(145deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.04) 100%)',
-            hoverGradient: 'linear-gradient(145deg, rgba(99,102,241,0.14) 0%, rgba(139,92,246,0.08) 100%)',
-            color: '#6366f1',
-            glowColor: '#6366f1',
-            path: '/companies',
-            active: true,
-            features: ['Şirket profili', 'Kaşe & İmza', 'Şirket ekleme & geçiş', 'Vergi/SGK bilgileri']
-        },
-        {
-            id: 'settings',
-            title: 'Sistem & Ayarlar',
-            description: 'Kullanıcı yetkileri, Arvento entegrasyonu ve bulut veri aktarımı.',
-            icon: Settings,
-            gradient: 'linear-gradient(145deg, rgba(100,116,139,0.08) 0%, rgba(71,85,105,0.04) 100%)',
-            hoverGradient: 'linear-gradient(145deg, rgba(100,116,139,0.14) 0%, rgba(71,85,105,0.08) 100%)',
-            color: '#64748b',
-            glowColor: '#64748b',
-            path: '/settings',
-            active: true,
-            features: ['Kullanıcı yönetimi', 'PostgreSQL Veri Aktarımı', 'Arvento GPS', 'Sistem yedekleri']
-        },
         ...(user?.role === 'superadmin' ? [{
             id: 'platform',
             title: 'Platform Yönetimi',
