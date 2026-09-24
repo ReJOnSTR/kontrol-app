@@ -250,8 +250,8 @@ export function exportWorkToExcel(work, vehicles = [], options = {}) {
   </tr>
   <tr>
     <td colspan="${showPrices ? 5 : 4}" class="no-border">&nbsp;</td>
-    <td colspan="3" class="bold text-right" style="border: 1pt solid #0f172a; background-color: #e2e8f0; font-size: 11pt; padding: 8px 12px;">TOPLAM (KDV DAHİL)</td>
-    <td class="text-right bold total-text" style="border: 1pt solid #0f172a; background-color: #cbd5e1; font-size: 12pt; padding: 8px 12px; color: #000000;">${formatCurrency(grandTotalWithKdv)}</td>
+    <td colspan="3" class="bold text-right" style="border: 1pt solid #cbd5e1; background-color: #e2e8f0; font-size: 11pt; padding: 8px 12px;">TOPLAM (KDV DAHİL)</td>
+    <td class="text-right bold total-text" style="border: 1pt solid #cbd5e1; background-color: #cbd5e1; font-size: 12pt; padding: 8px 12px; color: #000000;">${formatCurrency(grandTotalWithKdv)}</td>
   </tr>
   ` : ''}
 </table>

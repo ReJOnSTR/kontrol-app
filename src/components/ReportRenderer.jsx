@@ -21,7 +21,7 @@ const pageStyle = {
 }
 
 const headerStyle = {
-    borderBottom: '2px solid #000',
+    borderBottom: '2px solid #3b82f6',
     paddingBottom: '20px',
     marginBottom: '30px',
     display: 'flex',
@@ -39,9 +39,9 @@ const sectionTitleStyle = {
 }
 
 const tableStyle = { width: '100%', borderCollapse: 'collapse', fontSize: '11px' }
-const thStyle = { padding: '6px', border: '1px solid #ddd' }
-const tdStyle = { padding: '6px', border: '1px solid #ddd' }
-const thRowStyle = { background: '#eee', textAlign: 'left' }
+const thStyle = { padding: '7px 8px', border: '1px solid #cbd5e1' }
+const tdStyle = { padding: '6px', border: '1px solid #cbd5e1' }
+const thRowStyle = { background: '#f1f5f9', color: '#1e293b', textAlign: 'left', fontWeight: '700' }
 const totalRowStyle = { background: '#f5f5f5', fontWeight: 'bold' }
 const emptyStyle = { fontSize: '12px', fontStyle: 'italic', color: '#666' }
 const footerStyle = {

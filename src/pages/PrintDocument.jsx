@@ -386,15 +386,16 @@ function ContractDocumentPages({ docItem, stampSrc, signatureSrc, empSignatureSr
 
 function InfoTable({ title, rows, style }) {
     const thStyle = {
-        background: '#0f172a',
-        color: '#ffffff',
+        background: '#f1f5f9',
+        color: '#1e293b',
         fontSize: '10.5px',
         fontWeight: 800,
         textAlign: 'left',
-        padding: '6px 10px',
+        padding: '7px 10px',
         border: 'none',
+        borderBottom: '1.5px solid #cbd5e1',
         textTransform: 'uppercase',
-        letterSpacing: '0.05em',
+        letterSpacing: '0.04em',
         WebkitPrintColorAdjust: 'exact',
         printColorAdjust: 'exact',
     };
@@ -487,8 +488,8 @@ function SingleDoc({ docItem }) {
         <div className="a4-page" style={{ position: 'relative', pageBreakAfter: 'always', breakAfter: 'page' }}>
             {/* Header */}
             {/* Header (Tüm belgeler için standart) */}
-            <div style={{ borderBottom: '2px solid #000', paddingBottom: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: 800, textTransform: 'uppercase', color: '#000', margin: 0, letterSpacing: '-0.2px' }}>
+            <div style={{ borderBottom: '2px solid #3b82f6', paddingBottom: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: 800, textTransform: 'uppercase', color: '#1e3a8a', margin: 0, letterSpacing: '-0.2px' }}>
                     {docItem.companyName}
                 </h2>
                 <div style={{ textAlign: 'right' }}>
@@ -550,25 +551,25 @@ function SingleDoc({ docItem }) {
 
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', margin: '12px 0', fontSize: '11px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                             <thead>
-                                <tr style={{ background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                                    <th style={{ width: '30px', textAlign: 'center', padding: '7px 6px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>#</th>
-                                    <th style={{ textAlign: 'left', padding: '7px 10px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px', textTransform: 'uppercase', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Hizmet / Makine / İş Kalemi</th>
+                                <tr style={{ background: '#f1f5f9', color: '#1e293b', borderBottom: '1.5px solid #cbd5e1', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                    <th style={{ width: '30px', textAlign: 'center', padding: '8px 6px', borderRight: '1px solid #cbd5e1', borderBottom: '1.5px solid #cbd5e1', fontSize: '10px', fontWeight: 800, background: '#f1f5f9', color: '#1e293b', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>#</th>
+                                    <th style={{ textAlign: 'left', padding: '8px 10px', borderRight: '1px solid #cbd5e1', borderBottom: '1.5px solid #cbd5e1', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', background: '#f1f5f9', color: '#1e293b', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Hizmet / Makine / İş Kalemi</th>
                                     {docItem.priceColumns && docItem.priceColumns.length > 0 ? (
                                         <>
                                             {docItem.priceColumns.map((col, cIdx) => (
-                                                <th key={col.id} style={{ textAlign: 'center', padding: '7px 8px', borderRight: cIdx === docItem.priceColumns.length - 1 && !docItem?.showConditionColumn ? 'none' : '1px solid rgba(255,255,255,0.15)', fontSize: '10px', whiteSpace: 'nowrap', textTransform: 'uppercase', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                                <th key={col.id} style={{ textAlign: 'center', padding: '8px 8px', borderRight: cIdx === docItem.priceColumns.length - 1 && !docItem?.showConditionColumn ? 'none' : '1px solid #cbd5e1', borderBottom: '1.5px solid #cbd5e1', fontSize: '10px', fontWeight: 800, whiteSpace: 'nowrap', textTransform: 'uppercase', background: '#f1f5f9', color: '#1e293b', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                                     {col.label}
                                                 </th>
                                             ))}
                                             {docItem.showConditionColumn && (
-                                                <th style={{ minWidth: '150px', padding: '7px 10px', fontSize: '10px', textTransform: 'uppercase', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Çalışma Koşulu / Not</th>
+                                                <th style={{ minWidth: '150px', padding: '8px 10px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', background: '#f1f5f9', color: '#1e293b', borderBottom: '1.5px solid #cbd5e1', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Çalışma Koşulu / Not</th>
                                             )}
                                         </>
                                     ) : (
                                         <>
-                                            <th style={{ width: '60px', textAlign: 'center', padding: '7px 6px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Miktar</th>
-                                            <th style={{ width: '60px', textAlign: 'center', padding: '7px 6px', borderRight: '1px solid rgba(255,255,255,0.15)', fontSize: '10px', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Birim</th>
-                                            <th style={{ width: '100px', textAlign: 'right', padding: '7px 10px', fontSize: '10px', background: '#0f172a', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Birim Fiyat</th>
+                                            <th style={{ width: '60px', textAlign: 'center', padding: '8px 6px', borderRight: '1px solid #cbd5e1', borderBottom: '1.5px solid #cbd5e1', fontSize: '10px', fontWeight: 800, background: '#f1f5f9', color: '#1e293b', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Miktar</th>
+                                            <th style={{ width: '60px', textAlign: 'center', padding: '8px 6px', borderRight: '1px solid #cbd5e1', borderBottom: '1.5px solid #cbd5e1', fontSize: '10px', fontWeight: 800, background: '#f1f5f9', color: '#1e293b', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Birim</th>
+                                            <th style={{ width: '100px', textAlign: 'right', padding: '8px 10px', fontSize: '10px', fontWeight: 800, background: '#f1f5f9', color: '#1e293b', borderBottom: '1.5px solid #cbd5e1', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Birim Fiyat</th>
                                         </>
                                     )}
                                 </tr>
@@ -609,7 +610,7 @@ function SingleDoc({ docItem }) {
                             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', marginTop: '14px', marginBottom: 0, fontSize: '11px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                 <thead>
                                     <tr>
-                                        <th style={{ background: '#0f172a', color: '#ffffff', fontSize: '10.5px', fontWeight: 800, textAlign: 'left', padding: '6px 10px', textTransform: 'uppercase', letterSpacing: '0.05em', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                        <th style={{ background: '#f1f5f9', color: '#1e293b', fontSize: '10.5px', fontWeight: 800, textAlign: 'left', padding: '7px 10px', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1.5px solid #cbd5e1', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                             TEKLİF ŞARTLARI VE GENEL HÜKÜMLER
                                         </th>
                                     </tr>

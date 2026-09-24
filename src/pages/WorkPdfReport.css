@@ -86,7 +86,7 @@
 
 /* Standard Header Classes */
 .pdf-header-standard {
-    border-bottom: 2px solid #000;
+    border-bottom: 2px solid #3b82f6;
     padding-bottom: 8px;
     display: flex;
     justify-content: space-between;
@@ -98,7 +98,7 @@
     font-size: 18px;
     font-weight: bold;
     margin: 0;
-    color: #000;
+    color: #1e3a8a;
     letter-spacing: 0.3px;
 }
 
@@ -187,12 +187,13 @@
 
 .pdf-table th {
     font-size: 9.5px;
-    font-weight: bold;
+    font-weight: 700;
     text-align: left;
     vertical-align: middle;
-    color: #000;
-    background-color: #eee;
-    padding: 2.5px 5px;
+    color: #1e293b;
+    background-color: #f1f5f9;
+    padding: 3.5px 6px;
+    border: 1px solid #cbd5e1;
 }
 
 .pdf-table td {

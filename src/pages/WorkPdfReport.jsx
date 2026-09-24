@@ -578,7 +578,7 @@ export default function WorkPdfReport({
                                                         <td className="bold right" style={{ padding: '4px 8px', fontSize: '9px', backgroundColor: '#f8fafc', color: '#333' }}>KDV (%{kdvRateProp})</td>
                                                         <td className="right bold total-text" style={{ padding: '4px 8px', fontSize: '10px', backgroundColor: '#f1f5f9', color: '#000' }}>{formatCurrency(grandTotalPrice * (kdvRateProp / 100))}</td>
                                                     </tr>
-                                                    <tr style={{ borderTop: '2px solid #0f172a' }}>
+                                                    <tr style={{ borderTop: '2px solid #3b82f6' }}>
                                                         <td className="bold right" style={{ padding: '4px 8px', fontSize: '9.5px', backgroundColor: '#e2e8f0', color: '#000' }}>TOPLAM (KDV DAHİL)</td>
                                                         <td className="right bold total-text" style={{ padding: '4px 8px', fontSize: '10.5px', backgroundColor: '#cbd5e1', color: '#000' }}>{formatCurrency(grandTotalPrice * (1 + kdvRateProp / 100))}</td>
                                                     </tr>
