@@ -86,7 +86,7 @@
 
 /* Standard Header Classes */
 .pdf-header-standard {
-    border-bottom: 2px solid #3b82f6;
+    border-bottom: 1.5px solid #cbd5e1;
     padding-bottom: 8px;
     display: flex;
     justify-content: space-between;
@@ -98,7 +98,7 @@
     font-size: 18px;
     font-weight: bold;
     margin: 0;
-    color: #1e3a8a;
+    color: #0f172a;
     letter-spacing: 0.3px;
 }
 

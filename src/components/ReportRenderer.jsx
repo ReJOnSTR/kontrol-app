@@ -21,7 +21,7 @@ const pageStyle = {
 }
 
 const headerStyle = {
-    borderBottom: '2px solid #3b82f6',
+    borderBottom: '1.5px solid #cbd5e1',
     paddingBottom: '20px',
     marginBottom: '30px',
     display: 'flex',

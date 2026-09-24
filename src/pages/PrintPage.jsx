@@ -232,9 +232,9 @@ export default function PrintPage() {
                 </style>
                 <div style={{ maxWidth: '800px', margin: '0 auto', padding: '10px' }}>
                     {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #3b82f6', paddingBottom: '15px', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1.5px solid #cbd5e1', paddingBottom: '15px', marginBottom: '20px' }}>
                         <div>
-                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1e3a8a', margin: '0 0 5px 0' }}>{companyName}</h2>
+                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', margin: '0 0 5px 0' }}>{companyName}</h2>
                             <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>Cari Hesap Ekstre Raporu</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>

@@ -488,8 +488,8 @@ function SingleDoc({ docItem }) {
         <div className="a4-page" style={{ position: 'relative', pageBreakAfter: 'always', breakAfter: 'page' }}>
             {/* Header */}
             {/* Header (Tüm belgeler için standart) */}
-            <div style={{ borderBottom: '2px solid #3b82f6', paddingBottom: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: 800, textTransform: 'uppercase', color: '#1e3a8a', margin: 0, letterSpacing: '-0.2px' }}>
+            <div style={{ borderBottom: '1.5px solid #cbd5e1', paddingBottom: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', margin: 0, letterSpacing: '-0.2px' }}>
                     {docItem.companyName}
                 </h2>
                 <div style={{ textAlign: 'right' }}>
