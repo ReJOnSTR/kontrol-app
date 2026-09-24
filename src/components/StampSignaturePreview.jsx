@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatDate } from '../utils/helpers'
-import { RotateCcw, Sliders, Move, Eye, HelpCircle, Check, Info } from 'lucide-react'
+import { RotateCcw, Sliders, Move, Eye, HelpCircle, Check, Info, ZoomIn, ZoomOut } from 'lucide-react'
 import {
     DEFAULT_CONTRACT_ANNEX_ITEMS,
     DEFAULT_CONTRACT_NOTICE,
     DEFAULT_CONTRACT_ARTICLES
 } from '../utils/customerDocumentTemplates'
 
-const SCALE = 0.7 // Perfect scale for side-by-side view
+const DEFAULT_SCALE = 0.7 // Default scale for side-by-side view
 const A4W = 794   // 210mm @ 96dpi
 const A4H = 1122  // 297mm @ 96dpi
 const PAD = 68    // 18mm padding
@@ -62,12 +62,17 @@ function InfoTable({ title, rows }) {
     )
 }
 
-export default function StampSignaturePreview({ docData, company, settings, onChange }) {
+export default function StampSignaturePreview({ docData, company, settings, onChange, previewOnly = false }) {
     const [stampSrc, setStampSrc] = useState(null)
     const [signatureSrc, setSignatureSrc] = useState(null)
     const [empSignatureSrc, setEmpSignatureSrc] = useState(null)
     const [contractPreviewPage, setContractPreviewPage] = useState(1)
+    const [zoomScale, setZoomScale] = useState(previewOnly ? 0.8 : DEFAULT_SCALE)
     const scrollRef = useRef(null)
+
+    useEffect(() => {
+        setZoomScale(previewOnly ? 0.8 : DEFAULT_SCALE)
+    }, [previewOnly])
 
     const isContract = docData?.templateId === 'customer_contract' || docData?.isContract
     const p = docData?.placeholders || {}
@@ -159,8 +164,8 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
         const sx = e.clientX, sy = e.clientY
         const ox = ss[which + 'OffsetX'] ?? 0, oy = ss[which + 'OffsetY'] ?? 0
         const onMove = (ev) => {
-            const nextX = ox + (ev.clientX - sx) / SCALE
-            const nextY = oy + (ev.clientY - sy) / SCALE
+            const nextX = ox + (ev.clientX - sx) / zoomScale
+            const nextY = oy + (ev.clientY - sy) / zoomScale
             
             if (ss.placementMode === 'free') {
                 onChange({
@@ -191,7 +196,7 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
         const sx = e.clientX, sy = e.clientY
         const startSize = ss[which + 'Size'] ?? 80
         const onMove = (ev) => {
-            const delta = ((ev.clientX - sx) + (ev.clientY - sy)) / 2 / SCALE
+            const delta = ((ev.clientX - sx) + (ev.clientY - sy)) / 2 / zoomScale
             onChange({
                 ...settings,
                 [which + 'Size']: Math.max(20, Math.min(260, Math.round(startSize + delta))),
@@ -230,53 +235,57 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                     src={src}
                     alt={which}
                     draggable={false}
-                    onMouseDown={(e) => startDrag(e, which)}
+                    onMouseDown={!previewOnly ? (e) => startDrag(e, which) : undefined}
                     style={{
                         ...centerStyle,
                         width: `${size}px`,
                         height: `${size}px`,
                         objectFit: 'contain',
                         opacity,
-                        cursor: 'move',
+                        cursor: !previewOnly ? 'move' : 'default',
                         zIndex,
                         userSelect: 'none',
-                        pointerEvents: 'auto',
+                        pointerEvents: !previewOnly ? 'auto' : 'none',
                     }}
                 />
-                {/* Selection border */}
-                <div
-                    key={which + '-border'}
-                    style={{
-                        ...centerStyle,
-                        width:  `${size}px`,
-                        height: `${size}px`,
-                        border: `2px dashed ${color}`,
-                        borderRadius: '4px',
-                        boxSizing: 'border-box',
-                        pointerEvents: 'none',
-                        zIndex: zIndex + 2,
-                    }}
-                />
-                {/* Resize handle at bottom-right corner */}
-                <div
-                    key={which + '-resize'}
-                    onMouseDown={(e) => startResize(e, which)}
-                    title="Boyutlandır"
-                    style={{
-                        position: 'absolute',
-                        top:  ss.placementMode === 'free' ? `${Math.round(oy + size / 2)}px` : `calc(50% + ${oy}px + ${size / 2}px)`,
-                        left: ss.placementMode === 'free' ? `${Math.round(ox + size / 2)}px` : `calc(50% + ${ox}px + ${size / 2}px)`,
-                        transform: 'translate(-50%, -50%)',
-                        width: '14px',
-                        height: '14px',
-                        background: color,
-                        border: '2px solid white',
-                        borderRadius: '3px',
-                        cursor: 'nwse-resize',
-                        zIndex: zIndex + 4,
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                    }}
-                />
+                {/* Selection border & Resize handle only when editing stamp/signature position */}
+                {!previewOnly && (
+                    <>
+                        <div
+                            key={which + '-border'}
+                            style={{
+                                ...centerStyle,
+                                width:  `${size}px`,
+                                height: `${size}px`,
+                                border: `2px dashed ${color}`,
+                                borderRadius: '4px',
+                                boxSizing: 'border-box',
+                                pointerEvents: 'none',
+                                zIndex: zIndex + 2,
+                            }}
+                        />
+                        {/* Resize handle at bottom-right corner */}
+                        <div
+                            key={which + '-resize'}
+                            onMouseDown={(e) => startResize(e, which)}
+                            title="Boyutlandır"
+                            style={{
+                                position: 'absolute',
+                                top:  ss.placementMode === 'free' ? `${Math.round(oy + size / 2)}px` : `calc(50% + ${oy}px + ${size / 2}px)`,
+                                left: ss.placementMode === 'free' ? `${Math.round(ox + size / 2)}px` : `calc(50% + ${ox}px + ${size / 2}px)`,
+                                transform: 'translate(-50%, -50%)',
+                                width: '14px',
+                                height: '14px',
+                                background: color,
+                                border: '2px solid white',
+                                borderRadius: '3px',
+                                cursor: 'nwse-resize',
+                                zIndex: zIndex + 4,
+                                boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                            }}
+                        />
+                    </>
+                )}
             </>
         )
     }
@@ -284,7 +293,7 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
     const scaledDocStyle = {
         width: `${A4W}px`,
         minHeight: `${A4H}px`,
-        transform: `scale(${SCALE})`,
+        transform: `scale(${zoomScale})`,
         transformOrigin: 'top center',
         background: 'white',
         padding: `${PAD}px`,
@@ -298,11 +307,12 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
     }
 
     return (
-        <div style={{ display: 'flex', gap: '24px', height: '68vh', minHeight: '520px' }}>
+        <div style={{ display: 'flex', gap: '24px', height: '76vh', minHeight: '540px' }}>
             
             {/* ── LEFT PANEL: CONFIGURATION ── */}
-            <div style={{
-                width: '330px',
+            {!previewOnly && (
+                <div style={{
+                    width: '330px',
                 flexShrink: 0,
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--border-color)',
@@ -630,10 +640,12 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                     Varsayılana Sıfırla
                 </button>
             </div>
+            )}
 
             {/* ── RIGHT PANEL: INTERACTIVE A4 PREVIEW ── */}
             <div style={{
                 flexGrow: 1,
+                width: previewOnly ? '100%' : 'auto',
                 background: '#2d2d30', // Acrobat style dark layout background
                 border: '1px solid var(--border-color)',
                 borderRadius: '12px',
@@ -646,56 +658,126 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                 boxShadow: 'inset 0 4px 20px rgba(0,0,0,0.3)'
             }} ref={scrollRef}>
                 
-                {/* Sayfa Seçici (Sözleşme Modu) */}
-                {isContract && (
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '20px',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 20,
-                        background: 'rgba(30, 41, 59, 0.95)',
-                        backdropFilter: 'blur(8px)',
-                        padding: '6px 14px',
-                        borderRadius: '30px',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)'
-                    }}>
-                        {[
-                            { num: 1, label: '1. Sayfa: Taraflar & Not' },
-                            { num: 2, label: '2. Sayfa: Şartlar (1-10)' },
-                            { num: 3, label: '3. Sayfa: Hükümler & İmza' },
-                            ...(includeAnnex ? [{ num: 4, label: '4. Sayfa: Ek Fiyat Listesi & İmza' }] : [])
-                        ].map(item => (
-                            <button
-                                key={item.num}
-                                type="button"
-                                onClick={() => setContractPreviewPage(item.num)}
-                                style={{
-                                    padding: '5px 12px',
-                                    borderRadius: '20px',
-                                    fontSize: '11.5px',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    border: contractPreviewPage === item.num ? '1px solid #3b82f6' : '1px solid transparent',
-                                    background: contractPreviewPage === item.num ? '#2563eb' : 'transparent',
-                                    color: contractPreviewPage === item.num ? '#ffffff' : '#cbd5e1',
-                                    boxShadow: contractPreviewPage === item.num ? '0 2px 8px rgba(37,99,235,0.4)' : 'none',
-                                    transition: 'all 0.15s ease'
-                                }}
-                            >
-                                {item.label}
-                            </button>
-                        ))}
+                {/* Üst Bar: Sayfa Seçici (Sözleşme Modu) & Yakınlaştırma (Zoom) */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '20px',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 20,
+                    background: 'rgba(30, 41, 59, 0.95)',
+                    backdropFilter: 'blur(8px)',
+                    padding: '6px 14px',
+                    borderRadius: '30px',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)'
+                }}>
+                    {isContract && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {[
+                                { num: 1, label: '1. Sayfa: Taraflar & Not' },
+                                { num: 2, label: '2. Sayfa: Şartlar (1-10)' },
+                                { num: 3, label: '3. Sayfa: Hükümler & İmza' },
+                                ...(includeAnnex ? [{ num: 4, label: '4. Sayfa: Ek Fiyat Listesi & İmza' }] : [])
+                            ].map(item => (
+                                <button
+                                    key={item.num}
+                                    type="button"
+                                    onClick={() => setContractPreviewPage(item.num)}
+                                    style={{
+                                        padding: '5px 12px',
+                                        borderRadius: '20px',
+                                        fontSize: '11.5px',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        border: contractPreviewPage === item.num ? '1px solid #3b82f6' : '1px solid transparent',
+                                        background: contractPreviewPage === item.num ? '#2563eb' : 'transparent',
+                                        color: contractPreviewPage === item.num ? '#ffffff' : '#cbd5e1',
+                                        boxShadow: contractPreviewPage === item.num ? '0 2px 8px rgba(37,99,235,0.4)' : 'none',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {isContract && <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.2)' }} />}
+
+                    {/* Zoom / Yakınlaştırma Kontrolleri */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setZoomScale(s => Math.max(0.4, Math.round((s - 0.1) * 10) / 10))}
+                            title="Uzaklaştır"
+                            style={{
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '50%',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                background: 'rgba(255,255,255,0.1)',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                            }}
+                        >
+                            <ZoomOut size={13} />
+                        </button>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.9)', minWidth: '38px', textAlign: 'center', fontFamily: 'monospace' }}>
+                            {Math.round(zoomScale * 100)}%
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setZoomScale(s => Math.min(1.4, Math.round((s + 0.1) * 10) / 10))}
+                            title="Yakınlaştır"
+                            style={{
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '50%',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                background: 'rgba(255,255,255,0.1)',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                            }}
+                        >
+                            <ZoomIn size={13} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setZoomScale(previewOnly ? 0.8 : DEFAULT_SCALE)}
+                            title="Ölçeği Sıfırla"
+                            style={{
+                                padding: '3px 8px',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                background: 'rgba(255,255,255,0.1)',
+                                color: '#cbd5e1',
+                                fontSize: '10.5px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                marginLeft: '2px'
+                            }}
+                        >
+                            Sıfırla
+                        </button>
                     </div>
-                )}
+                </div>
 
                 {/* Document wrapper that matches scaled A4 bounds */}
                 <div style={{
-                    width: `${A4W * SCALE}px`,
-                    height: `${A4H * SCALE}px`,
+                    width: `${A4W * zoomScale}px`,
+                    height: `${A4H * zoomScale}px`,
                     position: 'relative',
                     flexShrink: 0
                 }}>
@@ -1002,34 +1084,42 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {(docData?.items || []).map((item, idx) => (
-                                                        <tr key={idx} style={{ background: idx % 2 === 1 ? '#f8fafc' : '#ffffff' }}>
-                                                            <td style={{ textAlign: 'center', padding: '6px 6px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', fontWeight: 600, color: '#64748b' }}>{idx + 1}</td>
-                                                            <td style={{ fontWeight: 600, padding: '6px 10px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', color: '#0f172a' }}>{item.description || item.name}</td>
-                                                            {docData?.priceColumns && docData.priceColumns.length > 0 ? (
-                                                                <>
-                                                                    {docData.priceColumns.map((col, cIdx) => (
-                                                                        <td key={col.id} style={{ textAlign: 'center', fontWeight: 700, color: '#0f172a', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: cIdx === docData.priceColumns.length - 1 && !docData?.showConditionColumn ? 'none' : '1px solid #e2e8f0', background: 'rgba(241, 245, 249, 0.4)' }}>
-                                                                            {item.prices?.[col.id] || '-'}
-                                                                        </td>
-                                                                    ))}
-                                                                    {docData?.showConditionColumn && (
-                                                                        <td style={{ color: '#475569', fontSize: '10.5px', padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
-                                                                            {item.condition || '-'}
-                                                                        </td>
-                                                                    )}
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.quantity}</td>
-                                                                    <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.unit || 'Adet'}</td>
-                                                                    <td style={{ textAlign: 'right', fontWeight: 600, padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
-                                                                        {typeof item.unitPrice === 'number' ? item.unitPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : item.unitPrice} ₺
-                                                                    </td>
-                                                                </>
-                                                            )}
+                                                    {(!docData?.items || docData.items.length === 0) ? (
+                                                        <tr>
+                                                            <td colSpan={10} style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontStyle: 'italic', fontSize: '11px', background: '#f8fafc' }}>
+                                                                Henüz teklif kalemi eklenmedi
+                                                            </td>
                                                         </tr>
-                                                    ))}
+                                                    ) : (
+                                                        docData.items.map((item, idx) => (
+                                                            <tr key={idx} style={{ background: idx % 2 === 1 ? '#f8fafc' : '#ffffff' }}>
+                                                                <td style={{ textAlign: 'center', padding: '6px 6px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', fontWeight: 600, color: '#64748b' }}>{idx + 1}</td>
+                                                                <td style={{ fontWeight: 600, padding: '6px 10px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', color: '#0f172a' }}>{item.description || item.name}</td>
+                                                                {docData?.priceColumns && docData.priceColumns.length > 0 ? (
+                                                                    <>
+                                                                        {docData.priceColumns.map((col, cIdx) => (
+                                                                            <td key={col.id} style={{ textAlign: 'center', fontWeight: 700, color: '#0f172a', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: cIdx === docData.priceColumns.length - 1 && !docData?.showConditionColumn ? 'none' : '1px solid #e2e8f0', background: 'rgba(241, 245, 249, 0.4)' }}>
+                                                                                {item.prices?.[col.id] || '-'}
+                                                                            </td>
+                                                                        ))}
+                                                                        {docData?.showConditionColumn && (
+                                                                            <td style={{ color: '#475569', fontSize: '10.5px', padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
+                                                                                {item.condition || '-'}
+                                                                            </td>
+                                                                        )}
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.quantity}</td>
+                                                                        <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.unit || 'Adet'}</td>
+                                                                        <td style={{ textAlign: 'right', fontWeight: 600, padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
+                                                                            {typeof item.unitPrice === 'number' ? item.unitPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : item.unitPrice} ₺
+                                                                        </td>
+                                                                    </>
+                                                                )}
+                                                            </tr>
+                                                        ))
+                                                    )}
                                                 </tbody>
                                             </table>
 

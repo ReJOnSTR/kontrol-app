@@ -57,26 +57,7 @@ export const customerDocumentTemplates = [
             { id: 'hourly', label: 'Saatlik / Mesai' }
         ],
         defaultShowConditionColumn: false,
-        defaultItems: [
-            { 
-                id: '1', 
-                description: '50 Tonluk Teleskopik Mobil Vinç', 
-                condition: 'Operatör dahil, yakıt hariç',
-                prices: { daily: '25.000 ₺', monthly: '350.000 ₺', hourly: '4.500 ₺ (Min. 4 Saat)' }
-            },
-            { 
-                id: '2', 
-                description: 'Sepetli Platform (30 Metre)', 
-                condition: 'Operatörlü, tek vardiya',
-                prices: { daily: '15.000 ₺', monthly: '220.000 ₺', hourly: '2.500 ₺' }
-            },
-            { 
-                id: '3', 
-                description: 'Lowbed Ağır Nakliye Taşıma Hizmeti', 
-                condition: 'Gidiş-Dönüş / Sefer başı',
-                prices: { daily: '-', monthly: '-', hourly: '12.500 ₺ / Sefer' }
-            }
-        ],
+        defaultItems: [],
         defaultVatNote: 'Fiyatlarımıza %20 yasal KDV ayrıca ilave edilecektir.',
         defaultTerms: `1. Belirtilen fiyatlarımıza yasal KDV oranı ayrıca ilave edilecektir.
 2. Teklifimiz hazırlandığı tarihten itibaren belirtilen geçerlilik süresince geçerlidir.

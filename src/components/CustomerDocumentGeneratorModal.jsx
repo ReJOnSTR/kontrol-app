@@ -3,7 +3,7 @@ import Modal from './Modal'
 import CustomInput from './CustomInput'
 import CustomSelect from './CustomSelect'
 import StampSignaturePreview, { STAMP_DEFAULTS } from './StampSignaturePreview'
-import { FileText, Download, Check, ArrowLeft, Stamp, Plus, Trash2, X, Truck, RotateCcw, ChevronUp, ChevronDown } from 'lucide-react'
+import { FileText, Download, Check, ArrowLeft, Stamp, Plus, Trash2, X, Truck, RotateCcw, ChevronUp, ChevronDown, Eye } from 'lucide-react'
 import { customerDocumentTemplates, DEFAULT_CONTRACT_ANNEX_ITEMS, DEFAULT_CONTRACT_NOTICE, DEFAULT_CONTRACT_ARTICLES } from '../utils/customerDocumentTemplates'
 import { formatDate, formatDateForInput, generateUniqueFileName } from '../utils/helpers'
 
@@ -15,7 +15,7 @@ export default function CustomerDocumentGeneratorModal({ isOpen, onClose, custom
     const [content, setContent] = useState('')
     const [title, setTitle] = useState('')
     const [isGenerating, setIsGenerating] = useState(false)
-    // 'edit' | 'stamp-preview'
+    // 'edit' | 'preview' | 'stamp-preview'
     const [step, setStep] = useState('edit')
     const [includeStamp, setIncludeStamp] = useState(true)
     const [vehicles, setVehicles] = useState([])
@@ -60,20 +60,7 @@ export default function CustomerDocumentGeneratorModal({ isOpen, onClose, custom
         { id: 'monthly', label: 'Aylık Fiyat' },
         { id: 'hourly', label: 'Saatlik / Mesai' }
     ])
-    const [proposalItems, setProposalItems] = useState([
-        { 
-            id: '1', 
-            description: '50 Tonluk Teleskopik Mobil Vinç', 
-            condition: 'Operatör dahil, yakıt hariç',
-            prices: { daily: '25.000 ₺', monthly: '350.000 ₺', hourly: '4.500 ₺ (Min. 4 Saat)' }
-        },
-        { 
-            id: '2', 
-            description: 'Sepetli Platform (30 Metre)', 
-            condition: 'Operatörlü, tek vardiya',
-            prices: { daily: '15.000 ₺', monthly: '220.000 ₺', hourly: '2.500 ₺' }
-        }
-    ])
+    const [proposalItems, setProposalItems] = useState([])
     const [showConditionColumn, setShowConditionColumn] = useState(false)
     const [proposalTerms, setProposalTerms] = useState('')
 
@@ -228,18 +215,6 @@ export default function CustomerDocumentGeneratorModal({ isOpen, onClose, custom
     }
 
     const handleRemoveItem = (id) => {
-        if (proposalItems.length <= 1) {
-            // Son kalem silinmek istendiğinde satırı temizle (kullanıcıyı engelleme)
-            const initialPrices = {}
-            priceColumns.forEach(c => { initialPrices[c.id] = '' })
-            setProposalItems([{
-                id: 'item_' + Date.now(),
-                description: '',
-                condition: '',
-                prices: initialPrices
-            }])
-            return
-        }
         setProposalItems(prev => prev.filter(it => String(it.id) !== String(id)))
     }
 
@@ -465,89 +440,167 @@ export default function CustomerDocumentGeneratorModal({ isOpen, onClose, custom
 
     const hasStampOrSig = company.stamp_path || company.signature_path
 
-    const modalFooter = step === 'edit' ? (
-        <>
-            <button onClick={onClose} className="btn btn-secondary">İptal</button>
-            {hasStampOrSig && includeStamp && (
+    let modalFooter = null
+    if (step === 'edit') {
+        modalFooter = (
+            <>
+                <button onClick={onClose} className="btn btn-secondary">İptal</button>
                 <button
                     type="button"
-                    onClick={() => setStep('stamp-preview')}
+                    onClick={() => setStep('preview')}
                     className="btn btn-secondary"
                     style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
-                    <Stamp size={16} />
-                    Kaşe Konumu Düzenle
+                    <Eye size={16} />
+                    Önizleme
                 </button>
-            )}
-            <button 
-                type="button"
-                onClick={() => handleGenerate(true)} 
-                disabled={isGenerating} 
-                className="btn btn-secondary"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-                <FileText size={16} />
-                {isGenerating && generatingMode === 'silent' ? 'Kaydediliyor...' : 'Belge Kayıtlarına Ekle'}
-            </button>
-            <button 
-                type="button"
-                onClick={() => handleGenerate(false)} 
-                disabled={isGenerating} 
-                className="btn btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-                {isGenerating && generatingMode === 'download' ? 'Hazırlanıyor...' : (
-                    <>
-                        <Download size={18} />
-                        PDF Olarak İndir
-                    </>
+                {hasStampOrSig && includeStamp && (
+                    <button
+                        type="button"
+                        onClick={() => setStep('stamp-preview')}
+                        className="btn btn-secondary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                        <Stamp size={16} />
+                        Kaşe Konumu Düzenle
+                    </button>
                 )}
-            </button>
-        </>
-    ) : (
-        <>
-            <button
-                type="button"
-                onClick={() => setStep('edit')}
-                className="btn btn-secondary"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-                <ArrowLeft size={16} />
-                Geri Dön
-            </button>
-            <button 
-                type="button"
-                onClick={() => handleGenerate(true)} 
-                disabled={isGenerating} 
-                className="btn btn-secondary"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-                <FileText size={16} />
-                {isGenerating && generatingMode === 'silent' ? 'Kaydediliyor...' : 'Belge Kayıtlarına Ekle'}
-            </button>
-            <button 
-                type="button"
-                onClick={() => handleGenerate(false)} 
-                disabled={isGenerating} 
-                className="btn btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-                {isGenerating && generatingMode === 'download' ? 'Hazırlanıyor...' : (
-                    <>
-                        <Download size={18} />
-                        PDF Olarak İndir
-                    </>
+                <button 
+                    type="button"
+                    onClick={() => handleGenerate(true)} 
+                    disabled={isGenerating} 
+                    className="btn btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    <FileText size={16} />
+                    {isGenerating && generatingMode === 'silent' ? 'Kaydediliyor...' : 'Belge Kayıtlarına Ekle'}
+                </button>
+                <button 
+                    type="button"
+                    onClick={() => handleGenerate(false)} 
+                    disabled={isGenerating} 
+                    className="btn btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    {isGenerating && generatingMode === 'download' ? 'Hazırlanıyor...' : (
+                        <>
+                            <Download size={18} />
+                            PDF Olarak İndir
+                        </>
+                    )}
+                </button>
+            </>
+        )
+    } else if (step === 'preview') {
+        modalFooter = (
+            <>
+                <button
+                    type="button"
+                    onClick={() => setStep('edit')}
+                    className="btn btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    <ArrowLeft size={16} />
+                    Düzenlemeye Dön
+                </button>
+                {hasStampOrSig && includeStamp && (
+                    <button
+                        type="button"
+                        onClick={() => setStep('stamp-preview')}
+                        className="btn btn-secondary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                        <Stamp size={16} />
+                        Kaşe Konumu Düzenle
+                    </button>
                 )}
-            </button>
-        </>
-    )
+                <button 
+                    type="button"
+                    onClick={() => handleGenerate(true)} 
+                    disabled={isGenerating} 
+                    className="btn btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    <FileText size={16} />
+                    {isGenerating && generatingMode === 'silent' ? 'Kaydediliyor...' : 'Belge Kayıtlarına Ekle'}
+                </button>
+                <button 
+                    type="button"
+                    onClick={() => handleGenerate(false)} 
+                    disabled={isGenerating} 
+                    className="btn btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    {isGenerating && generatingMode === 'download' ? 'Hazırlanıyor...' : (
+                        <>
+                            <Download size={18} />
+                            PDF Olarak İndir
+                        </>
+                    )}
+                </button>
+            </>
+        )
+    } else {
+        modalFooter = (
+            <>
+                <button
+                    type="button"
+                    onClick={() => setStep('edit')}
+                    className="btn btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    <ArrowLeft size={16} />
+                    Düzenlemeye Dön
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setStep('preview')}
+                    className="btn btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    <Eye size={16} />
+                    Önizleme
+                </button>
+                <button 
+                    type="button"
+                    onClick={() => handleGenerate(true)} 
+                    disabled={isGenerating} 
+                    className="btn btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    <FileText size={16} />
+                    {isGenerating && generatingMode === 'silent' ? 'Kaydediliyor...' : 'Belge Kayıtlarına Ekle'}
+                </button>
+                <button 
+                    type="button"
+                    onClick={() => handleGenerate(false)} 
+                    disabled={isGenerating} 
+                    className="btn btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    {isGenerating && generatingMode === 'download' ? 'Hazırlanıyor...' : (
+                        <>
+                            <Download size={18} />
+                            PDF Olarak İndir
+                        </>
+                    )}
+                </button>
+            </>
+        )
+    }
 
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={step === 'stamp-preview' ? 'Kaşe & İmza Konumlandırma — PDF Önizleme' : 'Müşteri Belgesi Oluştur'}
-            size={step === 'stamp-preview' ? 'fullscreen' : 'xl'}
+            title={
+                step === 'stamp-preview' 
+                    ? 'Kaşe & İmza Konumlandırma — PDF Önizleme' 
+                    : step === 'preview'
+                    ? 'Belge Önizleme (A4)'
+                    : 'Müşteri Belgesi Oluştur'
+            }
+            size={step === 'edit' ? 'xl' : 'fullscreen'}
             footer={modalFooter}
         >
             {step === 'edit' && (
@@ -921,69 +974,44 @@ export default function CustomerDocumentGeneratorModal({ isOpen, onClose, custom
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {proposalItems.map((item, index) => (
-                                                <tr key={item.id}>
-                                                    <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600, fontSize: '12px' }}>
-                                                        {index + 1}
+                                            {proposalItems.length === 0 ? (
+                                                <tr>
+                                                    <td
+                                                        colSpan={priceColumns.length + (showConditionColumn ? 3 : 2)}
+                                                        style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--text-muted)' }}
+                                                    >
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                                            <p style={{ margin: 0, fontSize: '13px', fontWeight: 500 }}>Henüz teklif kalemi eklenmedi.</p>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleAddItem}
+                                                                className="btn btn-secondary"
+                                                                style={{ fontSize: '12px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                            >
+                                                                <Plus size={14} /> İlk Kalemi Ekle
+                                                            </button>
+                                                        </div>
                                                     </td>
-                                                    <td style={{ padding: '6px 8px' }}>
-                                                        <input
-                                                            type="text"
-                                                            className="form-input"
-                                                            value={item.description}
-                                                            onChange={(e) => handleUpdateItem(item.id, 'description', e.target.value)}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') {
-                                                                    e.preventDefault()
-                                                                    handleAddItem()
-                                                                }
-                                                            }}
-                                                            placeholder="Örn: 50 Ton Teleskopik Mobil Vinç"
-                                                            style={{
-                                                                height: '32px',
-                                                                fontSize: '12.5px',
-                                                                padding: '4px 10px'
-                                                            }}
-                                                        />
-                                                    </td>
-                                                    {priceColumns.map(col => (
-                                                        <td key={col.id} style={{ padding: '6px 8px' }}>
-                                                            <input
-                                                                type="text"
-                                                                className="form-input"
-                                                                value={item.prices?.[col.id] || ''}
-                                                                onChange={(e) => handleUpdateItemPrice(item.id, col.id, e.target.value)}
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter') {
-                                                                        e.preventDefault()
-                                                                        handleAddItem()
-                                                                    }
-                                                                }}
-                                                                placeholder="0,00 ₺"
-                                                                style={{
-                                                                    height: '32px',
-                                                                    fontSize: '12.5px',
-                                                                    padding: '4px 10px',
-                                                                    textAlign: 'right',
-                                                                    fontWeight: 600
-                                                                }}
-                                                            />
+                                                </tr>
+                                            ) : (
+                                                proposalItems.map((item, index) => (
+                                                    <tr key={item.id}>
+                                                        <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600, fontSize: '12px' }}>
+                                                            {index + 1}
                                                         </td>
-                                                    ))}
-                                                    {showConditionColumn && (
                                                         <td style={{ padding: '6px 8px' }}>
                                                             <input
                                                                 type="text"
                                                                 className="form-input"
-                                                                value={item.condition || ''}
-                                                                onChange={(e) => handleUpdateItem(item.id, 'condition', e.target.value)}
+                                                                value={item.description}
+                                                                onChange={(e) => handleUpdateItem(item.id, 'description', e.target.value)}
                                                                 onKeyDown={(e) => {
                                                                     if (e.key === 'Enter') {
                                                                         e.preventDefault()
                                                                         handleAddItem()
                                                                     }
                                                                 }}
-                                                                placeholder="Örn: 8 saat, operatörlü"
+                                                                placeholder="Örn: 50 Ton Teleskopik Mobil Vinç"
                                                                 style={{
                                                                     height: '32px',
                                                                     fontSize: '12.5px',
@@ -991,20 +1019,66 @@ export default function CustomerDocumentGeneratorModal({ isOpen, onClose, custom
                                                                 }}
                                                             />
                                                         </td>
-                                                    )}
-                                                    <td style={{ textAlign: 'center', padding: '6px 4px' }}>
-                                                        <button
-                                                            type="button"
-                                                            className="btn-icon danger"
-                                                            onClick={() => handleRemoveItem(item.id)}
-                                                            title={proposalItems.length > 1 ? "Bu kalemi sil" : "Satırı temizle"}
-                                                            style={{ width: '28px', height: '28px', margin: '0 auto' }}
-                                                        >
-                                                            <Trash2 size={13} />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                        {priceColumns.map(col => (
+                                                            <td key={col.id} style={{ padding: '6px 8px' }}>
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-input"
+                                                                    value={item.prices?.[col.id] || ''}
+                                                                    onChange={(e) => handleUpdateItemPrice(item.id, col.id, e.target.value)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            e.preventDefault()
+                                                                            handleAddItem()
+                                                                        }
+                                                                    }}
+                                                                    placeholder="0,00 ₺"
+                                                                    style={{
+                                                                        height: '32px',
+                                                                        fontSize: '12.5px',
+                                                                        padding: '4px 10px',
+                                                                        textAlign: 'right',
+                                                                        fontWeight: 600
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                        ))}
+                                                        {showConditionColumn && (
+                                                            <td style={{ padding: '6px 8px' }}>
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-input"
+                                                                    value={item.condition || ''}
+                                                                    onChange={(e) => handleUpdateItem(item.id, 'condition', e.target.value)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            e.preventDefault()
+                                                                            handleAddItem()
+                                                                        }
+                                                                    }}
+                                                                    placeholder="Örn: 8 saat, operatörlü"
+                                                                    style={{
+                                                                        height: '32px',
+                                                                        fontSize: '12.5px',
+                                                                        padding: '4px 10px'
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                        )}
+                                                        <td style={{ textAlign: 'center', padding: '6px 4px' }}>
+                                                            <button
+                                                                type="button"
+                                                                className="btn-icon danger"
+                                                                onClick={() => handleRemoveItem(item.id)}
+                                                                title="Bu kalemi sil"
+                                                                style={{ width: '28px', height: '28px', margin: '0 auto' }}
+                                                            >
+                                                                <Trash2 size={13} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1765,7 +1839,7 @@ export default function CustomerDocumentGeneratorModal({ isOpen, onClose, custom
                 </div>
             )}
 
-            {step === 'stamp-preview' && (
+            {(step === 'preview' || step === 'stamp-preview') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <StampSignaturePreview
                         docData={{
@@ -1806,6 +1880,7 @@ export default function CustomerDocumentGeneratorModal({ isOpen, onClose, custom
                         company={company}
                         settings={stampSettings}
                         onChange={setStampSettings}
+                        previewOnly={step === 'preview'}
                     />
                 </div>
             )}

@@ -575,34 +575,42 @@ function SingleDoc({ docItem }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {(docItem.items || []).map((item, idx) => (
-                                    <tr key={idx} style={{ background: idx % 2 === 1 ? '#f8fafc' : '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                                        <td style={{ textAlign: 'center', fontWeight: 600, padding: '6px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', color: '#64748b' }}>{idx + 1}</td>
-                                        <td style={{ fontWeight: 600, padding: '6px 10px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', color: '#0f172a' }}>{item.description || item.name}</td>
-                                        {docItem.priceColumns && docItem.priceColumns.length > 0 ? (
-                                            <>
-                                                {docItem.priceColumns.map((col, cIdx) => (
-                                                    <td key={col.id} style={{ textAlign: 'center', fontWeight: 700, color: '#0f172a', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: cIdx === docItem.priceColumns.length - 1 && !docItem?.showConditionColumn ? 'none' : '1px solid #e2e8f0', background: 'rgba(241, 245, 249, 0.4)', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                                                        {item.prices?.[col.id] || '-'}
-                                                    </td>
-                                                ))}
-                                                {docItem.showConditionColumn && (
-                                                    <td style={{ color: '#475569', fontSize: '10.5px', padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
-                                                        {item.condition || '-'}
-                                                    </td>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.quantity}</td>
-                                                <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.unit || 'Adet'}</td>
-                                                <td style={{ textAlign: 'right', fontWeight: 600, padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
-                                                    {typeof item.unitPrice === 'number' ? item.unitPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : item.unitPrice} ₺
-                                                </td>
-                                            </>
-                                        )}
+                                {(!docItem.items || docItem.items.length === 0) ? (
+                                    <tr>
+                                        <td colSpan={10} style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontStyle: 'italic', fontSize: '11px', background: '#f8fafc', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                            Henüz teklif kalemi eklenmedi
+                                        </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    docItem.items.map((item, idx) => (
+                                        <tr key={idx} style={{ background: idx % 2 === 1 ? '#f8fafc' : '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                            <td style={{ textAlign: 'center', fontWeight: 600, padding: '6px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', color: '#64748b' }}>{idx + 1}</td>
+                                            <td style={{ fontWeight: 600, padding: '6px 10px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', color: '#0f172a' }}>{item.description || item.name}</td>
+                                            {docItem.priceColumns && docItem.priceColumns.length > 0 ? (
+                                                <>
+                                                    {docItem.priceColumns.map((col, cIdx) => (
+                                                        <td key={col.id} style={{ textAlign: 'center', fontWeight: 700, color: '#0f172a', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: cIdx === docItem.priceColumns.length - 1 && !docItem?.showConditionColumn ? 'none' : '1px solid #e2e8f0', background: 'rgba(241, 245, 249, 0.4)', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                                            {item.prices?.[col.id] || '-'}
+                                                        </td>
+                                                    ))}
+                                                    {docItem.showConditionColumn && (
+                                                        <td style={{ color: '#475569', fontSize: '10.5px', padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
+                                                            {item.condition || '-'}
+                                                        </td>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.quantity}</td>
+                                                    <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>{item.unit || 'Adet'}</td>
+                                                    <td style={{ textAlign: 'right', fontWeight: 600, padding: '6px 8px', borderBottom: '1px solid #e2e8f0' }}>
+                                                        {typeof item.unitPrice === 'number' ? item.unitPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : item.unitPrice} ₺
+                                                    </td>
+                                                </>
+                                            )}
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
 
