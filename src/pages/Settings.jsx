@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { useCompany } from '../context/CompanyContext'
@@ -11,8 +12,11 @@ import {
     Bell, Zap, Download, Upload, RefreshCw, Folder, User, Users, Wallet, 
     Wrench, FileSearch, ClipboardCheck, Layout, Cog, Eye, EyeOff, Clock, CheckCircle,
     UserPlus, Key, Unlock, Trash2, Edit2, ShieldAlert, Check, X, Building2, Sparkles,
-    Mail, Send, CheckCircle2, AlertCircle, Filter, Calendar, FileText
+    Mail, Send, CheckCircle2, AlertCircle, Filter, Calendar, FileText,
+    Car, Briefcase, UtensilsCrossed
 } from 'lucide-react'
+import { HrModuleContent, FleetModuleContent, DefaultModuleContent, moduleConfig } from './ModuleSettings'
+import MealTicketSettings from './MealTicketSettings'
 
 import TopProgressBar from '../components/TopProgressBar'
 
@@ -21,7 +25,20 @@ export default function Settings() {
     const { user } = useAuth()
     const { currentCompany } = useCompany()
 
-    const [activeTab, setActiveTab] = useState('general')
+    const [searchParams, setSearchParams] = useSearchParams()
+    const tabParam = searchParams.get('tab')
+    const [activeTab, setActiveTab] = useState(tabParam || 'general')
+
+    useEffect(() => {
+        if (tabParam && tabParam !== activeTab) {
+            setActiveTab(tabParam)
+        }
+    }, [tabParam])
+
+    const handleTabChange = (tabId) => {
+        setActiveTab(tabId)
+        setSearchParams({ tab: tabId })
+    }
 
     const [settings, setSettings] = useState({
         autoBackup: false,
@@ -764,17 +781,25 @@ export default function Settings() {
         { value: 'monthly', label: 'Her Ay' }
     ]
 
-    const sidebarItems = [
+    const systemSidebarItems = [
         { id: 'general', label: 'Genel', icon: <Cog size={18} /> },
         { id: 'users', label: 'Kullanıcılar & Yetkiler', icon: <Users size={18} /> },
         { id: 'appearance', label: 'Görünüm', icon: <Palette size={18} /> },
         { id: 'security', label: 'Güvenlik & Kilit', icon: <Shield size={18} /> },
         { id: 'audit', label: 'Güvenlik Günlüğü (Audit)', icon: <ShieldAlert size={18} /> },
         { id: 'notifications', label: 'Bildirimler & E-Posta Motoru', icon: <Bell size={18} /> },
-        { id: 'data', label: 'Veri Yönetimi & Supabase RLS', icon: <Database size={18} /> },
+        { id: 'data', label: 'Veri Yönetimi', icon: <Database size={18} /> },
         { id: 'arvento', label: 'Arvento Entegrasyonu', icon: <Globe size={18} /> },
     ]
 
+    const moduleSidebarItems = [
+        { id: 'fleet', label: 'Filo Ayarları', icon: <Car size={18} /> },
+        { id: 'hr', label: 'Personel Ayarları', icon: <Users size={18} /> },
+        { id: 'finance', label: 'Finans Ayarları', icon: <Wallet size={18} /> },
+        { id: 'works', label: 'İş & Operasyon', icon: <Briefcase size={18} /> },
+        { id: 'meals', label: 'Yemek Fişi Ayarları', icon: <UtensilsCrossed size={18} /> },
+        { id: 'customers', label: 'Müşteri Ayarları', icon: <Building2 size={18} /> },
+    ]
 
     return (
         <div className="settings-page">
@@ -790,11 +815,24 @@ export default function Settings() {
             <div className="settings-container">
                 {/* Sidebar Navigation */}
                 <div className="settings-sidebar">
-                    {sidebarItems.map(item => (
+                    <div className="settings-sidebar-heading">Sistem Tercihleri</div>
+                    {systemSidebarItems.map(item => (
                         <div 
                             key={item.id} 
                             className={`settings-sidebar-item ${activeTab === item.id ? 'active' : ''}`}
-                            onClick={() => setActiveTab(item.id)}
+                            onClick={() => handleTabChange(item.id)}
+                        >
+                            {item.icon}
+                            <span>{item.label}</span>
+                        </div>
+                    ))}
+
+                    <div className="settings-sidebar-heading" style={{ marginTop: '16px' }}>Modül Ayarları</div>
+                    {moduleSidebarItems.map(item => (
+                        <div 
+                            key={item.id} 
+                            className={`settings-sidebar-item ${activeTab === item.id ? 'active' : ''}`}
+                            onClick={() => handleTabChange(item.id)}
                         >
                             {item.icon}
                             <span>{item.label}</span>
@@ -2084,76 +2122,6 @@ export default function Settings() {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Supabase Row-Level Security (RLS) Hardening Card */}
-                            <div className="settings-card" style={{ marginTop: '24px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-                                    <div>
-                                        <h2 className="settings-card-title" style={{ margin: 0 }}>
-                                            <Lock size={20} className="text-primary" /> Supabase Row-Level Security (RLS) Sertleştirmesi
-                                        </h2>
-                                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-                                            Şirket verilerinizin diğer kiracılardan (tenant) bağımsız olarak doğrudan PostgreSQL çekirdeğinde korunması.
-                                        </p>
-                                    </div>
-                                    <span className="badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981', fontWeight: '700', padding: '6px 14px', borderRadius: '9999px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <CheckCircle size={14} /> Çekirdek RLS Aktif
-                                    </span>
-                                </div>
-
-                                <div style={{ background: 'var(--bg-tertiary)', borderRadius: '14px', padding: '20px', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                                        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-                                            <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                                                🏢 Multi-Tenant İzolasyonu
-                                            </div>
-                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                                                Her sorguda <code style={{ color: 'var(--primary)', fontWeight: 'bold' }}>company_id = auth_company_id()</code> kuralı PostgreSQL seviyesinde zorunlu tutulur.
-                                            </div>
-                                        </div>
-
-                                        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-                                            <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                                                🛡️ Superadmin & Destek İstisnası
-                                            </div>
-                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                                                Sistem yöneticileri platform genelinde arıza ve destek müdahalesi için bypass politikasına sahiptir.
-                                            </div>
-                                        </div>
-
-                                        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-                                            <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                                                🔒 24 Tablo Koruma Altında
-                                            </div>
-                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                                                Araçlar, personel, muhasebe, teklifler, sözleşmeler ve belgelerin tamamı kilitlenmiştir.
-                                            </div>
-                                        </div>
-
-                                        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-                                            <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                                                ⚡ Otomatik CLI Dağıtımı
-                                            </div>
-                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                                                Terminal üzerinden <code style={{ color: 'var(--primary)', fontWeight: 'bold' }}>npm run rls:apply</code> komutu ile Supabase RLS migration'ı tek adımda çalıştırılır.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                            Migration Dosyası: <code style={{ color: 'var(--text-primary)' }}>supabase/migrations/20260924_enable_rls_hardening.sql</code>
-                                        </div>
-                                        <button 
-                                            className="btn btn-secondary"
-                                            onClick={() => alert('Supabase RLS Sertleştirme kuralları veritabanı migration dosyasında tanımlıdır.\n\nUygulamak için terminalde:\n  npm run rls:apply\nkomutunu çalıştırabilirsiniz.')}
-                                            style={{ fontSize: '12px', padding: '6px 14px' }}
-                                        >
-                                            RLS Dağıtım Bilgisini Göster
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     )}
 
@@ -2282,6 +2250,43 @@ export default function Settings() {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* Module Settings Tabs */}
+                    {activeTab === 'fleet' && (
+                        <div className="tab-fade-in">
+                            <FleetModuleContent />
+                        </div>
+                    )}
+
+                    {activeTab === 'hr' && (
+                        <div className="tab-fade-in">
+                            <HrModuleContent />
+                        </div>
+                    )}
+
+                    {activeTab === 'meals' && (
+                        <div className="tab-fade-in">
+                            <MealTicketSettings />
+                        </div>
+                    )}
+
+                    {activeTab === 'finance' && (
+                        <div className="tab-fade-in">
+                            <DefaultModuleContent config={moduleConfig.finance} ModuleIcon={Wallet} />
+                        </div>
+                    )}
+
+                    {activeTab === 'works' && (
+                        <div className="tab-fade-in">
+                            <DefaultModuleContent config={moduleConfig.works} ModuleIcon={Briefcase} />
+                        </div>
+                    )}
+
+                    {activeTab === 'customers' && (
+                        <div className="tab-fade-in">
+                            <DefaultModuleContent config={moduleConfig.customers} ModuleIcon={Building2} />
                         </div>
                     )}
 

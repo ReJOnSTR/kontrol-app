@@ -12,7 +12,7 @@ function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
     if (isSuperAdmin) return true
     if (path.startsWith('/platform')) return false
     if (isAdmin) return true
-    if (path === '/companies' || path === '/settings' || path.startsWith('/module-settings')) {
+    if (path === '/companies' || path.startsWith('/settings') || path.startsWith('/module-settings')) {
         return true
     }
 
@@ -89,10 +89,12 @@ export default function Sidebar({ collapsed, onToggle }) {
                                     if (item.path.includes('?')) {
                                         const fullCurrent = `${location.pathname}${location.search}`
                                         isCurrent = fullCurrent === item.path || 
+                                            (item.path === '/settings?tab=general' && location.pathname === '/settings' && (!location.search || location.search === '?tab=general')) ||
                                             (item.path === '/platform-admin?tab=users' && location.pathname === '/platform-admin' && (!location.search || location.search === '?tab=users'))
                                     } else {
-                                        isCurrent = location.pathname === item.path && (!location.search || item.path !== '/platform-admin')
+                                        isCurrent = location.pathname === item.path && (!location.search || (item.path !== '/platform-admin' && item.path !== '/settings'))
                                     }
+
                                     return `nav-item ${isCurrent || (isActive && !item.path.includes('?') && location.pathname === item.path) ? 'active' : ''}`
                                 }}
                                 title={collapsed ? item.label : ''}

@@ -30,8 +30,14 @@ import {
     Megaphone,
     History,
     ShieldAlert,
-    Mail
+    Mail,
+    Cog,
+    Bell,
+    Palette,
+    Sliders,
+    ToggleLeft
 } from 'lucide-react'
+
 
 // Define menus per module
 export const moduleMenus = {
@@ -63,7 +69,7 @@ export const moduleMenus = {
         {
             title: 'Sistem',
             items: [
-                { path: '/module-settings/fleet', label: 'Filo Ayarları', icon: Settings }
+                { path: '/settings?tab=fleet', label: 'Filo Ayarları', icon: Settings }
             ]
         }
     ],
@@ -79,7 +85,7 @@ export const moduleMenus = {
         {
             title: 'Sistem',
             items: [
-                { path: '/module-settings/finance', label: 'Finans Ayarları', icon: Settings }
+                { path: '/settings?tab=finance', label: 'Finans Ayarları', icon: Settings }
             ]
         }
     ],
@@ -95,7 +101,7 @@ export const moduleMenus = {
         {
             title: 'Sistem',
             items: [
-                { path: '/module-settings/meals', label: 'Yemek Fişi Ayarları', icon: Settings }
+                { path: '/settings?tab=meals', label: 'Yemek Fişi Ayarları', icon: Settings }
             ]
         }
     ],
@@ -125,7 +131,7 @@ export const moduleMenus = {
         {
             title: 'Sistem',
             items: [
-                { path: '/module-settings/hr', label: 'Personel Ayarları', icon: Settings }
+                { path: '/settings?tab=hr', label: 'Personel Ayarları', icon: Settings }
             ]
         }
     ],
@@ -139,7 +145,7 @@ export const moduleMenus = {
         {
             title: 'Sistem',
             items: [
-                { path: '/module-settings/works', label: 'İş Ayarları', icon: Settings }
+                { path: '/settings?tab=works', label: 'İş Ayarları', icon: Settings }
             ]
         }
     ],
@@ -153,7 +159,7 @@ export const moduleMenus = {
         {
             title: 'Sistem',
             items: [
-                { path: '/module-settings/customers', label: 'Müşteri Ayarları', icon: Settings }
+                { path: '/settings?tab=customers', label: 'Müşteri Ayarları', icon: Settings }
             ]
         }
     ],
@@ -185,9 +191,35 @@ export const moduleMenus = {
             ]
         }
     ],
-    system: [],
+    system: [
+        {
+            title: 'Sistem Tercihleri',
+            items: [
+                { path: '/settings?tab=general', label: 'Genel', icon: Cog },
+                { path: '/settings?tab=users', label: 'Kullanıcılar & Yetkiler', icon: Users },
+                { path: '/settings?tab=appearance', label: 'Görünüm', icon: Palette },
+                { path: '/settings?tab=security', label: 'Güvenlik & Kilit', icon: Shield },
+                { path: '/settings?tab=audit', label: 'Güvenlik Günlüğü', icon: ShieldAlert },
+                { path: '/settings?tab=notifications', label: 'Bildirimler & E-Posta', icon: Bell },
+                { path: '/settings?tab=data', label: 'Veri Yönetimi', icon: Database },
+                { path: '/settings?tab=arvento', label: 'Arvento Entegrasyonu', icon: Globe },
+            ]
+        },
+        {
+            title: 'Modül Ayarları',
+            items: [
+                { path: '/settings?tab=fleet', label: 'Filo Ayarları', icon: Car },
+                { path: '/settings?tab=hr', label: 'Personel Ayarları', icon: UserCheck },
+                { path: '/settings?tab=finance', label: 'Finans Ayarları', icon: Wallet },
+                { path: '/settings?tab=works', label: 'İş Ayarları', icon: Briefcase },
+                { path: '/settings?tab=meals', label: 'Yemek Fişi Ayarları', icon: UtensilsCrossed },
+                { path: '/settings?tab=customers', label: 'Müşteri Ayarları', icon: Building2 },
+            ]
+        }
+    ],
     portal: []
 }
+
 
 // Keep the old menuGroups reference pointing to fleet for backwards compatibility
 export const menuGroups = moduleMenus.fleet
@@ -279,8 +311,8 @@ export const getActiveModule = (pathname, search = '') => {
         return 'portal'
     }
 
-    // 2. Global system pages (Always empty sidebar on settings/profile)
-    if (pathname === '/settings' || pathname === '/profile' || pathname === '/companies') {
+    // 2. Global system pages (Settings & module settings use 'system')
+    if (pathname === '/settings' || pathname.startsWith('/module-settings') || pathname === '/profile' || pathname === '/companies') {
         return 'system'
     }
 
@@ -305,14 +337,9 @@ export const getActiveModule = (pathname, search = '') => {
         '/vehicles/': 'fleet',
         '/employees/': 'hr',
         '/works/': 'works',
-        '/customers/': 'customers',
-        '/module-settings/fleet': 'fleet',
-        '/module-settings/finance': 'finance',
-        '/module-settings/meals': 'meals',
-        '/module-settings/hr': 'hr',
-        '/module-settings/works': 'works',
-        '/module-settings/customers': 'customers'
+        '/customers/': 'customers'
     }
+
 
     for (const [prefix, moduleKey] of Object.entries(detailPrefixMap)) {
         if (pathname.startsWith(prefix)) return moduleKey

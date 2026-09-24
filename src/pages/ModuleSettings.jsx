@@ -1015,6 +1015,9 @@ function FleetModuleContent() {
     )
 }
 
+export { HrModuleContent, FleetModuleContent, DefaultModuleContent, moduleConfig }
+
+
 export default function ModuleSettings() {
     const location = useLocation()
 
@@ -1041,3 +1044,4 @@ export default function ModuleSettings() {
         </div>
     )
 }
+

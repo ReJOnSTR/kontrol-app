@@ -4280,6 +4280,15 @@ textarea,
   padding: 10px 0;
 }
 
+.settings-sidebar-heading {
+  padding: 12px 20px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+}
+
 .settings-sidebar-item {
   display: flex;
   align-items: center;
