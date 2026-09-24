@@ -4329,17 +4329,17 @@ textarea,
 .settings-content {
   flex: 1;
   min-width: 0;
-  padding-right: 20px;
+  width: 100%;
   animation: settingsFadeIn 0.35s var(--ease-out);
 }
 
 .settings-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 30px;
+  border-radius: 16px;
+  padding: 24px;
   margin-bottom: 24px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .settings-card-title {
@@ -4355,14 +4355,12 @@ textarea,
 }
 
 .settings-page {
-  padding: 20px 40px 40px;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .settings-container {
   display: flex;
-  gap: 50px;
+  gap: 30px;
   min-height: calc(100vh - 200px);
   animation: settingsFadeIn 0.3s var(--ease-out);
 }

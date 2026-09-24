@@ -781,67 +781,114 @@ export default function Settings() {
         { value: 'monthly', label: 'Her Ay' }
     ]
 
-    const systemSidebarItems = [
-        { id: 'general', label: 'Genel', icon: <Cog size={18} /> },
-        { id: 'users', label: 'Kullanıcılar & Yetkiler', icon: <Users size={18} /> },
-        { id: 'appearance', label: 'Görünüm', icon: <Palette size={18} /> },
-        { id: 'security', label: 'Güvenlik & Kilit', icon: <Shield size={18} /> },
-        { id: 'audit', label: 'Güvenlik Günlüğü (Audit)', icon: <ShieldAlert size={18} /> },
-        { id: 'notifications', label: 'Bildirimler & E-Posta Motoru', icon: <Bell size={18} /> },
-        { id: 'data', label: 'Veri Yönetimi', icon: <Database size={18} /> },
-        { id: 'arvento', label: 'Arvento Entegrasyonu', icon: <Globe size={18} /> },
-    ]
+    const tabMeta = {
+        general: {
+            title: 'Genel Tercihler',
+            desc: 'Profil bilgileri, sistem versiyonu ve uygulama genel tercihleri.'
+        },
+        users: {
+            title: 'Kullanıcılar & Yetkiler',
+            desc: 'Şirket kullanıcılarını, rolleri ve izin matrisini yapılandırın.',
+            action: (
+                <button 
+                    type="button" 
+                    className="btn btn-primary" 
+                    onClick={() => {
+                        setSelectedEmployeeId('')
+                        setNewUserForm({
+                            username: '',
+                            email: '',
+                            password: '',
+                            fullName: '',
+                            role: 'manager',
+                            position: 'Operasyon & Puantör',
+                            phone: '',
+                            permissions: ROLE_PRESETS[1]?.levels || {}
+                        })
+                        setCreateUserModal(true)
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                    <UserPlus size={16} />
+                    <span>Yeni Kullanıcı Ekle</span>
+                </button>
+            )
+        },
+        appearance: {
+            title: 'Görünüm Ayarları',
+            desc: 'Tema, renk şeması ve arayüz kişiselleştirmeleri.'
+        },
+        security: {
+            title: 'Güvenlik & Kilit',
+            desc: 'Uygulama otomatik kilidi, şifreleme ve oturum güvenliği.'
+        },
+        audit: {
+            title: 'Güvenlik Günlüğü (Audit Log)',
+            desc: 'Kullanıcı hareketleri, oturum ve veri işlem denetim kayıtları.'
+        },
+        notifications: {
+            title: 'Bildirimler & Akıllı Uyarı Motoru',
+            desc: 'Sistem içi ve e-posta bildirim kuralları ve otomatik hatırlatmalar.'
+        },
+        data: {
+            title: 'Veri Yönetimi & Yedekleme',
+            desc: 'Veritabanı yedekleme, geri yükleme ve bulut PostgreSQL veri aktarımı.'
+        },
+        arvento: {
+            title: 'Arvento Entegrasyonu',
+            desc: 'Arvento araç takip servis entegrasyonu ve telemetri parametreleri.'
+        },
+        fleet: {
+            title: 'Filo Ayarları',
+            desc: 'Araç türleri ve araç belge kategorilerini yönetin.'
+        },
+        hr: {
+            title: 'Personel & İK Ayarları',
+            desc: 'Personel pozisyonları, izin türleri, resmi tatiller ve mesai oranları.'
+        },
+        finance: {
+            title: 'Finans Ayarları',
+            desc: 'Finans ve muhasebe modülü tercih ve yapılandırmaları.'
+        },
+        works: {
+            title: 'İş & Operasyon Ayarları',
+            desc: 'İş takibi ve operasyon modülü parametreleri.'
+        },
+        meals: {
+            title: 'Yemek Fişi Ayarları',
+            desc: 'Günlük kişi başı yemek fişi ücret tarifesi ve geçmiş kayıtları.'
+        },
+        customers: {
+            title: 'Müşteri & Cari Ayarları',
+            desc: 'Müşteri ve cari hesap modülü parametreleri.'
+        }
+    }
 
-    const moduleSidebarItems = [
-        { id: 'fleet', label: 'Filo Ayarları', icon: <Car size={18} /> },
-        { id: 'hr', label: 'Personel Ayarları', icon: <Users size={18} /> },
-        { id: 'finance', label: 'Finans Ayarları', icon: <Wallet size={18} /> },
-        { id: 'works', label: 'İş & Operasyon', icon: <Briefcase size={18} /> },
-        { id: 'meals', label: 'Yemek Fişi Ayarları', icon: <UtensilsCrossed size={18} /> },
-        { id: 'customers', label: 'Müşteri Ayarları', icon: <Building2 size={18} /> },
-    ]
+    const currentMeta = tabMeta[activeTab] || {
+        title: 'Ayarlar',
+        desc: 'Uygulama tercihlerini yönetin.'
+    }
 
     return (
-        <div className="settings-page">
+        <div className="settings-page fade-in">
             <TopProgressBar loading={updateStatus === 'checking' || updateStatus === 'downloading'} />
             
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Ayarlar</h1>
-                    <p style={{ marginTop: '5px', color: 'var(--text-muted)' }}>Uygulama tercihlerini yönetin.</p>
-                </div>
-            </div>
-
-            <div className="settings-container">
-                {/* Sidebar Navigation */}
-                <div className="settings-sidebar">
-                    <div className="settings-sidebar-heading">Sistem Tercihleri</div>
-                    {systemSidebarItems.map(item => (
-                        <div 
-                            key={item.id} 
-                            className={`settings-sidebar-item ${activeTab === item.id ? 'active' : ''}`}
-                            onClick={() => handleTabChange(item.id)}
-                        >
-                            {item.icon}
-                            <span>{item.label}</span>
+            {activeTab !== 'meals' && (
+                <div className="page-header">
+                    <div>
+                        <h1 className="page-title">{currentMeta.title}</h1>
+                        <p style={{ marginTop: '5px', color: 'var(--text-muted)' }}>{currentMeta.desc}</p>
+                    </div>
+                    {currentMeta.action && (
+                        <div className="page-actions">
+                            {currentMeta.action}
                         </div>
-                    ))}
-
-                    <div className="settings-sidebar-heading" style={{ marginTop: '16px' }}>Modül Ayarları</div>
-                    {moduleSidebarItems.map(item => (
-                        <div 
-                            key={item.id} 
-                            className={`settings-sidebar-item ${activeTab === item.id ? 'active' : ''}`}
-                            onClick={() => handleTabChange(item.id)}
-                        >
-                            {item.icon}
-                            <span>{item.label}</span>
-                        </div>
-                    ))}
+                    )}
                 </div>
+            )}
 
-                {/* Main Content Area */}
-                <div className="settings-content">
+            {/* Main Content Area */}
+            <div className="settings-content">
                     
                     {activeTab === 'general' && (
                         <div className="tab-fade-in">
@@ -2290,7 +2337,6 @@ export default function Settings() {
                         </div>
                     )}
 
-                </div>
             </div>
 
             {/* Create User Modal */}
