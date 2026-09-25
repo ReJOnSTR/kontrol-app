@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bell, AlertTriangle, Calendar, FileText, Wallet, CheckCircle2, ChevronRight, X, Shield, Wrench, User, ClipboardCheck } from 'lucide-react'
+import { Bell, BellOff, AlertTriangle, Calendar, FileText, Wallet, CheckCircle2, ChevronRight, X, Shield, Wrench, User, ClipboardCheck, Sliders } from 'lucide-react'
 import { useCompany } from '../context/CompanyContext'
 import { getDaysUntil, formatDate, formatCurrency } from '../utils/helpers'
 import { useNavigate } from 'react-router-dom'
@@ -8,11 +8,31 @@ export default function NotificationCenter() {
     const { upcomingEvents } = useCompany()
     const [isOpen, setIsOpen] = useState(false)
     const [activeFilter, setActiveFilter] = useState('all') // 'all' | 'overdue' | 'urgent' | 'upcoming'
+    const [userSettings, setUserSettings] = useState(() => {
+        return {
+            inAppEnabled: localStorage.getItem('user_in_app_enabled') !== 'false'
+        }
+    })
     const dropdownRef = useRef(null)
     const navigate = useNavigate()
 
-    // Filter events based on user preferences from localStorage
-    const filteredEvents = (upcomingEvents || []).filter(e => {
+    useEffect(() => {
+        const handleSettingsChanged = (e) => {
+            if (e.detail) {
+                setUserSettings(e.detail)
+            }
+        }
+        window.addEventListener('user_notification_settings_changed', handleSettingsChanged)
+        return () => window.removeEventListener('user_notification_settings_changed', handleSettingsChanged)
+    }, [])
+
+    const isMasterInAppEnabled = userSettings?.inAppEnabled !== false && localStorage.getItem('user_in_app_enabled') !== 'false'
+
+    // Filter events based on user preferences from user_notification_settings + localStorage
+    const filteredEvents = !isMasterInAppEnabled ? [] : (upcomingEvents || []).filter(e => {
+        if (userSettings?.items && userSettings.items[e.eventType]) {
+            return userSettings.items[e.eventType].inApp !== false
+        }
         const isEnabled = localStorage.getItem(`notify_${e.eventType}`) !== 'false'
         return isEnabled
     })
@@ -188,130 +208,186 @@ export default function NotificationCenter() {
                         </button>
                     </div>
 
-                    {/* Quick Filters (E-postadaki 30 günlük grup mantığı) */}
-                    <div style={{
-                        display: 'flex',
-                        gap: '6px',
-                        padding: '8px 12px',
-                        background: 'var(--bg-primary)',
-                        borderBottom: '1px solid var(--border-color)',
-                        overflowX: 'auto'
-                    }}>
-                        <button
-                            onClick={() => setActiveFilter('all')}
-                            style={{
-                                border: 'none',
-                                background: activeFilter === 'all' ? 'var(--bg-tertiary)' : 'transparent',
-                                color: activeFilter === 'all' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                fontWeight: activeFilter === 'all' ? '600' : '500',
-                                fontSize: '11px',
-                                padding: '4px 10px',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap',
-                                transition: 'all 0.15s'
-                            }}
-                        >
-                            Tümü ({totalCount})
-                        </button>
-
-                        {overdue.length > 0 && (
-                            <button
-                                onClick={() => setActiveFilter('overdue')}
-                                style={{
-                                    border: 'none',
-                                    background: activeFilter === 'overdue' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                                    color: 'var(--danger)',
-                                    fontWeight: activeFilter === 'overdue' ? '700' : '600',
-                                    fontSize: '11px',
-                                    padding: '4px 8px',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap'
-                                }}
-                            >
-                                🔴 Geciken ({overdue.length})
-                            </button>
-                        )}
-
-                        {(today.length + urgent.length) > 0 && (
-                            <button
-                                onClick={() => setActiveFilter('urgent')}
-                                style={{
-                                    border: 'none',
-                                    background: activeFilter === 'urgent' ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
-                                    color: 'var(--warning)',
-                                    fontWeight: activeFilter === 'urgent' ? '700' : '600',
-                                    fontSize: '11px',
-                                    padding: '4px 8px',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap'
-                                }}
-                            >
-                                🟡 3 Gün ({today.length + urgent.length})
-                            </button>
-                        )}
-
-                        {upcoming30.length > 0 && (
-                            <button
-                                onClick={() => setActiveFilter('upcoming')}
-                                style={{
-                                    border: 'none',
-                                    background: activeFilter === 'upcoming' ? 'rgba(20, 184, 166, 0.15)' : 'transparent',
-                                    color: '#14b8a6',
-                                    fontWeight: activeFilter === 'upcoming' ? '700' : '600',
-                                    fontSize: '11px',
-                                    padding: '4px 8px',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap'
-                                }}
-                            >
-                                🟢 30 Gün ({upcoming30.length})
-                            </button>
-                        )}
-                    </div>
-
-                    {/* List */}
-                    <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
-                        {displayedEvents.length === 0 ? (
-                            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                <CheckCircle2 size={32} style={{ marginBottom: '10px', opacity: 0.5, color: '#10b981' }} />
-                                <p style={{ fontSize: '13px', margin: 0, color: 'var(--text-secondary)' }}>
-                                    {activeFilter === 'overdue' ? 'Harika! Gecikmiş işlem bulunmuyor.' :
-                                     activeFilter === 'urgent' ? 'Önümüzdeki 3 gün içinde kritik işlem yok.' :
-                                     'Önümüzdeki 30 gün içinde bekleyen bir işlem bulunmuyor.'}
-                                </p>
+                    {!isMasterInAppEnabled ? (
+                        <div style={{ padding: '36px 20px', textAlign: 'center' }}>
+                            <div style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '12px',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                color: 'var(--danger)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 12px'
+                            }}>
+                                <BellOff size={24} />
                             </div>
-                        ) : (
-                            <div>
-                                {displayedEvents.map((e, idx) => (
-                                    <NotificationItem key={`notif-${e.id || idx}-${e.eventType}`} event={e} onClick={() => handleItemClick(e)} />
-                                ))}
+                            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                                Uygulama İçi Bildirimler Kapalı
                             </div>
-                        )}
-                    </div>
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
+                                Profilinizden uygulama içi zil bildirimlerini kapattınız. Bildirimleri tekrar almak için kişisel tercihlerinizi güncelleyebilirsiniz.
+                            </p>
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ fontSize: '12px', padding: '6px 14px' }}
+                                onClick={() => { setIsOpen(false); navigate('/profile'); }}
+                            >
+                                Profil Tercihlerine Git
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Quick Filters (E-postadaki 30 günlük grup mantığı) */}
+                            <div style={{
+                                display: 'flex',
+                                gap: '6px',
+                                padding: '8px 12px',
+                                background: 'var(--bg-primary)',
+                                borderBottom: '1px solid var(--border-color)',
+                                overflowX: 'auto'
+                            }}>
+                                <button
+                                    onClick={() => setActiveFilter('all')}
+                                    style={{
+                                        border: 'none',
+                                        background: activeFilter === 'all' ? 'var(--bg-tertiary)' : 'transparent',
+                                        color: activeFilter === 'all' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                        fontWeight: activeFilter === 'all' ? '600' : '500',
+                                        fontSize: '11px',
+                                        padding: '4px 10px',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        transition: 'all 0.15s'
+                                    }}
+                                >
+                                    Tümü ({totalCount})
+                                </button>
+
+                                {overdue.length > 0 && (
+                                    <button
+                                        onClick={() => setActiveFilter('overdue')}
+                                        style={{
+                                            border: 'none',
+                                            background: activeFilter === 'overdue' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                                            color: 'var(--danger)',
+                                            fontWeight: activeFilter === 'overdue' ? '700' : '600',
+                                            fontSize: '11px',
+                                            padding: '4px 8px',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        🔴 Geciken ({overdue.length})
+                                    </button>
+                                )}
+
+                                {(today.length + urgent.length) > 0 && (
+                                    <button
+                                        onClick={() => setActiveFilter('urgent')}
+                                        style={{
+                                            border: 'none',
+                                            background: activeFilter === 'urgent' ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                                            color: 'var(--warning)',
+                                            fontWeight: activeFilter === 'urgent' ? '700' : '600',
+                                            fontSize: '11px',
+                                            padding: '4px 8px',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        🟡 3 Gün ({today.length + urgent.length})
+                                    </button>
+                                )}
+
+                                {upcoming30.length > 0 && (
+                                    <button
+                                        onClick={() => setActiveFilter('upcoming')}
+                                        style={{
+                                            border: 'none',
+                                            background: activeFilter === 'upcoming' ? 'rgba(20, 184, 166, 0.15)' : 'transparent',
+                                            color: '#14b8a6',
+                                            fontWeight: activeFilter === 'upcoming' ? '700' : '600',
+                                            fontSize: '11px',
+                                            padding: '4px 8px',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        🟢 30 Gün ({upcoming30.length})
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* List */}
+                            <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                                {displayedEvents.length === 0 ? (
+                                    <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        <CheckCircle2 size={32} style={{ marginBottom: '10px', opacity: 0.5, color: '#10b981' }} />
+                                        <p style={{ fontSize: '13px', margin: 0, color: 'var(--text-secondary)' }}>
+                                            {activeFilter === 'overdue' ? 'Harika! Gecikmiş işlem bulunmuyor.' :
+                                             activeFilter === 'urgent' ? 'Önümüzdeki 3 gün içinde kritik işlem yok.' :
+                                             'Önümüzdeki 30 gün içinde bekleyen bir işlem bulunmuyor.'}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        {displayedEvents.map((e, idx) => (
+                                            <NotificationItem key={`notif-${e.id || idx}-${e.eventType}`} event={e} onClick={() => handleItemClick(e)} />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
 
                     {/* Footer */}
-                    {allNotifications.length > 0 && (
-                        <div 
-                            onClick={() => { navigate('/'); setIsOpen(false); }}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 14px',
+                        borderTop: '1px solid var(--border-color)',
+                        background: 'var(--bg-tertiary)',
+                        fontSize: '11.5px'
+                    }}>
+                        <button
+                            type="button"
+                            onClick={() => { setIsOpen(false); navigate('/profile'); }}
                             style={{
-                                padding: '11px',
-                                textAlign: 'center',
-                                fontSize: '12px',
-                                color: 'var(--accent-primary)',
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-secondary)',
                                 cursor: 'pointer',
-                                borderTop: '1px solid var(--border-color)',
-                                background: 'var(--bg-tertiary)',
-                                fontWeight: '600',
-                                transition: 'background 0.15s'
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                padding: 0
                             }}
                         >
-                            Tümünü Dashboard Takviminde Gör →
-                        </div>
-                    )}
+                            <Sliders size={13} /> Bildirim Tercihleri
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setIsOpen(false); navigate('/'); }}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--accent-primary)',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                padding: 0
+                            }}
+                        >
+                            Dashboard Takvimi →
+                        </button>
+                    </div>
                 </div>
             )}
         </div>

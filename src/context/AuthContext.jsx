@@ -29,6 +29,34 @@ export function AuthProvider({ children }) {
         }
     };
 
+    const syncUserNotificationSettings = async (userData) => {
+        if (!userData?.id) return;
+        try {
+            let res;
+            if (window.electronAPI?.getUserNotificationSettings) {
+                res = await window.electronAPI.getUserNotificationSettings(userData.id, userData.role);
+            } else {
+                res = await fetch('/api/rpc/getUserNotificationSettings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ args: [userData.id, userData.role] })
+                }).then(r => r.json()).catch(() => null);
+            }
+            if (res && res.success && res.data) {
+                const config = res.data;
+                localStorage.setItem('user_in_app_enabled', String(config.inAppEnabled !== false));
+                if (config.items) {
+                    Object.entries(config.items).forEach(([key, val]) => {
+                        localStorage.setItem(`notify_${key}`, String(val.inApp !== false));
+                    });
+                }
+                window.dispatchEvent(new CustomEvent('user_notification_settings_changed', { detail: config }));
+            }
+        } catch (e) {
+            console.error('Failed to sync user notification settings:', e);
+        }
+    };
+
     const loadUserPreferences = async (userId) => {
         if (!userId) return;
         try {
@@ -339,6 +367,7 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         if (user && user.id) {
             loadUserPreferences(user.id);
+            syncUserNotificationSettings(user);
         } else {
             setUserPreferences(null);
         }

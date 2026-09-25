@@ -879,8 +879,8 @@ export default function Settings() {
             desc: 'Kullanıcı hareketleri, oturum ve veri işlem denetim kayıtları.'
         },
         notifications: {
-            title: 'Bildirimler & Akıllı Uyarı Motoru',
-            desc: 'Sistem içi ve e-posta bildirim kuralları ve otomatik hatırlatmalar.'
+            title: 'E-Posta Servisi & Otomatik Hatırlatıcı Motoru',
+            desc: 'Şirket geneli otomatik e-posta taraması, gönderim saati ve dağıtım kuralları.'
         },
         data: {
             title: 'Veri Yönetimi & Yedekleme',
@@ -1390,10 +1390,10 @@ export default function Settings() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
                                     <div>
                                         <h2 className="settings-card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <Bell size={20} className="text-primary" /> Şirket Bildirim ve E-Posta Dağıtım Motoru
+                                            <Mail size={20} className="text-primary" /> Şirket Otomatik E-Posta &amp; Dağıtım Motoru
                                         </h2>
                                         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px', maxWidth: '680px', lineHeight: 1.5 }}>
-                                            Sistem her gün yaklaşan vadeleri tarar ve personelin şirket içindeki rolüne göre doğrudan kendi e-posta adresine özet bülteni gönderir.
+                                            Şirket çapında günlük e-posta özetini, gönderim saatini ve harici CC adresini yönetir. Personellerin kişisel zil ve e-posta bildirim filtreleri ise her çalışanın kendi <strong>Profil &gt; Bildirim Tercihleri</strong> menüsünden yönetilir.
                                         </p>
                                     </div>
                                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>

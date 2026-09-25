@@ -118,6 +118,17 @@ export default function Profile() {
         }
     }, [activeTab, user?.id])
 
+    const syncToLocalStorageAndNotify = (config) => {
+        if (!config) return
+        localStorage.setItem('user_in_app_enabled', String(config.inAppEnabled !== false))
+        if (config.items) {
+            Object.entries(config.items).forEach(([key, val]) => {
+                localStorage.setItem(`notify_${key}`, String(val?.inApp !== false))
+            })
+        }
+        window.dispatchEvent(new CustomEvent('user_notification_settings_changed', { detail: config }))
+    }
+
     const loadUserNotifications = async () => {
         if (!user?.id || !window.electronAPI?.getUserNotificationSettings) return
         setNotifLoading(true)
@@ -125,6 +136,7 @@ export default function Profile() {
             const res = await window.electronAPI.getUserNotificationSettings(user.id)
             if (res?.success && res.data) {
                 setNotifConfig(res.data)
+                syncToLocalStorageAndNotify(res.data)
             }
         } catch (e) {
             console.error('Kişisel bildirim tercihleri yüklenemedi:', e)
@@ -139,6 +151,7 @@ export default function Profile() {
         try {
             const res = await window.electronAPI.saveUserNotificationSettings(user.id, configToSave)
             if (res?.success) {
+                syncToLocalStorageAndNotify(configToSave)
                 setNotifMsg({ type: 'success', text: 'Bildirim tercihleriniz güncellendi.' })
             } else {
                 setNotifMsg({ type: 'error', text: res?.error || 'Kaydedilemedi.' })
@@ -154,15 +167,24 @@ export default function Profile() {
     const toggleNotifItem = (itemKey, channel) => {
         if (!notifConfig?.items?.[itemKey]) return
         const currentVal = notifConfig.items[itemKey][channel] !== false
+        const nextVal = !currentVal
+
+        const updatedItems = {
+            ...notifConfig.items,
+            [itemKey]: {
+                ...notifConfig.items[itemKey],
+                [channel]: nextVal
+            }
+        }
+
+        // Auto-sync master channel switch: if at least 1 item is active, master is active; if 0 active, master is false
+        const masterProp = channel === 'inApp' ? 'inAppEnabled' : 'emailEnabled'
+        const hasAnyActive = Object.values(updatedItems).some(it => it[channel] !== false)
+
         const updated = {
             ...notifConfig,
-            items: {
-                ...notifConfig.items,
-                [itemKey]: {
-                    ...notifConfig.items[itemKey],
-                    [channel]: !currentVal
-                }
-            }
+            [masterProp]: hasAnyActive,
+            items: updatedItems
         }
         setNotifConfig(updated)
         handleSaveUserNotifications(updated)
@@ -170,9 +192,25 @@ export default function Profile() {
 
     const toggleGlobalChannel = (channel) => {
         if (!notifConfig) return
+        const currentVal = notifConfig[channel] !== false
+        const nextVal = !currentVal
+        const subProp = channel === 'inAppEnabled' ? 'inApp' : 'email'
+
+        // Cascade master toggle to all sub-items
+        const updatedItems = {}
+        if (notifConfig.items) {
+            Object.entries(notifConfig.items).forEach(([key, val]) => {
+                updatedItems[key] = {
+                    ...val,
+                    [subProp]: nextVal
+                }
+            })
+        }
+
         const updated = {
             ...notifConfig,
-            [channel]: !notifConfig[channel]
+            [channel]: nextVal,
+            items: updatedItems
         }
         setNotifConfig(updated)
         handleSaveUserNotifications(updated)
@@ -621,7 +659,6 @@ export default function Profile() {
                                                             <input
                                                                 type="checkbox"
                                                                 checked={item.inApp !== false}
-                                                                disabled={notifConfig.inAppEnabled === false}
                                                                 onChange={() => toggleNotifItem(key, 'inApp')}
                                                             />
                                                             <span className="toggle-slider"></span>
@@ -633,7 +670,6 @@ export default function Profile() {
                                                             <input
                                                                 type="checkbox"
                                                                 checked={item.email !== false}
-                                                                disabled={notifConfig.emailEnabled === false}
                                                                 onChange={() => toggleNotifItem(key, 'email')}
                                                             />
                                                             <span className="toggle-slider"></span>

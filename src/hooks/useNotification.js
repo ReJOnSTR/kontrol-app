@@ -12,6 +12,8 @@ export const useNotification = () => {
 
         const checkUpcoming = async () => {
             try {
+                if (localStorage.getItem('user_in_app_enabled') === 'false') return
+
                 const upcoming = await window.electronAPI.getUpcomingEvents(currentCompany.id)
                 if (!upcoming?.success || !upcoming?.data?.length) return
 
