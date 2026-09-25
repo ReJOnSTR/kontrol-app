@@ -435,7 +435,7 @@ export default function EmployeeDetail() {
 
             setUserAccountFormData({
                 username: usr.username || '',
-                email: usr.email || '',
+                email: usr.email || employee?.email || '',
                 password: '',
                 role: usr.role || 'personnel',
                 permissions: perms,
@@ -443,8 +443,18 @@ export default function EmployeeDetail() {
             });
         } else {
             const defaultPreset = ROLE_PRESETS.find(p => p.id === 'personnel') || ROLE_PRESETS[0];
+            const cleanUser = `${employee?.first_name || ''}.${employee?.last_name || ''}`
+                .toLowerCase()
+                .replace(/ğ/g, 'g')
+                .replace(/ü/g, 'u')
+                .replace(/ş/g, 's')
+                .replace(/ı/g, 'i')
+                .replace(/ö/g, 'o')
+                .replace(/ç/g, 'c')
+                .replace(/[^a-z0-9._-]/g, '');
+
             setUserAccountFormData({
-                username: `${employee?.first_name || ''}.${employee?.last_name || ''}`.toLowerCase().replace(/\s+/g, ''),
+                username: cleanUser || 'kullanici',
                 email: employee?.email || '',
                 password: '123456Password!',
                 role: defaultPreset.id,
@@ -468,11 +478,16 @@ export default function EmployeeDetail() {
                 if (res.success) {
                     if (window.showToast) window.showToast('Giriş hesabı ve yetkileri güncellendi.', 'success');
                     setUserAccountModalOpen(false);
-                    loadEmployeeData();
+                    await loadEmployeeData();
                 } else {
                     if (window.showToast) window.showToast(res.error || 'Güncellenemedi.', 'error');
                 }
             } else {
+                if (!userAccountFormData.username || !userAccountFormData.email || !userAccountFormData.password) {
+                    if (window.showToast) window.showToast('Kullanıcı adı, e-posta ve şifre zorunludur.', 'warning');
+                    return;
+                }
+
                 const res = await window.electronAPI.createEmployeeUser({
                     employeeId: employee.id,
                     username: userAccountFormData.username,
@@ -482,9 +497,9 @@ export default function EmployeeDetail() {
                     permissions: userAccountFormData.permissions
                 });
                 if (res.success) {
-                    if (window.showToast) window.showToast('Giriş hesabı ve yetkileri başarıyla tanımlandı.', 'success');
+                    if (window.showToast) window.showToast(res.message || 'Giriş hesabı ve yetkileri başarıyla tanımlandı.', 'success');
                     setUserAccountModalOpen(false);
-                    loadEmployeeData();
+                    await loadEmployeeData();
                 } else {
                     if (window.showToast) window.showToast(res.error || 'Hesap oluşturulamadı.', 'error');
                 }
@@ -2152,13 +2167,10 @@ export default function EmployeeDetail() {
                 const diffTime = target - now;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 
-                if (diffDays < 0) return <span style={{ color: 'var(--danger)', fontWeight: 700, fontSize: '12px' }}>SÜRESİ DOLDU</span>;
-                if (diffDays === 0) return <span style={{ color: 'var(--warning)', fontWeight: 700, fontSize: '12px' }}>BUGÜN</span>;
-                
-                if (diffDays < 30) {
-                    const color = diffDays < 10 ? 'var(--danger)' : 'var(--warning)';
-                    return <span style={{ color, fontWeight: 600 }}>{diffDays} Gün</span>;
-                }
+                if (diffDays < 0) return <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '12px' }}>SÜRESİ DOLDU ({Math.abs(diffDays)} Gün)</span>;
+                if (diffDays === 0) return <span style={{ color: '#fb923c', fontWeight: 700, fontSize: '12px' }}>BUGÜN</span>;
+                if (diffDays <= 3) return <span style={{ color: '#facc15', fontWeight: 700, fontSize: '12px' }}>{diffDays} Gün Kaldı (Acil)</span>;
+                if (diffDays <= 30) return <span style={{ color: '#14b8a6', fontWeight: 600, fontSize: '12px' }}>{diffDays} Gün Kaldı</span>;
                 
                 const months = Math.floor(diffDays / 30);
                 const remainingDays = diffDays % 30;
@@ -3242,10 +3254,15 @@ export default function EmployeeDetail() {
                                                 message: 'Bu personelin kullanıcı hesabı tamamen silinecektir. Emin misiniz?',
                                                 confirmText: 'Hesabı Sil',
                                                 onConfirm: async () => {
-                                                    await window.electronAPI.deleteUserAccount(item.id);
-                                                    loadEmployeeData();
-                                                    setConfirmModal(null);
-                                                    if (window.showToast) window.showToast('Giriş hesabı silindi.', 'success');
+                                                    const res = await window.electronAPI.deleteUserAccount(item.id);
+                                                    if (res?.success) {
+                                                        setEmployee(prev => prev ? { ...prev, user: null } : prev);
+                                                        await loadEmployeeData();
+                                                        setConfirmModal(null);
+                                                        if (window.showToast) window.showToast('Giriş hesabı başarıyla silindi.', 'success');
+                                                    } else {
+                                                        if (window.showToast) window.showToast('Silinemedi: ' + (res?.error || 'Bilinmeyen hata'), 'error');
+                                                    }
                                                 }
                                             });
                                         }}

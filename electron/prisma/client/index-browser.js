@@ -145,6 +145,13 @@ exports.Prisma.CompaniesScalarFieldEnum = {
   phone: 'phone',
   signature_path: 'signature_path',
   stamp_path: 'stamp_path',
+  plan: 'plan',
+  status: 'status',
+  expires_at: 'expires_at',
+  max_vehicles: 'max_vehicles',
+  max_employees: 'max_employees',
+  max_users: 'max_users',
+  storage_limit_mb: 'storage_limit_mb',
   created_at: 'created_at'
 };
 
@@ -445,6 +452,7 @@ exports.Prisma.UsersScalarFieldEnum = {
   role: 'role',
   role_id: 'role_id',
   employee_id: 'employee_id',
+  permissions: 'permissions',
   must_change_password: 'must_change_password',
   is_active: 'is_active',
   two_factor_secret: 'two_factor_secret',
@@ -643,6 +651,18 @@ exports.Prisma.Audit_logsScalarFieldEnum = {
   created_at: 'created_at'
 };
 
+exports.Prisma.Company_settingsScalarFieldEnum = {
+  company_id: 'company_id',
+  settings_json: 'settings_json',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.User_preferencesScalarFieldEnum = {
+  user_id: 'user_id',
+  preferences_json: 'preferences_json',
+  updated_at: 'updated_at'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -698,7 +718,9 @@ exports.Prisma.ModelName = {
   requests: 'requests',
   request_approvals: 'request_approvals',
   system_announcements: 'system_announcements',
-  audit_logs: 'audit_logs'
+  audit_logs: 'audit_logs',
+  company_settings: 'company_settings',
+  user_preferences: 'user_preferences'
 };
 
 /**

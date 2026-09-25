@@ -1,5 +1,6 @@
 const { getPrismaClient } = require('../prismaClient');
 const { logAudit } = require('./audit.service');
+const { checkQuota } = require('./quota.service');
 const prisma = getPrismaClient();
 
 // ========== VEHICLES ==========
@@ -62,6 +63,8 @@ async function getVehicleById(vehicleId) {
 async function createVehicle(data) {
     try {
         const { companyId, type, plate, ...rest } = data;
+        await checkQuota(companyId, 'vehicles');
+
         const existingVehicle = await prisma.vehicles.findFirst({
             where: { company_id: parseInt(companyId), plate: plate, is_archived: 0 }
         });

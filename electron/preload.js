@@ -151,6 +151,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSettings: () => ipcRenderer.invoke('settings:get'),
     saveSettings: (settings) => ipcRenderer.invoke('settings:save', settings),
     selectFolder: () => ipcRenderer.invoke('settings:selectFolder'),
+    getCompanyDbSettings: (companyId) => ipcRenderer.invoke('companySettings:get', companyId),
+    saveCompanyDbSettings: (companyId, settings) => ipcRenderer.invoke('companySettings:save', { companyId, settings }),
+    getUserPreferences: (userId) => ipcRenderer.invoke('userPreferences:get', userId),
+    saveUserPreferences: (userId, preferences) => ipcRenderer.invoke('userPreferences:save', { userId, preferences }),
 
     // Public Holidays
     getPublicHolidays: (companyId) => ipcRenderer.invoke('settings:getPublicHolidays', companyId),
@@ -363,5 +367,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveCompanyNotificationSettings: (companyId, settings) => ipcRenderer.invoke('notification:saveCompanySettings', { companyId, settings }),
     runCompanyNotificationScan: (companyId, options) => ipcRenderer.invoke('notification:runCompanyScan', { companyId, options }),
     sendTestNotificationEmail: (data) => ipcRenderer.invoke('notification:sendTestEmail', data),
+    getUserNotificationSettings: (userId, userRole) => ipcRenderer.invoke('notification:getUserSettings', { userId, userRole }),
+    saveUserNotificationSettings: (userId, settings) => ipcRenderer.invoke('notification:saveUserSettings', { userId, settings }),
 })
 

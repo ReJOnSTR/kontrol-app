@@ -289,7 +289,7 @@ function getInterpolatedPosition(points, targetTime) {
 }
 
 export default function ArventoTracking() {
-    const { currentCompany } = useCompany()
+    const { currentCompany, companySettings } = useCompany()
     const { user } = useAuth()
     const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
@@ -1435,11 +1435,17 @@ export default function ArventoTracking() {
     // Load Settings & Db Vehicles
     useEffect(() => {
         loadSettingsAndVehicles()
-    }, [currentCompany, userArventoCreds])
+    }, [currentCompany, companySettings, userArventoCreds])
 
     const loadSettingsAndVehicles = async () => {
         try {
-            const sett = await window.electronAPI.getSettings()
+            const sett = (await window.electronAPI.getSettings()) || {}
+            if (companySettings?.integrations?.arvento) {
+                sett.arvento = {
+                    ...sett.arvento,
+                    ...companySettings.integrations.arvento
+                }
+            }
             setSettings(sett)
             
             // Check if Arvento user credentials exist

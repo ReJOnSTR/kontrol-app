@@ -1,12 +1,61 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { authService } from '../services'
 import { supabase } from '../services/supabase'
+import { settingsService } from '../services/settings'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null)
+    const [userPreferences, setUserPreferences] = useState(null)
     const [loading, setLoading] = useState(true)
+
+    const syncPreferencesToStorage = (prefs) => {
+        if (!prefs) return;
+        if (prefs.theme) {
+            localStorage.setItem('theme', prefs.theme);
+            localStorage.setItem('aractakip_theme', prefs.theme);
+            document.documentElement.setAttribute('data-theme', prefs.theme);
+            window.dispatchEvent(new CustomEvent('aractakip_theme_changed', { detail: prefs.theme }));
+        }
+        if (prefs.lock) {
+            localStorage.setItem('aractakip_lock_settings', JSON.stringify(prefs.lock));
+            window.dispatchEvent(new CustomEvent('aractakip_lock_settings_changed', { detail: prefs.lock }));
+        }
+        if (prefs.notifications) {
+            Object.entries(prefs.notifications).forEach(([key, val]) => {
+                localStorage.setItem(`notify_${key}`, String(val));
+            });
+        }
+    };
+
+    const loadUserPreferences = async (userId) => {
+        if (!userId) return;
+        try {
+            const res = await settingsService.getUserPreferences(userId);
+            if (res && res.success && res.data) {
+                setUserPreferences(res.data);
+                syncPreferencesToStorage(res.data);
+            }
+        } catch (e) {
+            console.error('Failed to load user preferences:', e);
+        }
+    };
+
+    const updateUserPreferences = async (newPartialPrefs) => {
+        if (!user?.id) return { success: false, error: 'Kullanıcı oturumu bulunamadı' };
+        try {
+            const res = await settingsService.saveUserPreferences(user.id, newPartialPrefs);
+            if (res && res.success && res.data) {
+                setUserPreferences(res.data);
+                syncPreferencesToStorage(res.data);
+                return { success: true, data: res.data };
+            }
+            return res || { success: false, error: 'Tercihler kaydedilemedi' };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    };
 
     useEffect(() => {
         // Check for stored user on mount
@@ -287,9 +336,20 @@ export function AuthProvider({ children }) {
         return false;
     }
 
+    useEffect(() => {
+        if (user && user.id) {
+            loadUserPreferences(user.id);
+        } else {
+            setUserPreferences(null);
+        }
+    }, [user?.id]);
+
     return (
         <AuthContext.Provider value={{ 
             user, 
+            userPreferences,
+            updateUserPreferences,
+            refreshUserPreferences: () => user?.id && loadUserPreferences(user.id),
             loading, 
             login, 
             verify2FALogin,

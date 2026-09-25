@@ -222,7 +222,7 @@ export default function Maintenance() {
             render: (_, item) => {
                 if (!item.next_date) return '-'
                 const value = item.next_date
-                const color = getStatusColor(value ? (new Date(value) - new Date()) / (1000 * 60 * 60 * 24) : null)
+                const color = getStatusColor(value)
                 return <span className={`badge badge-${color}`}>{getDaysUntilText(value)}</span>
             }
         },

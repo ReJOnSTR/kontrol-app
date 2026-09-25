@@ -21,6 +21,7 @@ const auditService = require('./electron/services/audit.service');
 const sessionService = require('./electron/services/session.service');
 const emailTemplateService = require('./electron/services/emailTemplate.service');
 const notificationEngine = require('./electron/services/notification-engine.service');
+const systemSettingsService = require('./electron/services/systemSettings.service');
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -662,6 +663,36 @@ const rpcMap = {
         return await notificationEngine.runCompanyNotificationScan(arg1, arg2);
     },
     sendTestNotificationEmail: notificationEngine.sendTestNotificationEmail,
+    getUserNotificationSettings: async (arg) => {
+        const uid = arg?.userId || arg;
+        const role = arg?.userRole || 'admin';
+        return await notificationEngine.getUserNotificationSettings(uid, role);
+    },
+    saveUserNotificationSettings: async (arg) => {
+        return await notificationEngine.saveUserNotificationSettings(arg?.userId, arg?.settings);
+    },
+
+    // System & Company Database Settings
+    getCompanyDbSettings: async (companyId) => {
+        const cid = typeof companyId === 'object' ? companyId?.companyId : companyId;
+        return await systemSettingsService.getCompanyDbSettings(cid);
+    },
+    saveCompanyDbSettings: async (arg1, arg2) => {
+        if (arg1 && typeof arg1 === 'object' && arg1.companyId) {
+            return await systemSettingsService.saveCompanyDbSettings(arg1.companyId, arg1.settings);
+        }
+        return await systemSettingsService.saveCompanyDbSettings(arg1, arg2);
+    },
+    getUserPreferences: async (userId) => {
+        const uid = typeof userId === 'object' ? userId?.userId : userId;
+        return await systemSettingsService.getUserPreferences(uid);
+    },
+    saveUserPreferences: async (arg1, arg2) => {
+        if (arg1 && typeof arg1 === 'object' && arg1.userId) {
+            return await systemSettingsService.saveUserPreferences(arg1.userId, arg1.preferences);
+        }
+        return await systemSettingsService.saveUserPreferences(arg1, arg2);
+    }
 };
 
 

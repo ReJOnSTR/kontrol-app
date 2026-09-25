@@ -55,11 +55,11 @@ export default function Checks() {
                         // Eğer gelir çekiyse ödenmemiş olarak say
                         if (isIncome) unpaid += check.amount
 
-                        // Vadesi gelmiş ve yaklaşanlar (gelecek 7 gün)
+                        // Vadesi gelmiş ve yaklaşanlar (gelecek 30 gün)
                         if (check.check_due_date) {
                             const dueDate = new Date(check.check_due_date)
                             const diffDays = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24))
-                            if (diffDays >= 0 && diffDays <= 7) {
+                            if (diffDays >= 0 && diffDays <= 30) {
                                 approaching += check.amount
                             }
                         }
@@ -218,16 +218,25 @@ export default function Checks() {
             render: (val) => {
                 if (!val) return '-'
 
-                // Color formatting logic based on due date
+                // Color formatting logic based on due date matching email notification motor
                 const due = new Date(val)
                 const today = new Date()
                 const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24))
 
                 let textColor = 'inherit'
-                if (diffDays < 0) textColor = 'var(--danger)' // Geçmiş vade
-                else if (diffDays <= 7) textColor = 'var(--warning)' // Yaklaşan vade
+                if (diffDays < 0) textColor = '#ef4444' // Geçmiş vade
+                else if (diffDays === 0) textColor = '#fb923c' // Bugün
+                else if (diffDays <= 3) textColor = '#facc15' // Acil
+                else if (diffDays <= 30) textColor = '#14b8a6' // Yaklaşan (30 gün)
 
-                return <span style={{ color: textColor, fontWeight: '500' }}>{formatDate(val)}</span>
+                const subText = diffDays < 0 ? `${Math.abs(diffDays)} gün geçti` : diffDays === 0 ? 'Bugün' : `${diffDays} gün kaldı`
+
+                return (
+                    <div>
+                        <span style={{ color: textColor, fontWeight: '600' }}>{formatDate(val)}</span>
+                        <div style={{ fontSize: '10.5px', color: textColor, opacity: 0.9 }}>{subText}</div>
+                    </div>
+                )
             }
         },
         {
@@ -287,13 +296,13 @@ export default function Checks() {
 
                 <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                        <div className="stat-label">VADESİ YAKLAŞANLAR (7 GÜN)</div>
-                        <div className="stat-icon warning" style={{ width: '32px', height: '32px' }}><AlertCircle size={16} /></div>
+                        <div className="stat-label">VADESİ YAKLAŞANLAR (30 GÜN)</div>
+                        <div className="stat-icon" style={{ width: '32px', height: '32px', background: 'rgba(20, 184, 166, 0.1)', color: '#14b8a6' }}><AlertCircle size={16} /></div>
                     </div>
                     <div>
                         <div className="stat-value">{formatCurrency(stats.approaching)}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            Kritik vadesi gelen tahsilatlar
+                            30 gün içinde vadesi gelen tahsilatlar
                         </div>
                     </div>
                 </div>

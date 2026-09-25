@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
 import { companyService, dashboardService } from '../services'
+import { settingsService } from '../services/settings'
 
 const CompanyContext = createContext(null)
 
@@ -8,6 +9,7 @@ export function CompanyProvider({ children }) {
     const { user } = useAuth()
     const [companies, setCompanies] = useState([])
     const [currentCompany, setCurrentCompany] = useState(null)
+    const [companySettings, setCompanySettings] = useState(null)
     const [loading, setLoading] = useState(true)
     const [upcomingEvents, setUpcomingEvents] = useState([])
     const isSuperAdmin = user?.role === 'superadmin'
@@ -27,11 +29,64 @@ export function CompanyProvider({ children }) {
         return urlParams.get('impersonate_company_name') || sessionStorage.getItem('aractakip_impersonate_company_name') || ''
     })
 
+    const syncHrSettingsToLocalStorage = (hrSettings) => {
+        if (!hrSettings) return;
+        if (hrSettings.weekdayMultiplier !== undefined) localStorage.setItem('hr_overtime_weekday_multiplier', String(hrSettings.weekdayMultiplier));
+        if (hrSettings.sundayMultiplier !== undefined) localStorage.setItem('hr_overtime_sunday_multiplier', String(hrSettings.sundayMultiplier));
+        if (hrSettings.holidayMultiplier !== undefined) localStorage.setItem('hr_overtime_holiday_multiplier', String(hrSettings.holidayMultiplier));
+        if (hrSettings.gurbetMultiplier !== undefined) localStorage.setItem('hr_overtime_gurbet_multiplier', String(hrSettings.gurbetMultiplier));
+        if (hrSettings.weekdayHoursPerLeave !== undefined) localStorage.setItem('hr_overtime_weekday_hours_per_leave', String(hrSettings.weekdayHoursPerLeave));
+        if (hrSettings.sundayDaysPerLeave !== undefined) localStorage.setItem('hr_overtime_sunday_days_per_leave', String(hrSettings.sundayDaysPerLeave));
+        if (hrSettings.holidayDaysPerLeave !== undefined) localStorage.setItem('hr_overtime_holiday_days_per_leave', String(hrSettings.holidayDaysPerLeave));
+        if (hrSettings.defaultAdvanceAmount !== undefined) localStorage.setItem('hr_default_advance_amount', String(hrSettings.defaultAdvanceAmount));
+    };
+
+    const clearHrSettingsFromLocalStorage = () => {
+        const keys = [
+            'hr_overtime_weekday_multiplier', 'hr_overtime_sunday_multiplier',
+            'hr_overtime_holiday_multiplier', 'hr_overtime_gurbet_multiplier',
+            'hr_overtime_weekday_hours_per_leave', 'hr_overtime_sunday_days_per_leave',
+            'hr_overtime_holiday_days_per_leave', 'hr_default_advance_amount'
+        ];
+        keys.forEach(k => localStorage.removeItem(k));
+    };
+
+    const loadCompanySettings = async (companyId) => {
+        if (!companyId) return;
+        clearHrSettingsFromLocalStorage();
+        try {
+            const res = await settingsService.getCompanyDbSettings(companyId);
+            if (res && res.success && res.data) {
+                setCompanySettings(res.data);
+                syncHrSettingsToLocalStorage(res.data.hr);
+            }
+        } catch (err) {
+            console.error('Failed to load company db settings:', err);
+        }
+    };
+
+    const updateCompanySettings = async (newPartialSettings) => {
+        if (!currentCompany?.id) return { success: false, error: 'Şirket seçilmedi' };
+        try {
+            const res = await settingsService.saveCompanyDbSettings(currentCompany.id, newPartialSettings);
+            if (res && res.success && res.data) {
+                setCompanySettings(res.data);
+                syncHrSettingsToLocalStorage(res.data.hr);
+                return { success: true, data: res.data };
+            }
+            return res || { success: false, error: 'Ayarlar kaydedilemedi' };
+        } catch (err) {
+            return { success: false, error: err.message };
+        }
+    };
+
     useEffect(() => {
         if (currentCompany) {
             loadUpcomingEvents()
+            loadCompanySettings(currentCompany.id)
         } else {
             setUpcomingEvents([])
+            setCompanySettings(null)
         }
     }, [currentCompany])
 
@@ -191,6 +246,15 @@ export function CompanyProvider({ children }) {
         }
     }
 
+    const isModuleEnabled = (moduleKey) => {
+        if (!moduleKey) return true;
+        if (['portal', 'system', 'platform', 'personnel'].includes(moduleKey)) return true;
+        if (companySettings?.modules) {
+            return companySettings.modules[moduleKey] !== false;
+        }
+        return true;
+    }
+
     return (
         <CompanyContext.Provider value={{
             companies,
@@ -201,6 +265,10 @@ export function CompanyProvider({ children }) {
             updateCompany,
             deleteCompany,
             refreshCompanies: loadCompanies,
+            companySettings,
+            updateCompanySettings,
+            refreshCompanySettings: () => currentCompany && loadCompanySettings(currentCompany.id),
+            isModuleEnabled,
             upcomingEvents,
             loadUpcomingEvents,
             isImpersonating,

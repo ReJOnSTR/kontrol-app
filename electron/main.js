@@ -13,6 +13,7 @@ const mfaService = require('./services/mfa.service')
 const auditService = require('./services/audit.service')
 const sessionService = require('./services/session.service')
 const emailTemplateService = require('./services/emailTemplate.service')
+const systemSettingsService = require('./services/systemSettings.service')
 
 
 // Optional: Override console to correct log file
@@ -362,6 +363,15 @@ app.whenReady().then(async () => {
         } catch (syncErr) {
             log.warn('Startup sync check notice:', syncErr.message);
         }
+
+        // Background purge of audit logs older than 180 days
+        setTimeout(() => {
+            auditService.clearAuditLogs(180).then(res => {
+                if (res && res.success && res.deletedCount > 0) {
+                    log.info(`Cleaned up ${res.deletedCount} expired audit logs.`);
+                }
+            }).catch(() => {});
+        }, 15000);
     } catch (err) {
         log.error('Failed to initialize database:', err)
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -1277,8 +1287,8 @@ ipcMain.handle('data:export', async (event, payload) => {
             return { success: false, error: 'İşlem iptal edildi' }
         }
 
-        // We now bypass JSON serialization and just zip the pristine SQLite database file
-        createBackupZip(filePath)
+        // Export live database data and physical files
+        await createBackupZip(filePath)
 
         return { success: true, filePath }
     } catch (error) {
@@ -1435,17 +1445,40 @@ function decryptData(text, key) {
 }
 
 // Helper for ZIP creation
-function createBackupZip(outputPath) {
+async function createBackupZip(outputPath) {
     try {
         const zip = new AdmZip()
         const userDataPath = app.getPath('userData')
 
-        // 1. Add the Database file directly to the ZIP
+        // 1. Export live PostgreSQL database data if running PostgreSQL
+        const dbUrl = process.env.DATABASE_URL || ''
+        const isPostgres = dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')
+
+        if (isPostgres) {
+            try {
+                const { getPrismaClient } = require('./prismaClient')
+                const prisma = await getPrismaClient()
+                const tables = [
+                    'companies', 'users', 'employees', 'vehicles', 'customers',
+                    'works', 'transactions', 'meal_tickets', 'salaries', 'leaves',
+                    'inspections', 'insurances', 'maintenances', 'services', 'documents'
+                ]
+                const dbDump = { exported_at: new Date().toISOString(), database: 'PostgreSQL', tables: {} }
+                for (const t of tables) {
+                    if (prisma[t]) {
+                        dbDump.tables[t] = await prisma[t].findMany().catch(() => [])
+                    }
+                }
+                zip.addFile('database_live_backup.json', Buffer.from(JSON.stringify(dbDump, null, 2), 'utf8'))
+            } catch (pgDumpErr) {
+                console.warn('Backup: Live PostgreSQL dump notice:', pgDumpErr.message)
+            }
+        }
+
+        // 1b. Add the SQLite Database file directly to the ZIP if exists
         const dbPath = path.join(userDataPath, 'data', 'aractakip.db')
         if (fs.existsSync(dbPath)) {
             zip.addLocalFile(dbPath)
-        } else {
-            console.warn('Backup: aractakip.db not found at', dbPath)
         }
 
         // 2. Add physical files (images/documents)
@@ -1470,7 +1503,7 @@ async function performAutoBackup(companyId, backupPath) {
         const fileName = `autobackup-system-${new Date().toISOString().split('T')[0]}.zip`
         const fullPath = path.join(backupPath, fileName)
 
-        createBackupZip(fullPath)
+        await createBackupZip(fullPath)
 
         console.log('Auto backup saved to:', fullPath)
         return true
@@ -2125,10 +2158,18 @@ ipcMain.handle('documents:delete', async (event, id) => {
             const userDataPath = app.getPath('userData')
             const filePath = path.join(userDataPath, 'files', fileName)
 
-            // 2. Delete physical file
+            // 2. Delete physical file locally
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath)
             }
+
+            // 2a. Delete from Supabase Storage
+            try {
+                const { deleteFromStorage } = require('./services/supabase.service');
+                deleteFromStorage(fileName, 'documents').catch(err => {
+                    console.warn('[documents:delete Storage Warning]:', err.message);
+                });
+            } catch (storageErr) {}
 
             // 2b. Also update the related operation's file_path to null!
             const relatedType = docResult.data.related_type
@@ -2699,6 +2740,9 @@ ipcMain.handle('platform:getAuditLogs', async (event, params) => {
 ipcMain.handle('platform:getAuditSummaryMetrics', async (event) => {
     return await auditService.getAuditSummaryMetrics();
 });
+ipcMain.handle('platform:clearAuditLogs', async (event, days) => {
+    return await auditService.clearAuditLogs(days || 180);
+});
 
 // Live Session & Online User Monitoring IPC Handlers
 ipcMain.handle('session:heartbeat', async (event, payload) => {
@@ -2782,6 +2826,13 @@ ipcMain.handle('platform:openImpersonateWindow', async (event, { companyId, comp
             impersonateWin.focus();
         });
 
+        return { success: true };
+    } catch (err) {
+        log.error('openImpersonateWindow error:', err);
+        return { success: false, error: err.message };
+    }
+});
+
 // Notification Engine & Role-Based Alert Dispatch IPC Handlers
 const notificationEngine = require('./services/notification-engine.service');
 
@@ -2803,8 +2854,35 @@ ipcMain.handle('notification:runCompanyScan', async (event, arg1, arg2) => {
 ipcMain.handle('notification:sendTestEmail', async (event, data) => {
     return await notificationEngine.sendTestNotificationEmail(data);
 });
+ipcMain.handle('notification:getUserSettings', async (event, data) => {
+    const userId = data?.userId || data;
+    const userRole = data?.userRole || 'admin';
+    return await notificationEngine.getUserNotificationSettings(userId, userRole);
+});
+ipcMain.handle('notification:saveUserSettings', async (event, data) => {
+    return await notificationEngine.saveUserNotificationSettings(data?.userId, data?.settings);
+});
 ipcMain.handle('company:getAuditLogs', async (event, params) => {
     return await auditService.getPlatformAuditLogs(params);
 });
+
+// Company Settings (DB) & User Preferences (DB) Handlers
+ipcMain.handle('companySettings:get', async (event, companyId) => {
+    return await systemSettingsService.getCompanyDbSettings(companyId);
+});
+ipcMain.handle('companySettings:save', async (event, data) => {
+    const res = await systemSettingsService.saveCompanyDbSettings(data?.companyId, data?.settings);
+    if (res.success && data?.settings?.integrations?.arvento) {
+        setupArventoPolling({ arvento: data.settings.integrations.arvento });
+    }
+    return res;
+});
+ipcMain.handle('userPreferences:get', async (event, userId) => {
+    return await systemSettingsService.getUserPreferences(userId);
+});
+ipcMain.handle('userPreferences:save', async (event, data) => {
+    return await systemSettingsService.saveUserPreferences(data?.userId, data?.preferences);
+});
+
 
 

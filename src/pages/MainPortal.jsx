@@ -90,7 +90,7 @@ const portalStyles = `
 
 export default function MainPortal() {
     const navigate = useNavigate()
-    const { currentCompany } = useCompany()
+    const { currentCompany, isModuleEnabled } = useCompany()
     const { user } = useAuth()
     const [quickStats, setQuickStats] = useState({ vehicleCount: 0, cashBalance: 0, todayMeals: 0 })
 
@@ -139,7 +139,7 @@ export default function MainPortal() {
             color: '#3b82f6',
             glowColor: '#3b82f6',
             path: '/dashboard',
-            active: true,
+            active: isModuleEnabled ? isModuleEnabled('fleet') : true,
             features: ['Araç kayıtları', 'Bakım takibi', 'Muayene & Sigorta', 'Servis yönetimi'],
             stat: quickStats.vehicleCount > 0 ? `${quickStats.vehicleCount} araç kayıtlı` : null,
             statIcon: Car
@@ -154,7 +154,7 @@ export default function MainPortal() {
             color: '#f59e0b',
             glowColor: '#f59e0b',
             path: '/finance-dashboard',
-            active: true,
+            active: isModuleEnabled ? isModuleEnabled('finance') : true,
             features: ['Gelir/Gider takibi', 'Çek & Senet portföyü', 'Finans dashboard', 'Kasa defteri'],
             stat: quickStats.cashBalance !== 0 ? formatCurrency(quickStats.cashBalance) : null,
             statIcon: Banknote
@@ -169,7 +169,7 @@ export default function MainPortal() {
             color: '#ef4444',
             glowColor: '#ef4444',
             path: '/meal-tickets',
-            active: true,
+            active: isModuleEnabled ? isModuleEnabled('meals') : true,
             features: ['Günlük fiş kaydı', 'Kişi sayısı takibi', 'Aylık istatistikler', 'Not ekleme'],
             stat: quickStats.todayMeals > 0 ? `Bugün: ${quickStats.todayMeals} kişi` : null,
             statIcon: UtensilsCrossed
@@ -184,7 +184,7 @@ export default function MainPortal() {
             color: '#10b981',
             glowColor: '#10b981',
             path: '/personel-dashboard',
-            active: true,
+            active: isModuleEnabled ? isModuleEnabled('hr') : true,
             features: ['Personel kayıtları', 'Maaş takibi', 'İzin yönetimi', 'Mesai & Zimmet']
         },
         {
@@ -197,7 +197,7 @@ export default function MainPortal() {
             color: '#8b5cf6',
             glowColor: '#8b5cf6',
             path: '/works',
-            active: true,
+            active: isModuleEnabled ? isModuleEnabled('works') : true,
             features: ['Proje yönetimi', 'Şantiye takibi', 'Görev atamaları', 'İş emirleri']
         },
         {
@@ -210,7 +210,7 @@ export default function MainPortal() {
             color: '#FD6400',
             glowColor: '#FD6400',
             path: '/customers',
-            active: true,
+            active: isModuleEnabled ? isModuleEnabled('customers') : true,
             features: ['Müşteri profili', 'Açık bakiyeler', 'İletişim bilgileri', 'Geçmiş işler']
         },
         ...(user?.role === 'superadmin' ? [{

@@ -122,6 +122,9 @@ async function createDocumentCategory(data) {
 
 async function updateDocumentCategory(data) {
     try {
+        const oldCat = await prisma.document_categories.findUnique({
+            where: { id: parseInt(data.id) }
+        });
         const result = await prisma.document_categories.update({
             where: { id: parseInt(data.id) },
             data: {
@@ -129,6 +132,12 @@ async function updateDocumentCategory(data) {
                 status: data.status !== undefined ? data.status : undefined
             }
         });
+        if (oldCat && data.name && oldCat.name !== data.name) {
+            await prisma.documents.updateMany({
+                where: { category: oldCat.name },
+                data: { category: data.name, doc_type: data.name }
+            }).catch(() => {});
+        }
         return { success: true, data: result };
     } catch (error) { 
         require('electron-log').error('updateDocumentCategory error:', error);
@@ -177,10 +186,19 @@ async function createDocumentFolder(data) {
 
 async function updateDocumentFolder(data) {
     try {
+        const oldFolder = await prisma.document_folders.findUnique({
+            where: { id: parseInt(data.id) }
+        });
         const result = await prisma.document_folders.update({
             where: { id: parseInt(data.id) },
             data: { name: data.name }
         });
+        if (oldFolder && data.name && oldFolder.name !== data.name) {
+            await prisma.documents.updateMany({
+                where: { folder: oldFolder.name },
+                data: { folder: data.name }
+            }).catch(() => {});
+        }
         return { success: true, data: result };
     } catch (error) { return { success: false, error: error.message }; }
 }

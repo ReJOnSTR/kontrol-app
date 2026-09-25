@@ -11,8 +11,18 @@ export default function CreatePersonnelUserModal({ employee, isOpen, onClose, on
     const toast = useToast();
     const defaultPreset = ROLE_PRESETS.find(p => p.id === 'personnel') || ROLE_PRESETS[0];
 
+    const cleanInitialUser = employee ? `${employee.first_name || ''}.${employee.last_name || ''}`
+        .toLowerCase()
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ı/g, 'i')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/[^a-z0-9._-]/g, '') : '';
+
     const [formData, setFormData] = useState({
-        username: employee ? `${employee.first_name.toLowerCase()}.${employee.last_name.toLowerCase()}`.replace(/\s+/g, '') : '',
+        username: cleanInitialUser || 'kullanici',
         email: employee?.email || '',
         password: '123456Password!',
         role: defaultPreset.id,

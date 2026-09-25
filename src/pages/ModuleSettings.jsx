@@ -3,12 +3,14 @@ import { useLocation } from 'react-router-dom'
 import { 
     Settings, Info, ToggleLeft, Sliders, Bell, Database, Shield, Palette, 
     Clock, Calculator, Pencil, Save, CalendarCheck, Users, Plus, Trash2, 
-    Edit2, Briefcase, FileText, AlertCircle, Car, Wallet 
+    Edit2, Briefcase, FileText, AlertCircle, Car, Wallet, Coins, Percent, 
+    Calendar, CheckCircle2, ShieldCheck, ArrowRight
 } from 'lucide-react'
 import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
 import DataTable from '../components/DataTable'
 import CustomInput from '../components/CustomInput'
+import CustomSelect from '../components/CustomSelect'
 import { useCompany } from '../context/CompanyContext'
 
 const moduleConfig = {
@@ -102,31 +104,38 @@ function DefaultModuleContent({ config, ModuleIcon }) {
 
 // HR Module Settings
 function HrModuleContent() {
-    const { currentCompany } = useCompany()
-    const [weekdayMultiplier, setWeekdayMultiplier] = useState(() => {
-        return parseFloat(localStorage.getItem('hr_overtime_weekday_multiplier')) || 1.5
-    })
-    const [sundayMultiplier, setSundayMultiplier] = useState(() => {
-        return parseFloat(localStorage.getItem('hr_overtime_sunday_multiplier')) || 1.5
-    })
-    const [holidayMultiplier, setHolidayMultiplier] = useState(() => {
-        return parseFloat(localStorage.getItem('hr_overtime_holiday_multiplier')) || 2.0
-    })
-    const [gurbetMultiplier, setGurbetMultiplier] = useState(() => {
-        return parseFloat(localStorage.getItem('hr_overtime_gurbet_multiplier')) || 1.0
-    })
-    const [weekdayHoursPerLeave, setWeekdayHoursPerLeave] = useState(() => {
-        return parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8
-    })
-    const [sundayDaysPerLeave, setSundayDaysPerLeave] = useState(() => {
-        return parseFloat(localStorage.getItem('hr_overtime_sunday_days_per_leave')) || 1
-    })
-    const [holidayDaysPerLeave, setHolidayDaysPerLeave] = useState(() => {
-        return parseFloat(localStorage.getItem('hr_overtime_holiday_days_per_leave')) || 1
-    })
-    const [defaultAdvanceAmount, setDefaultAdvanceAmount] = useState(() => {
-        return parseFloat(localStorage.getItem('hr_default_advance_amount')) || 0
-    })
+    const { currentCompany, companySettings, updateCompanySettings } = useCompany()
+    const [weekdayMultiplier, setWeekdayMultiplier] = useState(1.5)
+    const [sundayMultiplier, setSundayMultiplier] = useState(1.5)
+    const [holidayMultiplier, setHolidayMultiplier] = useState(2.0)
+    const [gurbetMultiplier, setGurbetMultiplier] = useState(1.0)
+    const [weekdayHoursPerLeave, setWeekdayHoursPerLeave] = useState(8)
+    const [sundayDaysPerLeave, setSundayDaysPerLeave] = useState(1)
+    const [holidayDaysPerLeave, setHolidayDaysPerLeave] = useState(1)
+    const [defaultAdvanceAmount, setDefaultAdvanceAmount] = useState(0)
+
+    useEffect(() => {
+        if (companySettings?.hr) {
+            const hr = companySettings.hr
+            if (hr.weekdayMultiplier !== undefined) setWeekdayMultiplier(hr.weekdayMultiplier)
+            if (hr.sundayMultiplier !== undefined) setSundayMultiplier(hr.sundayMultiplier)
+            if (hr.holidayMultiplier !== undefined) setHolidayMultiplier(hr.holidayMultiplier)
+            if (hr.gurbetMultiplier !== undefined) setGurbetMultiplier(hr.gurbetMultiplier)
+            if (hr.weekdayHoursPerLeave !== undefined) setWeekdayHoursPerLeave(hr.weekdayHoursPerLeave)
+            if (hr.sundayDaysPerLeave !== undefined) setSundayDaysPerLeave(hr.sundayDaysPerLeave)
+            if (hr.holidayDaysPerLeave !== undefined) setHolidayDaysPerLeave(hr.holidayDaysPerLeave)
+            if (hr.defaultAdvanceAmount !== undefined) setDefaultAdvanceAmount(hr.defaultAdvanceAmount)
+        } else {
+            setWeekdayMultiplier(parseFloat(localStorage.getItem('hr_overtime_weekday_multiplier')) || 1.5)
+            setSundayMultiplier(parseFloat(localStorage.getItem('hr_overtime_sunday_multiplier')) || 1.5)
+            setHolidayMultiplier(parseFloat(localStorage.getItem('hr_overtime_holiday_multiplier')) || 2.0)
+            setGurbetMultiplier(parseFloat(localStorage.getItem('hr_overtime_gurbet_multiplier')) || 1.0)
+            setWeekdayHoursPerLeave(parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8)
+            setSundayDaysPerLeave(parseFloat(localStorage.getItem('hr_overtime_sunday_days_per_leave')) || 1)
+            setHolidayDaysPerLeave(parseFloat(localStorage.getItem('hr_overtime_holiday_days_per_leave')) || 1)
+            setDefaultAdvanceAmount(parseFloat(localStorage.getItem('hr_default_advance_amount')) || 0)
+        }
+    }, [companySettings])
 
     // Personnel Data States
     const [personnelSettings, setPersonnelSettings] = useState({
@@ -346,21 +355,45 @@ function HrModuleContent() {
         setShowModal(true)
     }
 
-    const handleSave = (e) => {
+    const handleSave = async (e) => {
         e.preventDefault()
         const numVal = parseFloat(editValue)
-        if (isNaN(numVal) || numVal <= 0) return
+        if (isNaN(numVal) || numVal < 0) return
+
+        let updatedWeekday = weekdayMultiplier
+        let updatedSunday = sundayMultiplier
+        let updatedHoliday = holidayMultiplier
+        let updatedGurbet = gurbetMultiplier
+        let updatedWeekdayLeave = weekdayHoursPerLeave
+        let updatedSundayLeave = sundayDaysPerLeave
+        let updatedHolidayLeave = holidayDaysPerLeave
+        let updatedDefaultAdvance = defaultAdvanceAmount
+
+        if (editingItem.id === 'weekday') { setWeekdayMultiplier(numVal); updatedWeekday = numVal; }
+        if (editingItem.id === 'sunday') { setSundayMultiplier(numVal); updatedSunday = numVal; }
+        if (editingItem.id === 'holiday') { setHolidayMultiplier(numVal); updatedHoliday = numVal; }
+        if (editingItem.id === 'gurbet') { setGurbetMultiplier(numVal); updatedGurbet = numVal; }
+        if (editingItem.id === 'weekday_leave') { setWeekdayHoursPerLeave(numVal); updatedWeekdayLeave = numVal; }
+        if (editingItem.id === 'sunday_leave') { setSundayDaysPerLeave(numVal); updatedSundayLeave = numVal; }
+        if (editingItem.id === 'holiday_leave') { setHolidayDaysPerLeave(numVal); updatedHolidayLeave = numVal; }
+        if (editingItem.id === 'default_advance') { setDefaultAdvanceAmount(numVal); updatedDefaultAdvance = numVal; }
 
         localStorage.setItem(editingItem.storageKey, numVal.toString())
 
-        if (editingItem.id === 'weekday') setWeekdayMultiplier(numVal)
-        if (editingItem.id === 'sunday') setSundayMultiplier(numVal)
-        if (editingItem.id === 'holiday') setHolidayMultiplier(numVal)
-        if (editingItem.id === 'gurbet') setGurbetMultiplier(numVal)
-        if (editingItem.id === 'weekday_leave') setWeekdayHoursPerLeave(numVal)
-        if (editingItem.id === 'sunday_leave') setSundayDaysPerLeave(numVal)
-        if (editingItem.id === 'holiday_leave') setHolidayDaysPerLeave(numVal)
-        if (editingItem.id === 'default_advance') setDefaultAdvanceAmount(numVal)
+        if (updateCompanySettings) {
+            await updateCompanySettings({
+                hr: {
+                    weekdayMultiplier: updatedWeekday,
+                    sundayMultiplier: updatedSunday,
+                    holidayMultiplier: updatedHoliday,
+                    gurbetMultiplier: updatedGurbet,
+                    weekdayHoursPerLeave: updatedWeekdayLeave,
+                    sundayDaysPerLeave: updatedSundayLeave,
+                    holidayDaysPerLeave: updatedHolidayLeave,
+                    defaultAdvanceAmount: updatedDefaultAdvance
+                }
+            })
+        }
 
         setShowModal(false)
         setEditingItem(null)
@@ -1015,7 +1048,567 @@ function FleetModuleContent() {
     )
 }
 
-export { HrModuleContent, FleetModuleContent, DefaultModuleContent, moduleConfig }
+const CURRENCY_OPTIONS = [
+    { value: 'TRY', label: 'Türk Lirası (₺ TRY)' },
+    { value: 'USD', label: 'Amerikan Doları ($ USD)' },
+    { value: 'EUR', label: 'Euro (€ EUR)' }
+]
+
+const VAT_OPTIONS = [
+    { value: 20, label: '%20 Standart Oran' },
+    { value: 10, label: '%10 İndirimli Oran' },
+    { value: 1, label: '%1 Özel Oran' },
+    { value: 0, label: '%0 KDV Muaf' }
+]
+
+const WORK_STATUS_OPTIONS = [
+    { value: 'pending', label: 'Beklemede (Onay / Planlama bekliyor)' },
+    { value: 'in_progress', label: 'Devam Ediyor (Hemen operasyonda)' }
+]
+
+// Finance Module Settings
+function FinanceModuleContent() {
+    const { currentCompany, companySettings, updateCompanySettings } = useCompany()
+    const [finance, setFinance] = useState({
+        defaultCurrency: 'TRY',
+        defaultVatRate: 20,
+        invoiceDueReminderDays: 7,
+        checkDueReminderDays: 15,
+        expenseApprovalLimit: 5000
+    })
+    const [saving, setSaving] = useState(false)
+    const [savedMsg, setSavedMsg] = useState(false)
+
+    useEffect(() => {
+        if (companySettings?.finance) {
+            setFinance(prev => ({ ...prev, ...companySettings.finance }))
+        }
+    }, [companySettings])
+
+    const handleSave = async (e) => {
+        if (e) e.preventDefault()
+        setSaving(true)
+        try {
+            await updateCompanySettings({ finance })
+            setSavedMsg(true)
+            setTimeout(() => setSavedMsg(false), 2500)
+        } catch (err) {
+            console.error('Failed to save finance settings:', err)
+        }
+        setSaving(false)
+    }
+
+    const currencySymbol = finance.defaultCurrency === 'USD' ? '$' : finance.defaultCurrency === 'EUR' ? '€' : '₺'
+
+    return (
+        <div>
+            {/* Stat Cards Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '25px' }}>
+                <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div className="stat-label">PARA BİRİMİ</div>
+                        <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><Coins size={16} /></div>
+                    </div>
+                    <div>
+                        <div className="stat-value" style={{ fontSize: '22px' }}>{finance.defaultCurrency}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Varsayılan işlem birimi</div>
+                    </div>
+                </div>
+
+                <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div className="stat-label">STANDART KDV</div>
+                        <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><Percent size={16} /></div>
+                    </div>
+                    <div>
+                        <div className="stat-value" style={{ fontSize: '22px' }}>%{finance.defaultVatRate}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Varsayılan vergi oranı</div>
+                    </div>
+                </div>
+
+                <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div className="stat-label">FATURA VADESİ</div>
+                        <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><Calendar size={16} /></div>
+                    </div>
+                    <div>
+                        <div className="stat-value" style={{ fontSize: '22px' }}>{finance.invoiceDueReminderDays} Gün</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Erken uyarı eşiği</div>
+                    </div>
+                </div>
+
+                <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div className="stat-label">ÇEK / SENET VADESİ</div>
+                        <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><Clock size={16} /></div>
+                    </div>
+                    <div>
+                        <div className="stat-value" style={{ fontSize: '22px' }}>{finance.checkDueReminderDays} Gün</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Tahsilat/ödeme uyarısı</div>
+                    </div>
+                </div>
+
+                <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div className="stat-label">ONAY EŞİK LİMİTİ</div>
+                        <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><ShieldCheck size={16} /></div>
+                    </div>
+                    <div>
+                        <div className="stat-value" style={{ fontSize: '22px' }}>{currencySymbol}{Number(finance.expenseApprovalLimit || 0).toLocaleString('tr-TR')}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Yönetici onayı eşiği</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Layout Cards */}
+            <div className="settings-layout">
+                <div className="settings-column" style={{ flex: '1 1 580px' }}>
+                    <div className="settings-card">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 className="settings-card-title" style={{ margin: 0 }}>
+                                <Wallet size={20} className="text-primary" style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
+                                Finans & Fatura Tercihleri
+                            </h2>
+                            {savedMsg && (
+                                <span style={{ color: 'var(--success-color)', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <CheckCircle2 size={16} /> Veritabanına Kaydedildi
+                                </span>
+                            )}
+                        </div>
+
+                        <form onSubmit={handleSave}>
+                            <div className="settings-list">
+                                <div className="settings-item">
+                                    <div className="settings-item-content">
+                                        <div className="settings-item-label">Varsayılan Para Birimi</div>
+                                        <div className="settings-item-desc">İşlemlerde, kasada ve cari hesap hareketlerinde standart seçilen birim</div>
+                                    </div>
+                                    <div style={{ width: '230px' }}>
+                                        <CustomSelect 
+                                            value={finance.defaultCurrency} 
+                                            options={CURRENCY_OPTIONS}
+                                            onChange={(val) => setFinance({ ...finance, defaultCurrency: val })}
+                                            floatingLabel={false}
+                                            hidePlaceholderOption
+                                            style={{ margin: 0 }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="settings-item">
+                                    <div className="settings-item-content">
+                                        <div className="settings-item-label">Standart KDV Oranı</div>
+                                        <div className="settings-item-desc">Yeni fatura ve harcama kayıtlarında otomatik uygulanan vergi oranı</div>
+                                    </div>
+                                    <div style={{ width: '230px' }}>
+                                        <CustomSelect 
+                                            value={finance.defaultVatRate} 
+                                            options={VAT_OPTIONS}
+                                            onChange={(val) => setFinance({ ...finance, defaultVatRate: Number(val) })}
+                                            floatingLabel={false}
+                                            hidePlaceholderOption
+                                            style={{ margin: 0 }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="settings-item">
+                                    <div className="settings-item-content">
+                                        <div className="settings-item-label">Fatura Vade Hatırlatma Eşiği</div>
+                                        <div className="settings-item-desc">Vadesine bu kadar gün kalan faturalar kontrol paneli ve bildirimlere düşer</div>
+                                    </div>
+                                    <div style={{ width: '130px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <input 
+                                            type="number"
+                                            min="1"
+                                            max="90"
+                                            className="form-input text-center"
+                                            value={finance.invoiceDueReminderDays}
+                                            onChange={(e) => setFinance({ ...finance, invoiceDueReminderDays: Math.max(1, parseInt(e.target.value) || 1) })}
+                                            style={{ padding: '8px 10px', fontWeight: '600' }}
+                                        />
+                                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Gün</span>
+                                    </div>
+                                </div>
+
+                                <div className="settings-item">
+                                    <div className="settings-item-content">
+                                        <div className="settings-item-label">Çek / Senet Vade Hatırlatma Eşiği</div>
+                                        <div className="settings-item-desc">Ödeme veya tahsilat vadesi yaklaşan çeklerin uyarı verilme süresi</div>
+                                    </div>
+                                    <div style={{ width: '130px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <input 
+                                            type="number"
+                                            min="1"
+                                            max="90"
+                                            className="form-input text-center"
+                                            value={finance.checkDueReminderDays}
+                                            onChange={(e) => setFinance({ ...finance, checkDueReminderDays: Math.max(1, parseInt(e.target.value) || 1) })}
+                                            style={{ padding: '8px 10px', fontWeight: '600' }}
+                                        />
+                                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Gün</span>
+                                    </div>
+                                </div>
+
+                                <div className="settings-item">
+                                    <div className="settings-item-content">
+                                        <div className="settings-item-label">Harcama Onay Eşik Limiti</div>
+                                        <div className="settings-item-desc">Bu tutarın üzerindeki masraf ve harcamalar yönetici onayı gerektirir</div>
+                                    </div>
+                                    <div style={{ width: '150px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-muted)' }}>{currencySymbol}</span>
+                                        <input 
+                                            type="number"
+                                            min="0"
+                                            step="500"
+                                            className="form-input"
+                                            value={finance.expenseApprovalLimit}
+                                            onChange={(e) => setFinance({ ...finance, expenseApprovalLimit: Math.max(0, parseInt(e.target.value) || 0) })}
+                                            style={{ padding: '8px 10px', fontWeight: '600' }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                                <button type="submit" className="btn btn-primary" disabled={saving} style={{ minWidth: '170px' }}>
+                                    <Save size={16} style={{ marginRight: '6px' }} />
+                                    {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div className="settings-column" style={{ flex: '1 1 320px' }}>
+                    <div className="settings-card">
+                        <h2 className="settings-card-title">
+                            <Info size={18} className="text-primary" style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
+                            Kurumsal Politika
+                        </h2>
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <p style={{ margin: 0 }}>
+                                Bu sayfada belirlenen kurallar doğrudan <strong>{currentCompany?.name || 'Seçili Şirket'}</strong> kurum profiline bağlıdır.
+                            </p>
+                            <p style={{ margin: 0 }}>
+                                Sistemdeki tüm yetkili muhasebe ve filo sorumluları fatura, çek ve onay limitlerinde aynı kuralları görür.
+                            </p>
+                            <div style={{ padding: '12px', background: 'rgba(var(--accent-primary-rgb), 0.05)', borderRadius: '8px', border: '1px solid rgba(var(--accent-primary-rgb), 0.15)', marginTop: '8px' }}>
+                                <strong style={{ color: 'var(--accent-primary)', display: 'block', marginBottom: '4px' }}>💡 İpucu:</strong>
+                                Eşik günleri kontrol panelindeki yaklaşan etkinlikler widget'ında anında filtreleme kriteri olarak kullanılır.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// Works Module Settings
+function WorksModuleContent() {
+    const { currentCompany, companySettings, updateCompanySettings } = useCompany()
+    const [works, setWorks] = useState({
+        defaultStatus: 'pending',
+        requireCustomerApproval: false,
+        autoArchiveCompletedDays: 30
+    })
+    const [saving, setSaving] = useState(false)
+    const [savedMsg, setSavedMsg] = useState(false)
+
+    useEffect(() => {
+        if (companySettings?.works) {
+            setWorks(prev => ({ ...prev, ...companySettings.works }))
+        }
+    }, [companySettings])
+
+    const handleSave = async (e) => {
+        if (e) e.preventDefault()
+        setSaving(true)
+        try {
+            await updateCompanySettings({ works })
+            setSavedMsg(true)
+            setTimeout(() => setSavedMsg(false), 2500)
+        } catch (err) {
+            console.error('Failed to save works settings:', err)
+        }
+        setSaving(false)
+    }
+
+    return (
+        <div>
+            {/* Stat Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '25px' }}>
+                <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div className="stat-label">BAŞLANGIÇ STATÜSÜ</div>
+                        <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><Briefcase size={16} /></div>
+                    </div>
+                    <div>
+                        <div className="stat-value" style={{ fontSize: '20px' }}>
+                            {works.defaultStatus === 'in_progress' ? 'Devam Ediyor' : 'Beklemede'}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Yeni iş başlangıç hali</div>
+                    </div>
+                </div>
+
+                <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div className="stat-label">MÜŞTERİ ONAYI</div>
+                        <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><CheckCircle2 size={16} /></div>
+                    </div>
+                    <div>
+                        <div className="stat-value" style={{ fontSize: '20px' }}>
+                            {works.requireCustomerApproval ? 'Zorunlu' : 'İsteğe Bağlı'}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Saha/Operasyon onayı</div>
+                    </div>
+                </div>
+
+                <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div className="stat-label">OTOMATİK ARŞİV</div>
+                        <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><Clock size={16} /></div>
+                    </div>
+                    <div>
+                        <div className="stat-value" style={{ fontSize: '20px' }}>{works.autoArchiveCompletedDays} Gün</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Tamamlanan iş arşivi</div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="settings-layout">
+                <div className="settings-column" style={{ flex: '1 1 580px' }}>
+                    <div className="settings-card">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 className="settings-card-title" style={{ margin: 0 }}>
+                                <Briefcase size={20} className="text-primary" style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
+                                İş & Operasyon Tercihleri
+                            </h2>
+                            {savedMsg && (
+                                <span style={{ color: 'var(--success-color)', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <CheckCircle2 size={16} /> Veritabanına Kaydedildi
+                                </span>
+                            )}
+                        </div>
+
+                        <form onSubmit={handleSave}>
+                            <div className="settings-list">
+                                <div className="settings-item">
+                                    <div className="settings-item-content">
+                                        <div className="settings-item-label">Yeni İş Varsayılan Başlangıç Durumu</div>
+                                        <div className="settings-item-desc">Yeni bir iş veya görev açıldığında atanacak varsayılan durum</div>
+                                    </div>
+                                    <div style={{ width: '250px' }}>
+                                        <CustomSelect 
+                                            value={works.defaultStatus} 
+                                            options={WORK_STATUS_OPTIONS}
+                                            onChange={(val) => setWorks({ ...works, defaultStatus: val })}
+                                            floatingLabel={false}
+                                            hidePlaceholderOption
+                                            style={{ margin: 0 }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="settings-item">
+                                    <div className="settings-item-content">
+                                        <div className="settings-item-label">Müşteri Onayı Zorunlu</div>
+                                        <div className="settings-item-desc">İş tamamlanmadan önce müşterinin teslim onayı gereksinimi</div>
+                                    </div>
+                                    <label className="toggle-switch">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={works.requireCustomerApproval} 
+                                            onChange={(e) => setWorks({ ...works, requireCustomerApproval: e.target.checked })} 
+                                        />
+                                        <span className="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div className="settings-item">
+                                    <div className="settings-item-content">
+                                        <div className="settings-item-label">Tamamlanan İşleri Otomatik Arşivleme</div>
+                                        <div className="settings-item-desc">Tamamlanan işler belirtilen gün sonra ana listeden arşive aktarılır</div>
+                                    </div>
+                                    <div style={{ width: '130px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <input 
+                                            type="number" 
+                                            min="7" 
+                                            max="365" 
+                                            className="form-input text-center"
+                                            value={works.autoArchiveCompletedDays} 
+                                            onChange={(e) => setWorks({ ...works, autoArchiveCompletedDays: Math.max(7, parseInt(e.target.value) || 7) })}
+                                            style={{ padding: '8px 10px', fontWeight: '600' }}
+                                        />
+                                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Gün</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                                <button type="submit" className="btn btn-primary" disabled={saving} style={{ minWidth: '170px' }}>
+                                    <Save size={16} style={{ marginRight: '6px' }} />
+                                    {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div className="settings-column" style={{ flex: '1 1 320px' }}>
+                    <div className="settings-card">
+                        <h2 className="settings-card-title">
+                            <Info size={18} className="text-primary" style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
+                            Operasyon Akışı
+                        </h2>
+                        <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '13px' }}>
+                            Operasyon ve saha işlerinizin otomatik statü döngülerini şirket politikalarınıza göre yönetebilirsiniz.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// Customers Module Settings
+function CustomersModuleContent() {
+    const { currentCompany, companySettings, updateCompanySettings } = useCompany()
+    const [customers, setCustomers] = useState({
+        defaultPaymentTermDays: 30,
+        creditLimitWarning: true
+    })
+    const [saving, setSaving] = useState(false)
+    const [savedMsg, setSavedMsg] = useState(false)
+
+    useEffect(() => {
+        if (companySettings?.customers) {
+            setCustomers(prev => ({ ...prev, ...companySettings.customers }))
+        }
+    }, [companySettings])
+
+    const handleSave = async (e) => {
+        if (e) e.preventDefault()
+        setSaving(true)
+        try {
+            await updateCompanySettings({ customers })
+            setSavedMsg(true)
+            setTimeout(() => setSavedMsg(false), 2500)
+        } catch (err) {
+            console.error('Failed to save customers settings:', err)
+        }
+        setSaving(false)
+    }
+
+    return (
+        <div>
+            {/* Stat Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '25px' }}>
+                <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div className="stat-label">STANDART VADE</div>
+                        <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><Calendar size={16} /></div>
+                    </div>
+                    <div>
+                        <div className="stat-value" style={{ fontSize: '20px' }}>{customers.defaultPaymentTermDays} Gün</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Yeni cari standart vadesi</div>
+                    </div>
+                </div>
+
+                <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div className="stat-label">RİSK LİMİTİ KONTROLÜ</div>
+                        <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><ShieldCheck size={16} /></div>
+                    </div>
+                    <div>
+                        <div className="stat-value" style={{ fontSize: '20px' }}>
+                            {customers.creditLimitWarning ? 'Aktif' : 'Pasif'}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Bakiye aşım uyarısı</div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="settings-layout">
+                <div className="settings-column" style={{ flex: '1 1 580px' }}>
+                    <div className="settings-card">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 className="settings-card-title" style={{ margin: 0 }}>
+                                <Users size={20} className="text-primary" style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
+                                Müşteri & Cari Tercihleri
+                            </h2>
+                            {savedMsg && (
+                                <span style={{ color: 'var(--success-color)', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <CheckCircle2 size={16} /> Veritabanına Kaydedildi
+                                </span>
+                            )}
+                        </div>
+
+                        <form onSubmit={handleSave}>
+                            <div className="settings-list">
+                                <div className="settings-item">
+                                    <div className="settings-item-content">
+                                        <div className="settings-item-label">Varsayılan Cari Ödeme Vadesi</div>
+                                        <div className="settings-item-desc">Yeni müşteri veya cari kaydında otomatik tanımlanan standart vade süresi</div>
+                                    </div>
+                                    <div style={{ width: '130px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <input 
+                                            type="number" 
+                                            min="0" 
+                                            max="180" 
+                                            className="form-input text-center"
+                                            value={customers.defaultPaymentTermDays} 
+                                            onChange={(e) => setCustomers({ ...customers, defaultPaymentTermDays: Math.max(0, parseInt(e.target.value) || 0) })}
+                                            style={{ padding: '8px 10px', fontWeight: '600' }}
+                                        />
+                                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Gün</span>
+                                    </div>
+                                </div>
+
+                                <div className="settings-item">
+                                    <div className="settings-item-content">
+                                        <div className="settings-item-label">Risk & Kredi Limiti Aşım Uyarısı</div>
+                                        <div className="settings-item-desc">Müşterinin bakiyesi belirlenen risk limitini aştığında işlem anında uyarı ver</div>
+                                    </div>
+                                    <label className="toggle-switch">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={customers.creditLimitWarning} 
+                                            onChange={(e) => setCustomers({ ...customers, creditLimitWarning: e.target.checked })} 
+                                        />
+                                        <span className="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                                <button type="submit" className="btn btn-primary" disabled={saving} style={{ minWidth: '170px' }}>
+                                    <Save size={16} style={{ marginRight: '6px' }} />
+                                    {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div className="settings-column" style={{ flex: '1 1 320px' }}>
+                    <div className="settings-card">
+                        <h2 className="settings-card-title">
+                            <Info size={18} className="text-primary" style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
+                            Cari Risk Yönetimi
+                        </h2>
+                        <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '13px' }}>
+                            Cari hesaplarınız için şirket geneli standart vade ve risk kontrollerini buradan belirleyebilirsiniz.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export { HrModuleContent, FleetModuleContent, FinanceModuleContent, WorksModuleContent, CustomersModuleContent, DefaultModuleContent, moduleConfig }
 
 
 export default function ModuleSettings() {
@@ -1038,10 +1631,17 @@ export default function ModuleSettings() {
                 <HrModuleContent />
             ) : moduleKey === 'fleet' ? (
                 <FleetModuleContent />
+            ) : moduleKey === 'finance' ? (
+                <FinanceModuleContent />
+            ) : moduleKey === 'works' ? (
+                <WorksModuleContent />
+            ) : moduleKey === 'customers' ? (
+                <CustomersModuleContent />
             ) : (
                 <DefaultModuleContent config={config} ModuleIcon={ModuleIcon} />
             )}
         </div>
     )
 }
+
 

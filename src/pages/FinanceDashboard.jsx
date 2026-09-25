@@ -427,14 +427,33 @@ export default function FinanceDashboard() {
                     overflow: 'hidden'
                 }}>
                     <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>Yaklaşan Çek Vadeleri</h3>
+                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>Yaklaşan Çek Vadeleri (30 Gün)</h3>
                         <button className="btn btn-secondary" style={{ height: '26px', padding: '0 10px', fontSize: '11px' }} onClick={() => navigate('/checks')}>
                             Tümü
                         </button>
                     </div>
                     {upcomingChecks.length > 0 ? (
                         <div>
-                            {upcomingChecks.map((check, i) => (
+                            {upcomingChecks.map((check, i) => {
+                                let badgeColor = '#14b8a6'
+                                let badgeBg = 'rgba(20, 184, 166, 0.1)'
+                                let badgeText = `${check.daysLeft} gün kaldı`
+
+                                if (check.daysLeft < 0) {
+                                    badgeColor = '#ef4444'
+                                    badgeBg = 'rgba(239, 68, 68, 0.1)'
+                                    badgeText = 'VADESİ GEÇTİ'
+                                } else if (check.daysLeft === 0) {
+                                    badgeColor = '#fb923c'
+                                    badgeBg = 'rgba(249, 115, 22, 0.1)'
+                                    badgeText = 'BUGÜN'
+                                } else if (check.daysLeft <= 3) {
+                                    badgeColor = '#facc15'
+                                    badgeBg = 'rgba(234, 179, 8, 0.1)'
+                                    badgeText = `${check.daysLeft} gün kaldı`
+                                }
+
+                                return (
                                 <div key={check.id} style={{
                                     padding: '12px 20px',
                                     display: 'flex',
@@ -446,10 +465,10 @@ export default function FinanceDashboard() {
                                         <div style={{
                                             width: '28px', height: '28px', borderRadius: '6px',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            background: check.daysLeft <= 7 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
-                                            color: check.daysLeft <= 7 ? '#ef4444' : '#f59e0b'
+                                            background: badgeBg,
+                                            color: badgeColor
                                         }}>
-                                            {check.daysLeft <= 7 ? <AlertTriangle size={14} /> : <Clock size={14} />}
+                                            {check.daysLeft <= 3 ? <AlertTriangle size={14} /> : <Clock size={14} />}
                                         </div>
                                         <div>
                                             <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)' }}>
@@ -466,13 +485,13 @@ export default function FinanceDashboard() {
                                         </div>
                                         <div style={{
                                             fontSize: '10px', fontWeight: '600',
-                                            color: check.daysLeft <= 0 ? '#ef4444' : check.daysLeft <= 7 ? '#f59e0b' : 'var(--text-muted)',
+                                            color: badgeColor,
                                         }}>
-                                            {check.daysLeft <= 0 ? 'VADESİ GEÇTİ' : `${check.daysLeft} gün kaldı`}
+                                            {badgeText}
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     ) : (
                         <div style={{ padding: '30px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>

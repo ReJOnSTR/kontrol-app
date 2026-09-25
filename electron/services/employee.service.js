@@ -1,5 +1,6 @@
 const { getPrismaClient } = require('../prismaClient');
 const { logAudit } = require('./audit.service');
+const { checkQuota } = require('./quota.service');
 const prisma = getPrismaClient();
 
 async function getEmployees(companyId, isArchived = 0) {
@@ -58,24 +59,57 @@ async function getEmployees(companyId, isArchived = 0) {
 
 async function getEmployeeById(id) {
     try {
+        const empId = parseInt(id, 10);
         let data;
         try {
             data = await prisma.employees.findUnique({
-                where: { id: parseInt(id) },
+                where: { id: empId },
                 include: { 
                     employee_salary_history: { orderBy: { start_date: 'asc' } },
                     user: {
-                        select: { id: true, username: true, email: true, role: true, role_id: true, custom_role: { select: { id: true, name: true } }, is_active: true, created_at: true }
+                        select: { 
+                            id: true, 
+                            username: true, 
+                            email: true, 
+                            role: true, 
+                            role_id: true, 
+                            permissions: true,
+                            custom_role: { select: { id: true, name: true } }, 
+                            is_active: true, 
+                            created_at: true 
+                        }
                     }
                 }
             });
         } catch (innerErr) {
+            console.warn('getEmployeeById include warning, attempting fallback:', innerErr.message);
             data = await prisma.employees.findUnique({
-                where: { id: parseInt(id) },
+                where: { id: empId },
                 include: { 
                     employee_salary_history: { orderBy: { start_date: 'asc' } }
                 }
             });
+            if (data) {
+                try {
+                    const u = await prisma.users.findFirst({
+                        where: { employee_id: empId }
+                    });
+                    if (u) {
+                        data.user = {
+                            id: u.id,
+                            username: u.username,
+                            email: u.email,
+                            role: u.role,
+                            role_id: u.role_id,
+                            permissions: u.permissions,
+                            is_active: u.is_active,
+                            created_at: u.created_at
+                        };
+                    }
+                } catch (uErr) {
+                    console.warn('Fallback user query notice:', uErr.message);
+                }
+            }
         }
         return { success: true, data };
     } catch (error) { return { success: false, error: error.message }; }
@@ -88,6 +122,8 @@ async function addEmployee(data) {
             const firstComp = await prisma.companies.findFirst();
             compId = firstComp?.id || 1;
         }
+
+        await checkQuota(compId, 'employees');
 
         const parseDate = (val) => {
             if (!val) return null;

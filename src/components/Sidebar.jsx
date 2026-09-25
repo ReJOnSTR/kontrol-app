@@ -44,7 +44,7 @@ function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
 export default function Sidebar({ collapsed, onToggle }) {
     const { openNewTab } = useTabs()
     const { user, isAdmin, hasPermission } = useAuth()
-    const { isImpersonating } = useCompany()
+    const { isImpersonating, isModuleEnabled } = useCompany()
     const location = useLocation()
 
     const isSuperAdmin = user?.role === 'superadmin'
@@ -53,7 +53,9 @@ export default function Sidebar({ collapsed, onToggle }) {
     const activeModule = (isSuperAdmin && !isImpersonating) 
         ? 'platform' 
         : getActiveModule(location.pathname, location.search)
-    const activeMenus = moduleMenus[activeModule] || []
+
+    const isModuleAllowed = (isSuperAdmin && !isImpersonating) ? true : isModuleEnabled(activeModule)
+    const activeMenus = isModuleAllowed ? (moduleMenus[activeModule] || []) : []
 
     const filteredMenus = activeMenus.map(group => {
         const items = group.items.filter(item => canAccessPath(item.path, hasPermission, isAdmin, isSuperAdmin))

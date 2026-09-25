@@ -219,7 +219,7 @@ export default function Insurance() {
             render: (_, item) => {
                 if (!item.end_date) return '-'
                 const value = item.end_date
-                const color = getStatusColor(value ? (new Date(value) - new Date()) / (1000 * 60 * 60 * 24) : null)
+                const color = getStatusColor(value)
                 return <span className={`badge badge-${color}`}>{getDaysUntilText(value)}</span>
             }
         },

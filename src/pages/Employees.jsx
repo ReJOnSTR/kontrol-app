@@ -286,7 +286,7 @@ export default function Employees() {
                         })
                         const upcoming = empEvents.filter(e => {
                             const d = Math.ceil((new Date(e.date) - new Date()) / (1000 * 60 * 60 * 24))
-                            return d >= 0 && d <= 15
+                            return d >= 0 && d <= 30
                         })
 
                         if (overdue.length === 0 && upcoming.length === 0) return null
@@ -314,19 +314,33 @@ export default function Employees() {
                                     )}
                                     {upcoming.length > 0 && (
                                         <div style={{ flex: 1, minWidth: '300px' }}>
-                                            <h3 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--warning)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
-                                                <Calendar size={14} /> Yaklaşan Belgeler ({upcoming.length})
+                                            <h3 style={{ fontSize: '12px', fontWeight: '700', color: '#14b8a6', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
+                                                <Calendar size={14} /> Yaklaşan Belgeler (30 Gün) ({upcoming.length})
                                             </h3>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                 {upcoming.map(e => {
                                                     const d = Math.ceil((new Date(e.date) - new Date()) / (1000 * 60 * 60 * 24))
+                                                    let statusColor = '#14b8a6'
+                                                    let bgStyle = 'rgba(20, 184, 166, 0.05)'
+                                                    let borderStyle = '1px solid rgba(20, 184, 166, 0.15)'
+
+                                                    if (d === 0) {
+                                                        statusColor = '#fb923c'
+                                                        bgStyle = 'rgba(249, 115, 22, 0.05)'
+                                                        borderStyle = '1px solid rgba(249, 115, 22, 0.15)'
+                                                    } else if (d <= 3) {
+                                                        statusColor = '#facc15'
+                                                        bgStyle = 'rgba(234, 179, 8, 0.05)'
+                                                        borderStyle = '1px solid rgba(234, 179, 8, 0.15)'
+                                                    }
+
                                                     return (
-                                                        <div key={e.id} onClick={() => navigate(`/employees/${e.employeeId}`)} style={{ cursor: 'pointer', padding: '8px 12px', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.1)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div key={e.id} onClick={() => navigate(`/employees/${e.employeeId}`)} style={{ cursor: 'pointer', padding: '8px 12px', background: bgStyle, border: borderStyle, borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                             <div>
                                                                 <div style={{ fontSize: '13px', fontWeight: '600' }}>{e.employeeName}</div>
                                                                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{e.type}</div>
                                                             </div>
-                                                            <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--warning)' }}>{d === 0 ? 'Bugün' : `${d} gün kaldı`}</span>
+                                                            <span style={{ fontSize: '11px', fontWeight: '700', color: statusColor }}>{d === 0 ? 'Bugün' : `${d} gün kaldı`}</span>
                                                         </div>
                                                     )
                                                 })}

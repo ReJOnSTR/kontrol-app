@@ -15,15 +15,49 @@ import {
     Mail, Send, CheckCircle2, AlertCircle, Filter, Calendar, FileText,
     Car, Briefcase, UtensilsCrossed
 } from 'lucide-react'
-import { HrModuleContent, FleetModuleContent, DefaultModuleContent, moduleConfig } from './ModuleSettings'
+import { 
+    HrModuleContent, 
+    FleetModuleContent, 
+    FinanceModuleContent, 
+    WorksModuleContent, 
+    CustomersModuleContent, 
+    DefaultModuleContent, 
+    moduleConfig 
+} from './ModuleSettings'
 import MealTicketSettings from './MealTicketSettings'
 
 import TopProgressBar from '../components/TopProgressBar'
 
+const TEST_ROLE_OPTIONS = [
+    { value: 'admin', label: 'Şirket Yöneticisi & Admin' },
+    { value: 'accounting', label: 'Muhasebe & Finans' },
+    { value: 'fleet', label: 'Filo & Operasyon' },
+    { value: 'personnel', label: 'Personel & Sürücü' }
+]
+
+const AUDIT_ACTION_OPTIONS = [
+    { value: 'all', label: 'Tüm Eylemler' },
+    { value: 'LOGIN', label: 'Giriş Yapıldı (LOGIN)' },
+    { value: 'LOGIN_FAILED', label: 'Başarısız Giriş' },
+    { value: 'CREATE', label: 'Kayıt Oluşturma (CREATE)' },
+    { value: 'UPDATE', label: 'Kayıt Güncelleme (UPDATE)' },
+    { value: 'DELETE', label: 'Kayıt Silme (DELETE)' },
+    { value: 'PERMISSION_UPDATE', label: 'Yetki Değişikliği' }
+]
+
+const AUDIT_ENTITY_OPTIONS = [
+    { value: 'all', label: 'Tüm Modüller' },
+    { value: 'vehicle', label: 'Araçlar & Filo' },
+    { value: 'employee', label: 'Personel' },
+    { value: 'work', label: 'Operasyon / Teklif' },
+    { value: 'transaction', label: 'Finans / Kasa' },
+    { value: 'user', label: 'Kullanıcılar' }
+]
+
 export default function Settings() {
     const { theme, toggleTheme } = useTheme()
-    const { user } = useAuth()
-    const { currentCompany } = useCompany()
+    const { user, userPreferences, updateUserPreferences } = useAuth()
+    const { currentCompany, companySettings, updateCompanySettings } = useCompany()
 
     const [searchParams, setSearchParams] = useSearchParams()
     const tabParam = searchParams.get('tab')
@@ -74,6 +108,29 @@ export default function Settings() {
         finance_check: localStorage.getItem('notify_finance_check') !== 'false',
         approval_center: localStorage.getItem('notify_approval_center') !== 'false'
     })
+
+    useEffect(() => {
+        if (userPreferences) {
+            if (userPreferences.lock) {
+                setLockSettings(prev => ({ ...prev, ...userPreferences.lock }))
+            }
+            if (userPreferences.notifications) {
+                setNotifications(prev => ({ ...prev, ...userPreferences.notifications }))
+            }
+        }
+    }, [userPreferences])
+
+    useEffect(() => {
+        if (companySettings?.integrations?.arvento) {
+            setSettings(prev => ({
+                ...prev,
+                arvento: {
+                    ...prev.arvento,
+                    ...companySettings.integrations.arvento
+                }
+            }))
+        }
+    }, [companySettings])
 
     const [testingConnection, setTestingConnection] = useState(false)
     const [connectionTestResult, setConnectionTestResult] = useState(null)
@@ -254,46 +311,11 @@ export default function Settings() {
         }
     }
 
-    const toggleRoleItem = (roleKey, itemKey, field) => {
-        setNotificationConfig(prev => {
-            const role = prev.rolePreferences?.[roleKey] || {}
-            const items = role.items || {}
-            const currentItem = items[itemKey] || { inApp: true, email: true }
-            const updatedItem = {
-                ...currentItem,
-                [field]: !currentItem[field]
-            }
-
-            const updatedRole = {
-                ...role,
-                items: {
-                    ...items,
-                    [itemKey]: updatedItem
-                }
-            }
-
-            const updatedConfig = {
-                ...prev,
-                rolePreferences: {
-                    ...prev.rolePreferences,
-                    [roleKey]: updatedRole
-                }
-            }
-
-            if (field === 'inApp') {
-                localStorage.setItem(`notify_${itemKey}`, updatedItem.inApp)
-                setNotifications(n => ({ ...n, [itemKey]: updatedItem.inApp }))
-            }
-
-            handleSaveNotificationConfig(updatedConfig)
-            return updatedConfig
-        })
-    }
 
     const handleSendTestNotificationEmail = async () => {
-        const emailToUse = (notificationConfig.notificationEmails || user?.email || '').split(',')[0].trim()
+        const emailToUse = user?.email || (notificationConfig.notificationEmails || '').split(',')[0].trim()
         if (!emailToUse || !emailToUse.includes('@')) {
-            alert('Lütfen bildirim e-posta adresini belirleyiniz.')
+            alert('Lütfen geçerli bir bildirim e-posta adresi belirleyiniz.')
             return
         }
         setTestEmailLoading(true)
@@ -385,13 +407,25 @@ export default function Settings() {
         if (!empId) return
         const emp = employeesList.find(e => String(e.id) === String(empId))
         if (emp) {
+            const alreadyHasUser = companyUsers.find(u => (u.employee?.id === emp.id || u.employeeId === emp.id))
+            if (alreadyHasUser) {
+                alert(`"${emp.first_name} ${emp.last_name}" personeline ait zaten bir kullanıcı hesabı (${alreadyHasUser.username}) mevcut!`)
+            }
             const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim()
-            const genUsername = (emp.first_name || 'kullanici').toLowerCase().replace(/[^a-z0-9]/g, '') + emp.id
+            const cleanUser = `${emp.first_name || ''}.${emp.last_name || ''}`
+                .toLowerCase()
+                .replace(/ğ/g, 'g')
+                .replace(/ü/g, 'u')
+                .replace(/ş/g, 's')
+                .replace(/ı/g, 'i')
+                .replace(/ö/g, 'o')
+                .replace(/ç/g, 'c')
+                .replace(/[^a-z0-9._-]/g, '')
             setNewUserForm(prev => ({
                 ...prev,
                 fullName,
-                username: prev.username || genUsername,
-                email: emp.email || prev.email || `${genUsername}@sirket.local`,
+                username: cleanUser || prev.username,
+                email: emp.email || prev.email || '',
                 phone: emp.phone || prev.phone || '',
                 position: emp.position || 'Personel'
             }))
@@ -525,6 +559,7 @@ export default function Settings() {
         try {
             const res = await window.electronAPI?.deletePlatformUser(userToDelete.id)
             if (res?.success) {
+                setCompanyUsers(prev => prev.filter(u => u.id !== userToDelete.id))
                 await loadCompanyUsers()
             } else {
                 alert('Silme hatası: ' + (res?.error || 'Bilinmiyor'))
@@ -605,6 +640,11 @@ export default function Settings() {
         }
         localStorage.setItem('aractakip_lock_settings', JSON.stringify(toSave))
         window.dispatchEvent(new CustomEvent('aractakip_lock_settings_changed', { detail: toSave }))
+
+        // Persist to user_preferences in Database
+        if (updateUserPreferences) {
+            updateUserPreferences({ lock: toSave })
+        }
     }
 
     const toggleNotification = async (key) => {
@@ -613,11 +653,18 @@ export default function Settings() {
         setNotifications(newNotifications)
         localStorage.setItem(`notify_${key}`, newVal)
         
-        const currentSettings = await window.electronAPI.getSettings()
-        await window.electronAPI.saveSettings({
-            ...currentSettings,
-            notificationPreferences: newNotifications
-        })
+        // Persist to user_preferences in Database
+        if (updateUserPreferences) {
+            updateUserPreferences({ notifications: newNotifications })
+        }
+
+        if (window.electronAPI?.getSettings) {
+            const currentSettings = await window.electronAPI.getSettings()
+            await window.electronAPI.saveSettings({
+                ...currentSettings,
+                notificationPreferences: newNotifications
+            })
+        }
     }
 
     useEffect(() => {
@@ -682,7 +729,12 @@ export default function Settings() {
             userId: user?.id
         }
         setSettings(newSettings)
-        await window.electronAPI.saveSettings(newSettings)
+        if (window.electronAPI?.saveSettings) {
+            await window.electronAPI.saveSettings(newSettings)
+        }
+        if (updateCompanySettings) {
+            await updateCompanySettings({ integrations: { arvento: newArvento } })
+        }
     }
 
     const handleBackupPathSelect = async () => {
@@ -1314,12 +1366,11 @@ export default function Settings() {
                     )}
 
                     {activeTab === 'notifications' && (
-                        <div className="tab-fade-in">
+                        <div className="tab-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             {notificationStatusMsg && (
                                 <div style={{
                                     padding: '14px 18px',
                                     borderRadius: '12px',
-                                    marginBottom: '20px',
                                     fontSize: '13px',
                                     fontWeight: '500',
                                     display: 'flex',
@@ -1334,18 +1385,18 @@ export default function Settings() {
                                 </div>
                             )}
 
-                            {/* Main Notification & Email Dispatcher Settings Card */}
+                            {/* ── TOP HEADER & ACTIONS CARD ── */}
                             <div className="settings-card">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
                                     <div>
-                                        <h2 className="settings-card-title" style={{ margin: 0 }}>
-                                            <Bell size={20} className="text-primary" /> Akıllı Bildirim & E-Posta Motoru
+                                        <h2 className="settings-card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <Bell size={20} className="text-primary" /> Şirket Bildirim ve E-Posta Dağıtım Motoru
                                         </h2>
-                                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px', maxWidth: '650px' }}>
-                                            Kritik muayene, sigorta, finans ve personel işlemlerini rol bazında hem uygulama içinde gösterin hem de ilgili personelin e-postasına otomatik olarak iletin.
+                                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px', maxWidth: '680px', lineHeight: 1.5 }}>
+                                            Sistem her gün yaklaşan vadeleri tarar ve personelin şirket içindeki rolüne göre doğrudan kendi e-posta adresine özet bülteni gönderir.
                                         </p>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                                         <button
                                             type="button"
                                             className="btn btn-secondary"
@@ -1354,7 +1405,7 @@ export default function Settings() {
                                             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                                         >
                                             {scanLoading ? <RefreshCw size={15} className="spin" /> : <Zap size={15} />}
-                                            {scanLoading ? 'Taranıyor...' : 'Şimdi Uyarı Taraması Yap'}
+                                            {scanLoading ? 'Taranıyor...' : 'Şimdi Personele Uyarı Taraması Yap'}
                                         </button>
                                         <button
                                             type="button"
@@ -1364,389 +1415,244 @@ export default function Settings() {
                                             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                                         >
                                             {savingNotificationConfig ? <RefreshCw size={15} className="spin" /> : <Check size={15} />}
-                                            {savingNotificationConfig ? 'Kaydediliyor...' : 'Tercihleri Kaydet'}
+                                            {savingNotificationConfig ? 'Kaydediliyor...' : 'Politikayı Kaydet'}
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* General Email Dispatch Controls */}
-                                <div style={{
-                                    background: 'var(--bg-tertiary)',
-                                    borderRadius: '14px',
-                                    padding: '20px',
-                                    border: '1px solid var(--border-color)',
-                                    marginBottom: '25px'
-                                }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                                <label style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <Mail size={16} className="text-primary" /> E-Posta İletimi Açık / Kapalı
-                                                </label>
-                                                <label className="toggle-switch">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={notificationConfig.emailNotificationsEnabled !== false} 
-                                                        onChange={(e) => {
-                                                            const updated = { ...notificationConfig, emailNotificationsEnabled: e.target.checked }
-                                                            setNotificationConfig(updated)
-                                                            handleSaveNotificationConfig(updated)
-                                                        }} 
-                                                    />
-                                                    <span className="toggle-slider"></span>
-                                                </label>
+                                {/* Global Controls Grid */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                                    {/* Company-wide Email Toggle */}
+                                    <div style={{
+                                        background: 'var(--bg-tertiary)',
+                                        borderRadius: '12px',
+                                        padding: '16px 20px',
+                                        border: '1px solid var(--border-color)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '12px'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(99,102,241,0.12)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <Mail size={18} />
                                             </div>
-                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                Açık olduğunda, onaylanan bildirim kategorileri personelin e-postasına HTML şablonla gönderilir.
+                                            <div>
+                                                <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>Şirket İçi E-Posta İletimi</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>Tüm otomatik e-posta gönderimini aç / kapat</div>
                                             </div>
-                                        </div>
-
-                                        <div>
-                                            <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                                                Bildirim Alacak E-Posta Adresleri
-                                            </label>
-                                            <input 
-                                                type="text" 
-                                                className="form-input" 
-                                                placeholder="ornek@sirket.com, filo@sirket.com (virgülle ayırın)"
-                                                value={notificationConfig.notificationEmails || ''}
-                                                onChange={(e) => setNotificationConfig(prev => ({ ...prev, notificationEmails: e.target.value }))}
-                                                onBlur={() => handleSaveNotificationConfig()}
-                                                style={{ width: '100%', fontSize: '13px' }}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Test Email Dispatcher Section */}
-                                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>Test Şablonu:</span>
-                                            <select 
-                                                className="form-select" 
-                                                value={selectedTestRole} 
-                                                onChange={(e) => setSelectedTestRole(e.target.value)}
-                                                style={{ padding: '6px 12px', fontSize: '12px', width: 'auto' }}
-                                            >
-                                                <option value="admin">Şirket Yöneticisi & Admin</option>
-                                                <option value="accounting">Muhasebe & Finans</option>
-                                                <option value="fleet">Filo & Saha Operasyon</option>
-                                                <option value="personnel">Personel & Şoför</option>
-                                            </select>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className="btn btn-secondary"
-                                            onClick={handleSendTestNotificationEmail}
-                                            disabled={testEmailLoading}
-                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 14px' }}
-                                        >
-                                            {testEmailLoading ? <RefreshCw size={14} className="spin" /> : <Send size={14} />}
-                                            {testEmailLoading ? 'Gönderiliyor...' : 'Test E-Postası Gönder'}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Role-Based Notification Segregation */}
-                                <h3 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <Users size={18} className="text-primary" /> Kullanıcı Türlerine Göre Bildirim & E-Posta İletim Onayları
-                                </h3>
-                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '22px' }}>
-                                    Aşağıda her bir personel rolü için hem <strong>Uygulama İçi Bildirim</strong> hem de <strong>E-Posta ile İletim Onayı</strong> seçenekleri ayrı ayrı sunulmuştur:
-                                </p>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                    {/* 1. Şirket Yöneticisi & Admin */}
-                                    <div style={{ border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', background: 'var(--bg-card)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <Shield size={20} />
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                                        Şirket Yöneticisi & Admin (Yönetim Ekibi)
-                                                    </div>
-                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                        Tüm operasyonel, finansal ve güvenlik süreçlerine ilişkin tam yetkili uyarılar.
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <span className="badge" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', fontWeight: '600', padding: '4px 10px', borderRadius: '8px', fontSize: '11px' }}>
-                                                Tam Yetkili Yönetici
-                                            </span>
-                                        </div>
-
-                                        <div className="settings-grid">
-                                            {[
-                                                { key: 'inspection', icon: <ClipboardCheck size={16} />, label: 'Araç Muayene & Periyodik Kontrol', desc: 'Tüvtürk ve teknik kontrol süreleri' },
-                                                { key: 'insurance', icon: <Shield size={16} />, label: 'Trafik Sigortası & Kasko Bitişleri', desc: 'Poliçe vadesi yaklaşan araçlar' },
-                                                { key: 'finance_check', icon: <Wallet size={16} />, label: 'Vadesi Gelen Çek & Senetler', desc: 'Ödeme ve tahsilat vadeleri' },
-                                                { key: 'approval_center', icon: <CheckCircle2 size={16} />, label: 'Personel Onay Bekleyen Talepler', desc: 'İzin, mesai ve avans talepleri' },
-                                                { key: 'employee_document', icon: <User size={16} />, label: 'Personel Belge & Ehliyet/SRC Süreleri', desc: 'Süresi yaklaşan çalışan evrakları' },
-                                                { key: 'security_alerts', icon: <ShieldAlert size={16} />, label: 'Kritik Güvenlik & Silme Günlüğü', desc: 'Yetkisiz girişler ve kritik veri silme' },
-                                                { key: 'daily_summary', icon: <Clock size={16} />, label: 'Konsolide Günlük Şirket Özeti', desc: 'Her sabah toplu yönetici raporu' },
-                                            ].map(item => {
-                                                const current = notificationConfig.rolePreferences?.admin?.items?.[item.key] || { inApp: true, email: true }
-                                                return (
-                                                    <div key={item.key} className="settings-item card-style" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <div className="settings-item-icon" style={{ width: '32px', height: '32px', minWidth: '32px' }}>{item.icon}</div>
-                                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                                <div className="settings-item-label" style={{ fontSize: '13px' }}>{item.label}</div>
-                                                                <div className="settings-item-desc" style={{ fontSize: '11px' }}>{item.desc}</div>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid var(--border-color)', marginTop: '2px' }}>
-                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={current.inApp} 
-                                                                    onChange={() => toggleRoleItem('admin', item.key, 'inApp')} 
-                                                                />
-                                                                <span>📲 Uygulama İçi</span>
-                                                            </label>
-                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: current.email ? 'var(--success)' : 'var(--text-secondary)', fontWeight: current.email ? '600' : 'normal' }}>
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={current.email} 
-                                                                    onChange={() => toggleRoleItem('admin', item.key, 'email')} 
-                                                                />
-                                                                <span>✉️ E-Posta İlet</span>
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* 2. Muhasebe & Finans */}
-                                    <div style={{ border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', background: 'var(--bg-card)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <Wallet size={20} />
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                                        Muhasebe & Finans Yetkilisi
-                                                    </div>
-                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                        Finansal vadeler, çek/senet, kasa ve avans ödemeleri yönetimi.
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <span className="badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: '600', padding: '4px 10px', borderRadius: '8px', fontSize: '11px' }}>
-                                                Mali İşler
-                                            </span>
-                                        </div>
-
-                                        <div className="settings-grid">
-                                            {[
-                                                { key: 'finance_check', icon: <Wallet size={16} />, label: 'Vadesi Yaklaşan Çekler ve Senetler', desc: '7 gün ve daha az kalan çekler' },
-                                                { key: 'advance_requests', icon: <CheckCircle2 size={16} />, label: 'Personel Avans ve Masraf Talepleri', desc: 'Onay bekleyen finansal talepler' },
-                                                { key: 'cash_flow_warning', icon: <AlertCircle size={16} />, label: 'Kritik Kasa & Bakiye Hatırlatıcıları', desc: 'Eşik altı kasa veya banka bakiyesi' },
-                                                { key: 'daily_summary', icon: <Clock size={16} />, label: 'Günlük Finansal Durum Özeti', desc: 'Günün çek/ödeme vadeleri tablosu' },
-                                            ].map(item => {
-                                                const current = notificationConfig.rolePreferences?.accounting?.items?.[item.key] || { inApp: true, email: true }
-                                                return (
-                                                    <div key={item.key} className="settings-item card-style" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <div className="settings-item-icon" style={{ width: '32px', height: '32px', minWidth: '32px' }}>{item.icon}</div>
-                                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                                <div className="settings-item-label" style={{ fontSize: '13px' }}>{item.label}</div>
-                                                                <div className="settings-item-desc" style={{ fontSize: '11px' }}>{item.desc}</div>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid var(--border-color)', marginTop: '2px' }}>
-                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={current.inApp} 
-                                                                    onChange={() => toggleRoleItem('accounting', item.key, 'inApp')} 
-                                                                />
-                                                                <span>📲 Uygulama İçi</span>
-                                                            </label>
-                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: current.email ? 'var(--success)' : 'var(--text-secondary)', fontWeight: current.email ? '600' : 'normal' }}>
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={current.email} 
-                                                                    onChange={() => toggleRoleItem('accounting', item.key, 'email')} 
-                                                                />
-                                                                <span>✉️ E-Posta İlet</span>
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* 3. Filo & Saha Operasyon */}
-                                    <div style={{ border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', background: 'var(--bg-card)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <Wrench size={20} />
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                                        Filo & Saha Operasyon Yöneticisi
-                                                    </div>
-                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                        Araç muayeneleri, sigorta, periyodik bakım ve servis takibi.
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <span className="badge" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', fontWeight: '600', padding: '4px 10px', borderRadius: '8px', fontSize: '11px' }}>
-                                                Filo & Servis
-                                            </span>
-                                        </div>
-
-                                        <div className="settings-grid">
-                                            {[
-                                                { key: 'inspection', icon: <ClipboardCheck size={16} />, label: 'Muayene & Egzoz Süresi Biten / Yaklaşan Araçlar', desc: '15 gün kala ve geciken muayeneler' },
-                                                { key: 'insurance', icon: <Shield size={16} />, label: 'Kasko & Trafik Sigortası Bitişleri', desc: 'Poliçe yenileme uyarıları' },
-                                                { key: 'maintenance', icon: <Wrench size={16} />, label: 'Periyodik Bakım & Kilometre Sayaç Uyarıları', desc: 'Servis ve yağ bakım zamanları' },
-                                                { key: 'daily_summary', icon: <Clock size={16} />, label: 'Günlük Filo ve Araç Takip Özeti', desc: 'Filo durumu ve acil aksiyon listesi' },
-                                            ].map(item => {
-                                                const current = notificationConfig.rolePreferences?.fleet?.items?.[item.key] || { inApp: true, email: true }
-                                                return (
-                                                    <div key={item.key} className="settings-item card-style" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <div className="settings-item-icon" style={{ width: '32px', height: '32px', minWidth: '32px' }}>{item.icon}</div>
-                                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                                <div className="settings-item-label" style={{ fontSize: '13px' }}>{item.label}</div>
-                                                                <div className="settings-item-desc" style={{ fontSize: '11px' }}>{item.desc}</div>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid var(--border-color)', marginTop: '2px' }}>
-                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={current.inApp} 
-                                                                    onChange={() => toggleRoleItem('fleet', item.key, 'inApp')} 
-                                                                />
-                                                                <span>📲 Uygulama İçi</span>
-                                                            </label>
-                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: current.email ? 'var(--success)' : 'var(--text-secondary)', fontWeight: current.email ? '600' : 'normal' }}>
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={current.email} 
-                                                                    onChange={() => toggleRoleItem('fleet', item.key, 'email')} 
-                                                                />
-                                                                <span>✉️ E-Posta İlet</span>
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* 4. Personel & Şoför */}
-                                    <div style={{ border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', background: 'var(--bg-card)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(139, 92, 246, 0.12)', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <User size={20} />
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                                        Personel & Şoför (Saha ve Sürücü Ekibi)
-                                                    </div>
-                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                        Sürücü ehliyet, SRC belgeleri ve talep geri bildirimleri.
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <span className="badge" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', fontWeight: '600', padding: '4px 10px', borderRadius: '8px', fontSize: '11px' }}>
-                                                Sürücü & Saha
-                                            </span>
-                                        </div>
-
-                                        <div className="settings-grid">
-                                            {[
-                                                { key: 'employee_document', icon: <User size={16} />, label: 'Ehliyet, SRC ve Sağlık Raporu Süre Sonu', desc: '15 gün kala sürücüye otomatik uyarı' },
-                                                { key: 'leave_results', icon: <CheckCircle2 size={16} />, label: 'İzin & Mesai Talebi Onay / Red Bildirimi', desc: 'Talep sonuçlandığında anında iletim' },
-                                                { key: 'vehicle_assignment', icon: <ClipboardCheck size={16} />, label: 'Zimmetli Araç & Görev Atama Bildirimleri', desc: 'Yeni araç veya operasyon zimmetlendiğinde' },
-                                            ].map(item => {
-                                                const current = notificationConfig.rolePreferences?.personnel?.items?.[item.key] || { inApp: true, email: true }
-                                                return (
-                                                    <div key={item.key} className="settings-item card-style" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <div className="settings-item-icon" style={{ width: '32px', height: '32px', minWidth: '32px' }}>{item.icon}</div>
-                                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                                <div className="settings-item-label" style={{ fontSize: '13px' }}>{item.label}</div>
-                                                                <div className="settings-item-desc" style={{ fontSize: '11px' }}>{item.desc}</div>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid var(--border-color)', marginTop: '2px' }}>
-                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={current.inApp} 
-                                                                    onChange={() => toggleRoleItem('personnel', item.key, 'inApp')} 
-                                                                />
-                                                                <span>📲 Uygulama İçi</span>
-                                                            </label>
-                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: current.email ? 'var(--success)' : 'var(--text-secondary)', fontWeight: current.email ? '600' : 'normal' }}>
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={current.email} 
-                                                                    onChange={() => toggleRoleItem('personnel', item.key, 'email')} 
-                                                                />
-                                                                <span>✉️ E-Posta İlet</span>
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="settings-section-divider" style={{ margin: '30px 0', borderTop: '1px solid var(--border-color)' }}></div>
-
-                                {/* Daily Summary Scheduler */}
-                                <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <Clock size={18} className="text-primary" /> Konsolide Günlük Hatırlatıcı & Özet Gönderim Saati
-                                </h3>
-                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                                    Belirlediğiniz saatte, yaklaşan ve geciken tüm işlemler taranır ve hem masaüstü/mobil bildirimi hem de e-posta özeti olarak gönderilir.
-                                </p>
-
-                                <div className="settings-list">
-                                    <div className="settings-item card-style">
-                                        <div className="settings-item-content">
-                                            <div className="settings-item-label">Günlük Özet Bildirimi</div>
-                                            <div className="settings-item-desc">Tüm yaklaşan ve gecikmiş işleri tek bildirim ve e-postada özetler.</div>
                                         </div>
                                         <label className="toggle-switch">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={settings.notificationSummaryEnabled !== false} 
-                                                onChange={(e) => handleSettingChange('notificationSummaryEnabled', e.target.checked)} 
+                                            <input
+                                                type="checkbox"
+                                                checked={notificationConfig.emailNotificationsEnabled !== false}
+                                                onChange={(e) => {
+                                                    const updated = { ...notificationConfig, emailNotificationsEnabled: e.target.checked }
+                                                    setNotificationConfig(updated)
+                                                    handleSaveNotificationConfig(updated)
+                                                }}
                                             />
                                             <span className="toggle-slider"></span>
                                         </label>
                                     </div>
 
-                                    {settings.notificationSummaryEnabled !== false && (
-                                        <div className="settings-item card-style">
-                                            <div className="settings-item-content">
-                                                <div className="settings-item-label">Hatırlatma Saati</div>
-                                                <div className="settings-item-desc">Konsolide özet her gün saat kaçta taranıp e-postayla iletilsin?</div>
+                                    {/* Daily Consolidated Digest */}
+                                    <div style={{
+                                        background: 'var(--bg-tertiary)',
+                                        borderRadius: '12px',
+                                        padding: '16px 20px',
+                                        border: '1px solid var(--border-color)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '12px'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(16,185,129,0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <Clock size={18} />
                                             </div>
-                                            <input 
-                                                type="time" 
-                                                className="form-input" 
-                                                style={{ width: '120px' }}
-                                                value={settings.notificationSummaryTime || '09:00'}
-                                                onChange={(e) => handleSettingChange('notificationSummaryTime', e.target.value)}
+                                            <div>
+                                                <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>Günlük Konsolide Özet</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>Her sabah tek derlenmiş durum bülteni gönder</div>
+                                            </div>
+                                        </div>
+                                        <label className="toggle-switch">
+                                            <input
+                                                type="checkbox"
+                                                checked={notificationConfig.dailySummaryEnabled !== false}
+                                                onChange={(e) => {
+                                                    const updated = { ...notificationConfig, dailySummaryEnabled: e.target.checked }
+                                                    setNotificationConfig(updated)
+                                                    handleSaveNotificationConfig(updated)
+                                                }}
+                                            />
+                                            <span className="toggle-slider"></span>
+                                        </label>
+                                    </div>
+
+                                    {/* Summary Schedule Time */}
+                                    <div style={{
+                                        background: 'var(--bg-tertiary)',
+                                        borderRadius: '12px',
+                                        padding: '16px 20px',
+                                        border: '1px solid var(--border-color)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '12px'
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>Günlük Tarama &amp; Gönderim Saati</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>Otomatik motor her gün bu saatte çalışır</div>
+                                        </div>
+                                        <input
+                                            type="time"
+                                            className="form-input"
+                                            style={{ width: '110px', textAlign: 'center' }}
+                                            value={notificationConfig.dailySummaryTime || '09:00'}
+                                            onChange={(e) => {
+                                                const updated = { ...notificationConfig, dailySummaryTime: e.target.value }
+                                                setNotificationConfig(updated)
+                                            }}
+                                            onBlur={() => handleSaveNotificationConfig()}
+                                        />
+                                    </div>
+
+                                    {/* Optional CC / External Email */}
+                                    <div style={{
+                                        background: 'var(--bg-tertiary)',
+                                        borderRadius: '12px',
+                                        padding: '16px 20px',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                                            Harici / Yedek E-Posta (İsteğe Bağlı CC)
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                                            Kopyaların ayrıca gideceği muhasebeci veya ortak adres
+                                        </div>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="ornek@sirket.com, muhasebe@dis.com"
+                                            value={notificationConfig.notificationEmails || ''}
+                                            onChange={(e) => setNotificationConfig(prev => ({ ...prev, notificationEmails: e.target.value }))}
+                                            onBlur={() => handleSaveNotificationConfig()}
+                                            style={{ width: '100%', fontSize: '12px' }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ── SMART ROLE ROUTING EXPLANATION & USER PREFERENCE CALLOUT ── */}
+                            <div className="settings-card">
+                                <div style={{ marginBottom: '16px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Users size={18} className="text-primary" /> Akıllı Rol &amp; Departman Dağıtımı
+                                    </h3>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                                        Sistem bildirimleri tek bir genel havuza yığmak yerine, her personelin görev tanımına göre hedefler:
+                                    </p>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+                                    <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                            <Shield size={16} color="#3b82f6" />
+                                            <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Yöneticiler &amp; Admin</strong>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                                            Onay bekleyen personel talepleri, güvenlik ve veri silme hareketleri, tüm araçlar ve konsolide günlük şirket bülteni.
+                                        </p>
+                                    </div>
+
+                                    <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                            <Wallet size={16} color="#10b981" />
+                                            <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Muhasebe &amp; Finans</strong>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                                            Vadesi 7 gün içinde dolacak çek ve senetler, personel avans ve masraf talepleri, kritik kasa bakiye uyarıları.
+                                        </p>
+                                    </div>
+
+                                    <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                            <Wrench size={16} color="#f59e0b" />
+                                            <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Filo &amp; Operasyon</strong>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                                            Tüvtürk araç muayeneleri, egzoz kontrolleri, trafik/kasko poliçe bitişleri ve kilometre bakım eşikleri.
+                                        </p>
+                                    </div>
+
+                                    <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                            <User size={16} color="#8b5cf6" />
+                                            <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Personel &amp; Sürücü</strong>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                                            Ehliyet, SRC ve sağlık raporu süre sonları, izin/mesai onay-ret sonuçları ve zimmetli araç atamaları.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Info Banner */}
+                                <div style={{
+                                    padding: '14px 18px',
+                                    borderRadius: '12px',
+                                    background: 'var(--bg-tertiary)',
+                                    border: '1px solid var(--border-color)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px'
+                                }}>
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <Sparkles size={16} />
+                                    </div>
+                                    <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                                        <strong style={{ color: 'var(--text-primary)' }}>Kişisel Tercihler: </strong>
+                                        Şirketinizdeki her çalışan kendi hesabına giriş yaparak sağ üst köşedeki <strong>Profil &gt; Bildirim Tercihleri</strong> menüsünden hangi kategorileri e-posta ve zil bildirimi olarak alacağını kişisel olarak açıp kapatabilir.
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ── ROLE TEMPLATE PREVIEW & TEST EMAIL CARD ── */}
+                            <div className="settings-card">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Send size={16} className="text-primary" /> E-Posta Şablonu Canlı Önizleme &amp; Test Gönderimi
+                                        </h3>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                                            Farklı departmanlara gidecek modern tasarımlı bülteni kendi e-posta adresinize (<strong>{user?.email || 'admin e-postanız'}</strong>) göndererek test edin.
+                                        </p>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                        <div style={{ minWidth: '220px' }}>
+                                            <CustomSelect
+                                                value={selectedTestRole}
+                                                onChange={(val) => setSelectedTestRole(val)}
+                                                options={TEST_ROLE_OPTIONS}
+                                                placeholder="Departman Rolü Seçin"
+                                                floatingLabel={false}
+                                                hidePlaceholderOption
+                                                style={{ margin: 0 }}
                                             />
                                         </div>
-                                    )}
+
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={handleSendTestNotificationEmail}
+                                            disabled={testEmailLoading}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', minHeight: '38px' }}
+                                        >
+                                            {testEmailLoading ? <RefreshCw size={15} className="spin" /> : <Send size={15} />}
+                                            {testEmailLoading ? 'Gönderiliyor...' : 'Test E-Postası Gönder'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1815,33 +1721,24 @@ export default function Settings() {
                                         onChange={(e) => setAuditFilters(f => ({ ...f, search: e.target.value, page: 1 }))}
                                         style={{ fontSize: '13px' }}
                                     />
-                                    <select 
-                                        className="form-select"
+                                    <CustomSelect 
                                         value={auditFilters.action}
-                                        onChange={(e) => setAuditFilters(f => ({ ...f, action: e.target.value, page: 1 }))}
-                                        style={{ fontSize: '13px' }}
-                                    >
-                                        <option value="all">Tüm Eylemler</option>
-                                        <option value="LOGIN">Giriş Yapıldı (LOGIN)</option>
-                                        <option value="LOGIN_FAILED">Başarısız Giriş</option>
-                                        <option value="CREATE">Kayıt Oluşturma (CREATE)</option>
-                                        <option value="UPDATE">Kayıt Güncelleme (UPDATE)</option>
-                                        <option value="DELETE">Kayıt Silme (DELETE)</option>
-                                        <option value="PERMISSION_UPDATE">Yetki Değişikliği</option>
-                                    </select>
-                                    <select 
-                                        className="form-select"
+                                        onChange={(val) => setAuditFilters(f => ({ ...f, action: val, page: 1 }))}
+                                        options={AUDIT_ACTION_OPTIONS}
+                                        placeholder="Tüm Eylemler"
+                                        floatingLabel={false}
+                                        hidePlaceholderOption
+                                        style={{ margin: 0 }}
+                                    />
+                                    <CustomSelect 
                                         value={auditFilters.entityType}
-                                        onChange={(e) => setAuditFilters(f => ({ ...f, entityType: e.target.value, page: 1 }))}
-                                        style={{ fontSize: '13px' }}
-                                    >
-                                        <option value="all">Tüm Modüller</option>
-                                        <option value="vehicle">Araçlar & Filo</option>
-                                        <option value="employee">Personel</option>
-                                        <option value="work">Operasyon / Teklif</option>
-                                        <option value="transaction">Finans / Kasa</option>
-                                        <option value="user">Kullanıcılar</option>
-                                    </select>
+                                        onChange={(val) => setAuditFilters(f => ({ ...f, entityType: val, page: 1 }))}
+                                        options={AUDIT_ENTITY_OPTIONS}
+                                        placeholder="Tüm Modüller"
+                                        floatingLabel={false}
+                                        hidePlaceholderOption
+                                        style={{ margin: 0 }}
+                                    />
                                     <input 
                                         type="date" 
                                         className="form-input" 
@@ -2321,19 +2218,19 @@ export default function Settings() {
 
                     {activeTab === 'finance' && (
                         <div className="tab-fade-in">
-                            <DefaultModuleContent config={moduleConfig.finance} ModuleIcon={Wallet} />
+                            <FinanceModuleContent />
                         </div>
                     )}
 
                     {activeTab === 'works' && (
                         <div className="tab-fade-in">
-                            <DefaultModuleContent config={moduleConfig.works} ModuleIcon={Briefcase} />
+                            <WorksModuleContent />
                         </div>
                     )}
 
                     {activeTab === 'customers' && (
                         <div className="tab-fade-in">
-                            <DefaultModuleContent config={moduleConfig.customers} ModuleIcon={Building2} />
+                            <CustomersModuleContent />
                         </div>
                     )}
 

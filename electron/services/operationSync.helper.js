@@ -276,6 +276,23 @@ async function syncOperationDocument(relatedType, relatedId, data) {
 async function deleteOperationDocument(relatedType, relatedId) {
     const prisma = getPrismaClient();
     try {
+        const docs = await prisma.documents.findMany({
+            where: { related_type: relatedType, related_id: parseInt(relatedId) },
+            select: { id: true, file_path: true }
+        });
+        const filesDir = getFilesDir();
+        for (const doc of docs) {
+            if (doc.file_path) {
+                const localPath = path.join(filesDir, doc.file_path);
+                if (fs.existsSync(localPath)) {
+                    fs.unlinkSync(localPath);
+                }
+                try {
+                    const { deleteFromStorage } = require('./supabase.service');
+                    deleteFromStorage(doc.file_path, 'documents').catch(() => {});
+                } catch (e) {}
+            }
+        }
         await prisma.documents.deleteMany({
             where: { related_type: relatedType, related_id: parseInt(relatedId) }
         });

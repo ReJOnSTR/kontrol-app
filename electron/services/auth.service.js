@@ -329,7 +329,8 @@ async function ensureUserColumnsExist() {
                         ['must_change_password', 'INTEGER DEFAULT 0'],
                         ['full_name', 'TEXT'],
                         ['role_id', 'INTEGER'],
-                        ['employee_id', 'INTEGER']
+                        ['employee_id', 'INTEGER'],
+                        ['permissions', 'TEXT']
                     ];
                     for (const [col, def] of needed) {
                         if (!cols.includes(col)) {
@@ -459,7 +460,6 @@ async function loginUser(credentials) {
                             full_name: meta.full_name || meta.username || 'Kullanıcı',
                             password_hash: newHash,
                             role: meta.role || 'user',
-                            company_id: company.id,
                             is_active: 1,
                             must_change_password: 0
                         }
@@ -808,6 +808,7 @@ async function createEmployeeUser(data) {
         }
 
         const cleanEmail = email.toLowerCase().trim();
+        const cleanUsername = username.toLowerCase().trim();
         const empId = Number(employeeId);
 
         const employee = await prisma.employees.findUnique({
@@ -829,35 +830,57 @@ async function createEmployeeUser(data) {
         const existingUser = await prisma.users.findFirst({
             where: {
                 OR: [
-                    { username },
+                    { username: cleanUsername },
                     { email: cleanEmail },
                     { employee_id: empId }
                 ]
             }
         });
 
-        if (existingUser) {
-            return { success: false, error: 'Bu kullanıcı adı, e-posta veya personel zaten bir kullanıcı hesabına sahip' };
-        }
-
         const password_hash = bcrypt.hashSync(password, 10);
         const fullName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
+        let targetUser = null;
 
-        // 1. Create in public.users
-        const newUser = await prisma.users.create({
-            data: {
-                username,
-                email: cleanEmail,
-                full_name: fullName,
-                password_hash,
-                role: role || 'personnel',
-                role_id: roleId ? Number(roleId) : null,
-                employee_id: empId,
-                permissions: permissions ? (typeof permissions === 'string' ? permissions : JSON.stringify(permissions)) : null,
-                must_change_password: 1,
-                is_active: 1
+        if (existingUser) {
+            if (existingUser.employee_id === empId) {
+                // If account exists for this employee, update credentials & role and activate
+                targetUser = await prisma.users.update({
+                    where: { id: existingUser.id },
+                    data: {
+                        username: cleanUsername,
+                        email: cleanEmail,
+                        full_name: fullName,
+                        password_hash,
+                        role: role || 'personnel',
+                        role_id: roleId ? Number(roleId) : null,
+                        permissions: permissions ? (typeof permissions === 'string' ? permissions : JSON.stringify(permissions)) : null,
+                        must_change_password: 1,
+                        is_active: 1
+                    }
+                });
+            } else if (existingUser.email === cleanEmail) {
+                return { success: false, error: `"${cleanEmail}" e-posta adresi başka bir kullanıcı tarafından kullanılıyor.` };
+            } else {
+                return { success: false, error: `"${cleanUsername}" kullanıcı adı başka bir kullanıcı tarafından kullanılıyor. Lütfen farklı bir kullanıcı adı seçin.` };
             }
-        });
+        } else {
+            // Create in public.users
+            targetUser = await prisma.users.create({
+                data: {
+                    username: cleanUsername,
+                    email: cleanEmail,
+                    full_name: fullName,
+                    password_hash,
+                    role: role || 'personnel',
+                    role_id: roleId ? Number(roleId) : null,
+                    employee_id: empId,
+                    permissions: permissions ? (typeof permissions === 'string' ? permissions : JSON.stringify(permissions)) : null,
+                    must_change_password: 1,
+                    is_active: 1
+                }
+            });
+        }
+        const newUser = targetUser;
 
         // 2. Direct Sync to Supabase Auth (auth.users & auth.identities) if running PostgreSQL
         const dbUrl = process.env.DATABASE_URL || '';

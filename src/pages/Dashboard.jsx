@@ -422,11 +422,11 @@ export default function Dashboard() {
                                         <AlertTriangle size={14} />
                                         Gecikmiş: {allUpcoming.filter(e => getDaysUntil(e.date) < 0).length}
                                     </span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(20, 184, 166, 0.1)', color: '#14b8a6', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600' }}>
                                         <Calendar size={14} />
-                                        Yaklaşan: {allUpcoming.filter(e => {
+                                        Yaklaşan (30 Gün): {allUpcoming.filter(e => {
                                             const d = getDaysUntil(e.date)
-                                            return d >= 0 && d <= 15
+                                            return d >= 0 && d <= 30
                                         }).length}
                                     </span>
                                 </div>
@@ -484,11 +484,11 @@ export default function Dashboard() {
                                 <div>
                                     <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--warning)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <Calendar size={14} />
-                                        Yaklaşan İşlemler
+                                        Yaklaşan İşlemler (30 Gün)
                                     </h3>
                                     {allUpcoming.filter(e => {
                                         const days = getDaysUntil(e.date)
-                                        return days >= 0 && days <= 15
+                                        return days >= 0 && days <= 30
                                     }).length === 0 ? (
                                         <div style={{ padding: '15px', color: 'var(--text-muted)', fontSize: '12px', background: 'var(--bg-tertiary)', borderRadius: '6px', textAlign: 'center' }}>
                                             Yaklaşan işlem yok
@@ -497,22 +497,22 @@ export default function Dashboard() {
                                         <ScrollableList height="200px">
                                             {allUpcoming.filter(e => {
                                                 const days = getDaysUntil(e.date)
-                                                return days >= 0 && days <= 15
+                                                return days >= 0 && days <= 30
                                             }).map((event, index) => {
                                                 const days = getDaysUntil(event.date)
                                                 
-                                                let statusColor = 'var(--success)' // > 15 days
-                                                let bgStyle = 'var(--bg-tertiary)'
-                                                let borderStyle = '1px solid var(--border-color)'
+                                                let statusColor = '#14b8a6' // 4-30 days teal
+                                                let bgStyle = 'rgba(20, 184, 166, 0.05)'
+                                                let borderStyle = '1px solid rgba(20, 184, 166, 0.2)'
                                                 
-                                                if (days <= 3) {
-                                                    statusColor = '#f87171' // danger-light
-                                                    bgStyle = 'rgba(239, 68, 68, 0.05)'
-                                                    borderStyle = '1px solid rgba(239, 68, 68, 0.2)'
-                                                } else if (days <= 15) {
-                                                    statusColor = 'var(--warning)'
-                                                    bgStyle = 'rgba(245, 158, 11, 0.05)'
-                                                    borderStyle = '1px solid rgba(245, 158, 11, 0.2)'
+                                                if (days === 0) {
+                                                    statusColor = '#fb923c' // Bugün - orange
+                                                    bgStyle = 'rgba(249, 115, 22, 0.08)'
+                                                    borderStyle = '1px solid rgba(249, 115, 22, 0.25)'
+                                                } else if (days <= 3) {
+                                                    statusColor = '#facc15' // Acil - yellow
+                                                    bgStyle = 'rgba(234, 179, 8, 0.08)'
+                                                    borderStyle = '1px solid rgba(234, 179, 8, 0.25)'
                                                 }
 
                                                 return (

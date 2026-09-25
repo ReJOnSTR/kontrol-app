@@ -2828,6 +2828,18 @@ textarea,
   border: 1px solid rgba(239, 68, 68, 0.15);
 }
 
+.badge-today {
+  background: rgba(249, 115, 22, 0.12);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.25);
+}
+
+.badge-upcoming {
+  background: rgba(20, 184, 166, 0.12);
+  color: #14b8a6;
+  border: 1px solid rgba(20, 184, 166, 0.25);
+}
+
 .badge-info {
   background: rgba(59, 130, 246, 0.08);
   color: #60a5fa;

@@ -35,6 +35,13 @@ model companies {
   phone                  String?
   signature_path         String?
   stamp_path             String?
+  plan                   String?                  @default("PRO")
+  status                 String?                  @default("active")
+  expires_at             DateTime?
+  max_vehicles           Int?                     @default(50)
+  max_employees          Int?                     @default(50)
+  max_users              Int?                     @default(10)
+  storage_limit_mb       Int?                     @default(1024)
   created_at             DateTime?                @default(now())
   users                  users?                   @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   employees              employees[]
@@ -426,6 +433,7 @@ model users {
   role                 String?             @default("user")
   role_id              Int?
   employee_id          Int?                @unique(map: "sqlite_autoindex_users_3")
+  permissions          String?
   must_change_password Int?                @default(0)
   is_active            Int?                @default(1)
   two_factor_secret        String?
@@ -653,4 +661,17 @@ model request_approvals {
 
   @@index([request_id], map: "idx_request_approvals_request")
 }
+
+model company_settings {
+  company_id    Int       @id
+  settings_json String
+  updated_at    DateTime? @default(now())
+}
+
+model user_preferences {
+  user_id          Int       @id
+  preferences_json String
+  updated_at       DateTime? @default(now())
+}
+
 

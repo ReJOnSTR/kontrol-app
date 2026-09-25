@@ -227,7 +227,18 @@ function getPrismaClient() {
 async function runAutoMigrations() {
     const isPostgres = getGeneratedProvider() === 'postgresql' || process.env.USE_POSTGRES === 'true' || (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres'));
     if (isPostgres) {
-        log.info('PostgreSQL connection active, SQLite pragma migrations skipped.');
+        log.info('PostgreSQL connection active, running self-healing column upgrades...');
+        try {
+            const p = getPrismaClient();
+            await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT;');
+            await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id INT;');
+            await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS employee_id INT;');
+            await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active INT DEFAULT 1;');
+            await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password INT DEFAULT 0;');
+            log.info('PostgreSQL self-healing upgrades complete.');
+        } catch (pgMigErr) {
+            log.warn('PostgreSQL auto-upgrade notice:', pgMigErr.message);
+        }
         return;
     }
 
@@ -375,7 +386,8 @@ async function runAutoMigrations() {
                     { name: 'employee_id', sql: "ALTER TABLE users ADD COLUMN employee_id INTEGER" },
                     { name: 'two_factor_secret', sql: "ALTER TABLE users ADD COLUMN two_factor_secret TEXT" },
                     { name: 'two_factor_enabled', sql: "ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER DEFAULT 0" },
-                    { name: 'two_factor_backup_codes', sql: "ALTER TABLE users ADD COLUMN two_factor_backup_codes TEXT" }
+                    { name: 'two_factor_backup_codes', sql: "ALTER TABLE users ADD COLUMN two_factor_backup_codes TEXT" },
+                    { name: 'permissions', sql: "ALTER TABLE users ADD COLUMN permissions TEXT" }
                 ];
 
                 for (const col of userColsToAdd) {
@@ -452,7 +464,8 @@ async function runAutoMigrations() {
                 { name: 'employee_id', sql: "ALTER TABLE users ADD COLUMN employee_id INTEGER" },
                 { name: 'two_factor_secret', sql: "ALTER TABLE users ADD COLUMN two_factor_secret TEXT" },
                 { name: 'two_factor_enabled', sql: "ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER DEFAULT 0" },
-                { name: 'two_factor_backup_codes', sql: "ALTER TABLE users ADD COLUMN two_factor_backup_codes TEXT" }
+                { name: 'two_factor_backup_codes', sql: "ALTER TABLE users ADD COLUMN two_factor_backup_codes TEXT" },
+                { name: 'permissions', sql: "ALTER TABLE users ADD COLUMN permissions TEXT" }
             ];
 
             for (const col of neededCols) {
@@ -1141,6 +1154,10 @@ async function runAutoMigrations() {
             if (!uCols.some(c => c.name === 'is_active')) {
                 await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1');
                 log.info('Migration: Added is_active to users');
+            }
+            if (!uCols.some(c => c.name === 'permissions')) {
+                await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN permissions TEXT');
+                log.info('Migration: Added permissions to users');
             }
         }
 

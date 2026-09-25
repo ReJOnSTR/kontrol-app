@@ -212,7 +212,7 @@ export default function Inspections() {
             render: (_, item) => {
                 if (!item.next_inspection) return '-'
                 const value = item.next_inspection
-                const color = getStatusColor(value ? (new Date(value) - new Date()) / (1000 * 60 * 60 * 24) : null)
+                const color = getStatusColor(value)
                 return <span className={`badge badge-${color}`}>{getDaysUntilText(value)}</span>
             }
         },

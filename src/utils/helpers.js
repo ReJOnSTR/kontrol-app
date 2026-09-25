@@ -81,12 +81,78 @@ export function getDaysUntilText(dateString) {
     return `${days} gün kaldı`
 }
 
-export function getStatusColor(days) {
+export function getStatusColor(daysOrDate) {
+    if (daysOrDate === null || daysOrDate === undefined) return 'neutral'
+    const days = typeof daysOrDate === 'number' ? Math.ceil(daysOrDate) : getDaysUntil(daysOrDate)
     if (days === null) return 'neutral'
-    if (days < 0) return 'danger'           // Gecikmiş - koyu kırmızı
-    if (days <= 3) return 'danger-light'    // 3 gün veya daha az - açık kırmızı
-    if (days <= 15) return 'warning'        // 15 gün veya daha az - turuncu
-    return 'success'                        // 15 günden fazla - yeşil
+    if (days < 0) return 'danger'           // Gecikmiş (< 0) - Kırmızı
+    if (days === 0) return 'today'          // Bugün (= 0) - Turuncu
+    if (days <= 3) return 'danger-light'    // Acil (1-3 gün) - Açık Kırmızı / Sarı
+    if (days <= 30) return 'upcoming'       // Yaklaşan (4-30 gün) - Teal / Turkuaz
+    return 'success'                        // Güncel (> 30 gün) - Yeşil
+}
+
+export function getNotificationBadgeProps(daysOrDate) {
+    if (daysOrDate === null || daysOrDate === undefined) {
+        return { text: '-', label: '-', color: 'var(--text-muted)', bg: 'var(--bg-tertiary)', border: 'var(--border-color)', badgeClass: 'badge-neutral' }
+    }
+    const days = typeof daysOrDate === 'number' ? Math.ceil(daysOrDate) : getDaysUntil(daysOrDate)
+    if (days === null) {
+        return { text: '-', label: '-', color: 'var(--text-muted)', bg: 'var(--bg-tertiary)', border: 'var(--border-color)', badgeClass: 'badge-neutral' }
+    }
+    if (days < 0) {
+        return {
+            days,
+            text: `${Math.abs(days)} gün geçti`,
+            label: 'GECİKTİ',
+            color: '#f87171',
+            bg: 'rgba(239, 68, 68, 0.15)',
+            border: 'rgba(239, 68, 68, 0.3)',
+            badgeClass: 'badge-danger'
+        }
+    }
+    if (days === 0) {
+        return {
+            days,
+            text: 'Bugün',
+            label: 'BUGÜN',
+            color: '#fb923c',
+            bg: 'rgba(249, 115, 22, 0.15)',
+            border: 'rgba(249, 115, 22, 0.3)',
+            badgeClass: 'badge-today'
+        }
+    }
+    if (days <= 3) {
+        return {
+            days,
+            text: `${days} gün kaldı`,
+            label: `${days} Gün Kaldı (Acil)`,
+            color: '#facc15',
+            bg: 'rgba(234, 179, 8, 0.15)',
+            border: 'rgba(234, 179, 8, 0.3)',
+            badgeClass: 'badge-danger-light'
+        }
+    }
+    if (days <= 30) {
+        return {
+            days,
+            text: `${days} gün kaldı`,
+            label: `${days} Gün Kaldı`,
+            color: '#14b8a6',
+            bg: 'rgba(20, 184, 166, 0.15)',
+            border: 'rgba(20, 184, 166, 0.3)',
+            badgeClass: 'badge-upcoming'
+        }
+    }
+    return {
+        days,
+        text: `${days} gün kaldı`,
+        label: 'Güncel',
+        color: '#34d399',
+        bg: 'rgba(16, 185, 129, 0.08)',
+        border: 'rgba(16, 185, 129, 0.2)',
+        badgeClass: 'badge-success'
+    }
 }
 
 export const vehicleTypes = [

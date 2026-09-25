@@ -203,12 +203,25 @@ export default function DataTable({
             // Priority: Saved > Prop > Default
             if (col.width && typeof col.width === 'string' && col.width.endsWith('px')) {
                 initialWidths[col.key] = parseInt(col.width)
+            } else if (typeof col.width === 'number') {
+                initialWidths[col.key] = col.width
+            } else if (col.minWidth && typeof col.minWidth === 'string' && col.minWidth.endsWith('px')) {
+                initialWidths[col.key] = parseInt(col.minWidth)
             } else {
                 initialWidths[col.key] = 150
             }
         })
-        // Merge: Saved values (columnWidths from state init) take precedence
-        setColumnWidths(prev => ({ ...initialWidths, ...prev }))
+        // Merge: Saved values take precedence, but if a saved value is smaller than col.minWidth or col.width, upgrade it
+        setColumnWidths(prev => {
+            const merged = { ...initialWidths, ...prev }
+            columns.forEach(col => {
+                const minW = col.minWidth ? parseInt(col.minWidth) : (col.width ? parseInt(col.width) : null)
+                if (minW && (!merged[col.key] || merged[col.key] < minW)) {
+                    merged[col.key] = minW
+                }
+            })
+            return merged
+        })
     }, [columns])
 
     // Save column widths when they change
@@ -1064,12 +1077,18 @@ export default function DataTable({
                                 </th>
                             )}
                             {showRowNumbers && <th className="th-num">#</th>}
-                            {visibleColumnsList.map((col) => (
+                            {visibleColumnsList.map((col) => {
+                                const minW = col.minWidth ? parseInt(col.minWidth) : (col.width ? parseInt(col.width) : null)
+                                const rawW = columnWidths[col.key] ? columnWidths[col.key] : (col.width ? parseInt(col.width) : 150)
+                                const finalW = minW ? Math.max(rawW, minW) : rawW
+                                return (
                                 <th
                                     key={col.key}
                                     style={{
                                         // Use state width if available, otherwise prop or default
-                                        width: columnWidths[col.key] ? `${columnWidths[col.key]}px` : (col.width || '150px'),
+                                        width: `${finalW}px`,
+                                        minWidth: col.minWidth || (col.width ? col.width : undefined),
+                                        maxWidth: col.maxWidth || undefined,
                                         textAlign: col.align || 'left',
                                         cursor: col.sortable !== false ? 'pointer' : 'default',
                                         userSelect: 'none'
@@ -1109,7 +1128,7 @@ export default function DataTable({
                                         title="Sütun genişliğini ayarla"
                                     />
                                 </th>
-                            ))}
+                            )})}
                             {(actions || onRowClick) && <th className="th-actions">İşlemler</th>}
                         </tr>
                     </thead>
@@ -1159,6 +1178,7 @@ export default function DataTable({
                                             <td 
                                                 key={col.key} 
                                                 style={{ 
+                                                    minWidth: col.minWidth || (col.width ? col.width : undefined),
                                                     textAlign: col.align || 'left',
                                                     ...(col.wrap ? { whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' } : {}),
                                                     ...(col.tdStyle || {})

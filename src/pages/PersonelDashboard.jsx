@@ -357,11 +357,11 @@ export default function PersonelDashboard() {
                                 <AlertTriangle size={14} />
                                 Gecikmiş: {upcomingDocs.filter(e => getDaysUntil(e.expiry_date) < 0).length}
                             </span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(20, 184, 166, 0.1)', color: '#14b8a6', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600' }}>
                                 <Calendar size={14} />
-                                Yaklaşan: {upcomingDocs.filter(e => {
+                                Yaklaşan (30 Gün): {upcomingDocs.filter(e => {
                                     const d = getDaysUntil(e.expiry_date)
-                                    return d >= 0 && d <= 15
+                                    return d >= 0 && d <= 30
                                 }).length}
                             </span>
                         </div>
@@ -410,28 +410,42 @@ export default function PersonelDashboard() {
                         {/* Upcoming Column */}
                         <div>
                             <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--warning)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Calendar size={14} /> Yaklaşanlar
+                                <Calendar size={14} /> Yaklaşanlar (30 Gün)
                             </h3>
                             <ScrollableList height="210px">
                                 {upcomingDocs.filter(e => {
                                     const days = getDaysUntil(e.expiry_date)
-                                    return days >= 0 && days <= 15
+                                    return days >= 0 && days <= 30
                                 }).length === 0 ? (
                                     <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>Yaklaşan belge yok.</div>
                                 ) : (
                                     upcomingDocs.filter(e => {
                                         const days = getDaysUntil(e.expiry_date)
-                                        return days >= 0 && days <= 15
+                                        return days >= 0 && days <= 30
                                     }).map((doc) => {
                                         const days = getDaysUntil(doc.expiry_date)
+                                        let statusColor = '#14b8a6' // 4-30 days teal
+                                        let bgStyle = 'rgba(20, 184, 166, 0.04)'
+                                        let borderStyle = '1px solid rgba(20, 184, 166, 0.2)'
+
+                                        if (days === 0) {
+                                            statusColor = '#fb923c' // Bugün - orange
+                                            bgStyle = 'rgba(249, 115, 22, 0.05)'
+                                            borderStyle = '1px solid rgba(249, 115, 22, 0.2)'
+                                        } else if (days <= 3) {
+                                            statusColor = '#facc15' // Acil - yellow
+                                            bgStyle = 'rgba(234, 179, 8, 0.05)'
+                                            borderStyle = '1px solid rgba(234, 179, 8, 0.2)'
+                                        }
+
                                         return (
                                             <div
                                                 key={doc.id}
                                                 onClick={() => navigate(`/employees?tab=documents&id=${doc.employees?.id}`)}
                                                 style={{
                                                     padding: '12px',
-                                                    background: 'rgba(245, 158, 11, 0.03)',
-                                                    border: '1px solid rgba(245, 158, 11, 0.15)',
+                                                    background: bgStyle,
+                                                    border: borderStyle,
                                                     borderRadius: '8px',
                                                     cursor: 'pointer',
                                                     marginBottom: '8px'
@@ -439,7 +453,7 @@ export default function PersonelDashboard() {
                                             >
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                                     <span style={{ fontSize: '12px', fontWeight: '700' }}>{doc.employees?.first_name} {doc.employees?.last_name}</span>
-                                                    <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--warning)' }}>{days === 0 ? 'Bugün' : `${days} gün kaldı`}</span>
+                                                    <span style={{ fontSize: '11px', fontWeight: 'bold', color: statusColor }}>{days === 0 ? 'Bugün' : `${days} gün kaldı`}</span>
                                                 </div>
                                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{doc.category || 'Belge'} • {doc.file_name}</div>
                                             </div>

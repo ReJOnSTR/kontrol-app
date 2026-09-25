@@ -147,63 +147,8 @@ async function assignUserRoleAndEmployee(data) {
  * Kullanıcı Hesabını Silme (Giriş Hesabını Kaldırma)
  */
 async function deleteUserAccount(userId) {
-    try {
-        const id = Number(userId);
-        if (!id || isNaN(id)) return { success: false, error: 'Geçersiz kullanıcı ID' };
-
-        const targetUser = await prisma.users.findUnique({
-            where: { id }
-        });
-
-        // 1. Unlink companies created by or assigned to this user (never delete company!)
-        await prisma.companies.updateMany({
-            where: { user_id: id },
-            data: { user_id: null }
-        }).catch(() => {});
-
-        // 2. Unlink employee records
-        await prisma.employees.updateMany({
-            where: { user_id: id },
-            data: { user_id: null }
-        }).catch(() => {});
-
-        // 3. Unlink requests and approvals
-        await prisma.request_approvals.deleteMany({
-            where: { action_by: id }
-        }).catch(() => {});
-
-        // 4. Delete user record from database safely
-        try {
-            await prisma.$executeRawUnsafe(`PRAGMA foreign_keys = OFF;`);
-        } catch (e) {}
-
-        await prisma.$executeRawUnsafe(`DELETE FROM users WHERE id = ${id}`).catch(async () => {
-            await prisma.users.delete({ where: { id: id } });
-        });
-
-        try {
-            await prisma.$executeRawUnsafe(`PRAGMA foreign_keys = ON;`);
-        } catch (e) {}
-
-        // 5. If user had an email, delete from Supabase Auth cloud as well
-        if (targetUser && targetUser.email) {
-            try {
-                const { supabaseAdmin } = require('./supabase.service');
-                const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
-                const supaUser = listData?.users?.find(u => u.email?.toLowerCase() === targetUser.email.toLowerCase());
-                if (supaUser) {
-                    await supabaseAdmin.auth.admin.deleteUser(supaUser.id);
-                }
-            } catch (supaErr) {
-                console.warn('Supabase Auth user cleanup notice:', supaErr.message);
-            }
-        }
-
-        return { success: true };
-    } catch (error) {
-        console.error('deleteUserAccount error:', error);
-        return { success: false, error: 'Giriş hesabı silinemedi: ' + error.message };
-    }
+    const { deletePlatformUser } = require('./platform.service');
+    return await deletePlatformUser(userId);
 }
 
 module.exports = {

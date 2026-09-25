@@ -1107,7 +1107,7 @@ export default function VehicleDetail() {
                                 { key: 'date', label: 'Tarih', render: v => formatDate(v) },
                                 { key: 'cost', label: 'Maliyet', render: v => formatCurrency(v) },
                                 ...(showArchived ? [] : [
-                                    { key: 'next_date', label: 'Sonraki', render: v => v ? getDaysUntilText(v) : '-' }
+                                    { key: 'next_date', label: 'Sonraki', render: v => v ? <span className={`badge badge-${getStatusColor(v)}`}>{getDaysUntilText(v)}</span> : '-' }
                                 ]),
                                 {
                                     key: 'has_file', label: 'Belge', width: '100px', align: 'center', render: (_, row) => renderDocumentCell('maintenance', row)
@@ -1182,7 +1182,7 @@ export default function VehicleDetail() {
                                     { key: 'result', label: 'Sonuç', render: v => <span className={`badge badge-${v === 'passed' ? 'success' : v === 'failed' ? 'danger' : 'warning'}`}>{resultOptions.find(r => r.value === v)?.label || v}</span> },
                                     { key: 'cost', label: 'Ücret', render: v => formatCurrency(v) },
                                     ...(showArchived ? [] : [
-                                        { key: 'next_inspection', label: 'Sonraki', render: v => v ? getDaysUntilText(v) : '-' }
+                                        { key: 'next_inspection', label: 'Sonraki', render: v => v ? <span className={`badge badge-${getStatusColor(v)}`}>{getDaysUntilText(v)}</span> : '-' }
                                     ]),
                                     {
                                         key: 'has_file', label: 'Belge', width: '100px', align: 'center', render: (_, row) => renderDocumentCell('inspection', row)
@@ -1221,7 +1221,7 @@ export default function VehicleDetail() {
                                     { key: 'result', label: 'Sonuç', render: v => <span className={`badge badge-${v === 'passed' ? 'success' : v === 'failed' ? 'danger' : 'warning'}`}>{resultOptions.find(r => r.value === v)?.label || v}</span> },
                                     { key: 'cost', label: 'Ücret', render: v => formatCurrency(v) },
                                     ...(showArchived ? [] : [
-                                        { key: 'next_inspection', label: 'Sonraki', render: v => v ? getDaysUntilText(v) : '-' }
+                                        { key: 'next_inspection', label: 'Sonraki', render: v => v ? <span className={`badge badge-${getStatusColor(v)}`}>{getDaysUntilText(v)}</span> : '-' }
                                     ]),
                                     {
                                         key: 'has_file', label: 'Belge', width: '100px', align: 'center', render: (_, row) => renderDocumentCell('periodic_inspection', row)
@@ -1262,7 +1262,7 @@ export default function VehicleDetail() {
                                     ...(showArchived ? [
                                         { key: 'end_date', label: 'Bitiş Tarihi', render: v => formatDate(v) }
                                     ] : [
-                                        { key: 'end_date', label: 'Bitiş', render: v => getDaysUntilText(v) }
+                                        { key: 'end_date', label: 'Bitiş', render: v => v ? <span className={`badge badge-${getStatusColor(v)}`}>{getDaysUntilText(v)}</span> : '-' }
                                     ]),
                                     { key: 'premium', label: 'Prim', render: v => formatCurrency(v) },
                                     {

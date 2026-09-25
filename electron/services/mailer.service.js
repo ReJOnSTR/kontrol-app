@@ -164,7 +164,7 @@ async function testSmtpConnection(config) {
 /**
  * Send an email with HTML & Plaintext fallback
  */
-async function sendCustomHtmlEmail({ to, subject, html, senderName, senderEmail }) {
+async function sendCustomHtmlEmail({ to, cc, bcc, subject, html, senderName, senderEmail }) {
     try {
         if (!to || !html) {
             throw new Error('Alıcı e-posta ve HTML içeriği zorunludur.');
@@ -221,7 +221,10 @@ async function sendCustomHtmlEmail({ to, subject, html, senderName, senderEmail 
             html
         };
 
-        log.info(`[Mailer] Sending custom HTML email to ${to} via SMTP ${smtpHost}:${smtpPort}...`);
+        if (cc) mailOptions.cc = cc;
+        if (bcc) mailOptions.bcc = bcc;
+
+        log.info(`[Mailer] Sending custom HTML email to ${to} ${cc ? `(CC: ${cc})` : ''} via SMTP ${smtpHost}:${smtpPort}...`);
         const info = await transporter.sendMail(mailOptions);
         log.info(`[Mailer] Custom HTML email successfully sent to ${to}! MessageId: ${info.messageId}`);
 

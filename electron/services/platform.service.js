@@ -54,6 +54,19 @@ async function getPlatformOverview() {
             select: { id: true, username: true, email: true, full_name: true }
         }).catch(() => null);
 
+        let settingsMap = {};
+        try {
+            const rawSettings = await prisma.$queryRawUnsafe('SELECT company_id, settings_json FROM company_settings;');
+            if (Array.isArray(rawSettings)) {
+                rawSettings.forEach(s => {
+                    try {
+                        const parsed = JSON.parse(s.settings_json);
+                        settingsMap[s.company_id] = parsed.modules || null;
+                    } catch (e) {}
+                });
+            }
+        } catch (e) {}
+
         return {
             success: true,
             data: {
@@ -67,6 +80,14 @@ async function getPlatformOverview() {
                 companies: companies.map(c => {
                     const isPersonnelUser = c.users && (c.users.role === 'personnel' || c.users.employee_id);
                     const validOwnerUser = (!isPersonnelUser && c.users) ? c.users : defaultAdmin;
+                    const compModules = settingsMap[c.id] || {
+                        fleet: true,
+                        finance: true,
+                        meals: true,
+                        hr: true,
+                        works: true,
+                        customers: true
+                    };
 
                     return {
                         id: c.id,
@@ -76,6 +97,26 @@ async function getPlatformOverview() {
                         phone: c.phone || '-',
                         address: c.address || '-',
                         created_at: c.created_at,
+                        plan: c.plan || 'PRO',
+                        status: c.status || 'active',
+                        expires_at: c.expires_at || null,
+                        max_vehicles: c.max_vehicles || 50,
+                        max_employees: c.max_employees || 50,
+                        max_users: c.max_users || 10,
+                        storage_limit_mb: c.storage_limit_mb || 1024,
+                        modules: compModules,
+                        quotas: {
+                            vehicles: {
+                                current: c._count?.vehicles || 0,
+                                max: c.max_vehicles || 50,
+                                percent: Math.min(100, Math.round(((c._count?.vehicles || 0) / (c.max_vehicles || 50)) * 100))
+                            },
+                            employees: {
+                                current: c._count?.employees || 0,
+                                max: c.max_employees || 50,
+                                percent: Math.min(100, Math.round(((c._count?.employees || 0) / (c.max_employees || 50)) * 100))
+                            }
+                        },
                         owner: validOwnerUser ? {
                             id: validOwnerUser.id,
                             username: validOwnerUser.username,
@@ -158,6 +199,7 @@ async function getPlatformUsers() {
             } else if (u.role === 'company_admin' || u.role === 'admin' || u.role === 'manager') {
                 accountType = 'company_admin';
                 accountBadge = 'Şirket Yöneticisi';
+                linkedCompany = (u.companies && u.companies[0]) || null;
             }
 
             const is2FA = Boolean(u.two_factor_enabled === 1 || u.two_factor_enabled === true || Boolean(u.two_factor_secret));
@@ -303,62 +345,179 @@ async function impersonatePlatformUser(userId) {
  */
 async function createPlatformUser(userData) {
     try {
-        const { username, email, password, role, fullName, companyId, position, phone } = userData;
+        const { username, email, password, role, fullName, companyId, position, phone, permissions, roleId } = userData;
         if (!username || !email || !password) {
             return { success: false, error: 'Kullanıcı adı, e-posta ve şifre zorunludur' };
         }
 
         const cleanEmail = email.toLowerCase().trim();
+        const cleanUsername = username.toLowerCase().trim();
         const existing = await prisma.users.findFirst({
             where: {
-                OR: [{ username }, { email: cleanEmail }]
+                OR: [{ username: cleanUsername }, { email: cleanEmail }]
             }
         });
 
         if (existing) {
-            return { success: false, error: 'Bu kullanıcı adı veya e-posta zaten kayıtlı' };
+            if (existing.email === cleanEmail) {
+                return { success: false, error: `"${cleanEmail}" e-posta adresi zaten başka bir hesapta kayıtlı` };
+            }
+            return { success: false, error: `"${cleanUsername}" kullanıcı adı zaten kullanımda` };
         }
 
         const password_hash = bcrypt.hashSync(password, 10);
         let userRole = role || 'admin';
         let employeeId = userData.employeeId ? parseInt(userData.employeeId, 10) : null;
 
-        // If creating for a company without an explicit employee selection
-        if (!employeeId && companyId && userRole !== 'company_admin') {
-            const compId = parseInt(companyId, 10);
-            const employee = await prisma.employees.create({
-                data: {
-                    company_id: compId,
-                    first_name: fullName?.split(' ')?.[0] || username,
-                    last_name: fullName?.split(' ')?.slice(1)?.join(' ') || '',
-                    position: position || (userRole === 'manager' ? 'Operasyon & Puantör' : (userRole === 'accountant' ? 'Ön Muhasebe' : 'Şirket Personeli')),
-                    phone: phone || null,
-                    email: cleanEmail,
-                    start_date: new Date(),
-                    status: 'active'
-                }
+        if (employeeId) {
+            const existingForEmp = await prisma.users.findFirst({
+                where: { employee_id: employeeId }
             });
-            employeeId = employee.id;
+            if (existingForEmp) {
+                return { success: false, error: `Bu personele ait zaten bir kullanıcı hesabı (${existingForEmp.username}) mevcut.` };
+            }
+        }
+
+        // If creating for a company without an explicit employee selection, always link via an employee profile
+        if (!employeeId && companyId && userRole !== 'superadmin') {
+            const compId = parseInt(companyId, 10);
+            if (!isNaN(compId)) {
+                const compExists = await prisma.companies.findUnique({
+                    where: { id: compId }
+                });
+                if (compExists) {
+                    let defaultPos = 'Şirket Personeli';
+                    if (userRole === 'company_admin' || userRole === 'owner' || userRole === 'admin') defaultPos = 'Şirket Yöneticisi';
+                    else if (userRole === 'manager') defaultPos = 'Operasyon & Puantör';
+                    else if (userRole === 'accountant') defaultPos = 'Ön Muhasebe';
+
+                    const employee = await prisma.employees.create({
+                        data: {
+                            company_id: compId,
+                            first_name: fullName?.split(' ')?.[0] || cleanUsername,
+                            last_name: fullName?.split(' ')?.slice(1)?.join(' ') || '',
+                            position: position || defaultPos,
+                            phone: phone || null,
+                            email: cleanEmail,
+                            start_date: new Date(),
+                            status: 'active'
+                        }
+                    });
+                    employeeId = employee.id;
+                }
+            }
         }
 
         const newUser = await prisma.users.create({
             data: {
-                username,
+                username: cleanUsername,
                 email: cleanEmail,
-                full_name: fullName || username,
+                full_name: fullName || cleanUsername,
                 password_hash,
                 role: userRole,
+                role_id: roleId ? Number(roleId) : null,
+                permissions: permissions ? (typeof permissions === 'string' ? permissions : JSON.stringify(permissions)) : null,
                 employee_id: employeeId,
                 must_change_password: 0,
                 is_active: 1
             }
         });
 
-        if (companyId && userRole !== 'personnel') {
-            await prisma.companies.update({
-                where: { id: parseInt(companyId, 10) },
-                data: { user_id: newUser.id }
-            }).catch(() => {});
+        // Safely set company owner ONLY if user is company_admin/owner and company has no existing owner
+        if (companyId && (userRole === 'company_admin' || userRole === 'owner')) {
+            const compId = parseInt(companyId, 10);
+            if (!isNaN(compId)) {
+                const comp = await prisma.companies.findUnique({
+                    where: { id: compId },
+                    select: { user_id: true }
+                });
+                if (comp && !comp.user_id) {
+                    await prisma.companies.update({
+                        where: { id: compId },
+                        data: { user_id: newUser.id }
+                    }).catch(() => {});
+                }
+            }
+        }
+
+        // Direct Sync to Supabase Auth (auth.users & auth.identities) if running PostgreSQL
+        const dbUrl = process.env.DATABASE_URL || '';
+        if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
+            try {
+                const { Client } = require('pg');
+                const pgClient = new Client({ connectionString: dbUrl });
+                await pgClient.connect();
+
+                const metaJson = JSON.stringify({
+                    username,
+                    full_name: fullName || username,
+                    employee_id: employeeId,
+                    company_id: companyId ? parseInt(companyId, 10) : null,
+                    role: userRole
+                });
+
+                const existAuth = await pgClient.query('SELECT id FROM auth.users WHERE email = $1', [cleanEmail]);
+                let authUserId;
+                if (existAuth.rows.length > 0) {
+                    authUserId = existAuth.rows[0].id;
+                    await pgClient.query(`
+                        UPDATE auth.users 
+                        SET encrypted_password = $1, raw_user_meta_data = $2::jsonb, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = $3::uuid
+                    `, [password_hash, metaJson, authUserId]);
+                } else {
+                    const newAuth = await pgClient.query(`
+                        INSERT INTO auth.users (
+                            instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+                            raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_token_new, recovery_token
+                        ) VALUES (
+                            '00000000-0000-0000-0000-000000000000',
+                            gen_random_uuid(),
+                            'authenticated',
+                            'authenticated',
+                            $1,
+                            $2,
+                            CURRENT_TIMESTAMP,
+                            '{"provider":"email","providers":["email"]}'::jsonb,
+                            $3::jsonb,
+                            CURRENT_TIMESTAMP,
+                            CURRENT_TIMESTAMP,
+                            '', '', '', ''
+                        ) RETURNING id;
+                    `, [cleanEmail, password_hash, metaJson]);
+                    authUserId = newAuth.rows[0].id;
+                }
+
+                // Insert into auth.identities
+                const existId = await pgClient.query('SELECT id FROM auth.identities WHERE provider = $1 AND provider_id = $2', ['email', cleanEmail]);
+                const subData = JSON.stringify({ sub: String(authUserId), email: cleanEmail });
+                if (existId.rows.length > 0) {
+                    await pgClient.query(`
+                        UPDATE auth.identities 
+                        SET identity_data = $1::jsonb, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = $2
+                    `, [subData, existId.rows[0].id]);
+                } else {
+                    await pgClient.query(`
+                        INSERT INTO auth.identities (
+                            id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at
+                        ) VALUES (
+                            gen_random_uuid(),
+                            $1::uuid,
+                            $2::jsonb,
+                            'email',
+                            $3,
+                            CURRENT_TIMESTAMP,
+                            CURRENT_TIMESTAMP,
+                            CURRENT_TIMESTAMP
+                        )
+                    `, [authUserId, subData, cleanEmail]);
+                }
+
+                await pgClient.end();
+            } catch (supaPgErr) {
+                console.warn('Direct Supabase Auth create notice in createPlatformUser:', supaPgErr.message);
+            }
         }
 
         logAudit({
@@ -370,7 +529,7 @@ async function createPlatformUser(userData) {
             entityType: 'user',
             entityId: String(newUser.id),
             entityName: `${newUser.username} (${newUser.role})`,
-            description: `SuperAdmin tarafından "${newUser.username}" (${newUser.role}) kullanıcısı oluşturuldu`,
+            description: `Kullanıcı "${newUser.username}" (${newUser.role}) başarıyla oluşturuldu`,
             severity: 'info'
         });
 
@@ -387,13 +546,76 @@ async function createPlatformUser(userData) {
 async function deletePlatformUser(userId) {
     try {
         const uid = parseInt(userId, 10);
+        if (!uid || isNaN(uid)) return { success: false, error: 'Geçersiz kullanıcı ID' };
+
         const user = await prisma.users.findUnique({ where: { id: uid } });
         if (!user) return { success: false, error: 'Kullanıcı bulunamadı' };
         if (user.role === 'superadmin' || user.username === 'superadmin') {
             return { success: false, error: 'Ana Süper Yönetici hesabı silinemez' };
         }
 
+        // 1. Reassign any companies owned by this user so company is not dropped
+        const superAdmin = await prisma.users.findFirst({
+            where: { role: 'superadmin' }
+        });
+        const fallbackOwnerId = superAdmin?.id || 1;
+        if (fallbackOwnerId !== uid) {
+            await prisma.companies.updateMany({
+                where: { user_id: uid },
+                data: { user_id: fallbackOwnerId }
+            }).catch(() => {});
+        }
+
+        // 2. Unlink employee connection before deletion so employee HR record stays intact
+        await prisma.users.update({
+            where: { id: uid },
+            data: { employee_id: null }
+        }).catch(() => {});
+
+        // 3. Remove dependent request and approval records
+        await prisma.request_approvals.deleteMany({
+            where: { approver_id: uid }
+        }).catch(() => {});
+        await prisma.requests.deleteMany({
+            where: { created_by_id: uid }
+        }).catch(() => {});
+
+        // 4. Delete user from public.users
         await prisma.users.delete({ where: { id: uid } });
+
+        // 5. Clean up from Supabase Auth (auth.users & auth.identities)
+        if (user.email) {
+            const cleanEmail = user.email.toLowerCase().trim();
+
+            // Method A: Direct SQL query if PostgreSQL
+            const dbUrl = process.env.DATABASE_URL || '';
+            if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
+                try {
+                    const { Client } = require('pg');
+                    const pgClient = new Client({ connectionString: dbUrl });
+                    await pgClient.connect();
+                    await pgClient.query('DELETE FROM auth.identities WHERE provider_id = $1 OR identity_data->>\'email\' = $1', [cleanEmail]).catch(() => {});
+                    await pgClient.query('DELETE FROM auth.users WHERE LOWER(email) = $1', [cleanEmail]).catch(() => {});
+                    await pgClient.end();
+                } catch (pgErr) {
+                    console.warn('Direct auth.users delete notice in deletePlatformUser:', pgErr.message);
+                }
+            }
+
+            // Method B: Supabase Admin API
+            try {
+                const { supabaseAdmin } = require('./supabase.service');
+                if (supabaseAdmin && supabaseAdmin.auth && supabaseAdmin.auth.admin) {
+                    const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+                    const supaUser = listData?.users?.find(u => u.email?.toLowerCase() === cleanEmail);
+                    if (supaUser) {
+                        await supabaseAdmin.auth.admin.deleteUser(supaUser.id);
+                    }
+                }
+            } catch (supaErr) {
+                console.warn('Supabase Admin delete notice in deletePlatformUser:', supaErr.message);
+            }
+        }
 
         logAudit({
             companyId: user.company_id,
@@ -404,13 +626,14 @@ async function deletePlatformUser(userId) {
             entityType: 'user',
             entityId: String(user.id),
             entityName: user.username,
-            description: `SuperAdmin tarafından "${user.username}" kullanıcı hesabı silindi`,
+            description: `"${user.username}" kullanıcı hesabı ve kimliği kalıcı olarak silindi`,
             severity: 'critical'
         });
 
-        return { success: true, message: 'Kullanıcı hesabı silindi' };
+        return { success: true, message: 'Kullanıcı hesabı tamamen silindi' };
     } catch (error) {
-        return { success: false, error: error.message };
+        console.error('deletePlatformUser error:', error);
+        return { success: false, error: 'Kullanıcı silinemedi: ' + error.message };
     }
 }
 
@@ -451,8 +674,32 @@ async function toggleUserStatus(userId, isActive) {
  */
 async function toggleCompanyStatus(companyId, isActive) {
     try {
-        return { success: true, message: 'Durum güncellendi' };
+        const compId = parseInt(companyId, 10);
+        if (!compId) return { success: false, error: 'Geçersiz şirket kimliği' };
+
+        const newStatus = isActive ? 'active' : 'suspended';
+        const updated = await prisma.companies.update({
+            where: { id: compId },
+            data: { status: newStatus }
+        });
+
+        logAudit({
+            companyId: compId,
+            action: 'UPDATE',
+            entityType: 'company',
+            entityId: String(compId),
+            entityName: updated.name,
+            description: `SuperAdmin tarafından "${updated.name}" şirketinin durumu "${newStatus === 'active' ? 'Aktif' : 'Askıya Alındı'}" yapıldı`,
+            severity: 'warning'
+        });
+
+        return { 
+            success: true, 
+            message: `Şirket durumu ${newStatus === 'active' ? 'Aktif' : 'Askıya Alındı'} olarak güncellendi`,
+            data: updated 
+        };
     } catch (error) {
+        console.error('toggleCompanyStatus error:', error);
         return { success: false, error: error.message };
     }
 }
@@ -759,13 +1006,16 @@ async function createPlatformAnnouncement(payload) {
             return { success: false, error: 'Başlık ve duyuru mesajı zorunludur' };
         }
 
+        const parsedExpiry = (expiresAt && !isNaN(new Date(expiresAt).getTime())) ? new Date(expiresAt) : null;
+        const parsedCompanyId = companyId && companyId !== 'ALL' && companyId !== '' ? parseInt(companyId, 10) : null;
+
         const created = await prisma.system_announcements.create({
             data: {
                 title: title.trim(),
                 message: message.trim(),
                 type: type || 'info',
-                company_id: companyId && companyId !== 'ALL' && companyId !== '' ? parseInt(companyId, 10) : null,
-                expires_at: expiresAt ? new Date(expiresAt) : null,
+                company_id: (parsedCompanyId && !isNaN(parsedCompanyId)) ? parsedCompanyId : null,
+                expires_at: parsedExpiry,
                 is_dismissible: typeof isDismissible !== 'undefined' ? parseInt(isDismissible, 10) : 1,
                 show_popup: showPopup ? 1 : 0,
                 created_by: createdBy ? parseInt(createdBy, 10) : null,
@@ -827,7 +1077,10 @@ async function deletePlatformAnnouncement(id) {
  */
 async function createPlatformCompany(data) {
     try {
-        const { name, taxNumber, taxOffice, sgkNo, address, phone, ownerUserId } = data;
+        const { 
+            name, taxNumber, taxOffice, sgkNo, address, phone, ownerUserId,
+            plan = 'PRO', maxVehicles = 50, maxEmployees = 50, maxUsers = 10, storageLimitMb = 1024, expiresAt 
+        } = data;
         if (!name) return { success: false, error: 'Şirket unvanı zorunludur' };
 
         const newComp = await prisma.companies.create({
@@ -838,9 +1091,25 @@ async function createPlatformCompany(data) {
                 sgk_no: sgkNo || null,
                 address: address || null,
                 phone: phone || null,
-                user_id: ownerUserId && ownerUserId !== '' ? parseInt(ownerUserId, 10) : null
+                user_id: ownerUserId && ownerUserId !== '' ? parseInt(ownerUserId, 10) : null,
+                plan: plan || 'PRO',
+                status: 'active',
+                expires_at: expiresAt ? new Date(expiresAt) : null,
+                max_vehicles: parseInt(maxVehicles, 10) || 50,
+                max_employees: parseInt(maxEmployees, 10) || 50,
+                max_users: parseInt(maxUsers, 10) || 10,
+                storage_limit_mb: parseInt(storageLimitMb, 10) || 1024
             }
         });
+
+        if (data.modules && typeof data.modules === 'object') {
+            try {
+                const { saveCompanyDbSettings } = require('./systemSettings.service');
+                await saveCompanyDbSettings(newComp.id, { modules: data.modules });
+            } catch (mErr) {
+                console.error('[platform.service] Failed to save company modules:', mErr.message);
+            }
+        }
 
         logAudit({
             companyId: newComp.id,
@@ -848,7 +1117,7 @@ async function createPlatformCompany(data) {
             entityType: 'company',
             entityId: String(newComp.id),
             entityName: newComp.name,
-            description: `SuperAdmin tarafından "${newComp.name}" şirketi sisteme eklendi`,
+            description: `SuperAdmin tarafından "${newComp.name}" şirketi eklendi (Paket: ${newComp.plan})`,
             severity: 'info'
         });
 
@@ -860,25 +1129,49 @@ async function createPlatformCompany(data) {
 }
 
 /**
- * Update an existing Company and owner assignment from Platform Admin
+ * Update an existing Company, subscription, quotas and owner assignment from Platform Admin
  */
 async function updatePlatformCompany(data) {
     try {
-        const { id, name, taxNumber, taxOffice, sgkNo, address, phone, ownerUserId } = data;
+        const { 
+            id, name, taxNumber, taxOffice, sgkNo, address, phone, ownerUserId,
+            plan, status, expiresAt, maxVehicles, maxEmployees, maxUsers, storageLimitMb, modules
+        } = data;
         if (!id) return { success: false, error: 'Şirket kimliği zorunludur' };
+
+        const updateData = {
+            name: name ? name.trim() : undefined,
+            tax_number: taxNumber !== undefined ? taxNumber : undefined,
+            tax_office: taxOffice !== undefined ? taxOffice : undefined,
+            sgk_no: sgkNo !== undefined ? sgkNo : undefined,
+            address: address !== undefined ? address : undefined,
+            phone: phone !== undefined ? phone : undefined,
+            user_id: ownerUserId !== undefined ? (ownerUserId && ownerUserId !== '' ? parseInt(ownerUserId, 10) : null) : undefined,
+            plan: plan !== undefined ? plan : undefined,
+            status: status !== undefined ? status : undefined,
+            expires_at: expiresAt !== undefined ? (expiresAt ? new Date(expiresAt) : null) : undefined,
+            max_vehicles: maxVehicles !== undefined ? (parseInt(maxVehicles, 10) || 0) : undefined,
+            max_employees: maxEmployees !== undefined ? (parseInt(maxEmployees, 10) || 0) : undefined,
+            max_users: maxUsers !== undefined ? (parseInt(maxUsers, 10) || 0) : undefined,
+            storage_limit_mb: storageLimitMb !== undefined ? (parseInt(storageLimitMb, 10) || 0) : undefined
+        };
+
+        // Filter out undefined keys
+        Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
 
         const updatedComp = await prisma.companies.update({
             where: { id: parseInt(id, 10) },
-            data: {
-                name: name ? name.trim() : undefined,
-                tax_number: taxNumber !== undefined ? taxNumber : undefined,
-                tax_office: taxOffice !== undefined ? taxOffice : undefined,
-                sgk_no: sgkNo !== undefined ? sgkNo : undefined,
-                address: address !== undefined ? address : undefined,
-                phone: phone !== undefined ? phone : undefined,
-                user_id: ownerUserId !== undefined ? (ownerUserId && ownerUserId !== '' ? parseInt(ownerUserId, 10) : null) : undefined
-            }
+            data: updateData
         });
+
+        if (modules && typeof modules === 'object') {
+            try {
+                const { saveCompanyDbSettings } = require('./systemSettings.service');
+                await saveCompanyDbSettings(updatedComp.id, { modules });
+            } catch (mErr) {
+                console.error('[platform.service] Failed to update company modules:', mErr.message);
+            }
+        }
 
         logAudit({
             companyId: updatedComp.id,
@@ -886,7 +1179,7 @@ async function updatePlatformCompany(data) {
             entityType: 'company',
             entityId: String(updatedComp.id),
             entityName: updatedComp.name,
-            description: `SuperAdmin tarafından "${updatedComp.name}" şirketi güncellendi`,
+            description: `SuperAdmin tarafından "${updatedComp.name}" şirketi ve kotaları güncellendi`,
             severity: 'info'
         });
 

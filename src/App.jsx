@@ -119,8 +119,30 @@ function SuperAdminRoute({ children }) {
 
 function PermissionRoute({ module, action = 'can_read', children }) {
     const { hasPermission, isAdmin, isPersonnel, loading } = useAuth()
+    const { isModuleEnabled, isImpersonating } = useCompany()
+    const { user } = useAuth()
+    const isSuperAdmin = user?.role === 'superadmin'
 
     if (loading) return null
+
+    // Check Company Module Entitlements (Feature Flags)
+    const moduleMap = {
+        'vehicles': 'fleet',
+        'fleet': 'fleet',
+        'finance': 'finance',
+        'meals': 'meals',
+        'employees': 'hr',
+        'hr': 'hr',
+        'works': 'works',
+        'customers': 'customers'
+    }
+    const mappedModule = moduleMap[module]
+    if (mappedModule && !(isSuperAdmin && !isImpersonating)) {
+        if (isModuleEnabled && !isModuleEnabled(mappedModule)) {
+            return <Navigate to="/portal" replace />
+        }
+    }
+
     if (isAdmin || !isPersonnel) return children
 
     if (!hasPermission(module, action)) {
@@ -227,7 +249,7 @@ function AppRoutes() {
                                 ? <Navigate to="/personnel-profile" replace /> 
                                 : (isStandaloneSuperAdmin ? <Navigate to="/platform/users" replace /> : <MainPortal />)
                         } />
-                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/dashboard" element={<PermissionRoute module="vehicles"><Dashboard /></PermissionRoute>} />
                         <Route path="/finance-dashboard" element={<PermissionRoute module="finance"><FinanceDashboard /></PermissionRoute>} />
                         <Route path="/finance" element={<PermissionRoute module="finance"><Finance /></PermissionRoute>} />
                         <Route path="/checks" element={<PermissionRoute module="finance"><Checks /></PermissionRoute>} />

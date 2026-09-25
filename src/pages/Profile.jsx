@@ -16,11 +16,47 @@ import {
     Check,
     KeyRound,
     Loader2,
-    X
+    X,
+    Bell,
+    ClipboardCheck,
+    Wallet,
+    Wrench,
+    Clock,
+    ShieldAlert
 } from 'lucide-react'
 import TopProgressBar from '../components/TopProgressBar'
 import CustomInput from '../components/CustomInput'
 import Modal from '../components/Modal'
+
+const NOTIF_ICONS = {
+    inspection: <ClipboardCheck size={16} />,
+    insurance: <Shield size={16} />,
+    maintenance: <Wrench size={16} />,
+    finance_check: <Wallet size={16} />,
+    approval_center: <CheckCircle2 size={16} />,
+    advance_requests: <Wallet size={16} />,
+    cash_flow_warning: <AlertCircle size={16} />,
+    employee_document: <User size={16} />,
+    leave_results: <CheckCircle2 size={16} />,
+    vehicle_assignment: <ClipboardCheck size={16} />,
+    security_alerts: <ShieldAlert size={16} />,
+    daily_summary: <Clock size={16} />
+}
+
+const NOTIF_DESCRIPTIONS = {
+    inspection: 'Tüvtürk ve araç teknik muayene bitiş süreleri (15-30 gün önceden)',
+    insurance: 'Trafik sigortası ve kasko poliçesi bitiş tarihleri',
+    maintenance: 'Periyodik araç bakım zamanları ve sayaç/kilometre eşikleri',
+    finance_check: 'Vadesi 7 gün içinde dolacak müşteri veya şirket çekleri / senetleri',
+    approval_center: 'Onayınızı bekleyen izin, avans ve mesai talepleri',
+    advance_requests: 'Personel avans talepleri ve masraf bildirimleri',
+    cash_flow_warning: 'Kritik kasa bakiyesi ve bütçe eşik uyarıları',
+    employee_document: 'Ehliyet, SRC, psikoteknik ve sağlık raporu geçerlilik süreleri',
+    leave_results: 'Sunduğunuz izin ve mesai taleplerinin onay/ret sonuçları',
+    vehicle_assignment: 'Adınıza zimmetlenen araç veya operasyonel görev atamaları',
+    security_alerts: 'Kritik güvenlik olayları, yetkisiz giriş denemeleri ve veri silme hareketleri',
+    daily_summary: 'Sabah saatlerinde hazırlanan genel durum ve aksiyon özeti'
+}
 
 export default function Profile() {
     const { user, updateProfile } = useAuth()
@@ -68,6 +104,78 @@ export default function Profile() {
         } catch (err) {
             console.error('Fetch MFA status error:', err)
         }
+    }
+
+    // ── NOTIFICATION PREFERENCES STATE & LOGIC ──
+    const [notifConfig, setNotifConfig] = useState(null)
+    const [notifLoading, setNotifLoading] = useState(false)
+    const [notifSaving, setNotifSaving] = useState(false)
+    const [notifMsg, setNotifMsg] = useState({ type: '', text: '' })
+
+    useEffect(() => {
+        if (activeTab === 'notifications' && user?.id) {
+            loadUserNotifications()
+        }
+    }, [activeTab, user?.id])
+
+    const loadUserNotifications = async () => {
+        if (!user?.id || !window.electronAPI?.getUserNotificationSettings) return
+        setNotifLoading(true)
+        try {
+            const res = await window.electronAPI.getUserNotificationSettings(user.id)
+            if (res?.success && res.data) {
+                setNotifConfig(res.data)
+            }
+        } catch (e) {
+            console.error('Kişisel bildirim tercihleri yüklenemedi:', e)
+        } finally {
+            setNotifLoading(false)
+        }
+    }
+
+    const handleSaveUserNotifications = async (configToSave = notifConfig) => {
+        if (!user?.id || !window.electronAPI?.saveUserNotificationSettings || !configToSave) return
+        setNotifSaving(true)
+        try {
+            const res = await window.electronAPI.saveUserNotificationSettings(user.id, configToSave)
+            if (res?.success) {
+                setNotifMsg({ type: 'success', text: 'Bildirim tercihleriniz güncellendi.' })
+            } else {
+                setNotifMsg({ type: 'error', text: res?.error || 'Kaydedilemedi.' })
+            }
+        } catch (e) {
+            setNotifMsg({ type: 'error', text: e.message })
+        } finally {
+            setNotifSaving(false)
+            setTimeout(() => setNotifMsg({ type: '', text: '' }), 3500)
+        }
+    }
+
+    const toggleNotifItem = (itemKey, channel) => {
+        if (!notifConfig?.items?.[itemKey]) return
+        const currentVal = notifConfig.items[itemKey][channel] !== false
+        const updated = {
+            ...notifConfig,
+            items: {
+                ...notifConfig.items,
+                [itemKey]: {
+                    ...notifConfig.items[itemKey],
+                    [channel]: !currentVal
+                }
+            }
+        }
+        setNotifConfig(updated)
+        handleSaveUserNotifications(updated)
+    }
+
+    const toggleGlobalChannel = (channel) => {
+        if (!notifConfig) return
+        const updated = {
+            ...notifConfig,
+            [channel]: !notifConfig[channel]
+        }
+        setNotifConfig(updated)
+        handleSaveUserNotifications(updated)
     }
 
     const handleProfileSubmit = async (e) => {
@@ -208,6 +316,14 @@ export default function Profile() {
                         <User size={18} />
                         <span>Kişisel Bilgiler</span>
                     </div>
+
+                    <div 
+                        className={`settings-sidebar-item ${activeTab === 'notifications' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('notifications')}
+                    >
+                        <Bell size={18} />
+                        <span>Bildirim Tercihleri</span>
+                    </div>
                     
                     <div 
                         className={`settings-sidebar-item ${activeTab === 'security' ? 'active' : ''}`}
@@ -293,6 +409,246 @@ export default function Profile() {
                                     </div>
                                 </div>
                             </form>
+                        ) : activeTab === 'notifications' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                {/* ── ROLE & DIRECT EMAIL BANNER ── */}
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%)',
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    borderRadius: '16px',
+                                    padding: '20px 24px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    flexWrap: 'wrap',
+                                    gap: '16px'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{
+                                            width: '46px',
+                                            height: '46px',
+                                            borderRadius: '12px',
+                                            background: 'rgba(99, 102, 241, 0.15)',
+                                            color: '#6366f1',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            <Bell size={22} />
+                                        </div>
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                                    Kişisel Bildirim &amp; E-Posta Tercihleri
+                                                </h3>
+                                                <span style={{
+                                                    padding: '3px 10px',
+                                                    borderRadius: '6px',
+                                                    fontSize: '11px',
+                                                    fontWeight: 700,
+                                                    background: 'rgba(99, 102, 241, 0.15)',
+                                                    color: '#818cf8',
+                                                    letterSpacing: '0.04em'
+                                                }}>
+                                                    {notifConfig?.roleLabel || (user?.role === 'superadmin' ? 'Süper Yönetici' : 'Yönetici')}
+                                                </span>
+                                            </div>
+                                            <p style={{ margin: '5px 0 0 0', fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                                                Şirketteki rolünüze göre ilgili uyarılar doğrudan <strong>{user?.email || 'kayıtlı e-postanıza'}</strong> iletilir.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        {notifMsg.text && (
+                                            <span style={{
+                                                fontSize: '12px',
+                                                color: notifMsg.type === 'success' ? '#10b981' : '#ef4444',
+                                                fontWeight: 600,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}>
+                                                {notifMsg.type === 'success' ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
+                                                {notifMsg.text}
+                                            </span>
+                                        )}
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={() => handleSaveUserNotifications()}
+                                            disabled={notifSaving || notifLoading}
+                                            style={{ minWidth: '130px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        >
+                                            {notifSaving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
+                                            {notifSaving ? 'Kaydediliyor...' : 'Tercihleri Kaydet'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* ── MASTER CHANNELS ── */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                                    {/* Master E-posta */}
+                                    <div style={{
+                                        background: 'var(--bg-tertiary, #1e293b)',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: '12px',
+                                        padding: '16px 20px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '12px'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <Mail size={18} />
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>E-Posta Bildirimleri</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                    {user?.email ? `${user.email} adresine iletilir` : 'Kişisel e-postanıza iletilir'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <label className="toggle-switch">
+                                            <input
+                                                type="checkbox"
+                                                checked={notifConfig?.emailEnabled !== false}
+                                                onChange={() => toggleGlobalChannel('emailEnabled')}
+                                            />
+                                            <span className="toggle-slider"></span>
+                                        </label>
+                                    </div>
+
+                                    {/* Master In-App */}
+                                    <div style={{
+                                        background: 'var(--bg-tertiary, #1e293b)',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: '12px',
+                                        padding: '16px 20px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '12px'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <Bell size={18} />
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Uygulama İçi Bildirimler</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>Üst menüdeki zil ve sayaç rozetleri</div>
+                                            </div>
+                                        </div>
+                                        <label className="toggle-switch">
+                                            <input
+                                                type="checkbox"
+                                                checked={notifConfig?.inAppEnabled !== false}
+                                                onChange={() => toggleGlobalChannel('inAppEnabled')}
+                                            />
+                                            <span className="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* ── DETAILED EVENT CATEGORIES TABLE ── */}
+                                <div style={{ border: '1px solid var(--border-color)', borderRadius: '14px', overflow: 'hidden' }}>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '1fr 130px 130px',
+                                        background: 'var(--bg-tertiary, #1e293b)',
+                                        padding: '12px 18px',
+                                        borderBottom: '1px solid var(--border-color)'
+                                    }}>
+                                        <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                            Bildirim Kategorisi
+                                        </div>
+                                        <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center' }}>
+                                            📲 Uygulama İçi
+                                        </div>
+                                        <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center' }}>
+                                            ✉️ E-Posta
+                                        </div>
+                                    </div>
+
+                                    {notifLoading ? (
+                                        <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                            <Loader2 size={24} className="spin" style={{ margin: '0 auto 8px' }} />
+                                            <div style={{ fontSize: '13px' }}>Tercihler yükleniyor...</div>
+                                        </div>
+                                    ) : notifConfig?.items && Object.keys(notifConfig.items).length > 0 ? (
+                                        Object.entries(notifConfig.items).map(([key, item], idx, arr) => {
+                                            const isLast = idx === arr.length - 1
+                                            const icon = NOTIF_ICONS[key] || <Bell size={16} />
+                                            const desc = NOTIF_DESCRIPTIONS[key] || item.label || 'Kategori bildirimleri'
+                                            return (
+                                                <div key={key} style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: '1fr 130px 130px',
+                                                    padding: '14px 18px',
+                                                    alignItems: 'center',
+                                                    borderBottom: isLast ? 'none' : '1px solid var(--border-color)',
+                                                    background: idx % 2 === 0 ? 'transparent' : 'var(--bg-tertiary, rgba(255,255,255,0.015))',
+                                                    transition: 'background 0.15s'
+                                                }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingRight: '16px' }}>
+                                                        <div style={{
+                                                            width: '32px',
+                                                            height: '32px',
+                                                            borderRadius: '8px',
+                                                            background: 'rgba(99, 102, 241, 0.1)',
+                                                            color: '#818cf8',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            flexShrink: 0
+                                                        }}>
+                                                            {icon}
+                                                        </div>
+                                                        <div>
+                                                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                                                                {item.label || key}
+                                                            </div>
+                                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                                {desc}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <label className="toggle-switch" title={item.inApp !== false ? 'Uygulama içi açık' : 'Kapalı'}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={item.inApp !== false}
+                                                                disabled={notifConfig.inAppEnabled === false}
+                                                                onChange={() => toggleNotifItem(key, 'inApp')}
+                                                            />
+                                                            <span className="toggle-slider"></span>
+                                                        </label>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <label className="toggle-switch" title={item.email !== false ? 'E-posta iletimi açık' : 'Kapalı'}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={item.email !== false}
+                                                                disabled={notifConfig.emailEnabled === false}
+                                                                onChange={() => toggleNotifItem(key, 'email')}
+                                                            />
+                                                            <span className="toggle-slider"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })
+                                    ) : (
+                                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                                            Rolünüze özel bildirim ayarları yüklenemedi.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                                 {/* ── TWO-FACTOR AUTHENTICATION (2FA - TOTP) CARD ── */}

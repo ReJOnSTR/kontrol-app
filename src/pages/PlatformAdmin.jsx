@@ -49,7 +49,11 @@ import {
     Copy,
     Filter,
     UserCog,
-    Download
+    Download,
+    LayoutDashboard,
+    Wallet,
+    UtensilsCrossed,
+    Sliders
 } from 'lucide-react'
 import './PlatformAdmin.css'
 
@@ -104,9 +108,52 @@ export default function PlatformAdmin({ section }) {
         sgkNo: '',
         address: '',
         phone: '',
-        ownerUserId: ''
+        ownerUserId: '',
+        plan: 'PRO',
+        maxVehicles: 50,
+        maxEmployees: 50,
+        maxUsers: 10,
+        storageLimitMb: 1024,
+        expiresAt: '',
+        modules: {
+            fleet: true,
+            finance: true,
+            meals: true,
+            hr: true,
+            works: true,
+            customers: true
+        }
     })
     const [createCompanyLoading, setCreateCompanyLoading] = useState(false)
+
+    // Edit Company & Quotas Modal state
+    const [editCompanyModal, setEditCompanyModal] = useState(false)
+    const [editCompanyForm, setEditCompanyForm] = useState({
+        id: '',
+        name: '',
+        taxNumber: '',
+        taxOffice: '',
+        sgkNo: '',
+        address: '',
+        phone: '',
+        ownerUserId: '',
+        plan: 'PRO',
+        status: 'active',
+        expiresAt: '',
+        maxVehicles: 50,
+        maxEmployees: 50,
+        maxUsers: 10,
+        storageLimitMb: 1024,
+        modules: {
+            fleet: true,
+            finance: true,
+            meals: true,
+            hr: true,
+            works: true,
+            customers: true
+        }
+    })
+    const [editCompanyLoading, setEditCompanyLoading] = useState(false)
 
     // System Logs
     const [logs, setLogs] = useState([])
@@ -528,6 +575,9 @@ export default function PlatformAdmin({ section }) {
             } else {
                 alert('Kullanıcı oluşturma hatası: ' + (res?.error || 'Bilinmiyor'))
             }
+        } catch (err) {
+            console.error('handleCreateUserSubmit error:', err)
+            alert('Kullanıcı oluşturma hatası: ' + (err.message || 'Bilinmeyen sistem hatası'))
         } finally {
             setCreateUserLoading(false)
         }
@@ -582,6 +632,79 @@ export default function PlatformAdmin({ section }) {
         }
     }
 
+    // Open Edit Company Modal
+    const handleEditCompany = (company) => {
+        setEditCompanyForm({
+            id: company.id,
+            name: company.name,
+            taxNumber: company.tax_number === '-' ? '' : (company.tax_number || ''),
+            taxOffice: company.tax_office === '-' ? '' : (company.tax_office || ''),
+            sgkNo: company.sgk_no || '',
+            address: company.address === '-' ? '' : (company.address || ''),
+            phone: company.phone === '-' ? '' : (company.phone || ''),
+            ownerUserId: company.owner?.id ? String(company.owner.id) : '',
+            plan: company.plan || 'PRO',
+            status: company.status || 'active',
+            expiresAt: company.expires_at ? company.expires_at.split('T')[0] : '',
+            maxVehicles: company.max_vehicles || 50,
+            maxEmployees: company.max_employees || 50,
+            maxUsers: company.max_users || 10,
+            storageLimitMb: company.storage_limit_mb || 1024,
+            modules: company.modules || {
+                fleet: true,
+                finance: true,
+                meals: true,
+                hr: true,
+                works: true,
+                customers: true
+            }
+        })
+        setEditCompanyModal(true)
+    }
+
+    // Submit Edit Company
+    const handleEditCompanySubmit = async (e) => {
+        e.preventDefault()
+        if (!editCompanyForm.name) {
+            alert('Şirket unvanı zorunludur')
+            return
+        }
+        setEditCompanyLoading(true)
+        try {
+            const res = await window.electronAPI?.updatePlatformCompany(editCompanyForm)
+            if (res?.success) {
+                setEditCompanyModal(false)
+                await loadOverview()
+                await loadUsers()
+            } else {
+                alert('Şirket güncelleme hatası: ' + (res?.error || 'Bilinmiyor'))
+            }
+        } catch (err) {
+            alert('Hata: ' + err.message)
+        } finally {
+            setEditCompanyLoading(false)
+        }
+    }
+
+    // Toggle Company Status (Active / Suspended)
+    const handleToggleCompanyStatus = async (company) => {
+        const isCurrentlyActive = company.status === 'active'
+        const actionLabel = isCurrentlyActive ? 'askıya almak' : 'yeniden aktif etmek'
+        if (!window.confirm(`"${company.name}" şirketini ${actionLabel} istediğinize emin misiniz?`)) {
+            return
+        }
+        try {
+            const res = await window.electronAPI?.toggleCompanyStatus(company.id, !isCurrentlyActive)
+            if (res?.success) {
+                await loadOverview()
+            } else {
+                alert('İşlem başarısız: ' + (res?.error || 'Bilinmiyor'))
+            }
+        } catch (err) {
+            alert('Hata: ' + err.message)
+        }
+    }
+
     // Create Announcement Submit
     const handleCreateAnnouncementSubmit = async (e) => {
         e.preventDefault()
@@ -610,6 +733,9 @@ export default function PlatformAdmin({ section }) {
             } else {
                 alert('Duyuru oluşturma hatası: ' + (res?.error || 'Bilinmiyor'))
             }
+        } catch (err) {
+            console.error('handleCreateAnnouncementSubmit error:', err)
+            alert('Duyuru oluşturma hatası: ' + (err.message || 'Bilinmeyen sistem hatası'))
         } finally {
             setCreatingAnnouncement(false)
         }
@@ -661,6 +787,7 @@ export default function PlatformAdmin({ section }) {
         }
         const res = await window.electronAPI?.deletePlatformUser(u.id)
         if (res?.success) {
+            setPlatformUsers(prev => prev.filter(item => item.id !== u.id))
             await loadUsers()
         } else {
             alert('Hata: ' + (res?.error || 'Bilinmiyor'))
@@ -775,7 +902,7 @@ export default function PlatformAdmin({ section }) {
 
     // ── USERS TABLE COLUMNS ──
     const userColumns = [
-        { key: 'username', label: 'Kullanıcı Adı & E-Posta', render: (val, r) => (
+        { key: 'username', label: 'Kullanıcı Adı & E-Posta', width: '240px', minWidth: '220px', render: (val, r) => (
             <div>
                 <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '12.5px' }}>
                     {val} {r.fullName && r.fullName !== val && (
@@ -785,7 +912,7 @@ export default function PlatformAdmin({ section }) {
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{r.email}</div>
             </div>
         )},
-        { key: 'company', label: 'Bağlı Şirket & İlişki', render: (_, r) => (
+        { key: 'company', label: 'Bağlı Şirket & İlişki', width: '240px', minWidth: '220px', render: (_, r) => (
             <div>
                 <div style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <Building2 size={13} style={{ color: 'var(--text-muted)' }} />
@@ -798,7 +925,7 @@ export default function PlatformAdmin({ section }) {
                 )}
             </div>
         )},
-        { key: 'role_type', label: 'Hesap Türü & Yetki', render: (_, r) => (
+        { key: 'role_type', label: 'Hesap Türü & Yetki', width: '160px', minWidth: '150px', render: (_, r) => (
             <div>
                 <span className={`badge ${
                     r.accountType === 'superadmin' ? 'badge-warning' : 
@@ -816,7 +943,7 @@ export default function PlatformAdmin({ section }) {
                 )}
             </div>
         )},
-        { key: 'two_factor_enabled', label: '2FA', render: (val, r) => {
+        { key: 'two_factor_enabled', label: '2FA', width: '110px', minWidth: '100px', render: (val, r) => {
             const is2FA = r.two_factor_enabled === 1 || r.two_factor_enabled === true || r.has2FA;
             return is2FA ? (
                 <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
@@ -826,7 +953,7 @@ export default function PlatformAdmin({ section }) {
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Kapalı</span>
             );
         }},
-        { key: 'status', label: 'Durum', render: (_, r) => {
+        { key: 'status', label: 'Durum', width: '130px', minWidth: '120px', render: (_, r) => {
             if (r.isPending) {
                 return (
                     <span className="badge badge-warning">
@@ -839,77 +966,140 @@ export default function PlatformAdmin({ section }) {
             }
             return <span className="badge badge-danger">• Kilitli</span>
         }},
-        { key: 'created_at', label: 'Kayıt Tarihi', render: (val) => formatDate(val) },
-        { key: 'actions', label: 'İşlemler', width: '220px', tdStyle: { overflow: 'visible', whiteSpace: 'nowrap' }, render: (_, r) => (
-            <div className="action-btns" style={{ display: 'inline-flex', gap: '5px', alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-                {r.isPending && (
-                    <button
-                        className="ghost-btn"
-                        onClick={() => handleToggleUser(r)}
-                        title="Başvuruyu Onayla & Hesabı Aktif Et"
-                        style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.1)', fontWeight: 600, whiteSpace: 'nowrap' }}
-                    >
-                        <Check size={13} />
-                        <span>Onayla</span>
-                    </button>
-                )}
-                <button
-                    className="action-icon-btn"
-                    onClick={() => handleOpenEditRole(r)}
-                    title="Rol & Yetki Düzenle"
-                    style={{ color: '#6366f1', borderColor: 'rgba(99, 102, 241, 0.4)' }}
-                >
-                    <UserCog size={13} />
-                </button>
-                <button
-                    className="action-icon-btn"
-                    onClick={() => { setPasswordModalUser(r); setNewPassword(''); }}
-                    title="Şifre Sıfırla"
-                >
-                    <KeyRound size={13} />
-                </button>
-                {(r.two_factor_enabled === 1 || r.two_factor_enabled === true || r.has2FA) && (
-                    <button
-                        className="action-icon-btn"
-                        onClick={() => handleResetUser2FA(r)}
-                        title="2FA Kilidini Sıfırla"
-                        style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)' }}
-                    >
-                        <Shield size={13} />
-                    </button>
-                )}
-                {r.role !== 'superadmin' && r.username !== 'superadmin' && !r.isPending && (
-                    <button
-                        className="action-icon-btn"
-                        onClick={() => handleToggleUser(r)}
-                        title={r.isActive ? 'Hesabı Kilitle (Pasife Al)' : 'Hesabın Kilidini Aç (Aktif Et)'}
-                        style={!r.isActive ? { color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.1)' } : {}}
-                    >
-                        {r.isActive ? <Lock size={13} /> : <Unlock size={13} style={{ color: '#10b981' }} />}
-                    </button>
-                )}
-                {r.role !== 'superadmin' && r.username !== 'superadmin' && (
-                    <button
-                        className="action-icon-btn danger"
-                        onClick={() => handleDeleteUser(r)}
-                        title="Kullanıcıyı Sil"
-                    >
-                        <Trash2 size={13} />
-                    </button>
-                )}
-            </div>
-        )}
+        { key: 'created_at', label: 'Kayıt Tarihi', width: '120px', minWidth: '110px', render: (val) => formatDate(val) }
     ]
 
     // ── TENANTS TABLE COLUMNS ──
+    const planBadgeStyle = (plan) => {
+        switch ((plan || '').toUpperCase()) {
+            case 'ENTERPRISE':
+                return { background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)' }
+            case 'PRO':
+                return { background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.3)' }
+            case 'STARTER':
+                return { background: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8', border: '1px solid rgba(14, 165, 233, 0.3)' }
+            default:
+                return { background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }
+        }
+    }
+
     const tenantColumns = [
-        { key: 'name', label: 'Şirket Adı & İletişim', render: (val, r) => (
+        { key: 'name', label: 'Şirket Adı & İletişim', width: '270px', minWidth: '250px', render: (val, r) => (
             <div>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '12.5px' }}>{val}</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>VN: {r.tax_number || '-'} • Tel: {r.phone || '-'}</div>
+                <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '13px' }}>{val}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                    VN: {r.tax_number || '-'} • Tel: {r.phone || '-'}
+                </div>
             </div>
         )},
-        { key: 'owner', label: 'Yönetici / Kurucu', render: (_, r) => (
+        { key: 'plan', label: 'Paket & Lisans', width: '150px', minWidth: '130px', render: (val, r) => {
+            const planKey = (val || 'PRO').toUpperCase();
+            return (
+                <div>
+                    <span 
+                        style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            padding: '3px 8px', 
+                            borderRadius: '6px', 
+                            fontSize: '11px', 
+                            fontWeight: 700, 
+                            letterSpacing: '0.5px',
+                            ...planBadgeStyle(planKey) 
+                        }}
+                    >
+                        {planKey}
+                    </span>
+                    <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                        {r.expires_at ? `Bitiş: ${formatDate(r.expires_at)}` : 'Süresiz'}
+                    </div>
+                </div>
+            );
+        }},
+        { key: 'status', label: 'Durum', width: '120px', minWidth: '110px', render: (val) => {
+            const isActive = (val || 'active') === 'active';
+            return (
+                <span className={`badge ${isActive ? 'badge-success' : 'badge-danger'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {isActive ? <CheckCircle2 size={11} /> : <AlertOctagon size={11} />}
+                    {isActive ? 'Aktif' : 'Askıda'}
+                </span>
+            );
+        }},
+        { key: 'quotas', label: 'Kullanım & Kotalar', width: '240px', minWidth: '220px', render: (_, r) => {
+            const vCurrent = r.counts?.vehicles || 0;
+            const vMax = r.max_vehicles || 50;
+            const vPct = Math.min(100, Math.round((vCurrent / vMax) * 100));
+
+            const eCurrent = r.counts?.employees || 0;
+            const eMax = r.max_employees || 50;
+            const ePct = Math.min(100, Math.round((eCurrent / eMax) * 100));
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '180px' }}>
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
+                            <span>Araç: <strong style={{ color: 'var(--text-primary)' }}>{vCurrent}/{vMax}</strong></span>
+                            <span style={{ color: vPct >= 90 ? 'var(--danger)' : 'var(--text-muted)' }}>%{vPct}</span>
+                        </div>
+                        <div style={{ height: '4px', background: 'var(--bg-tertiary)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ width: `${vPct}%`, height: '100%', background: vPct >= 90 ? '#ef4444' : 'var(--primary)', transition: 'width 0.3s' }} />
+                        </div>
+                    </div>
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
+                            <span>Personel: <strong style={{ color: 'var(--text-primary)' }}>{eCurrent}/{eMax}</strong></span>
+                            <span style={{ color: ePct >= 90 ? 'var(--danger)' : 'var(--text-muted)' }}>%{ePct}</span>
+                        </div>
+                        <div style={{ height: '4px', background: 'var(--bg-tertiary)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ width: `${ePct}%`, height: '100%', background: ePct >= 90 ? '#ef4444' : '#f59e0b', transition: 'width 0.3s' }} />
+                        </div>
+                    </div>
+                </div>
+            );
+        }},
+        {
+            key: 'modules',
+            label: 'Aktif Modüller',
+            width: '210px',
+            minWidth: '190px',
+            render: (_, r) => {
+                const mods = r.modules || { fleet: true, finance: true, meals: true, hr: true, works: true, customers: true };
+                const modLabels = [
+                    { k: 'fleet', label: 'Filo', color: '#3b82f6' },
+                    { k: 'finance', label: 'Finans', color: '#f59e0b' },
+                    { k: 'meals', label: 'Yemek', color: '#ef4444' },
+                    { k: 'hr', label: 'İK', color: '#10b981' },
+                    { k: 'works', label: 'İş', color: '#8b5cf6' },
+                    { k: 'customers', label: 'Cari', color: '#ec4899' }
+                ];
+                return (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+                        {modLabels.map(m => {
+                            const isAct = mods[m.k] !== false;
+                            return (
+                                <span
+                                    key={m.k}
+                                    style={{
+                                        fontSize: '10px',
+                                        fontWeight: 600,
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        background: isAct ? `${m.color}20` : 'var(--bg-tertiary)',
+                                        color: isAct ? m.color : 'var(--text-muted)',
+                                        border: `1px solid ${isAct ? `${m.color}40` : 'var(--border-color)'}`,
+                                        opacity: isAct ? 1 : 0.45
+                                    }}
+                                    title={isAct ? `${m.label} Modülü Aktif` : `${m.label} Modülü Kapalı`}
+                                >
+                                    {m.label}
+                                </span>
+                            );
+                        })}
+                    </div>
+                );
+            }
+        },
+        { key: 'owner', label: 'Yönetici / Kurucu', width: '180px', minWidth: '160px', render: (_, r) => (
             r.owner ? (
                 <div>
                     <div style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text-primary)' }}>{r.owner.username}</div>
@@ -917,40 +1107,12 @@ export default function PlatformAdmin({ section }) {
                 </div>
             ) : <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Atanmamış</span>
         )},
-        { key: 'counts', label: 'Kullanım Özeti', render: (val) => (
-            <div style={{ display: 'flex', gap: '5px', fontSize: '11px' }}>
-                <span className="badge badge-info">{val?.vehicles || 0} Araç</span>
-                <span className="badge badge-warning">{val?.employees || 0} Personel</span>
-                <span className="badge badge-success">{val?.works || 0} İş</span>
-            </div>
-        )},
-        { key: 'created_at', label: 'Kayıt Tarihi', render: (val) => formatDate(val) },
-        { key: 'actions', label: 'Yönetim & İşlemler', width: '220px', tdStyle: { overflow: 'visible', whiteSpace: 'nowrap' }, render: (_, r) => (
-            <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-                <button
-                    className="ghost-btn"
-                    onClick={() => handleImpersonateCompany(r)}
-                    title="Şirkete Giriş Yap (Ayrı Pencerede Aç)"
-                    style={{ whiteSpace: 'nowrap', width: 'auto', minWidth: 'fit-content' }}
-                >
-                    <ExternalLink size={12} />
-                    <span>Şirkete Giriş Yap</span>
-                </button>
-                <button
-                    className="action-icon-btn danger"
-                    onClick={() => handleDeleteCompany(r)}
-                    title="Şirketi ve Tüm Verilerini Sil"
-                    style={{ width: '28px', height: '28px', minWidth: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                    <Trash2 size={13} />
-                </button>
-            </div>
-        )}
+        { key: 'created_at', label: 'Kayıt', width: '120px', minWidth: '110px', render: (val) => formatDate(val) }
     ]
 
     // ── ANNOUNCEMENTS TABLE COLUMNS ──
     const announcementColumns = [
-        { key: 'title', label: 'Duyuru Başlığı & İçerik', wrap: true, render: (val, r) => {
+        { key: 'title', label: 'Duyuru Başlığı & İçerik', width: '320px', minWidth: '280px', wrap: true, render: (val, r) => {
             const meta = announcementTypeMeta[r.type] || { color: '#3b82f6' }
             return (
                 <div style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
@@ -964,12 +1126,12 @@ export default function PlatformAdmin({ section }) {
                 </div>
             )
         }},
-        { key: 'companyName', label: 'Hedef Kitle / Şirket', render: (val, r) => (
+        { key: 'companyName', label: 'Hedef Kitle / Şirket', width: '170px', minWidth: '150px', render: (val, r) => (
             <span className={`badge ${!r.company_id ? 'badge-primary' : 'badge-warning'}`}>
                 {val}
             </span>
         )},
-        { key: 'type', label: 'Duyuru Türü', render: (val) => {
+        { key: 'type', label: 'Duyuru Türü', width: '150px', minWidth: '130px', render: (val) => {
             const meta = announcementTypeMeta[val] || { label: val, color: '#94a3b8' }
             return (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -978,7 +1140,7 @@ export default function PlatformAdmin({ section }) {
                 </div>
             )
         }},
-        { key: 'is_dismissible', label: 'Kapatma Kuralı', render: (val) => {
+        { key: 'is_dismissible', label: 'Kapatma Kuralı', width: '160px', minWidth: '150px', render: (val) => {
             const mode = val !== undefined && val !== null ? Number(val) : 1
             if (mode === 0) {
                 return <span className="badge badge-danger">Sabit</span>
@@ -987,7 +1149,7 @@ export default function PlatformAdmin({ section }) {
             }
             return <span className="badge badge-warning">Her Girişte Göster</span>
         }},
-        { key: 'status', label: 'Yayın Durumu', render: (_, r) => {
+        { key: 'status', label: 'Yayın Durumu', width: '130px', minWidth: '120px', render: (_, r) => {
             if (r.isExpired) {
                 return <span className="badge badge-neutral"><Clock size={11} /> Süresi Doldu</span>
             }
@@ -997,42 +1159,23 @@ export default function PlatformAdmin({ section }) {
                 <span className="badge badge-danger"><XCircle size={11} /> Durduruldu</span>
             )
         }},
-        { key: 'expires_at', label: 'Bitiş Tarihi', render: (val) => val ? formatDate(val) : <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Süresiz</span> },
-        { key: 'actions', label: 'İşlemler', width: '100px', tdStyle: { overflow: 'visible', whiteSpace: 'nowrap' }, render: (_, r) => (
-            <div className="action-btns" style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-                <button
-                    className="action-icon-btn"
-                    onClick={() => handleToggleAnnouncement(r)}
-                    title={r.isActive ? 'Yayından Kaldır (Durdur)' : 'Yayına Al'}
-                    style={!r.isActive ? { color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.1)' } : {}}
-                >
-                    {r.isActive ? <CheckCircle2 size={13} style={{ color: '#10b981' }} /> : <XCircle size={13} />}
-                </button>
-                <button
-                    className="action-icon-btn danger"
-                    onClick={() => handleDeleteAnnouncement(r)}
-                    title="Duyuruyu Sil"
-                >
-                    <Trash2 size={13} />
-                </button>
-            </div>
-        )}
+        { key: 'expires_at', label: 'Bitiş Tarihi', width: '130px', minWidth: '120px', render: (val) => val ? formatDate(val) : <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Süresiz</span> }
     ]
 
     // ── AUDIT TRAIL COLUMNS ──
     const auditColumns = [
-        { key: 'createdAt', label: 'Zaman Damgası', width: '160px', render: (val) => (
+        { key: 'createdAt', label: 'Zaman Damgası', width: '170px', minWidth: '160px', render: (val) => (
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-secondary)' }}>
                 {val ? new Date(val).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'}
             </div>
         )},
-        { key: 'companyName', label: 'Şirket', width: '160px', render: (val) => (
+        { key: 'companyName', label: 'Şirket', width: '170px', minWidth: '150px', render: (val) => (
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <Building2 size={12} style={{ color: 'var(--text-muted)' }} />
                 <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)' }}>{val || 'Sistem / Platform'}</span>
             </div>
         )},
-        { key: 'username', label: 'Kullanıcı & Rol', width: '150px', render: (val, r) => (
+        { key: 'username', label: 'Kullanıcı & Rol', width: '160px', minWidth: '140px', render: (val, r) => (
             <div>
                 <span style={{ fontWeight: 600, fontSize: '12px' }}>{val || 'Sistem'}</span>
                 {r.userRole && (
@@ -1042,7 +1185,7 @@ export default function PlatformAdmin({ section }) {
                 )}
             </div>
         )},
-        { key: 'action', label: 'İşlem Türü', width: '130px', render: (val) => {
+        { key: 'action', label: 'İşlem Türü', width: '140px', minWidth: '130px', render: (val) => {
             const actionBadges = {
                 CREATE: 'badge badge-success',
                 UPDATE: 'badge badge-warning',
@@ -1067,7 +1210,7 @@ export default function PlatformAdmin({ section }) {
                 </span>
             )
         }},
-        { key: 'entityName', label: 'Hedef / Varlık', width: '180px', wrap: true, render: (val, r) => (
+        { key: 'entityName', label: 'Hedef / Varlık', width: '190px', minWidth: '170px', wrap: true, render: (val, r) => (
             <div style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
                 <strong style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{val || '-'}</strong>
                 {r.entityType && (
@@ -1075,7 +1218,7 @@ export default function PlatformAdmin({ section }) {
                 )}
             </div>
         )},
-        { key: 'description', label: 'İşlem Nedeni & Açıklaması', minWidth: '220px', wrap: true, render: (val) => (
+        { key: 'description', label: 'İşlem Nedeni & Açıklaması', minWidth: '280px', wrap: true, render: (val) => (
             <div style={{ 
                 fontSize: '12px', 
                 color: 'var(--text-primary)', 
@@ -1086,43 +1229,32 @@ export default function PlatformAdmin({ section }) {
             }}>
                 {val || '-'}
             </div>
-        )},
-        { key: 'actions', label: 'Detay', width: '90px', tdStyle: { overflow: 'visible' }, render: (_, r) => (
-            <button
-                className="ghost-btn"
-                onClick={() => { setSelectedAuditDetail(r); setAuditDetailModal(true); setCopiedDetailJson(false); }}
-                title="İşlem Detayını Görüntüle"
-                style={{ padding: '4px 8px', fontSize: '11.5px', whiteSpace: 'nowrap' }}
-            >
-                <Eye size={12} />
-                <span>İncele</span>
-            </button>
         )}
     ]
 
     // ── SYSTEM LOGS COLUMNS ──
     const logColumns = [
-        { key: 'timestamp', label: 'Zaman Damgası', width: '180px', render: (val) => (
+        { key: 'timestamp', label: 'Zaman Damgası', width: '180px', minWidth: '160px', render: (val) => (
             <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-secondary)' }}>{val}</span>
         )},
-        { key: 'level', label: 'Seviye', width: '90px', render: (val) => (
+        { key: 'level', label: 'Seviye', width: '110px', minWidth: '100px', render: (val) => (
             <span className={`log-level-badge ${val}`}>
                 {val}
             </span>
         )},
-        { key: 'message', label: 'Log Detayı & Sistem Olayı', render: (val) => (
+        { key: 'message', label: 'Log Detayı & Sistem Olayı', minWidth: '450px', render: (val) => (
             <span className="log-message-code">{val}</span>
         )}
     ]
 
     const backupColumns = [
-        { key: 'fileName', label: 'Yedek Dosyası', render: (val, row) => (
+        { key: 'fileName', label: 'Yedek Dosyası', minWidth: '280px', render: (val, row) => (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Database size={15} style={{ color: row.isUnified ? '#3b82f6' : '#10b981' }} />
                 <code style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{val}</code>
             </div>
         )},
-        { key: 'type', label: 'Yedek Türü', render: (val) => (
+        { key: 'type', label: 'Yedek Türü', width: '160px', minWidth: '140px', render: (val) => (
             <span style={{
                 fontSize: '11px',
                 fontWeight: 600,
@@ -1135,20 +1267,8 @@ export default function PlatformAdmin({ section }) {
                 {val || 'Veritabanı'}
             </span>
         )},
-        { key: 'sizeFormatted', label: 'Boyut' },
-        { key: 'createdAt', label: 'Yedek Tarihi', render: (val) => new Date(val).toLocaleString('tr-TR') },
-        { key: 'actions', label: 'İşlem', render: (_, row) => (
-            <a
-                href={`/api/admin/backup/download/${encodeURIComponent(row.fileName)}`}
-                download={row.fileName}
-                className="btn btn-secondary btn-sm"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', fontSize: '11.5px', textDecoration: 'none' }}
-                title="Çevrimdışı / Yerel İndir (Air-Gap)"
-            >
-                <Download size={13} />
-                İndir
-            </a>
-        )}
+        { key: 'sizeFormatted', label: 'Boyut', width: '120px', minWidth: '110px' },
+        { key: 'createdAt', label: 'Yedek Tarihi', width: '180px', minWidth: '160px', render: (val) => new Date(val).toLocaleString('tr-TR') }
     ]
 
     return (
@@ -1189,7 +1309,7 @@ export default function PlatformAdmin({ section }) {
                     </div>
 
                     <DataTable
-                        persistenceKey="PlatformAdmin_users_table"
+                        persistenceKey="PlatformAdmin_users_table_v4"
                         columns={userColumns}
                         data={tableUsers}
                         showSearch={true}
@@ -1197,6 +1317,57 @@ export default function PlatformAdmin({ section }) {
                         searchPlaceholder="Kullanıcı adı, e-posta, şirket veya personel ile ara..."
                         searchKeys={['username', 'email', 'fullName', 'company_name', 'employee_name', 'employee_pos', 'employee_tc']}
                         filters={userFilters}
+                        actions={(r) => (
+                            <>
+                                {r.isPending && (
+                                    <button
+                                        title="Başvuruyu Onayla & Hesabı Aktif Et"
+                                        onClick={() => handleToggleUser(r)}
+                                        className="success"
+                                    >
+                                        <Check size={16} />
+                                    </button>
+                                )}
+                                <button
+                                    title="Rol & Yetki Düzenle"
+                                    onClick={() => handleOpenEditRole(r)}
+                                >
+                                    <UserCog size={16} />
+                                </button>
+                                <button
+                                    title="Şifre Sıfırla"
+                                    onClick={() => { setPasswordModalUser(r); setNewPassword(''); }}
+                                >
+                                    <KeyRound size={16} />
+                                </button>
+                                {(r.two_factor_enabled === 1 || r.two_factor_enabled === true || r.has2FA) && (
+                                    <button
+                                        title="2FA Kilidini Sıfırla"
+                                        onClick={() => handleResetUser2FA(r)}
+                                    >
+                                        <Shield size={16} />
+                                    </button>
+                                )}
+                                {r.role !== 'superadmin' && r.username !== 'superadmin' && !r.isPending && (
+                                    <button
+                                        title={r.isActive ? 'Hesabı Kilitle (Pasife Al)' : 'Hesabın Kilidini Aç (Aktif Et)'}
+                                        onClick={() => handleToggleUser(r)}
+                                        className={r.isActive ? 'danger' : 'success'}
+                                    >
+                                        {r.isActive ? <Lock size={16} /> : <Unlock size={16} />}
+                                    </button>
+                                )}
+                                {r.role !== 'superadmin' && r.username !== 'superadmin' && (
+                                    <button
+                                        title="Kullanıcıyı Sil"
+                                        className="danger"
+                                        onClick={() => handleDeleteUser(r)}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
+                            </>
+                        )}
                     />
                 </div>
             )}
@@ -1226,13 +1397,43 @@ export default function PlatformAdmin({ section }) {
                     </div>
 
                     <DataTable
-                        persistenceKey="PlatformAdmin_tenants_table"
+                        persistenceKey="PlatformAdmin_tenants_table_v4"
                         columns={tenantColumns}
                         data={tableCompanies}
                         showSearch={true}
                         showCheckboxes={false}
                         searchPlaceholder="Şirket adı, vergi no veya yetkili ile ara..."
                         searchKeys={['name', 'tax_number', 'phone', 'owner_username', 'owner_email']}
+                        actions={(r) => (
+                            <>
+                                <button
+                                    title="Şirkete Giriş Yap (Ayrı Pencerede Aç)"
+                                    onClick={() => handleImpersonateCompany(r)}
+                                >
+                                    <ExternalLink size={16} />
+                                </button>
+                                <button
+                                    title="Şirketi Düzenle & Paket / Kotalar / Modüller"
+                                    onClick={() => handleEditCompany(r)}
+                                >
+                                    <Wrench size={16} />
+                                </button>
+                                <button
+                                    title={r.status === 'active' ? 'Şirketi Askıya Al (Dondur)' : 'Şirketi Yeniden Aktif Et'}
+                                    onClick={() => handleToggleCompanyStatus(r)}
+                                    className={r.status === 'active' ? 'danger' : 'success'}
+                                >
+                                    {r.status === 'active' ? <Lock size={16} /> : <Unlock size={16} />}
+                                </button>
+                                <button
+                                    title="Şirketi ve Tüm Verilerini Sil"
+                                    className="danger"
+                                    onClick={() => handleDeleteCompany(r)}
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </>
+                        )}
                     />
                 </div>
             )}
@@ -1262,7 +1463,7 @@ export default function PlatformAdmin({ section }) {
                     </div>
 
                     <DataTable
-                        persistenceKey="PlatformAdmin_announcements_table"
+                        persistenceKey="PlatformAdmin_announcements_table_v4"
                         columns={announcementColumns}
                         data={announcements}
                         showSearch={true}
@@ -1283,6 +1484,24 @@ export default function PlatformAdmin({ section }) {
                                 ]
                             }
                         ]}
+                        actions={(r) => (
+                            <>
+                                <button
+                                    title={r.isActive ? 'Yayından Kaldır (Durdur)' : 'Yayına Al'}
+                                    onClick={() => handleToggleAnnouncement(r)}
+                                    className={r.isActive ? 'danger' : 'success'}
+                                >
+                                    {r.isActive ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                                </button>
+                                <button
+                                    title="Duyuruyu Sil"
+                                    className="danger"
+                                    onClick={() => handleDeleteAnnouncement(r)}
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </>
+                        )}
                     />
                 </div>
             )}
@@ -1545,7 +1764,7 @@ export default function PlatformAdmin({ section }) {
                     </div>
 
                     <DataTable
-                        persistenceKey="PlatformAdmin_audit_table"
+                        persistenceKey="PlatformAdmin_audit_table_v4"
                         columns={auditColumns}
                         data={auditLogs}
                         showSearch={true}
@@ -1588,6 +1807,15 @@ export default function PlatformAdmin({ section }) {
                                 ]
                             }
                         ]}
+                        onRowClick={(r) => { setSelectedAuditDetail(r); setAuditDetailModal(true); setCopiedDetailJson(false); }}
+                        actions={(r) => (
+                            <button
+                                title="İşlem Detayını Görüntüle"
+                                onClick={() => { setSelectedAuditDetail(r); setAuditDetailModal(true); setCopiedDetailJson(false); }}
+                            >
+                                <Eye size={16} />
+                            </button>
+                        )}
                     />
                 </div>
             )}
@@ -1627,7 +1855,7 @@ export default function PlatformAdmin({ section }) {
                     </div>
 
                     <DataTable
-                        persistenceKey="PlatformAdmin_logs_table"
+                        persistenceKey="PlatformAdmin_logs_table_v4"
                         columns={logColumns}
                         data={logs}
                         showSearch={true}
@@ -1683,13 +1911,28 @@ export default function PlatformAdmin({ section }) {
                     </div>
 
                     <DataTable
-                        persistenceKey="PlatformAdmin_backups_table"
+                        persistenceKey="PlatformAdmin_backups_table_v4"
                         columns={backupColumns}
                         data={backups}
                         showSearch={true}
                         showCheckboxes={false}
                         searchPlaceholder="Yedek dosyası adı ile ara..."
                         searchKeys={['fileName']}
+                        actions={(row) => (
+                            <button
+                                title="Çevrimdışı / Yerel İndir"
+                                onClick={() => {
+                                    const a = document.createElement('a')
+                                    a.href = `/api/admin/backup/download/${encodeURIComponent(row.fileName)}`
+                                    a.download = row.fileName
+                                    document.body.appendChild(a)
+                                    a.click()
+                                    document.body.removeChild(a)
+                                }}
+                            >
+                                <Download size={16} />
+                            </button>
+                        )}
                     />
                 </div>
             )}
@@ -1756,7 +1999,7 @@ export default function PlatformAdmin({ section }) {
                                 onChange={(val) => setNewAnnouncement(prev => ({ ...prev, companyId: getVal(val) }))}
                                 options={[
                                     { value: '', label: 'Tüm Şirketler (Genel Yayın)' },
-                                    ...tenantCompanies.map(c => ({ value: String(c.id), label: `${c.name}` }))
+                                    ...(tableCompanies || []).map(c => ({ value: String(c.id), label: `${c.name}` }))
                                 ]}
                             />
                         </div>
@@ -1872,12 +2115,300 @@ export default function PlatformAdmin({ section }) {
                             maxLength={250}
                         />
 
+                        {/* Module Feature Flags */}
+                        <div style={{ paddingTop: '14px', borderTop: '1px solid var(--border-color)' }}>
+                            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 10px 0' }}>
+                                <Sliders size={15} style={{ color: '#10b981' }} />
+                                Şirket İçin Aktif Edilecek Modüller
+                            </h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+                                {[
+                                    { key: 'fleet', label: 'Filo Yönetimi', color: '#3b82f6' },
+                                    { key: 'finance', label: 'Kasa & Finans', color: '#f59e0b' },
+                                    { key: 'meals', label: 'Yemek Fişleri', color: '#ef4444' },
+                                    { key: 'hr', label: 'Personel / İK', color: '#10b981' },
+                                    { key: 'works', label: 'İş & Operasyon', color: '#8b5cf6' },
+                                    { key: 'customers', label: 'Cari & Müşteri', color: '#ec4899' }
+                                ].map(mod => {
+                                    const isEnabled = newCompanyForm.modules?.[mod.key] !== false;
+                                    return (
+                                        <div
+                                            key={mod.key}
+                                            onClick={() => setNewCompanyForm(prev => ({
+                                                ...prev,
+                                                modules: {
+                                                    ...(prev.modules || {}),
+                                                    [mod.key]: !isEnabled
+                                                }
+                                            }))}
+                                            className={`platform-modal-checkbox ${isEnabled ? 'active' : ''}`}
+                                            style={{ padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        >
+                                            <div className="platform-checkbox-box">
+                                                {isEnabled && <Check size={12} />}
+                                            </div>
+                                            <div style={{ fontSize: '11.5px', fontWeight: isEnabled ? 600 : 400, color: isEnabled ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                                                {mod.label}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '14px' }}>
                             <button type="button" className="btn btn-secondary" onClick={() => setCreateCompanyModal(false)}>
                                 İptal
                             </button>
                             <button type="submit" className="btn btn-primary" disabled={createCompanyLoading}>
                                 {createCompanyLoading ? 'Ekleniyor...' : 'Şirketi Oluştur'}
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
+            )}
+
+            {/* ── MODAL: EDIT COMPANY & SUBSCRIPTION / QUOTAS ── */}
+            {editCompanyModal && (
+                <Modal
+                    isOpen={editCompanyModal}
+                    onClose={() => setEditCompanyModal(false)}
+                    title={`Şirketi Düzenle & Abonelik Kotaları (${editCompanyForm.name || 'Şirket'})`}
+                    size="lg"
+                >
+                    <form onSubmit={handleEditCompanySubmit} className="modal-form-grid">
+                        <CustomInput
+                            label="Şirket Tam Unvanı"
+                            value={editCompanyForm.name}
+                            onChange={(val) => setEditCompanyForm(prev => ({ ...prev, name: getVal(val) }))}
+                            placeholder="Örn: Akdeniz Lojistik Ltd. Şti."
+                            required
+                            maxLength={150}
+                        />
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <CustomInput
+                                label="Vergi Numarası"
+                                value={editCompanyForm.taxNumber}
+                                onChange={(val) => setEditCompanyForm(prev => ({ ...prev, taxNumber: getVal(val) }))}
+                                placeholder="10 haneli vergi no"
+                                format="tc_no"
+                                maxLength={11}
+                            />
+                            <CustomInput
+                                label="Vergi Dairesi"
+                                value={editCompanyForm.taxOffice}
+                                onChange={(val) => setEditCompanyForm(prev => ({ ...prev, taxOffice: getVal(val) }))}
+                                placeholder="Daire adı"
+                                maxLength={50}
+                            />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <CustomInput
+                                label="SGK İşyeri No"
+                                value={editCompanyForm.sgkNo}
+                                onChange={(val) => setEditCompanyForm(prev => ({ ...prev, sgkNo: getVal(val) }))}
+                                placeholder="SGK sicil no"
+                                maxLength={30}
+                            />
+                            <CustomInput
+                                label="Telefon"
+                                value={editCompanyForm.phone}
+                                onChange={(val) => setEditCompanyForm(prev => ({ ...prev, phone: getVal(val) }))}
+                                placeholder="0212 XXX XX XX"
+                                format="phone"
+                                maxLength={14}
+                            />
+                        </div>
+
+                        <CustomInput
+                            label="Şirket Adresi"
+                            value={editCompanyForm.address}
+                            onChange={(val) => setEditCompanyForm(prev => ({ ...prev, address: getVal(val) }))}
+                            placeholder="Açık adres..."
+                            maxLength={250}
+                        />
+
+                        {/* Subscription & Tier Settings */}
+                        <div style={{ marginTop: '10px', paddingTop: '14px', borderTop: '1px solid var(--border-color)' }}>
+                            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
+                                <Sparkles size={15} style={{ color: 'var(--primary)' }} />
+                                SaaS Abonelik & Lisans Planı
+                            </h3>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                                <CustomSelect
+                                    label="Abonelik Paketi"
+                                    value={editCompanyForm.plan}
+                                    onChange={(val) => {
+                                        const p = getVal(val);
+                                        // Auto-adjust default quotas when plan changes
+                                        let defaultV = 50, defaultE = 50, defaultU = 10;
+                                        if (p === 'FREE') { defaultV = 5; defaultE = 5; defaultU = 2; }
+                                        else if (p === 'STARTER') { defaultV = 15; defaultE = 15; defaultU = 5; }
+                                        else if (p === 'ENTERPRISE') { defaultV = 500; defaultE = 500; defaultU = 50; }
+                                        setEditCompanyForm(prev => ({
+                                            ...prev,
+                                            plan: p,
+                                            maxVehicles: defaultV,
+                                            maxEmployees: defaultE,
+                                            maxUsers: defaultU
+                                        }));
+                                    }}
+                                    options={[
+                                        { value: 'FREE', label: 'Ücretsiz Deneme (Free Trial)' },
+                                        { value: 'STARTER', label: 'Başlangıç (Starter - 15 Araç / 15 Personel)' },
+                                        { value: 'PRO', label: 'Profesyonel (Pro - 50 Araç / 50 Personel)' },
+                                        { value: 'ENTERPRISE', label: 'Kurumsal (Enterprise - 500+ Sınırsız)' }
+                                    ]}
+                                    floatingLabel={false}
+                                />
+
+                                <CustomSelect
+                                    label="Hesap Durumu"
+                                    value={editCompanyForm.status}
+                                    onChange={(val) => setEditCompanyForm(prev => ({ ...prev, status: getVal(val) }))}
+                                    options={[
+                                        { value: 'active', label: 'Aktif (Kullanıma Açık)' },
+                                        { value: 'suspended', label: 'Askıya Alındı (Donduruldu)' },
+                                        { value: 'expired', label: 'Süresi Doldu (Erişim Kısıtlı)' }
+                                    ]}
+                                    floatingLabel={false}
+                                />
+                            </div>
+
+                            <div style={{ marginBottom: '14px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                                    Lisans Bitiş Tarihi (Boş bırakılırsa süresiz):
+                                </label>
+                                <input
+                                    type="date"
+                                    className="form-input"
+                                    value={editCompanyForm.expiresAt}
+                                    onChange={(e) => setEditCompanyForm(prev => ({ ...prev, expiresAt: e.target.value }))}
+                                    style={{ height: '38px', fontSize: '13px' }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Resource Quotas */}
+                        <div style={{ paddingTop: '14px', borderTop: '1px solid var(--border-color)' }}>
+                            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
+                                <Scale size={15} style={{ color: '#f59e0b' }} />
+                                Kaynak Kullanım Kotaları
+                            </h3>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                        Maks. Araç Sayısı
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="5000"
+                                        className="form-input"
+                                        value={editCompanyForm.maxVehicles}
+                                        onChange={(e) => setEditCompanyForm(prev => ({ ...prev, maxVehicles: parseInt(e.target.value) || 1 }))}
+                                        style={{ height: '36px', fontSize: '13px', fontWeight: 600 }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                        Maks. Personel Sayısı
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="5000"
+                                        className="form-input"
+                                        value={editCompanyForm.maxEmployees}
+                                        onChange={(e) => setEditCompanyForm(prev => ({ ...prev, maxEmployees: parseInt(e.target.value) || 1 }))}
+                                        style={{ height: '36px', fontSize: '13px', fontWeight: 600 }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                        Maks. Kullanıcı
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="500"
+                                        className="form-input"
+                                        value={editCompanyForm.maxUsers}
+                                        onChange={(e) => setEditCompanyForm(prev => ({ ...prev, maxUsers: parseInt(e.target.value) || 1 }))}
+                                        style={{ height: '36px', fontSize: '13px', fontWeight: 600 }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                        Depolama (MB)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="100"
+                                        max="100000"
+                                        className="form-input"
+                                        value={editCompanyForm.storageLimitMb}
+                                        onChange={(e) => setEditCompanyForm(prev => ({ ...prev, storageLimitMb: parseInt(e.target.value) || 1024 }))}
+                                        style={{ height: '36px', fontSize: '13px', fontWeight: 600 }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Module Feature Flags */}
+                        <div style={{ paddingTop: '14px', borderTop: '1px solid var(--border-color)' }}>
+                            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
+                                <Sliders size={15} style={{ color: '#10b981' }} />
+                                Aktif Şirket Modülleri (Özellik Yetkileri)
+                            </h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
+                                {[
+                                    { key: 'fleet', label: 'Filo Yönetimi', color: '#3b82f6' },
+                                    { key: 'finance', label: 'Kasa & Finans', color: '#f59e0b' },
+                                    { key: 'meals', label: 'Yemek Fişleri', color: '#ef4444' },
+                                    { key: 'hr', label: 'Personel / İK', color: '#10b981' },
+                                    { key: 'works', label: 'İş & Operasyon', color: '#8b5cf6' },
+                                    { key: 'customers', label: 'Cari & Müşteri', color: '#ec4899' }
+                                ].map(mod => {
+                                    const isEnabled = editCompanyForm.modules?.[mod.key] !== false;
+                                    return (
+                                        <div
+                                            key={mod.key}
+                                            onClick={() => setEditCompanyForm(prev => ({
+                                                ...prev,
+                                                modules: {
+                                                    ...(prev.modules || {}),
+                                                    [mod.key]: !isEnabled
+                                                }
+                                            }))}
+                                            className={`platform-modal-checkbox ${isEnabled ? 'active' : ''}`}
+                                            style={{ padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        >
+                                            <div className="platform-checkbox-box">
+                                                {isEnabled && <Check size={12} />}
+                                            </div>
+                                            <div style={{ fontSize: '12px', fontWeight: isEnabled ? 600 : 400, color: isEnabled ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                                                {mod.label}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '18px' }}>
+                            <button type="button" className="btn btn-secondary" onClick={() => setEditCompanyModal(false)}>
+                                İptal
+                            </button>
+                            <button type="submit" className="btn btn-primary" disabled={editCompanyLoading}>
+                                {editCompanyLoading ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
                             </button>
                         </div>
                     </form>
@@ -1959,7 +2490,7 @@ export default function PlatformAdmin({ section }) {
                                 onChange={(val) => setNewUserForm(prev => ({ ...prev, companyId: getVal(val) }))}
                                 options={[
                                     { value: '', label: 'Şirketsiz / Sistem Kullanıcısı' },
-                                    ...tenantCompanies.map(c => ({ value: String(c.id), label: `${c.name}` }))
+                                    ...(tableCompanies || []).map(c => ({ value: String(c.id), label: `${c.name}` }))
                                 ]}
                             />
 
