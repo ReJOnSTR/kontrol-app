@@ -524,6 +524,7 @@ model works {
   is_archived     Int?         @default(0)
   pazar_multiplier Float?      @default(1.5)
   mesai_multiplier Float?      @default(1.5)
+  pdf_settings     String?
   work_items      work_items[]
   employees   employees?   @relation(fields: [employee_id], references: [id], onUpdate: NoAction)
   vehicles    vehicles?    @relation(fields: [vehicle_id], references: [id], onUpdate: NoAction)
@@ -672,6 +673,16 @@ model user_preferences {
   user_id          Int       @id
   preferences_json String
   updated_at       DateTime? @default(now())
+}
+
+model revoked_sessions {
+  session_id  String    @id
+  user_id     Int?
+  revoked_at  DateTime? @default(now())
+  reason      String?
+  expires_at  DateTime?
+
+  @@index([expires_at], map: "idx_revoked_sessions_expires")
 }
 
 

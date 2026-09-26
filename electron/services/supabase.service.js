@@ -258,6 +258,9 @@ async function uploadToStorage(buffer, storagePath, mimeType = 'application/octe
             .from(bucket)
             .getPublicUrl(cleanPath)
 
+        const baseName = require('path').basename(cleanPath)
+        storagePathCache.set(`${bucket}:${baseName}`, cleanPath)
+
         return {
             success: true,
             path: data.path,
@@ -269,6 +272,38 @@ async function uploadToStorage(buffer, storagePath, mimeType = 'application/octe
     }
 }
 
+const storagePathCache = new Map();
+
+/**
+ * Helper to recursively search for a file in Supabase Storage subfolders
+ */
+async function searchFolderRecursive(currentFolder, baseName, bucket, depth = 0, maxDepth = 6) {
+    if (depth > maxDepth) return null;
+    try {
+        const { data, error } = await supabaseAdmin.storage.from(bucket).list(currentFolder, { limit: 100 });
+        if (error || !data) return null;
+
+        // 1. Check direct files in current folder
+        for (const item of data) {
+            if (item.id !== null && item.name === baseName) {
+                return currentFolder ? `${currentFolder}/${item.name}` : item.name;
+            }
+        }
+
+        // 2. Search subfolders
+        for (const item of data) {
+            if (item.id === null) {
+                const subFolder = currentFolder ? `${currentFolder}/${item.name}` : item.name;
+                const found = await searchFolderRecursive(subFolder, baseName, bucket, depth + 1, maxDepth);
+                if (found) return found;
+            }
+        }
+    } catch (e) {
+        // ignore errors in deep folders
+    }
+    return null;
+}
+
 /**
  * Search for a file across root and subfolders in Supabase Storage
  */
@@ -277,40 +312,29 @@ async function findFileInStorage(targetFileName, bucket = 'documents') {
         const path = require('path')
         const baseName = path.basename(targetFileName)
         
+        // 0. Check cache first
+        const cacheKey = `${bucket}:${baseName}`;
+        if (storagePathCache.has(cacheKey)) {
+            return storagePathCache.get(cacheKey);
+        }
+
         // 1. Direct search at root
         const rootSearch = await supabaseAdmin.storage.from(bucket).list('', { search: baseName, limit: 10 })
         if (rootSearch.data && rootSearch.data.length > 0) {
             const match = rootSearch.data.find(f => f.name === baseName)
-            if (match) return match.name
-        }
-
-        // 2. Search common subdirectories like company_*
-        const rootFolders = await supabaseAdmin.storage.from(bucket).list('', { limit: 100 })
-        if (rootFolders.data) {
-            for (const item of rootFolders.data) {
-                if (item.id === null) {
-                    // It's a folder, search inside
-                    const subSearch = await supabaseAdmin.storage.from(bucket).list(item.name, { search: baseName, limit: 10 })
-                    if (subSearch.data && subSearch.data.length > 0) {
-                        const match = subSearch.data.find(f => f.name === baseName)
-                        if (match) return `${item.name}/${match.name}`
-                    }
-                    // Try 2 levels deep
-                    const deeperFolders = await supabaseAdmin.storage.from(bucket).list(item.name, { limit: 50 })
-                    if (deeperFolders.data) {
-                        for (const deepItem of deeperFolders.data) {
-                            if (deepItem.id === null) {
-                                const deepSearch = await supabaseAdmin.storage.from(bucket).list(`${item.name}/${deepItem.name}`, { search: baseName, limit: 10 })
-                                if (deepSearch.data && deepSearch.data.length > 0) {
-                                    const match = deepSearch.data.find(f => f.name === baseName)
-                                    if (match) return `${item.name}/${deepItem.name}/${match.name}`
-                                }
-                            }
-                        }
-                    }
-                }
+            if (match) {
+                storagePathCache.set(cacheKey, match.name);
+                return match.name;
             }
         }
+
+        // 2. Recursive search across all subdirectories
+        const found = await searchFolderRecursive('', baseName, bucket, 0, 6);
+        if (found) {
+            storagePathCache.set(cacheKey, found);
+            return found;
+        }
+
         return null
     } catch (e) {
         return null
@@ -330,16 +354,19 @@ async function downloadFromStorage(storagePath, bucket = 'documents') {
 
         if (!error && data) {
             const arrayBuffer = await data.arrayBuffer()
-            return { success: true, buffer: Buffer.from(arrayBuffer) }
+            const baseName = path.basename(cleanPath)
+            storagePathCache.set(`${bucket}:${baseName}`, cleanPath)
+            return { success: true, buffer: Buffer.from(arrayBuffer), resolvedPath: cleanPath }
         }
 
         // Try searching subfolders if exact path failed
         const baseName = path.basename(cleanPath)
         const foundPath = await findFileInStorage(baseName, bucket)
-        if (foundPath && foundPath !== cleanPath) {
+        if (foundPath) {
             const retry = await supabaseAdmin.storage.from(bucket).download(foundPath)
             if (!retry.error && retry.data) {
                 const arrayBuffer = await retry.data.arrayBuffer()
+                storagePathCache.set(`${bucket}:${baseName}`, foundPath)
                 return { success: true, buffer: Buffer.from(arrayBuffer), resolvedPath: foundPath }
             }
         }
@@ -387,6 +414,8 @@ module.exports = {
     syncAllEmployeesToSupabaseAuth,
     uploadToStorage,
     downloadFromStorage,
+    findFileInStorage,
     deleteFromStorage,
-    getStoragePublicUrl
+    getStoragePublicUrl,
+    storagePathCache
 }

@@ -27,7 +27,8 @@ import CustomSelect from '../components/CustomSelect';
 import { formatDate, today, formatDateForInput, calculateLeaveDays, calculateLeaveEndDate, checkDateHolidayStatus, getLeaveBreakdown, isCreditLeave } from '../utils/helpers';
 
 export default function Leaves() {
-    const { currentCompany } = useCompany();
+    const { currentCompany, companySettings } = useCompany();
+    const whpl = companySettings?.hr?.weekdayHoursPerLeave !== undefined ? companySettings.hr.weekdayHoursPerLeave : (parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8);
     const { addTab } = useTabs();
     const { showToast } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -413,7 +414,6 @@ export default function Leaves() {
             const emp = newItem.employee || employees.find(e => e.id === newItem.employeeId);
             const offDaysStr = emp ? emp.off_days : '0';
             const holidayDates = publicHolidays;
-            const whpl = parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8;
 
             if (newItem.leaveUnit === 'hourly') {
                 if (key === 'startDate') {
@@ -571,7 +571,6 @@ export default function Leaves() {
             key: 'days',
             label: 'Süre',
             render: (val, row) => {
-                const whpl = parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8;
                 const displayVal = (() => {
                     if (row.hours) return `${row.hours} Saat`;
                     if (val && val % 1 !== 0) {

@@ -476,7 +476,7 @@ const rpcMap = {
         }
 
         try {
-            const { downloadFromStorage } = require('./electron/services/supabase.service');
+            const { downloadFromStorage, getStoragePublicUrl } = require('./electron/services/supabase.service');
             let res = await downloadFromStorage(relativePath);
             if (!res.success && relativePath !== cleanName) {
                 res = await downloadFromStorage(cleanName);
@@ -494,6 +494,7 @@ const rpcMap = {
                     data: buf.toString('base64'),
                     fileName: cleanName,
                     path: relativePath,
+                    url: getStoragePublicUrl(cleanName, 'documents'),
                     ext: ext
                 };
             }
@@ -741,6 +742,29 @@ app.get('/api/data/:table', async (req, res) => {
     }
 });
 
+// Dedicated REST Endpoint for 24/7 Automated Notifications (Runs on Server)
+app.all(['/api/cron/notifications', '/api/cron/daily-summary'], async (req, res) => {
+    try {
+        const force = req.query.force === 'true' || req.body?.force === true;
+        const prisma = getPrismaClient();
+        const companies = await prisma.companies.findMany({
+            where: { status: 'active' },
+            select: { id: true, name: true }
+        });
+
+        const results = [];
+        for (const company of companies) {
+            const scanRes = await notificationEngine.runCompanyNotificationScan(company.id, { force });
+            results.push({ companyId: company.id, companyName: company.name, ...scanRes });
+        }
+
+        res.json({ success: true, timestamp: new Date().toISOString(), results });
+    } catch (err) {
+        console.error('[Cron API Error]:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // Single Page Application (SPA) Fallback
 app.use((req, res) => {
     const indexPath = path.join(distDir, 'index.html');
@@ -820,6 +844,55 @@ async function start() {
                 await performBackup();
             }
         }, 5 * 60 * 1000);
+
+        // Start 24/7 automated daily email notification scheduler
+        // Runs directly on server regardless of whether client machines/desktop apps are open!
+        const notifiedCompanyRuns = new Set();
+        setInterval(async () => {
+            try {
+                // Get exact Turkey time (Europe/Istanbul)
+                const trTime = new Date().toLocaleTimeString('tr-TR', {
+                    timeZone: 'Europe/Istanbul',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' }); // YYYY-MM-DD
+
+                // Clean old keys from cache
+                for (const key of notifiedCompanyRuns) {
+                    if (!key.includes(todayStr)) {
+                        notifiedCompanyRuns.delete(key);
+                    }
+                }
+
+                const prisma = getPrismaClient();
+                const companies = await prisma.companies.findMany({
+                    where: { status: 'active' },
+                    select: { id: true, name: true }
+                });
+
+                for (const company of companies) {
+                    const settingsRes = await notificationEngine.getCompanyNotificationSettings(company.id);
+                    const notifSettings = settingsRes?.data;
+                    if (!notifSettings || notifSettings.emailNotificationsEnabled === false) continue;
+
+                    const targetTime = notifSettings.dailySummaryTime || '09:00';
+
+                    // When current Turkey time matches company scheduled time (e.g. 09:00)
+                    if (trTime === targetTime) {
+                        const runKey = `${company.id}-${todayStr}-${targetTime}`;
+                        if (!notifiedCompanyRuns.has(runKey)) {
+                            notifiedCompanyRuns.add(runKey);
+                            console.log(`[Server 24/7 Cron] Triggering scheduled notification scan for ${company.name} (ID: ${company.id}) at ${trTime} TR time...`);
+                            await notificationEngine.runCompanyNotificationScan(company.id);
+                        }
+                    }
+                }
+            } catch (cronErr) {
+                console.error('[Server Notification Cron Error]:', cronErr.message);
+            }
+        }, 60 * 1000); // Check every minute
 
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Kontrol Web Application running on http://0.0.0.0:${PORT}`);

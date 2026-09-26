@@ -47,7 +47,13 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
 
     const [pdfBlobUrl, setPdfBlobUrl] = useState(null)
 
-    const isNotFound = Boolean(doc?.notFound || (!doc?.data && !doc?.url && !doc?.path && !doc?.file_path))
+    const fileName = doc?.name || doc?.file_name || doc?.fileName || 'Belge'
+    const ext = (fileName.substring(fileName.lastIndexOf('.')).toLowerCase()) || doc?.ext || ''
+    const cleanFileName = String(doc?.path || doc?.file_path || doc?.name || doc?.fileName || doc?.file_name || '').split(/[\\/]/).pop()
+    const pdfUrl = cleanFileName ? `/uploads/${encodeURIComponent(cleanFileName)}` : null
+    const publicCloudUrl = cleanFileName ? `https://supabase.kontrol-app.com/storage/v1/object/public/documents/${encodeURIComponent(cleanFileName)}` : null
+
+    const isNotFound = Boolean(doc?.notFound && !doc?.data && !doc?.url && !cleanFileName)
 
     // Convert PDF base64 to Blob URL for fast & lightweight rendering
     useEffect(() => {
@@ -76,6 +82,10 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
             }
         } else if (doc.url) {
             createdBlobUrl = doc.url
+        } else if (publicCloudUrl) {
+            createdBlobUrl = publicCloudUrl
+        } else if (pdfUrl) {
+            createdBlobUrl = pdfUrl
         }
 
         setPdfBlobUrl(createdBlobUrl)
@@ -85,12 +95,7 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
                 try { URL.revokeObjectURL(createdBlobUrl) } catch (e) {}
             }
         }
-    }, [doc])
-
-    const fileName = doc?.name || doc?.file_name || doc?.fileName || 'Belge'
-    const ext = (fileName.substring(fileName.lastIndexOf('.')).toLowerCase()) || doc?.ext || ''
-    const cleanFileName = String(doc?.path || doc?.file_path || doc?.name || doc?.fileName || doc?.file_name || '').split(/[\\/]/).pop()
-    const pdfUrl = cleanFileName ? `/uploads/${encodeURIComponent(cleanFileName)}` : null
+    }, [doc, publicCloudUrl, pdfUrl])
 
     const formattedPdfSource = React.useMemo(() => {
         if (!doc) return null
@@ -106,8 +111,10 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
             }
         }
         if (doc.url) return doc.url
+        if (publicCloudUrl) return publicCloudUrl
+        if (pdfUrl) return pdfUrl
         return null
-    }, [doc, pdfBlobUrl])
+    }, [doc, pdfBlobUrl, publicCloudUrl, pdfUrl])
 
     const formattedImageSource = React.useMemo(() => {
         if (!doc) return null
@@ -120,9 +127,10 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
             }
         }
         if (doc.url) return doc.url
+        if (publicCloudUrl) return publicCloudUrl
         if (pdfUrl) return pdfUrl
         return null
-    }, [doc, ext, pdfUrl])
+    }, [doc, ext, pdfUrl, publicCloudUrl])
 
     const isPdf = ext === '.pdf' || doc?.data?.startsWith('data:application/pdf') || doc?.file_type?.toLowerCase() === '.pdf' || (cleanFileName && cleanFileName.toLowerCase().endsWith('.pdf'))
     const isImage = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.avif'].includes(ext) || doc?.data?.startsWith('data:image/')
@@ -408,18 +416,19 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
                     </div>
                 ) : (
                     <>
-                        {/* Sleek Toolbar */}
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: 'var(--bg-secondary)',
-                            padding: '8px 16px',
-                            borderBottom: '1px solid var(--border-color)',
-                            gap: '12px',
-                            userSelect: 'none',
-                            zIndex: 2
-                        }}>
+                        {/* Sleek Toolbar - only shown for React-PDF canvas rendering, not native embed */}
+                        {!pdfError && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: 'var(--bg-secondary)',
+                                padding: '8px 16px',
+                                borderBottom: '1px solid var(--border-color)',
+                                gap: '12px',
+                                userSelect: 'none',
+                                zIndex: 2
+                            }}>
                             {/* - Zoom Out */}
                             <button
                                 onClick={handleZoomOut}
@@ -599,6 +608,7 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
                                 <RotateCw size={15} />
                             </button>
                         </div>
+                        )}
 
                         {/* Reader Canvas */}
                         <div
@@ -614,8 +624,10 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
                                 overflow: 'auto',
                                 position: 'relative',
                                 display: 'flex',
-                                alignItems: zoomLevel > 1.1 ? 'flex-start' : 'center',
-                                justifyContent: zoomLevel > 1.1 ? 'flex-start' : 'center',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'flex-start',
+                                padding: '24px 16px',
                                 cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
                                 userSelect: 'none'
                             }}
@@ -623,11 +635,11 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
                             {isPdf ? (
                                 <div style={{
                                     display: 'flex',
-                                    justifyContent: 'center',
+                                    flexDirection: 'column',
                                     alignItems: 'center',
+                                    justifyContent: 'flex-start',
                                     width: '100%',
-                                    height: '100%',
-                                    minHeight: '65vh'
+                                    margin: '0 auto'
                                 }}>
                                     {!pdfError && formattedPdfSource ? (
                                         <Document
@@ -639,19 +651,26 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
                                                 setPdfLoading(false)
                                             }}
                                             loading={
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#8892b0', gap: '12px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#8892b0', gap: '12px', padding: '60px 0' }}>
                                                     <Loader2 className="spin" size={36} style={{ color: 'var(--accent-primary)' }} />
                                                     <span style={{ fontSize: '13px', fontWeight: 500 }}>PDF Yükleniyor...</span>
                                                 </div>
                                             }
                                         >
-                                            <Page
-                                                pageNumber={pageNumber}
-                                                scale={zoomLevel}
-                                                rotate={rotation}
-                                                renderTextLayer={false}
-                                                renderAnnotationLayer={false}
-                                            />
+                                            <div style={{
+                                                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)',
+                                                borderRadius: '4px',
+                                                overflow: 'hidden',
+                                                backgroundColor: '#ffffff'
+                                            }}>
+                                                <Page
+                                                    pageNumber={pageNumber}
+                                                    scale={zoomLevel}
+                                                    rotate={rotation}
+                                                    renderTextLayer={false}
+                                                    renderAnnotationLayer={false}
+                                                />
+                                            </div>
                                         </Document>
                                     ) : formattedPdfSource ? (
                                         <embed

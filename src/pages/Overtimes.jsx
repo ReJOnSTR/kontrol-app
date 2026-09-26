@@ -47,7 +47,7 @@ const checkIsSundayRecord = (row) => {
 };
 
 export default function Overtimes() {
-    const { currentCompany } = useCompany()
+    const { currentCompany, companySettings } = useCompany()
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
     const { openNewTab } = useTabs()
@@ -316,10 +316,11 @@ export default function Overtimes() {
         const dailyRate = activeSalary / 30
         const hourlyRate = dailyRate / 10
         
-        const weekdayMultiplier = parseFloat(localStorage.getItem('hr_overtime_weekday_multiplier')) || 1.5
-        const sundayMultiplier = parseFloat(localStorage.getItem('hr_overtime_sunday_multiplier')) || 1.5
-        const holidayMultiplier = parseFloat(localStorage.getItem('hr_overtime_holiday_multiplier')) || 2.0
-        const gurbetMultiplier = parseFloat(localStorage.getItem('hr_overtime_gurbet_multiplier')) || 1.0
+        const hrSettings = companySettings?.hr || {}
+        const weekdayMultiplier = hrSettings.weekdayMultiplier !== undefined ? hrSettings.weekdayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_weekday_multiplier')) || 1.5)
+        const sundayMultiplier = hrSettings.sundayMultiplier !== undefined ? hrSettings.sundayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_sunday_multiplier')) || 1.5)
+        const holidayMultiplier = hrSettings.holidayMultiplier !== undefined ? hrSettings.holidayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_holiday_multiplier')) || 2.0)
+        const gurbetMultiplier = hrSettings.gurbetMultiplier !== undefined ? hrSettings.gurbetMultiplier : (parseFloat(localStorage.getItem('hr_overtime_gurbet_multiplier')) || 1.0)
         
         if (type === 'weekday') return Math.round(hourlyRate * weekdayMultiplier * 100) / 100
         if (type === 'sunday') return Math.round(dailyRate * sundayMultiplier * 100) / 100

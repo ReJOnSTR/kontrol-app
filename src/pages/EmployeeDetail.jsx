@@ -145,7 +145,7 @@ export default function EmployeeDetail() {
     const { id: paramId } = useParams()
     const navigate = useNavigate()
     const location = useLocation()
-    const { currentCompany, companies } = useCompany()
+    const { currentCompany, companies, companySettings } = useCompany()
     const { updateTabInfo } = useTabs()
     const { user, isAdmin } = useAuth()
     const id = paramId || user?.employee_id
@@ -157,6 +157,17 @@ export default function EmployeeDetail() {
         const saved = localStorage.getItem(`payroll_selected_month_${currentCompany?.id || 'default'}`)
         return saved || new Date().toISOString().slice(0, 7)
     })
+
+    const hrSettings = companySettings?.hr || {}
+    const getWeekdayMultiplier = () => hrSettings.weekdayMultiplier !== undefined ? hrSettings.weekdayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_weekday_multiplier')) || 1.5)
+    const getSundayMultiplier = () => hrSettings.sundayMultiplier !== undefined ? hrSettings.sundayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_sunday_multiplier')) || 1.5)
+    const getHolidayMultiplier = () => hrSettings.holidayMultiplier !== undefined ? hrSettings.holidayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_holiday_multiplier')) || 2.0)
+    const getGurbetMultiplier = () => hrSettings.gurbetMultiplier !== undefined ? hrSettings.gurbetMultiplier : (parseFloat(localStorage.getItem('hr_overtime_gurbet_multiplier')) || 1.0)
+    const getWhpl = () => hrSettings.weekdayHoursPerLeave !== undefined ? hrSettings.weekdayHoursPerLeave : (parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8)
+    const getSdpl = () => hrSettings.sundayDaysPerLeave !== undefined ? hrSettings.sundayDaysPerLeave : (parseFloat(localStorage.getItem('hr_overtime_sunday_days_per_leave')) || 1)
+    const getHdpl = () => hrSettings.holidayDaysPerLeave !== undefined ? hrSettings.holidayDaysPerLeave : (parseFloat(localStorage.getItem('hr_overtime_holiday_days_per_leave')) || 1)
+    const getAdvanceAmount = () => hrSettings.defaultAdvanceAmount !== undefined ? hrSettings.defaultAdvanceAmount : (parseFloat(localStorage.getItem('hr_default_advance_amount')) || 0)
+
 
     // Request Modal States & Handlers
     const [vehicles, setVehicles] = useState([])
@@ -770,7 +781,7 @@ export default function EmployeeDetail() {
             return monthlyOvertimes.reduce((sum, o) => sum + (o.amount || 0), 0)
         }
         if (paymentType === 'advance') {
-            return parseFloat(localStorage.getItem('hr_default_advance_amount')) || 0
+            return getAdvanceAmount()
         }
         return ''
     }
@@ -781,10 +792,10 @@ export default function EmployeeDetail() {
         if (!activeSalary) return 0
         const dailyRate = activeSalary / 30
         const hourlyRate = dailyRate / 10
-        const weekdayMultiplier = parseFloat(localStorage.getItem('hr_overtime_weekday_multiplier')) || 1.5
-        const sundayMultiplier = parseFloat(localStorage.getItem('hr_overtime_sunday_multiplier')) || 1.5
-        const holidayMultiplier = parseFloat(localStorage.getItem('hr_overtime_holiday_multiplier')) || 2.0
-        const gurbetMultiplier = parseFloat(localStorage.getItem('hr_overtime_gurbet_multiplier')) || 1.0
+        const weekdayMultiplier = getWeekdayMultiplier()
+        const sundayMultiplier = getSundayMultiplier()
+        const holidayMultiplier = getHolidayMultiplier()
+        const gurbetMultiplier = getGurbetMultiplier()
         if (type === 'weekday') return Math.round(hourlyRate * weekdayMultiplier * 100) / 100
         if (type === 'sunday') return Math.round(dailyRate * sundayMultiplier * 100) / 100
         if (type === 'holiday') return Math.round(dailyRate * holidayMultiplier * 100) / 100
@@ -794,7 +805,7 @@ export default function EmployeeDetail() {
 
     const formatDayBalance = (days, customWhpl) => {
         if (!days && days !== 0) return '-'
-        const whpl = customWhpl || parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8
+        const whpl = customWhpl || getWhpl()
         const absDays = Math.abs(days)
         const hours = Math.round(absDays * whpl * 100) / 100
         const sign = days < 0 ? '-' : ''
@@ -940,7 +951,7 @@ export default function EmployeeDetail() {
         } else if (modalType === 'leave' && ['startDate', 'endDate', 'days', 'type', 'leaveUnit', 'hours'].includes(key)) {
             setFormData(prev => {
                 let newData = { ...prev, [key]: value }
-                const whpl = parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8
+                const whpl = getWhpl()
 
                 if (newData.leaveUnit === 'hourly') {
                     if (key === 'startDate') {
@@ -1372,9 +1383,9 @@ export default function EmployeeDetail() {
         }
 
         if (type.toLowerCase().includes('mesai')) {
-            const whpl = parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8
-            const sdpl = parseFloat(localStorage.getItem('hr_overtime_sunday_days_per_leave')) || 1
-            const hdpl = parseFloat(localStorage.getItem('hr_overtime_holiday_days_per_leave')) || 1
+            const whpl = getWhpl()
+            const sdpl = getSdpl()
+            const hdpl = getHdpl()
             
             // Sort earned overtimes by date (FIFO)
             const earnedOts = [...overtimes]
@@ -1460,7 +1471,7 @@ export default function EmployeeDetail() {
     }
 
     const handleOffsetLeave = async (amount, currentAnnualBalance, currentOtBalance) => {
-        const whpl = parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8
+        const whpl = getWhpl()
         const amountInHours = Math.round(amount * whpl * 10) / 10
         const amountText = amount % 1 === 0 ? `${amount} günlük` : `${amountInHours} saatlik`
         if (!window.confirm(`${amountText} yıllık izin borcunu mesai izninden mahsup etmek istediğinize emin misiniz?`)) return
@@ -1469,8 +1480,8 @@ export default function EmployeeDetail() {
         try {
             const today = new Date().toISOString().split('T')[0]
             
-            const sdpl = parseFloat(localStorage.getItem('hr_overtime_sunday_days_per_leave')) || 1
-            const hdpl = parseFloat(localStorage.getItem('hr_overtime_holiday_days_per_leave')) || 1
+            const sdpl = getSdpl()
+            const hdpl = getHdpl()
             const earnedOts = [...overtimes]
                 .filter(o => o.notes && o.notes.includes('[İZİN OLARAK KULLANILDI]'))
                 .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -1992,7 +2003,7 @@ export default function EmployeeDetail() {
         { key: 'start_date', label: 'Başlangıç', render: (v) => formatDate(v) },
         { key: 'end_date', label: 'Bitiş', render: (v) => formatDate(v) },
         { key: 'days', label: 'Süre', render: (v, row) => {
-            const whpl = parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8;
+            const whpl = getWhpl();
             const displayVal = (() => {
                 if (row.hours) return `${row.hours} Saat`;
                 if (v && v % 1 !== 0) {
@@ -2760,62 +2771,62 @@ export default function EmployeeDetail() {
                                              ((l.type === 'annual' || (l.type && l.type.toLowerCase().includes('yıllık'))) && !isCreditLeave(l))
                                          ).reduce((acc, l) => acc + (l.days || 0), 0)
                                         
-                                        // Calculate OT balance for the offset button
-                                        const whpl = parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8
-                                        const sdpl = parseFloat(localStorage.getItem('hr_overtime_sunday_days_per_leave')) || 1
-                                        const hdpl = parseFloat(localStorage.getItem('hr_overtime_holiday_days_per_leave')) || 1
-                                        const earnedOts = overtimes.filter(o => o.notes && o.notes.includes('[İZİN OLARAK KULLANILDI]'))
-                                        const totalEarned = earnedOts.reduce((sum, o) => sum + calculateEarnedOtDays(o, employee, whpl, sdpl, hdpl), 0)
-                                         const totalUsedOT = leaves
-                                             .filter(l => l.status === 'approved' && l.type && (l.type.toLowerCase().includes('mesai') || l.type.toLowerCase().includes('mahsup') || l.type === 'offset'))
-                                             .reduce((sum, l) => sum + (l.hours ? l.hours / whpl : (l.days || 0)), 0)
-                                         const otBalance = Math.round((totalEarned - totalUsedOT) * 100) / 100
+                                         // Calculate OT balance for the offset button
+                                         const whpl = getWhpl()
+                                         const sdpl = getSdpl()
+                                         const hdpl = getHdpl()
+                                         const earnedOts = overtimes.filter(o => o.notes && o.notes.includes('[İZİN OLARAK KULLANILDI]'))
+                                         const totalEarned = earnedOts.reduce((sum, o) => sum + calculateEarnedOtDays(o, employee, whpl, sdpl, hdpl), 0)
+                                          const totalUsedOT = leaves
+                                              .filter(l => l.status === 'approved' && l.type && (l.type.toLowerCase().includes('mesai') || l.type.toLowerCase().includes('mahsup') || l.type === 'offset'))
+                                              .reduce((sum, l) => sum + (l.hours ? l.hours / whpl : (l.days || 0)), 0)
+                                          const otBalance = Math.round((totalEarned - totalUsedOT) * 100) / 100
 
-                                         const totalOffsets = leaves
-                                             .filter(l => l.status === 'approved' && l.type && (l.type === 'offset' || l.type.toLowerCase() === 'mahsup' || isAdditiveAnnual(l.type)))
-                                             .reduce((acc, l) => acc + (l.hours ? l.hours / whpl : (l.days || 0)), 0)
-                                        const balance = totalAccrued - pastUsed - systemUsedAnnual + totalOffsets
+                                          const totalOffsets = leaves
+                                              .filter(l => l.status === 'approved' && l.type && (l.type === 'offset' || l.type.toLowerCase() === 'mahsup' || isAdditiveAnnual(l.type)))
+                                              .reduce((acc, l) => acc + (l.hours ? l.hours / whpl : (l.days || 0)), 0)
+                                         const balance = totalAccrued - pastUsed - systemUsedAnnual + totalOffsets
 
-                                        return (
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                                <span style={{ color: balance < 0 ? 'var(--danger)' : 'var(--accent-primary)' }}>{formatDayBalance(balance, whpl)}</span>
-                                                {balance < 0 && otBalance > 0 && (
-                                                    <button 
-                                                        onClick={() => handleOffsetLeave(Math.min(Math.abs(balance), otBalance), balance, otBalance)}
-                                                        style={{ padding: '4px 8px', fontSize: '10px', background: 'var(--accent-subtle)', color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
-                                                    >
-                                                        Mahsup Et
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )
-                                    })()}
-                                </div>
-                            </div>
-                             <div className="card" style={{ padding: '14px 16px' }}>
-                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Bu Ay Kullanılan</div>
-                                 <div style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px' }}>
-                                     {(() => {
-                                         const whpl = parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8
-                                         const now = new Date()
-                                         const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-                                         const usedThisMonth = leaves.filter(l =>
-                                             l.status === 'approved' &&
-                                             ((l.start_date && (typeof l.start_date === 'string' ? l.start_date : new Date(l.start_date).toISOString()).startsWith(currentMonth)) || 
-                                              (l.end_date && (typeof l.end_date === 'string' ? l.end_date : new Date(l.end_date).toISOString()).startsWith(currentMonth)))
-                                         ).reduce((acc, l) => acc + (l.days || 1), 0)
-                                         return formatDayBalance(usedThisMonth, whpl)
+                                         return (
+                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                                 <span style={{ color: balance < 0 ? 'var(--danger)' : 'var(--accent-primary)' }}>{formatDayBalance(balance, whpl)}</span>
+                                                 {balance < 0 && otBalance > 0 && (
+                                                     <button 
+                                                         onClick={() => handleOffsetLeave(Math.min(Math.abs(balance), otBalance), balance, otBalance)}
+                                                         style={{ padding: '4px 8px', fontSize: '10px', background: 'var(--accent-subtle)', color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                                     >
+                                                         Mahsup Et
+                                                     </button>
+                                                 )}
+                                             </div>
+                                         )
                                      })()}
                                  </div>
                              </div>
-                             <div className="card" style={{ padding: '14px 16px' }}>
-                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Bekleyen</div>
-                                 <div style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: leaves.filter(l => l.status === 'pending').length > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>{leaves.filter(l => l.status === 'pending').length} kayıt</div>
-                             </div>
-                             {(() => {
-                                 const whpl = parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8
-                                 const sdpl = parseFloat(localStorage.getItem('hr_overtime_sunday_days_per_leave')) || 1
-                                 const hdpl = parseFloat(localStorage.getItem('hr_overtime_holiday_days_per_leave')) || 1
+                              <div className="card" style={{ padding: '14px 16px' }}>
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Bu Ay Kullanılan</div>
+                                  <div style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px' }}>
+                                      {(() => {
+                                          const whpl = getWhpl()
+                                          const now = new Date()
+                                          const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                                          const usedThisMonth = leaves.filter(l =>
+                                              l.status === 'approved' &&
+                                              ((l.start_date && (typeof l.start_date === 'string' ? l.start_date : new Date(l.start_date).toISOString()).startsWith(currentMonth)) || 
+                                               (l.end_date && (typeof l.end_date === 'string' ? l.end_date : new Date(l.end_date).toISOString()).startsWith(currentMonth)))
+                                          ).reduce((acc, l) => acc + (l.days || 1), 0)
+                                          return formatDayBalance(usedThisMonth, whpl)
+                                      })()}
+                                  </div>
+                              </div>
+                              <div className="card" style={{ padding: '14px 16px' }}>
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Bekleyen</div>
+                                  <div style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: leaves.filter(l => l.status === 'pending').length > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>{leaves.filter(l => l.status === 'pending').length} kayıt</div>
+                              </div>
+                              {(() => {
+                                  const whpl = getWhpl()
+                                  const sdpl = getSdpl()
+                                  const hdpl = getHdpl()
                                  const earnedOts = overtimes.filter(o => o.notes && o.notes.includes('[İZİN OLARAK KULLANILDI]'))
                                  const totalEarned = earnedOts.reduce((sum, o) => sum + calculateEarnedOtDays(o, employee, whpl, sdpl, hdpl), 0)
                                  const totalUsedOT = leaves

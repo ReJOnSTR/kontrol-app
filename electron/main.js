@@ -14,6 +14,7 @@ const auditService = require('./services/audit.service')
 const sessionService = require('./services/session.service')
 const emailTemplateService = require('./services/emailTemplate.service')
 const systemSettingsService = require('./services/systemSettings.service')
+const { syncFileToCloud, startStartupBackfill } = require('./services/documentSync.service')
 
 
 // Optional: Override console to correct log file
@@ -372,6 +373,9 @@ app.whenReady().then(async () => {
                 }
             }).catch(() => {});
         }, 15000);
+
+        // Background startup sync of missing local documents to Supabase Storage
+        startStartupBackfill(app.getPath('userData'));
     } catch (err) {
         log.error('Failed to initialize database:', err)
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -525,6 +529,11 @@ ipcMain.handle('auth:activateUserByEmail', async (event, data) => {
 
 ipcMain.handle('auth:updateProfile', async (event, data) => {
     return await db.updateProfile(data)
+})
+
+ipcMain.handle('auth:getUserProfile', async (event, userId) => {
+    const authService = require('./services/auth.service')
+    return await authService.getUserProfile(userId)
 })
 
 ipcMain.handle('auth:createEmployeeUser', async (event, data) => {
@@ -1054,6 +1063,11 @@ ipcMain.handle('employeeDocuments:create', async (event, data) => {
         // Copy file
         await copyOrCloneFile(sourcePath, destPath)
 
+        // Asynchronously upload to Supabase Storage in background for cross-device availability
+        syncFileToCloud(destPath, fileName).catch(err => {
+            console.warn('[employeeDocuments:create Cloud Sync Notice]:', err.message);
+        });
+
         // Save to DB with the NEW path (the filename in our storage)
         const result = await db.addEmployeeDocument({
             ...data,
@@ -1109,6 +1123,11 @@ ipcMain.handle('employeeDocuments:update', async (event, data) => {
             await copyOrCloneFile(data.filePath, destPath)
             finalData.fileName = path.basename(data.filePath)
             finalData.filePath = fileName
+
+            // Asynchronously upload to Supabase Storage in background for cross-device availability
+            syncFileToCloud(destPath, fileName).catch(err => {
+                console.warn('[employeeDocuments:update Cloud Sync Notice]:', err.message);
+            });
         }
 
         const result = await db.updateEmployeeDocument(finalData)
@@ -2011,18 +2030,9 @@ ipcMain.handle('files:save', async (event, sourcePath) => {
         await copyOrCloneFile(sourcePath, destPath)
 
         // Asynchronously upload to Supabase Storage in background for cross-PC availability
-        try {
-            const { uploadToStorage } = require('./services/supabase.service');
-            const fileBuf = fs.readFileSync(destPath);
-            let mimeType = 'application/octet-stream';
-            const extLower = ext.toLowerCase();
-            if (extLower === '.pdf') mimeType = 'application/pdf';
-            else if (extLower === '.jpg' || extLower === '.jpeg') mimeType = 'image/jpeg';
-            else if (extLower === '.png') mimeType = 'image/png';
-            uploadToStorage(fileBuf, fileName, mimeType, 'documents').catch(err => {
-                console.warn('[Supabase Sync Notice]: File saved locally, background cloud upload:', err.message);
-            });
-        } catch (e) {}
+        syncFileToCloud(destPath, fileName).catch(err => {
+            console.warn('[files:save Cloud Sync Notice]:', err.message);
+        });
 
         return fileName
     } catch (error) {
@@ -2075,6 +2085,11 @@ ipcMain.handle('documents:add', async (event, data) => {
 
         // Copy file
         await copyOrCloneFile(sourcePath, destPath)
+
+        // Asynchronously upload to Supabase Storage in background for cross-device availability
+        syncFileToCloud(destPath, fileName).catch(err => {
+            console.warn('[documents:add Cloud Sync Notice]:', err.message);
+        });
 
         // Add to DB
         const result = await db.addDocument({
@@ -2414,12 +2429,14 @@ ipcMain.handle('documents:readData', async (event, fileName) => {
         }
 
         const fileData = await fs.promises.readFile(filePath, { encoding: 'base64' })
+        const { getStoragePublicUrl } = require('./services/supabase.service');
         return { 
             success: true, 
             data: `data:${mimeType};base64,${fileData}`, 
             type: mimeType, 
             ext, 
             path: filePath, 
+            url: getStoragePublicUrl(cleanName, 'documents'),
             size: stats.size 
         }
     } catch (error) {

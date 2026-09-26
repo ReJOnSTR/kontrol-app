@@ -6,12 +6,40 @@ const activeSessions = new Map();
 
 // Blacklisted / Terminated session IDs (force logout)
 const terminatedSessionIds = new Set();
+let revokedCacheLoaded = false;
+
+async function loadRevokedSessionsFromDb() {
+    if (revokedCacheLoaded) return;
+    revokedCacheLoaded = true;
+    try {
+        const { getPrismaClient } = require('../prismaClient');
+        const prisma = getPrismaClient();
+        if (!prisma) return;
+
+        // Cleanup expired sessions
+        await prisma.$executeRawUnsafe(`DELETE FROM revoked_sessions WHERE expires_at < CURRENT_TIMESTAMP`).catch(() => {});
+
+        // Fetch active revoked session IDs
+        const rows = await prisma.$queryRawUnsafe(`SELECT session_id FROM revoked_sessions WHERE expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP`).catch(() => []);
+        if (Array.isArray(rows)) {
+            for (const r of rows) {
+                if (r.session_id) terminatedSessionIds.add(r.session_id);
+            }
+        }
+    } catch (e) {
+        // Fallback gracefully to memory
+    }
+}
 
 /**
  * Handle heartbeat from active client
  */
 function recordHeartbeat(data) {
     try {
+        if (!revokedCacheLoaded) {
+            loadRevokedSessionsFromDb().catch(() => {});
+        }
+
         const {
             userId,
             username,
@@ -151,6 +179,24 @@ function terminateUserSession(sessionId, adminUser = 'SuperAdmin') {
     try {
         const session = activeSessions.get(sessionId);
         terminatedSessionIds.add(sessionId);
+
+        // Persist to PostgreSQL / SQLite revoked_sessions table
+        try {
+            const { getPrismaClient } = require('../prismaClient');
+            const prisma = getPrismaClient();
+            if (prisma) {
+                const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+                const uid = session?.userId || null;
+                prisma.$executeRawUnsafe(
+                    `INSERT INTO revoked_sessions (session_id, user_id, revoked_at, reason, expires_at)
+                     VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4)
+                     ON CONFLICT (session_id) DO UPDATE SET expires_at = $4, reason = $3`,
+                    sessionId, uid, `Terminated by ${adminUser}`, expiresAt
+                ).catch(() => {});
+            }
+        } catch (dbErr) {
+            console.error('Failed to persist revoked session to DB:', dbErr);
+        }
 
         if (session) {
             activeSessions.delete(sessionId);

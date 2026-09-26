@@ -101,9 +101,14 @@ export default function WorkDetails(props) {
     useEffect(() => {
         if (work?.id) {
             try {
-                const s = localStorage.getItem(`pdfPageBreakSettings_${work.id}`)
-                if (s) {
-                    const parsed = JSON.parse(s)
+                let parsed = null
+                if (work.pdf_settings) {
+                    parsed = typeof work.pdf_settings === 'string' ? JSON.parse(work.pdf_settings) : work.pdf_settings
+                } else {
+                    const s = localStorage.getItem(`pdfPageBreakSettings_${work.id}`)
+                    if (s) parsed = JSON.parse(s)
+                }
+                if (parsed) {
                     if (parsed.pageBreakMode) setPageBreakMode(parsed.pageBreakMode)
                     if (parsed.rowsPerPage) setRowsPerPage(parsed.rowsPerPage)
                     if (parsed.manualBreakIds) setManualBreakIds(parsed.manualBreakIds)
@@ -114,7 +119,7 @@ export default function WorkDetails(props) {
                 }
             } catch (e) {}
         }
-    }, [work?.id])
+    }, [work?.id, work?.pdf_settings])
 
     const savePdfBreakSettings = (newSettings) => {
         if (!work?.id) return
@@ -129,7 +134,14 @@ export default function WorkDetails(props) {
                 showWorkTitle: newSettings.showWorkTitle !== undefined ? newSettings.showWorkTitle : showWorkTitle,
                 ...newSettings
             }
-            localStorage.setItem(`pdfPageBreakSettings_${work.id}`, JSON.stringify(updated))
+            const jsonStr = JSON.stringify(updated)
+            localStorage.setItem(`pdfPageBreakSettings_${work.id}`, jsonStr)
+
+            // Persist to PostgreSQL / SQLite database
+            const api = window.electronAPI || window.api
+            if (api && api.updateWork) {
+                api.updateWork({ id: work.id, pdf_settings: jsonStr }).catch(() => {})
+            }
         } catch (e) {}
     }
 

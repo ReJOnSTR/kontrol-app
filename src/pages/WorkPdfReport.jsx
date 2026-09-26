@@ -34,15 +34,19 @@ export default function WorkPdfReport({
     const showPrices = showPricesProp;
     const contentRef = useRef(null);
 
-    // Load break settings from localStorage fallback
+    // Load break settings from DB (work.pdf_settings / propWork.pdf_settings) or localStorage fallback
     const savedBreakSettings = (() => {
         try {
-            const s = localStorage.getItem(`pdfPageBreakSettings_${id}`);
-            return s ? JSON.parse(s) : {};
+            const raw = work?.pdf_settings || propWork?.pdf_settings
+            if (raw) {
+                return typeof raw === 'string' ? JSON.parse(raw) : raw
+            }
+            const s = localStorage.getItem(`pdfPageBreakSettings_${id}`)
+            return s ? JSON.parse(s) : {}
         } catch (e) {
-            return {};
+            return {}
         }
-    })();
+    })()
 
     const pageBreakMode = pageBreakModeProp || savedBreakSettings.pageBreakMode || 'fit_page';
     const rowsPerPage = rowsPerPageProp || savedBreakSettings.rowsPerPage || 20;
@@ -90,8 +94,10 @@ export default function WorkPdfReport({
     useEffect(() => {
         if (manualBreakIdsProp) {
             setManualBreakIds(manualBreakIdsProp);
+        } else if (savedBreakSettings.manualBreakIds) {
+            setManualBreakIds(savedBreakSettings.manualBreakIds);
         }
-    }, [manualBreakIdsProp]);
+    }, [manualBreakIdsProp, work?.pdf_settings]);
 
     const handleToggleBreak = (itemId) => {
         let next;
@@ -106,7 +112,16 @@ export default function WorkPdfReport({
         }
         try {
             const cur = savedBreakSettings;
-            localStorage.setItem(`pdfPageBreakSettings_${id}`, JSON.stringify({ ...cur, manualBreakIds: next }));
+            const updated = { ...cur, manualBreakIds: next };
+            const jsonStr = JSON.stringify(updated);
+            localStorage.setItem(`pdfPageBreakSettings_${id}`, jsonStr);
+
+            // Persist to database
+            const targetId = id || work?.id;
+            const api = window.electronAPI || window.api;
+            if (targetId && api && api.updateWork) {
+                api.updateWork({ id: targetId, pdf_settings: jsonStr }).catch(() => {});
+            }
         } catch (e) {}
     };
 

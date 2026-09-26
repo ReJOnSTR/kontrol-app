@@ -373,7 +373,8 @@ CREATE TABLE IF NOT EXISTS works (
     work_end_time VARCHAR(20) DEFAULT '17:00',
     is_archived INT DEFAULT 0,
     pazar_multiplier DOUBLE PRECISION DEFAULT 1.5,
-    mesai_multiplier DOUBLE PRECISION DEFAULT 1.5
+    mesai_multiplier DOUBLE PRECISION DEFAULT 1.5,
+    pdf_settings TEXT
 );
 
 CREATE TABLE IF NOT EXISTS work_items (
@@ -546,7 +547,17 @@ ALTER TABLE document_folders ADD COLUMN IF NOT EXISTS related_id INT;
 
 ALTER TABLE public_holidays ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
 ALTER TABLE works ALTER COLUMN title DROP NOT NULL;
+ALTER TABLE works ADD COLUMN IF NOT EXISTS pdf_settings TEXT;
 DROP TABLE IF EXISTS arvento_history CASCADE;
+
+CREATE TABLE IF NOT EXISTS revoked_sessions (
+    session_id VARCHAR(255) PRIMARY KEY,
+    user_id INT,
+    revoked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reason TEXT,
+    expires_at TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_revoked_sessions_expires ON revoked_sessions (expires_at);
 
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'PRO';
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';

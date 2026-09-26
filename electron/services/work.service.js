@@ -122,7 +122,8 @@ async function createWork(data) {
                 start_date: data.startDate ? new Date(data.startDate) : null,
                 end_date: data.endDate ? new Date(data.endDate) : null,
                 pazar_multiplier: data.pazar_multiplier !== undefined ? parseFloat(data.pazar_multiplier) : 1.5,
-                mesai_multiplier: data.mesai_multiplier !== undefined ? parseFloat(data.mesai_multiplier) : 1.5
+                mesai_multiplier: data.mesai_multiplier !== undefined ? parseFloat(data.mesai_multiplier) : 1.5,
+                pdf_settings: data.pdf_settings || null
             }
         })
         return { success: true, data: newWork }
@@ -161,7 +162,8 @@ async function updateWork(data) {
                 start_date: data.startDate !== undefined ? (data.startDate ? new Date(data.startDate) : null) : undefined,
                 end_date: data.endDate !== undefined ? (data.endDate ? new Date(data.endDate) : null) : undefined,
                 pazar_multiplier: data.pazar_multiplier !== undefined ? parseFloat(data.pazar_multiplier) : undefined,
-                mesai_multiplier: data.mesai_multiplier !== undefined ? parseFloat(data.mesai_multiplier) : undefined
+                mesai_multiplier: data.mesai_multiplier !== undefined ? parseFloat(data.mesai_multiplier) : undefined,
+                pdf_settings: data.pdf_settings !== undefined ? data.pdf_settings : undefined
             }
         });
 

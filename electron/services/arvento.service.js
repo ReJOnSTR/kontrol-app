@@ -13,7 +13,38 @@ const settingsPath = (app && typeof app.getPath === 'function')
     ? path.join(app.getPath('userData'), 'settings.json')
     : path.join(process.env.DATA_DIR || path.join(__dirname, '../../data'), 'settings.json')
 
-function getArventoCredentials() {
+async function getArventoCredentials(companyId = null) {
+    // 1. Check company_settings from PostgreSQL / DB first
+    try {
+        const prisma = getPrismaClient()
+        if (prisma && prisma.company_settings) {
+            let row = null
+            if (companyId) {
+                row = await prisma.company_settings.findUnique({
+                    where: { company_id: parseInt(companyId, 10) }
+                })
+            } else {
+                row = await prisma.company_settings.findFirst()
+            }
+            if (row && row.settings_json) {
+                const parsed = typeof row.settings_json === 'string' ? JSON.parse(row.settings_json) : row.settings_json
+                const arvento = parsed?.integrations?.arvento
+                if (arvento && (arvento.username || arvento.pin1)) {
+                    return {
+                        username: arvento.username || '',
+                        pin1: arvento.pin1 || '',
+                        pin2: arvento.pin2 || '',
+                        language: arvento.language || 'tr',
+                        enabled: !!arvento.enabled
+                    }
+                }
+            }
+        }
+    } catch (dbErr) {
+        // Fallback to disk file if DB fails
+    }
+
+    // 2. Fallback to settings.json on disk
     try {
         if (fs.existsSync(settingsPath)) {
             const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
@@ -28,7 +59,7 @@ function getArventoCredentials() {
             }
         }
     } catch (error) {
-        console.error('Error loading Arvento credentials:', error)
+        console.error('Error loading Arvento credentials from file:', error)
     }
     return { username: '', pin1: '', pin2: '', language: 'tr', enabled: false }
 }
@@ -125,7 +156,7 @@ function parseXmlTable(xml) {
 }
 
 async function makeArventoRequest(methodName, params = {}, credentialsOverride = null) {
-    const creds = credentialsOverride || getArventoCredentials()
+    const creds = credentialsOverride || await getArventoCredentials()
     const username = creds.username
     const pin1 = creds.pin1
     const pin2 = creds.pin2

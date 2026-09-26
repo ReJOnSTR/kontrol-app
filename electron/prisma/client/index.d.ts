@@ -218,6 +218,11 @@ export type company_settings = $Result.DefaultSelection<Prisma.$company_settings
  * 
  */
 export type user_preferences = $Result.DefaultSelection<Prisma.$user_preferencesPayload>
+/**
+ * Model revoked_sessions
+ * 
+ */
+export type revoked_sessions = $Result.DefaultSelection<Prisma.$revoked_sessionsPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -749,6 +754,16 @@ export class PrismaClient<
     * ```
     */
   get user_preferences(): Prisma.user_preferencesDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.revoked_sessions`: Exposes CRUD operations for the **revoked_sessions** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Revoked_sessions
+    * const revoked_sessions = await prisma.revoked_sessions.findMany()
+    * ```
+    */
+  get revoked_sessions(): Prisma.revoked_sessionsDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -1236,7 +1251,8 @@ export namespace Prisma {
     system_announcements: 'system_announcements',
     audit_logs: 'audit_logs',
     company_settings: 'company_settings',
-    user_preferences: 'user_preferences'
+    user_preferences: 'user_preferences',
+    revoked_sessions: 'revoked_sessions'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1252,7 +1268,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "assignments" | "companies" | "customers" | "documents" | "employee_assignments" | "employee_attendance" | "employee_documents" | "employee_movements" | "employee_salary_history" | "employees" | "inspections" | "insurances" | "leaves" | "maintenances" | "meal_settings" | "meal_tickets" | "meal_price_history" | "overtimes" | "recurring_transactions" | "salaries" | "schema_migrations" | "services" | "transactions" | "users" | "vehicles" | "work_items" | "works" | "departments" | "leave_types" | "document_categories" | "document_folders" | "vehicle_types" | "public_holidays" | "roles" | "permissions" | "requests" | "request_approvals" | "system_announcements" | "audit_logs" | "company_settings" | "user_preferences"
+      modelProps: "assignments" | "companies" | "customers" | "documents" | "employee_assignments" | "employee_attendance" | "employee_documents" | "employee_movements" | "employee_salary_history" | "employees" | "inspections" | "insurances" | "leaves" | "maintenances" | "meal_settings" | "meal_tickets" | "meal_price_history" | "overtimes" | "recurring_transactions" | "salaries" | "schema_migrations" | "services" | "transactions" | "users" | "vehicles" | "work_items" | "works" | "departments" | "leave_types" | "document_categories" | "document_folders" | "vehicle_types" | "public_holidays" | "roles" | "permissions" | "requests" | "request_approvals" | "system_announcements" | "audit_logs" | "company_settings" | "user_preferences" | "revoked_sessions"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4290,6 +4306,80 @@ export namespace Prisma {
           }
         }
       }
+      revoked_sessions: {
+        payload: Prisma.$revoked_sessionsPayload<ExtArgs>
+        fields: Prisma.revoked_sessionsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.revoked_sessionsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.revoked_sessionsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload>
+          }
+          findFirst: {
+            args: Prisma.revoked_sessionsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.revoked_sessionsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload>
+          }
+          findMany: {
+            args: Prisma.revoked_sessionsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload>[]
+          }
+          create: {
+            args: Prisma.revoked_sessionsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload>
+          }
+          createMany: {
+            args: Prisma.revoked_sessionsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.revoked_sessionsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload>[]
+          }
+          delete: {
+            args: Prisma.revoked_sessionsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload>
+          }
+          update: {
+            args: Prisma.revoked_sessionsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload>
+          }
+          deleteMany: {
+            args: Prisma.revoked_sessionsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.revoked_sessionsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.revoked_sessionsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload>[]
+          }
+          upsert: {
+            args: Prisma.revoked_sessionsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$revoked_sessionsPayload>
+          }
+          aggregate: {
+            args: Prisma.Revoked_sessionsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRevoked_sessions>
+          }
+          groupBy: {
+            args: Prisma.revoked_sessionsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Revoked_sessionsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.revoked_sessionsCountArgs<ExtArgs>
+            result: $Utils.Optional<Revoked_sessionsCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -4454,6 +4544,7 @@ export namespace Prisma {
     audit_logs?: audit_logsOmit
     company_settings?: company_settingsOmit
     user_preferences?: user_preferencesOmit
+    revoked_sessions?: revoked_sessionsOmit
   }
 
   /* Types for Logging */
@@ -37539,6 +37630,7 @@ export namespace Prisma {
     is_archived: number | null
     pazar_multiplier: number | null
     mesai_multiplier: number | null
+    pdf_settings: string | null
   }
 
   export type WorksMaxAggregateOutputType = {
@@ -37561,6 +37653,7 @@ export namespace Prisma {
     is_archived: number | null
     pazar_multiplier: number | null
     mesai_multiplier: number | null
+    pdf_settings: string | null
   }
 
   export type WorksCountAggregateOutputType = {
@@ -37583,6 +37676,7 @@ export namespace Prisma {
     is_archived: number
     pazar_multiplier: number
     mesai_multiplier: number
+    pdf_settings: number
     _all: number
   }
 
@@ -37631,6 +37725,7 @@ export namespace Prisma {
     is_archived?: true
     pazar_multiplier?: true
     mesai_multiplier?: true
+    pdf_settings?: true
   }
 
   export type WorksMaxAggregateInputType = {
@@ -37653,6 +37748,7 @@ export namespace Prisma {
     is_archived?: true
     pazar_multiplier?: true
     mesai_multiplier?: true
+    pdf_settings?: true
   }
 
   export type WorksCountAggregateInputType = {
@@ -37675,6 +37771,7 @@ export namespace Prisma {
     is_archived?: true
     pazar_multiplier?: true
     mesai_multiplier?: true
+    pdf_settings?: true
     _all?: true
   }
 
@@ -37784,6 +37881,7 @@ export namespace Prisma {
     is_archived: number | null
     pazar_multiplier: number | null
     mesai_multiplier: number | null
+    pdf_settings: string | null
     _count: WorksCountAggregateOutputType | null
     _avg: WorksAvgAggregateOutputType | null
     _sum: WorksSumAggregateOutputType | null
@@ -37825,6 +37923,7 @@ export namespace Prisma {
     is_archived?: boolean
     pazar_multiplier?: boolean
     mesai_multiplier?: boolean
+    pdf_settings?: boolean
     work_items?: boolean | works$work_itemsArgs<ExtArgs>
     employees?: boolean | works$employeesArgs<ExtArgs>
     vehicles?: boolean | works$vehiclesArgs<ExtArgs>
@@ -37853,6 +37952,7 @@ export namespace Prisma {
     is_archived?: boolean
     pazar_multiplier?: boolean
     mesai_multiplier?: boolean
+    pdf_settings?: boolean
     employees?: boolean | works$employeesArgs<ExtArgs>
     vehicles?: boolean | works$vehiclesArgs<ExtArgs>
     companies?: boolean | companiesDefaultArgs<ExtArgs>
@@ -37879,6 +37979,7 @@ export namespace Prisma {
     is_archived?: boolean
     pazar_multiplier?: boolean
     mesai_multiplier?: boolean
+    pdf_settings?: boolean
     employees?: boolean | works$employeesArgs<ExtArgs>
     vehicles?: boolean | works$vehiclesArgs<ExtArgs>
     companies?: boolean | companiesDefaultArgs<ExtArgs>
@@ -37905,9 +38006,10 @@ export namespace Prisma {
     is_archived?: boolean
     pazar_multiplier?: boolean
     mesai_multiplier?: boolean
+    pdf_settings?: boolean
   }
 
-  export type worksOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "company_id" | "vehicle_id" | "employee_id" | "customer_id" | "customer" | "title" | "description" | "status" | "price" | "location" | "created_at" | "start_date" | "end_date" | "work_start_time" | "work_end_time" | "is_archived" | "pazar_multiplier" | "mesai_multiplier", ExtArgs["result"]["works"]>
+  export type worksOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "company_id" | "vehicle_id" | "employee_id" | "customer_id" | "customer" | "title" | "description" | "status" | "price" | "location" | "created_at" | "start_date" | "end_date" | "work_start_time" | "work_end_time" | "is_archived" | "pazar_multiplier" | "mesai_multiplier" | "pdf_settings", ExtArgs["result"]["works"]>
   export type worksInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     work_items?: boolean | works$work_itemsArgs<ExtArgs>
     employees?: boolean | works$employeesArgs<ExtArgs>
@@ -37958,6 +38060,7 @@ export namespace Prisma {
       is_archived: number | null
       pazar_multiplier: number | null
       mesai_multiplier: number | null
+      pdf_settings: string | null
     }, ExtArgs["result"]["works"]>
     composites: {}
   }
@@ -38405,6 +38508,7 @@ export namespace Prisma {
     readonly is_archived: FieldRef<"works", 'Int'>
     readonly pazar_multiplier: FieldRef<"works", 'Float'>
     readonly mesai_multiplier: FieldRef<"works", 'Float'>
+    readonly pdf_settings: FieldRef<"works", 'String'>
   }
     
 
@@ -54728,6 +54832,1040 @@ export namespace Prisma {
 
 
   /**
+   * Model revoked_sessions
+   */
+
+  export type AggregateRevoked_sessions = {
+    _count: Revoked_sessionsCountAggregateOutputType | null
+    _avg: Revoked_sessionsAvgAggregateOutputType | null
+    _sum: Revoked_sessionsSumAggregateOutputType | null
+    _min: Revoked_sessionsMinAggregateOutputType | null
+    _max: Revoked_sessionsMaxAggregateOutputType | null
+  }
+
+  export type Revoked_sessionsAvgAggregateOutputType = {
+    user_id: number | null
+  }
+
+  export type Revoked_sessionsSumAggregateOutputType = {
+    user_id: number | null
+  }
+
+  export type Revoked_sessionsMinAggregateOutputType = {
+    session_id: string | null
+    user_id: number | null
+    revoked_at: Date | null
+    reason: string | null
+    expires_at: Date | null
+  }
+
+  export type Revoked_sessionsMaxAggregateOutputType = {
+    session_id: string | null
+    user_id: number | null
+    revoked_at: Date | null
+    reason: string | null
+    expires_at: Date | null
+  }
+
+  export type Revoked_sessionsCountAggregateOutputType = {
+    session_id: number
+    user_id: number
+    revoked_at: number
+    reason: number
+    expires_at: number
+    _all: number
+  }
+
+
+  export type Revoked_sessionsAvgAggregateInputType = {
+    user_id?: true
+  }
+
+  export type Revoked_sessionsSumAggregateInputType = {
+    user_id?: true
+  }
+
+  export type Revoked_sessionsMinAggregateInputType = {
+    session_id?: true
+    user_id?: true
+    revoked_at?: true
+    reason?: true
+    expires_at?: true
+  }
+
+  export type Revoked_sessionsMaxAggregateInputType = {
+    session_id?: true
+    user_id?: true
+    revoked_at?: true
+    reason?: true
+    expires_at?: true
+  }
+
+  export type Revoked_sessionsCountAggregateInputType = {
+    session_id?: true
+    user_id?: true
+    revoked_at?: true
+    reason?: true
+    expires_at?: true
+    _all?: true
+  }
+
+  export type Revoked_sessionsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which revoked_sessions to aggregate.
+     */
+    where?: revoked_sessionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of revoked_sessions to fetch.
+     */
+    orderBy?: revoked_sessionsOrderByWithRelationInput | revoked_sessionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: revoked_sessionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` revoked_sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` revoked_sessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned revoked_sessions
+    **/
+    _count?: true | Revoked_sessionsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Revoked_sessionsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Revoked_sessionsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Revoked_sessionsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Revoked_sessionsMaxAggregateInputType
+  }
+
+  export type GetRevoked_sessionsAggregateType<T extends Revoked_sessionsAggregateArgs> = {
+        [P in keyof T & keyof AggregateRevoked_sessions]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRevoked_sessions[P]>
+      : GetScalarType<T[P], AggregateRevoked_sessions[P]>
+  }
+
+
+
+
+  export type revoked_sessionsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: revoked_sessionsWhereInput
+    orderBy?: revoked_sessionsOrderByWithAggregationInput | revoked_sessionsOrderByWithAggregationInput[]
+    by: Revoked_sessionsScalarFieldEnum[] | Revoked_sessionsScalarFieldEnum
+    having?: revoked_sessionsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Revoked_sessionsCountAggregateInputType | true
+    _avg?: Revoked_sessionsAvgAggregateInputType
+    _sum?: Revoked_sessionsSumAggregateInputType
+    _min?: Revoked_sessionsMinAggregateInputType
+    _max?: Revoked_sessionsMaxAggregateInputType
+  }
+
+  export type Revoked_sessionsGroupByOutputType = {
+    session_id: string
+    user_id: number | null
+    revoked_at: Date | null
+    reason: string | null
+    expires_at: Date | null
+    _count: Revoked_sessionsCountAggregateOutputType | null
+    _avg: Revoked_sessionsAvgAggregateOutputType | null
+    _sum: Revoked_sessionsSumAggregateOutputType | null
+    _min: Revoked_sessionsMinAggregateOutputType | null
+    _max: Revoked_sessionsMaxAggregateOutputType | null
+  }
+
+  type GetRevoked_sessionsGroupByPayload<T extends revoked_sessionsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Revoked_sessionsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Revoked_sessionsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Revoked_sessionsGroupByOutputType[P]>
+            : GetScalarType<T[P], Revoked_sessionsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type revoked_sessionsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    session_id?: boolean
+    user_id?: boolean
+    revoked_at?: boolean
+    reason?: boolean
+    expires_at?: boolean
+  }, ExtArgs["result"]["revoked_sessions"]>
+
+  export type revoked_sessionsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    session_id?: boolean
+    user_id?: boolean
+    revoked_at?: boolean
+    reason?: boolean
+    expires_at?: boolean
+  }, ExtArgs["result"]["revoked_sessions"]>
+
+  export type revoked_sessionsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    session_id?: boolean
+    user_id?: boolean
+    revoked_at?: boolean
+    reason?: boolean
+    expires_at?: boolean
+  }, ExtArgs["result"]["revoked_sessions"]>
+
+  export type revoked_sessionsSelectScalar = {
+    session_id?: boolean
+    user_id?: boolean
+    revoked_at?: boolean
+    reason?: boolean
+    expires_at?: boolean
+  }
+
+  export type revoked_sessionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"session_id" | "user_id" | "revoked_at" | "reason" | "expires_at", ExtArgs["result"]["revoked_sessions"]>
+
+  export type $revoked_sessionsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "revoked_sessions"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      session_id: string
+      user_id: number | null
+      revoked_at: Date | null
+      reason: string | null
+      expires_at: Date | null
+    }, ExtArgs["result"]["revoked_sessions"]>
+    composites: {}
+  }
+
+  type revoked_sessionsGetPayload<S extends boolean | null | undefined | revoked_sessionsDefaultArgs> = $Result.GetResult<Prisma.$revoked_sessionsPayload, S>
+
+  type revoked_sessionsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<revoked_sessionsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Revoked_sessionsCountAggregateInputType | true
+    }
+
+  export interface revoked_sessionsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['revoked_sessions'], meta: { name: 'revoked_sessions' } }
+    /**
+     * Find zero or one Revoked_sessions that matches the filter.
+     * @param {revoked_sessionsFindUniqueArgs} args - Arguments to find a Revoked_sessions
+     * @example
+     * // Get one Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends revoked_sessionsFindUniqueArgs>(args: SelectSubset<T, revoked_sessionsFindUniqueArgs<ExtArgs>>): Prisma__revoked_sessionsClient<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Revoked_sessions that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {revoked_sessionsFindUniqueOrThrowArgs} args - Arguments to find a Revoked_sessions
+     * @example
+     * // Get one Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends revoked_sessionsFindUniqueOrThrowArgs>(args: SelectSubset<T, revoked_sessionsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__revoked_sessionsClient<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Revoked_sessions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {revoked_sessionsFindFirstArgs} args - Arguments to find a Revoked_sessions
+     * @example
+     * // Get one Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends revoked_sessionsFindFirstArgs>(args?: SelectSubset<T, revoked_sessionsFindFirstArgs<ExtArgs>>): Prisma__revoked_sessionsClient<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Revoked_sessions that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {revoked_sessionsFindFirstOrThrowArgs} args - Arguments to find a Revoked_sessions
+     * @example
+     * // Get one Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends revoked_sessionsFindFirstOrThrowArgs>(args?: SelectSubset<T, revoked_sessionsFindFirstOrThrowArgs<ExtArgs>>): Prisma__revoked_sessionsClient<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Revoked_sessions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {revoked_sessionsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.findMany()
+     * 
+     * // Get first 10 Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.findMany({ take: 10 })
+     * 
+     * // Only select the `session_id`
+     * const revoked_sessionsWithSession_idOnly = await prisma.revoked_sessions.findMany({ select: { session_id: true } })
+     * 
+     */
+    findMany<T extends revoked_sessionsFindManyArgs>(args?: SelectSubset<T, revoked_sessionsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Revoked_sessions.
+     * @param {revoked_sessionsCreateArgs} args - Arguments to create a Revoked_sessions.
+     * @example
+     * // Create one Revoked_sessions
+     * const Revoked_sessions = await prisma.revoked_sessions.create({
+     *   data: {
+     *     // ... data to create a Revoked_sessions
+     *   }
+     * })
+     * 
+     */
+    create<T extends revoked_sessionsCreateArgs>(args: SelectSubset<T, revoked_sessionsCreateArgs<ExtArgs>>): Prisma__revoked_sessionsClient<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Revoked_sessions.
+     * @param {revoked_sessionsCreateManyArgs} args - Arguments to create many Revoked_sessions.
+     * @example
+     * // Create many Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends revoked_sessionsCreateManyArgs>(args?: SelectSubset<T, revoked_sessionsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Revoked_sessions and returns the data saved in the database.
+     * @param {revoked_sessionsCreateManyAndReturnArgs} args - Arguments to create many Revoked_sessions.
+     * @example
+     * // Create many Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Revoked_sessions and only return the `session_id`
+     * const revoked_sessionsWithSession_idOnly = await prisma.revoked_sessions.createManyAndReturn({
+     *   select: { session_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends revoked_sessionsCreateManyAndReturnArgs>(args?: SelectSubset<T, revoked_sessionsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Revoked_sessions.
+     * @param {revoked_sessionsDeleteArgs} args - Arguments to delete one Revoked_sessions.
+     * @example
+     * // Delete one Revoked_sessions
+     * const Revoked_sessions = await prisma.revoked_sessions.delete({
+     *   where: {
+     *     // ... filter to delete one Revoked_sessions
+     *   }
+     * })
+     * 
+     */
+    delete<T extends revoked_sessionsDeleteArgs>(args: SelectSubset<T, revoked_sessionsDeleteArgs<ExtArgs>>): Prisma__revoked_sessionsClient<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Revoked_sessions.
+     * @param {revoked_sessionsUpdateArgs} args - Arguments to update one Revoked_sessions.
+     * @example
+     * // Update one Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends revoked_sessionsUpdateArgs>(args: SelectSubset<T, revoked_sessionsUpdateArgs<ExtArgs>>): Prisma__revoked_sessionsClient<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Revoked_sessions.
+     * @param {revoked_sessionsDeleteManyArgs} args - Arguments to filter Revoked_sessions to delete.
+     * @example
+     * // Delete a few Revoked_sessions
+     * const { count } = await prisma.revoked_sessions.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends revoked_sessionsDeleteManyArgs>(args?: SelectSubset<T, revoked_sessionsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Revoked_sessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {revoked_sessionsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends revoked_sessionsUpdateManyArgs>(args: SelectSubset<T, revoked_sessionsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Revoked_sessions and returns the data updated in the database.
+     * @param {revoked_sessionsUpdateManyAndReturnArgs} args - Arguments to update many Revoked_sessions.
+     * @example
+     * // Update many Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Revoked_sessions and only return the `session_id`
+     * const revoked_sessionsWithSession_idOnly = await prisma.revoked_sessions.updateManyAndReturn({
+     *   select: { session_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends revoked_sessionsUpdateManyAndReturnArgs>(args: SelectSubset<T, revoked_sessionsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Revoked_sessions.
+     * @param {revoked_sessionsUpsertArgs} args - Arguments to update or create a Revoked_sessions.
+     * @example
+     * // Update or create a Revoked_sessions
+     * const revoked_sessions = await prisma.revoked_sessions.upsert({
+     *   create: {
+     *     // ... data to create a Revoked_sessions
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Revoked_sessions we want to update
+     *   }
+     * })
+     */
+    upsert<T extends revoked_sessionsUpsertArgs>(args: SelectSubset<T, revoked_sessionsUpsertArgs<ExtArgs>>): Prisma__revoked_sessionsClient<$Result.GetResult<Prisma.$revoked_sessionsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Revoked_sessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {revoked_sessionsCountArgs} args - Arguments to filter Revoked_sessions to count.
+     * @example
+     * // Count the number of Revoked_sessions
+     * const count = await prisma.revoked_sessions.count({
+     *   where: {
+     *     // ... the filter for the Revoked_sessions we want to count
+     *   }
+     * })
+    **/
+    count<T extends revoked_sessionsCountArgs>(
+      args?: Subset<T, revoked_sessionsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Revoked_sessionsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Revoked_sessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Revoked_sessionsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Revoked_sessionsAggregateArgs>(args: Subset<T, Revoked_sessionsAggregateArgs>): Prisma.PrismaPromise<GetRevoked_sessionsAggregateType<T>>
+
+    /**
+     * Group by Revoked_sessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {revoked_sessionsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends revoked_sessionsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: revoked_sessionsGroupByArgs['orderBy'] }
+        : { orderBy?: revoked_sessionsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, revoked_sessionsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRevoked_sessionsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the revoked_sessions model
+   */
+  readonly fields: revoked_sessionsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for revoked_sessions.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__revoked_sessionsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the revoked_sessions model
+   */
+  interface revoked_sessionsFieldRefs {
+    readonly session_id: FieldRef<"revoked_sessions", 'String'>
+    readonly user_id: FieldRef<"revoked_sessions", 'Int'>
+    readonly revoked_at: FieldRef<"revoked_sessions", 'DateTime'>
+    readonly reason: FieldRef<"revoked_sessions", 'String'>
+    readonly expires_at: FieldRef<"revoked_sessions", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * revoked_sessions findUnique
+   */
+  export type revoked_sessionsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * Filter, which revoked_sessions to fetch.
+     */
+    where: revoked_sessionsWhereUniqueInput
+  }
+
+  /**
+   * revoked_sessions findUniqueOrThrow
+   */
+  export type revoked_sessionsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * Filter, which revoked_sessions to fetch.
+     */
+    where: revoked_sessionsWhereUniqueInput
+  }
+
+  /**
+   * revoked_sessions findFirst
+   */
+  export type revoked_sessionsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * Filter, which revoked_sessions to fetch.
+     */
+    where?: revoked_sessionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of revoked_sessions to fetch.
+     */
+    orderBy?: revoked_sessionsOrderByWithRelationInput | revoked_sessionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for revoked_sessions.
+     */
+    cursor?: revoked_sessionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` revoked_sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` revoked_sessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of revoked_sessions.
+     */
+    distinct?: Revoked_sessionsScalarFieldEnum | Revoked_sessionsScalarFieldEnum[]
+  }
+
+  /**
+   * revoked_sessions findFirstOrThrow
+   */
+  export type revoked_sessionsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * Filter, which revoked_sessions to fetch.
+     */
+    where?: revoked_sessionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of revoked_sessions to fetch.
+     */
+    orderBy?: revoked_sessionsOrderByWithRelationInput | revoked_sessionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for revoked_sessions.
+     */
+    cursor?: revoked_sessionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` revoked_sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` revoked_sessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of revoked_sessions.
+     */
+    distinct?: Revoked_sessionsScalarFieldEnum | Revoked_sessionsScalarFieldEnum[]
+  }
+
+  /**
+   * revoked_sessions findMany
+   */
+  export type revoked_sessionsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * Filter, which revoked_sessions to fetch.
+     */
+    where?: revoked_sessionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of revoked_sessions to fetch.
+     */
+    orderBy?: revoked_sessionsOrderByWithRelationInput | revoked_sessionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing revoked_sessions.
+     */
+    cursor?: revoked_sessionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` revoked_sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` revoked_sessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of revoked_sessions.
+     */
+    distinct?: Revoked_sessionsScalarFieldEnum | Revoked_sessionsScalarFieldEnum[]
+  }
+
+  /**
+   * revoked_sessions create
+   */
+  export type revoked_sessionsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * The data needed to create a revoked_sessions.
+     */
+    data: XOR<revoked_sessionsCreateInput, revoked_sessionsUncheckedCreateInput>
+  }
+
+  /**
+   * revoked_sessions createMany
+   */
+  export type revoked_sessionsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many revoked_sessions.
+     */
+    data: revoked_sessionsCreateManyInput | revoked_sessionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * revoked_sessions createManyAndReturn
+   */
+  export type revoked_sessionsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * The data used to create many revoked_sessions.
+     */
+    data: revoked_sessionsCreateManyInput | revoked_sessionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * revoked_sessions update
+   */
+  export type revoked_sessionsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * The data needed to update a revoked_sessions.
+     */
+    data: XOR<revoked_sessionsUpdateInput, revoked_sessionsUncheckedUpdateInput>
+    /**
+     * Choose, which revoked_sessions to update.
+     */
+    where: revoked_sessionsWhereUniqueInput
+  }
+
+  /**
+   * revoked_sessions updateMany
+   */
+  export type revoked_sessionsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update revoked_sessions.
+     */
+    data: XOR<revoked_sessionsUpdateManyMutationInput, revoked_sessionsUncheckedUpdateManyInput>
+    /**
+     * Filter which revoked_sessions to update
+     */
+    where?: revoked_sessionsWhereInput
+    /**
+     * Limit how many revoked_sessions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * revoked_sessions updateManyAndReturn
+   */
+  export type revoked_sessionsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * The data used to update revoked_sessions.
+     */
+    data: XOR<revoked_sessionsUpdateManyMutationInput, revoked_sessionsUncheckedUpdateManyInput>
+    /**
+     * Filter which revoked_sessions to update
+     */
+    where?: revoked_sessionsWhereInput
+    /**
+     * Limit how many revoked_sessions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * revoked_sessions upsert
+   */
+  export type revoked_sessionsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * The filter to search for the revoked_sessions to update in case it exists.
+     */
+    where: revoked_sessionsWhereUniqueInput
+    /**
+     * In case the revoked_sessions found by the `where` argument doesn't exist, create a new revoked_sessions with this data.
+     */
+    create: XOR<revoked_sessionsCreateInput, revoked_sessionsUncheckedCreateInput>
+    /**
+     * In case the revoked_sessions was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<revoked_sessionsUpdateInput, revoked_sessionsUncheckedUpdateInput>
+  }
+
+  /**
+   * revoked_sessions delete
+   */
+  export type revoked_sessionsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+    /**
+     * Filter which revoked_sessions to delete.
+     */
+    where: revoked_sessionsWhereUniqueInput
+  }
+
+  /**
+   * revoked_sessions deleteMany
+   */
+  export type revoked_sessionsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which revoked_sessions to delete
+     */
+    where?: revoked_sessionsWhereInput
+    /**
+     * Limit how many revoked_sessions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * revoked_sessions without action
+   */
+  export type revoked_sessionsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the revoked_sessions
+     */
+    select?: revoked_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the revoked_sessions
+     */
+    omit?: revoked_sessionsOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -55216,7 +56354,8 @@ export namespace Prisma {
     work_end_time: 'work_end_time',
     is_archived: 'is_archived',
     pazar_multiplier: 'pazar_multiplier',
-    mesai_multiplier: 'mesai_multiplier'
+    mesai_multiplier: 'mesai_multiplier',
+    pdf_settings: 'pdf_settings'
   };
 
   export type WorksScalarFieldEnum = (typeof WorksScalarFieldEnum)[keyof typeof WorksScalarFieldEnum]
@@ -55405,6 +56544,17 @@ export namespace Prisma {
   };
 
   export type User_preferencesScalarFieldEnum = (typeof User_preferencesScalarFieldEnum)[keyof typeof User_preferencesScalarFieldEnum]
+
+
+  export const Revoked_sessionsScalarFieldEnum: {
+    session_id: 'session_id',
+    user_id: 'user_id',
+    revoked_at: 'revoked_at',
+    reason: 'reason',
+    expires_at: 'expires_at'
+  };
+
+  export type Revoked_sessionsScalarFieldEnum = (typeof Revoked_sessionsScalarFieldEnum)[keyof typeof Revoked_sessionsScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -57990,6 +59140,7 @@ export namespace Prisma {
     is_archived?: IntNullableFilter<"works"> | number | null
     pazar_multiplier?: FloatNullableFilter<"works"> | number | null
     mesai_multiplier?: FloatNullableFilter<"works"> | number | null
+    pdf_settings?: StringNullableFilter<"works"> | string | null
     work_items?: Work_itemsListRelationFilter
     employees?: XOR<EmployeesNullableScalarRelationFilter, employeesWhereInput> | null
     vehicles?: XOR<VehiclesNullableScalarRelationFilter, vehiclesWhereInput> | null
@@ -58017,6 +59168,7 @@ export namespace Prisma {
     is_archived?: SortOrderInput | SortOrder
     pazar_multiplier?: SortOrderInput | SortOrder
     mesai_multiplier?: SortOrderInput | SortOrder
+    pdf_settings?: SortOrderInput | SortOrder
     work_items?: work_itemsOrderByRelationAggregateInput
     employees?: employeesOrderByWithRelationInput
     vehicles?: vehiclesOrderByWithRelationInput
@@ -58047,6 +59199,7 @@ export namespace Prisma {
     is_archived?: IntNullableFilter<"works"> | number | null
     pazar_multiplier?: FloatNullableFilter<"works"> | number | null
     mesai_multiplier?: FloatNullableFilter<"works"> | number | null
+    pdf_settings?: StringNullableFilter<"works"> | string | null
     work_items?: Work_itemsListRelationFilter
     employees?: XOR<EmployeesNullableScalarRelationFilter, employeesWhereInput> | null
     vehicles?: XOR<VehiclesNullableScalarRelationFilter, vehiclesWhereInput> | null
@@ -58074,6 +59227,7 @@ export namespace Prisma {
     is_archived?: SortOrderInput | SortOrder
     pazar_multiplier?: SortOrderInput | SortOrder
     mesai_multiplier?: SortOrderInput | SortOrder
+    pdf_settings?: SortOrderInput | SortOrder
     _count?: worksCountOrderByAggregateInput
     _avg?: worksAvgOrderByAggregateInput
     _max?: worksMaxOrderByAggregateInput
@@ -58104,6 +59258,7 @@ export namespace Prisma {
     is_archived?: IntNullableWithAggregatesFilter<"works"> | number | null
     pazar_multiplier?: FloatNullableWithAggregatesFilter<"works"> | number | null
     mesai_multiplier?: FloatNullableWithAggregatesFilter<"works"> | number | null
+    pdf_settings?: StringNullableWithAggregatesFilter<"works"> | string | null
   }
 
   export type departmentsWhereInput = {
@@ -59066,6 +60221,60 @@ export namespace Prisma {
     user_id?: IntWithAggregatesFilter<"user_preferences"> | number
     preferences_json?: StringWithAggregatesFilter<"user_preferences"> | string
     updated_at?: DateTimeNullableWithAggregatesFilter<"user_preferences"> | Date | string | null
+  }
+
+  export type revoked_sessionsWhereInput = {
+    AND?: revoked_sessionsWhereInput | revoked_sessionsWhereInput[]
+    OR?: revoked_sessionsWhereInput[]
+    NOT?: revoked_sessionsWhereInput | revoked_sessionsWhereInput[]
+    session_id?: StringFilter<"revoked_sessions"> | string
+    user_id?: IntNullableFilter<"revoked_sessions"> | number | null
+    revoked_at?: DateTimeNullableFilter<"revoked_sessions"> | Date | string | null
+    reason?: StringNullableFilter<"revoked_sessions"> | string | null
+    expires_at?: DateTimeNullableFilter<"revoked_sessions"> | Date | string | null
+  }
+
+  export type revoked_sessionsOrderByWithRelationInput = {
+    session_id?: SortOrder
+    user_id?: SortOrderInput | SortOrder
+    revoked_at?: SortOrderInput | SortOrder
+    reason?: SortOrderInput | SortOrder
+    expires_at?: SortOrderInput | SortOrder
+  }
+
+  export type revoked_sessionsWhereUniqueInput = Prisma.AtLeast<{
+    session_id?: string
+    AND?: revoked_sessionsWhereInput | revoked_sessionsWhereInput[]
+    OR?: revoked_sessionsWhereInput[]
+    NOT?: revoked_sessionsWhereInput | revoked_sessionsWhereInput[]
+    user_id?: IntNullableFilter<"revoked_sessions"> | number | null
+    revoked_at?: DateTimeNullableFilter<"revoked_sessions"> | Date | string | null
+    reason?: StringNullableFilter<"revoked_sessions"> | string | null
+    expires_at?: DateTimeNullableFilter<"revoked_sessions"> | Date | string | null
+  }, "session_id">
+
+  export type revoked_sessionsOrderByWithAggregationInput = {
+    session_id?: SortOrder
+    user_id?: SortOrderInput | SortOrder
+    revoked_at?: SortOrderInput | SortOrder
+    reason?: SortOrderInput | SortOrder
+    expires_at?: SortOrderInput | SortOrder
+    _count?: revoked_sessionsCountOrderByAggregateInput
+    _avg?: revoked_sessionsAvgOrderByAggregateInput
+    _max?: revoked_sessionsMaxOrderByAggregateInput
+    _min?: revoked_sessionsMinOrderByAggregateInput
+    _sum?: revoked_sessionsSumOrderByAggregateInput
+  }
+
+  export type revoked_sessionsScalarWhereWithAggregatesInput = {
+    AND?: revoked_sessionsScalarWhereWithAggregatesInput | revoked_sessionsScalarWhereWithAggregatesInput[]
+    OR?: revoked_sessionsScalarWhereWithAggregatesInput[]
+    NOT?: revoked_sessionsScalarWhereWithAggregatesInput | revoked_sessionsScalarWhereWithAggregatesInput[]
+    session_id?: StringWithAggregatesFilter<"revoked_sessions"> | string
+    user_id?: IntNullableWithAggregatesFilter<"revoked_sessions"> | number | null
+    revoked_at?: DateTimeNullableWithAggregatesFilter<"revoked_sessions"> | Date | string | null
+    reason?: StringNullableWithAggregatesFilter<"revoked_sessions"> | string | null
+    expires_at?: DateTimeNullableWithAggregatesFilter<"revoked_sessions"> | Date | string | null
   }
 
   export type assignmentsCreateInput = {
@@ -61791,6 +63000,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     work_items?: work_itemsCreateNestedManyWithoutWorksInput
     employees?: employeesCreateNestedOneWithoutWorksInput
     vehicles?: vehiclesCreateNestedOneWithoutWorksInput
@@ -61818,6 +63028,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     work_items?: work_itemsUncheckedCreateNestedManyWithoutWorksInput
   }
 
@@ -61836,6 +63047,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     work_items?: work_itemsUpdateManyWithoutWorksNestedInput
     employees?: employeesUpdateOneWithoutWorksNestedInput
     vehicles?: vehiclesUpdateOneWithoutWorksNestedInput
@@ -61863,6 +63075,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     work_items?: work_itemsUncheckedUpdateManyWithoutWorksNestedInput
   }
 
@@ -61886,6 +63099,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
   }
 
   export type worksUpdateManyMutationInput = {
@@ -61903,6 +63117,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type worksUncheckedUpdateManyInput = {
@@ -61925,6 +63140,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type departmentsCreateInput = {
@@ -62888,6 +64104,62 @@ export namespace Prisma {
     user_id?: IntFieldUpdateOperationsInput | number
     preferences_json?: StringFieldUpdateOperationsInput | string
     updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type revoked_sessionsCreateInput = {
+    session_id: string
+    user_id?: number | null
+    revoked_at?: Date | string | null
+    reason?: string | null
+    expires_at?: Date | string | null
+  }
+
+  export type revoked_sessionsUncheckedCreateInput = {
+    session_id: string
+    user_id?: number | null
+    revoked_at?: Date | string | null
+    reason?: string | null
+    expires_at?: Date | string | null
+  }
+
+  export type revoked_sessionsUpdateInput = {
+    session_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableIntFieldUpdateOperationsInput | number | null
+    revoked_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type revoked_sessionsUncheckedUpdateInput = {
+    session_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableIntFieldUpdateOperationsInput | number | null
+    revoked_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type revoked_sessionsCreateManyInput = {
+    session_id: string
+    user_id?: number | null
+    revoked_at?: Date | string | null
+    reason?: string | null
+    expires_at?: Date | string | null
+  }
+
+  export type revoked_sessionsUpdateManyMutationInput = {
+    session_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableIntFieldUpdateOperationsInput | number | null
+    revoked_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type revoked_sessionsUncheckedUpdateManyInput = {
+    session_id?: StringFieldUpdateOperationsInput | string
+    user_id?: NullableIntFieldUpdateOperationsInput | number | null
+    revoked_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -65064,6 +66336,7 @@ export namespace Prisma {
     is_archived?: SortOrder
     pazar_multiplier?: SortOrder
     mesai_multiplier?: SortOrder
+    pdf_settings?: SortOrder
   }
 
   export type worksAvgOrderByAggregateInput = {
@@ -65098,6 +66371,7 @@ export namespace Prisma {
     is_archived?: SortOrder
     pazar_multiplier?: SortOrder
     mesai_multiplier?: SortOrder
+    pdf_settings?: SortOrder
   }
 
   export type worksMinOrderByAggregateInput = {
@@ -65120,6 +66394,7 @@ export namespace Prisma {
     is_archived?: SortOrder
     pazar_multiplier?: SortOrder
     mesai_multiplier?: SortOrder
+    pdf_settings?: SortOrder
   }
 
   export type worksSumOrderByAggregateInput = {
@@ -65775,6 +67050,38 @@ export namespace Prisma {
   }
 
   export type user_preferencesSumOrderByAggregateInput = {
+    user_id?: SortOrder
+  }
+
+  export type revoked_sessionsCountOrderByAggregateInput = {
+    session_id?: SortOrder
+    user_id?: SortOrder
+    revoked_at?: SortOrder
+    reason?: SortOrder
+    expires_at?: SortOrder
+  }
+
+  export type revoked_sessionsAvgOrderByAggregateInput = {
+    user_id?: SortOrder
+  }
+
+  export type revoked_sessionsMaxOrderByAggregateInput = {
+    session_id?: SortOrder
+    user_id?: SortOrder
+    revoked_at?: SortOrder
+    reason?: SortOrder
+    expires_at?: SortOrder
+  }
+
+  export type revoked_sessionsMinOrderByAggregateInput = {
+    session_id?: SortOrder
+    user_id?: SortOrder
+    revoked_at?: SortOrder
+    reason?: SortOrder
+    expires_at?: SortOrder
+  }
+
+  export type revoked_sessionsSumOrderByAggregateInput = {
     user_id?: SortOrder
   }
 
@@ -69083,6 +70390,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     work_items?: work_itemsCreateNestedManyWithoutWorksInput
     employees?: employeesCreateNestedOneWithoutWorksInput
     vehicles?: vehiclesCreateNestedOneWithoutWorksInput
@@ -69108,6 +70416,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     work_items?: work_itemsUncheckedCreateNestedManyWithoutWorksInput
   }
 
@@ -69735,6 +71044,7 @@ export namespace Prisma {
     is_archived?: IntNullableFilter<"works"> | number | null
     pazar_multiplier?: FloatNullableFilter<"works"> | number | null
     mesai_multiplier?: FloatNullableFilter<"works"> | number | null
+    pdf_settings?: StringNullableFilter<"works"> | string | null
   }
 
   export type customersUpsertWithWhereUniqueWithoutCompaniesInput = {
@@ -70157,6 +71467,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     work_items?: work_itemsCreateNestedManyWithoutWorksInput
     employees?: employeesCreateNestedOneWithoutWorksInput
     vehicles?: vehiclesCreateNestedOneWithoutWorksInput
@@ -70182,6 +71493,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     work_items?: work_itemsUncheckedCreateNestedManyWithoutWorksInput
   }
 
@@ -71752,6 +73064,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     work_items?: work_itemsCreateNestedManyWithoutWorksInput
     vehicles?: vehiclesCreateNestedOneWithoutWorksInput
     companies: companiesCreateNestedOneWithoutWorksInput
@@ -71777,6 +73090,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     work_items?: work_itemsUncheckedCreateNestedManyWithoutWorksInput
   }
 
@@ -74860,6 +76174,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     work_items?: work_itemsCreateNestedManyWithoutWorksInput
     employees?: employeesCreateNestedOneWithoutWorksInput
     companies: companiesCreateNestedOneWithoutWorksInput
@@ -74885,6 +76200,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     work_items?: work_itemsUncheckedCreateNestedManyWithoutWorksInput
   }
 
@@ -75369,6 +76685,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
     employees?: employeesCreateNestedOneWithoutWorksInput
     vehicles?: vehiclesCreateNestedOneWithoutWorksInput
     companies: companiesCreateNestedOneWithoutWorksInput
@@ -75395,6 +76712,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
   }
 
   export type worksCreateOrConnectWithoutWork_itemsInput = {
@@ -75574,6 +76892,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     employees?: employeesUpdateOneWithoutWorksNestedInput
     vehicles?: vehiclesUpdateOneWithoutWorksNestedInput
     companies?: companiesUpdateOneRequiredWithoutWorksNestedInput
@@ -75600,6 +76919,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type work_itemsCreateWithoutWorksInput = {
@@ -78461,6 +79781,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
   }
 
   export type customersCreateManyCompaniesInput = {
@@ -78870,6 +80191,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     work_items?: work_itemsUpdateManyWithoutWorksNestedInput
     employees?: employeesUpdateOneWithoutWorksNestedInput
     vehicles?: vehiclesUpdateOneWithoutWorksNestedInput
@@ -78895,6 +80217,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     work_items?: work_itemsUncheckedUpdateManyWithoutWorksNestedInput
   }
 
@@ -78917,6 +80240,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type customersUpdateWithoutCompaniesInput = {
@@ -79250,6 +80574,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
   }
 
   export type worksUpdateWithoutCustomersInput = {
@@ -79267,6 +80592,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     work_items?: work_itemsUpdateManyWithoutWorksNestedInput
     employees?: employeesUpdateOneWithoutWorksNestedInput
     vehicles?: vehiclesUpdateOneWithoutWorksNestedInput
@@ -79292,6 +80618,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     work_items?: work_itemsUncheckedUpdateManyWithoutWorksNestedInput
   }
 
@@ -79314,6 +80641,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type requestsCreateManyEmployeeInput = {
@@ -79467,6 +80795,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
   }
 
   export type requestsUpdateWithoutEmployeeInput = {
@@ -79872,6 +81201,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     work_items?: work_itemsUpdateManyWithoutWorksNestedInput
     vehicles?: vehiclesUpdateOneWithoutWorksNestedInput
     companies?: companiesUpdateOneRequiredWithoutWorksNestedInput
@@ -79897,6 +81227,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     work_items?: work_itemsUncheckedUpdateManyWithoutWorksNestedInput
   }
 
@@ -79919,6 +81250,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type companiesCreateManyUsersInput = {
@@ -80259,6 +81591,7 @@ export namespace Prisma {
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
+    pdf_settings?: string | null
   }
 
   export type assignmentsUpdateWithoutVehiclesInput = {
@@ -80581,6 +81914,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     work_items?: work_itemsUpdateManyWithoutWorksNestedInput
     employees?: employeesUpdateOneWithoutWorksNestedInput
     companies?: companiesUpdateOneRequiredWithoutWorksNestedInput
@@ -80606,6 +81940,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
     work_items?: work_itemsUncheckedUpdateManyWithoutWorksNestedInput
   }
 
@@ -80628,6 +81963,7 @@ export namespace Prisma {
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
+    pdf_settings?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type work_itemsCreateManyWorksInput = {

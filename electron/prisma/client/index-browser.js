@@ -517,7 +517,8 @@ exports.Prisma.WorksScalarFieldEnum = {
   work_end_time: 'work_end_time',
   is_archived: 'is_archived',
   pazar_multiplier: 'pazar_multiplier',
-  mesai_multiplier: 'mesai_multiplier'
+  mesai_multiplier: 'mesai_multiplier',
+  pdf_settings: 'pdf_settings'
 };
 
 exports.Prisma.DepartmentsScalarFieldEnum = {
@@ -663,6 +664,14 @@ exports.Prisma.User_preferencesScalarFieldEnum = {
   updated_at: 'updated_at'
 };
 
+exports.Prisma.Revoked_sessionsScalarFieldEnum = {
+  session_id: 'session_id',
+  user_id: 'user_id',
+  revoked_at: 'revoked_at',
+  reason: 'reason',
+  expires_at: 'expires_at'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -720,7 +729,8 @@ exports.Prisma.ModelName = {
   system_announcements: 'system_announcements',
   audit_logs: 'audit_logs',
   company_settings: 'company_settings',
-  user_preferences: 'user_preferences'
+  user_preferences: 'user_preferences',
+  revoked_sessions: 'revoked_sessions'
 };
 
 /**

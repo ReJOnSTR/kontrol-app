@@ -124,8 +124,18 @@ async function saveEmailSettings(config) {
  */
 async function testSmtpConnection(config) {
     try {
-        const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass } = config || {};
+        let { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass } = config || {};
         
+        if (!smtpHost) {
+            const savedRes = await getEmailSettings();
+            if (savedRes?.data?.smtpHost) {
+                smtpHost = savedRes.data.smtpHost;
+                if (smtpPort === undefined) smtpPort = savedRes.data.smtpPort;
+                if (smtpSecure === undefined) smtpSecure = savedRes.data.smtpSecure;
+                if (smtpUser === undefined) smtpUser = savedRes.data.smtpUser;
+            }
+        }
+
         let finalPass = smtpPass;
         if (!finalPass || finalPass === '••••••••') {
             const rows = await prisma.$queryRawUnsafe(`SELECT smtp_pass FROM email_settings ORDER BY id DESC LIMIT 1;`);

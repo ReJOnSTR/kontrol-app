@@ -235,6 +235,17 @@ async function runAutoMigrations() {
             await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS employee_id INT;');
             await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active INT DEFAULT 1;');
             await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password INT DEFAULT 0;');
+            await p.$executeRawUnsafe('ALTER TABLE works ADD COLUMN IF NOT EXISTS pdf_settings TEXT;');
+            await p.$executeRawUnsafe(`
+                CREATE TABLE IF NOT EXISTS revoked_sessions (
+                    session_id VARCHAR(255) PRIMARY KEY,
+                    user_id INT,
+                    revoked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    reason TEXT,
+                    expires_at TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_revoked_sessions_expires ON revoked_sessions (expires_at);
+            `);
             log.info('PostgreSQL self-healing upgrades complete.');
         } catch (pgMigErr) {
             log.warn('PostgreSQL auto-upgrade notice:', pgMigErr.message);
