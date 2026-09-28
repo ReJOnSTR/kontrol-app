@@ -152,10 +152,34 @@ async function saveCompanyNotificationSettings(companyId, settings) {
         }
 
         log.info(`[NotificationEngine] Saved notification settings for company ${cid}`);
+
+        // Clear cached sent alerts for this company so changes/retests take effect immediately
+        for (const key of sentAlertCache) {
+            if (key.includes(`-${cid}-`) || key.startsWith(`notif-cc-${cid}-`)) {
+                sentAlertCache.delete(key);
+            }
+        }
+
         return { success: true };
     } catch (error) {
         log.error('[NotificationEngine] saveCompanyNotificationSettings error:', error.message);
         return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Manually clear notification alert deduplication cache
+ */
+function clearNotificationAlertCache(companyId) {
+    if (companyId) {
+        const cid = parseInt(companyId, 10);
+        for (const key of sentAlertCache) {
+            if (key.includes(`-${cid}-`) || key.startsWith(`notif-cc-${cid}-`)) {
+                sentAlertCache.delete(key);
+            }
+        }
+    } else {
+        sentAlertCache.clear();
     }
 }
 
@@ -862,5 +886,6 @@ module.exports = {
     getUserNotificationSettings,
     saveUserNotificationSettings,
     runCompanyNotificationScan,
-    sendTestNotificationEmail
+    sendTestNotificationEmail,
+    clearNotificationAlertCache
 };

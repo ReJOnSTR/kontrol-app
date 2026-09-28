@@ -1850,75 +1850,73 @@ async function checkAndNotify() {
     }
 }
 
-async function checkPeriodicSummary() {
-    // Check for Daily Summary
-    await checkAndNotifySummary()
+function getTurkeyTimeInfo() {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/Istanbul',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+    const trTime = formatter.format(new Date());
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' });
+    return { trTime, todayStr };
 }
 
-async function checkAndNotifySummary() {
-    const settings = loadSettings()
-    if (!settings.notificationSummaryEnabled || !settings.notificationSummaryTime || !settings.userId) return
-
-    const now = new Date()
-    const currentHourMin = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
-    
-    if (currentHourMin !== settings.notificationSummaryTime) return
-
-    const todayStr = now.toISOString().split('T')[0]
-    const eventKey = `summary-${settings.userId}-${todayStr}`
-    
-    if (notifiedEvents.has(eventKey)) return
-
+async function checkPeriodicSummary() {
     try {
-        const companies = await db.getCompanies(settings.userId)
-        if (!companies.success) return
+        const { trTime, todayStr } = getTurkeyTimeInfo();
+        const prisma = getPrismaClient();
 
-        let totalUpcoming = 0
-        let summaryLines = []
-
-        for (const company of companies.data) {
-            const result = await db.getUpcomingEvents(company.id)
-            if (result.success && result.data.length > 0) {
-                const criticalCount = result.data.length
-                totalUpcoming += criticalCount
-                
-                // Categorize
-                const categories = {}
-                result.data.forEach(e => {
-                    const cat = e.eventType === 'maintenance' ? 'Bakım' : 
-                                e.eventType === 'inspection' ? 'Muayene' :
-                                e.eventType === 'insurance' ? 'Sigorta' : 'Diğer'
-                    categories[cat] = (categories[cat] || 0) + 1
-                })
-                
-                const catStr = Object.entries(categories).map(([k, v]) => `${v} ${k}`).join(', ')
-                summaryLines.push(`${company.name}: ${criticalCount} işlem (${catStr})`)
+        let companies = [];
+        try {
+            companies = await prisma.companies.findMany({
+                where: { status: 'active' },
+                select: { id: true, name: true }
+            });
+        } catch (dbErr) {
+            const cRes = await db.getCompanies();
+            if (cRes.success && Array.isArray(cRes.data)) {
+                companies = cRes.data;
             }
         }
 
-        if (totalUpcoming > 0) {
-            if (Notification.isSupported()) {
-                new Notification({
-                    title: `Günlük Hatırlatıcı Özeti`,
-                    body: `Takip etmeniz gereken ${totalUpcoming} güncel işlem var.\n${summaryLines.slice(0, 3).join('\n')}${summaryLines.length > 3 ? '\n...' : ''}`,
-                    icon: path.join(__dirname, '../resources/icon.png')
-                }).show()
-            }
-            notifiedEvents.add(eventKey)
+        for (const company of companies) {
+            try {
+                const settingsRes = await notificationEngine.getCompanyNotificationSettings(company.id);
+                const notifSettings = settingsRes?.data;
+                if (!notifSettings || notifSettings.emailNotificationsEnabled === false) continue;
+                if (notifSettings.dailySummaryEnabled === false) continue;
 
-            // Trigger Email Notification Engine for each company
-            for (const company of companies.data) {
-                try {
-                    await notificationEngine.runCompanyNotificationScan(company.id);
-                } catch (scanErr) {
-                    log.error(`Auto email notification scan failed for company ${company.id}:`, scanErr.message);
+                const targetTime = notifSettings.dailySummaryTime || '09:00';
+                if (trTime === targetTime) {
+                    const runKey = `desktop-summary-${company.id}-${todayStr}-${targetTime}`;
+                    if (!notifiedEvents.has(runKey)) {
+                        notifiedEvents.add(runKey);
+                        log.info(`[Desktop Cron] Triggering scheduled notification scan for ${company.name} (ID: ${company.id}) at ${trTime} TR time...`);
+
+                        // OS Desktop notification if supported
+                        const upcomingRes = await db.getUpcomingEvents(company.id);
+                        if (upcomingRes.success && upcomingRes.data?.length > 0 && Notification.isSupported()) {
+                            new Notification({
+                                title: `${company.name} - Günlük Hatırlatıcı`,
+                                body: `Takip etmeniz gereken ${upcomingRes.data.length} güncel işlem var. Günlük e-posta özeti ilgili personellere iletildi.`,
+                                icon: path.join(__dirname, '../resources/icon.png')
+                            }).show();
+                        }
+
+                        // Send emails to users according to role preferences & CCs
+                        await notificationEngine.runCompanyNotificationScan(company.id);
+                    }
                 }
+            } catch (compErr) {
+                log.error(`[Desktop Cron] Error checking company ${company.id}:`, compErr.message);
             }
         }
     } catch (error) {
-        log.error('Summary notification failed:', error)
+        log.error('checkPeriodicSummary failed:', error.message);
     }
 }
+
 
 function setupNotificationCheck() {
     if (notificationInterval) clearInterval(notificationInterval)

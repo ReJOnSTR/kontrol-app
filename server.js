@@ -851,12 +851,13 @@ async function start() {
         setInterval(async () => {
             try {
                 // Get exact Turkey time (Europe/Istanbul)
-                const trTime = new Date().toLocaleTimeString('tr-TR', {
+                const formatter = new Intl.DateTimeFormat('en-GB', {
                     timeZone: 'Europe/Istanbul',
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false
                 });
+                const trTime = formatter.format(new Date());
                 const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' }); // YYYY-MM-DD
 
                 // Clean old keys from cache
@@ -876,6 +877,7 @@ async function start() {
                     const settingsRes = await notificationEngine.getCompanyNotificationSettings(company.id);
                     const notifSettings = settingsRes?.data;
                     if (!notifSettings || notifSettings.emailNotificationsEnabled === false) continue;
+                    if (notifSettings.dailySummaryEnabled === false) continue;
 
                     const targetTime = notifSettings.dailySummaryTime || '09:00';
 

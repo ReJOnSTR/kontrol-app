@@ -313,11 +313,21 @@ export default function Settings() {
 
 
     const handleSendTestNotificationEmail = async () => {
-        const emailToUse = user?.email || (notificationConfig.notificationEmails || '').split(',')[0].trim()
+        const configEmails = (notificationConfig.notificationEmails || '')
+            .split(',')
+            .map(e => e.trim())
+            .filter(e => e.includes('@'))
+
+        let emailToUse = configEmails[0] || (user?.email && !user.email.endsWith('@muayen.com') ? user.email : '')
         if (!emailToUse || !emailToUse.includes('@')) {
-            alert('Lütfen geçerli bir bildirim e-posta adresi belirleyiniz.')
-            return
+            const promptInput = prompt(
+                'Test e-postasının gönderileceği e-posta adresini giriniz:',
+                user?.email && !user.email.endsWith('@muayen.com') ? user.email : ''
+            )
+            if (!promptInput || !promptInput.includes('@')) return
+            emailToUse = promptInput.trim()
         }
+
         setTestEmailLoading(true)
         setNotificationStatusMsg(null)
         try {
@@ -1625,7 +1635,7 @@ export default function Settings() {
                                             <Send size={16} className="text-primary" /> E-Posta Şablonu Canlı Önizleme &amp; Test Gönderimi
                                         </h3>
                                         <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                                            Farklı departmanlara gidecek modern tasarımlı bülteni kendi e-posta adresinize (<strong>{user?.email || 'admin e-postanız'}</strong>) göndererek test edin.
+                                            Farklı departmanlara gidecek modern tasarımlı bülteni e-posta adresinize (<strong>{(notificationConfig.notificationEmails || '').split(',')[0]?.trim() || (user?.email && !user.email.endsWith('@muayen.com') ? user.email : 'belirteceğiniz e-posta')}</strong>) göndererek test edin.
                                         </p>
                                     </div>
 
