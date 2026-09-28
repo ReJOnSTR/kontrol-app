@@ -97,6 +97,19 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
         }
     }, [doc, publicCloudUrl, pdfUrl])
 
+    // Aggressive Canvas Bitmap Cleanup on unmount (frees 150-300MB uncompressed pixels)
+    useEffect(() => {
+        return () => {
+            try {
+                const canvases = document.querySelectorAll('canvas');
+                canvases.forEach(cvs => {
+                    cvs.width = 0;
+                    cvs.height = 0;
+                });
+            } catch (e) {}
+        }
+    }, [])
+
     const formattedPdfSource = React.useMemo(() => {
         if (!doc) return null
         if (pdfBlobUrl) return pdfBlobUrl

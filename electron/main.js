@@ -17,10 +17,14 @@ const systemSettingsService = require('./services/systemSettings.service')
 const { syncFileToCloud, startStartupBackfill } = require('./services/documentSync.service')
 
 
-// Optional: Override console to correct log file
-// console.log = log.log;
-
 app.setName('Kontrol')
+
+// ── CHROMIUM & V8 LOW-RAM & GPU ACCELERATION SWITCHES ──
+// Limits V8 heap to prevent memory bloat and forces aggressive garbage collection
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=384');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
 
 function migrateLegacyAppData() {
     try {
@@ -131,7 +135,9 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
-            plugins: true // Enable PDF viewer plugin
+            plugins: true, // Enable PDF viewer plugin
+            backgroundThrottling: true, // Throttle timers/renderers when window is in background
+            spellcheck: false // Disables spellchecker dictionaries to save 30-50MB RAM
         },
 
         titleBarStyle: 'hidden',
@@ -151,6 +157,16 @@ function createWindow() {
             store.set('windowBounds', mainWindow.getBounds())
         }
     })
+
+    // Memory trimming & power saving when window is in background or minimized
+    let memoryTrimTimeout = null;
+    mainWindow.on('blur', () => {
+        memoryTrimTimeout = setTimeout(() => {
+            if (global.gc) {
+                try { global.gc(); } catch (e) {}
+            }
+        }, 15000);
+    });
 
     // Development or production mode
     if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
@@ -178,6 +194,10 @@ function createWindow() {
 
     // Ensure webContents maintains first-responder keyboard focus
     mainWindow.on('focus', () => {
+        if (memoryTrimTimeout) {
+            clearTimeout(memoryTrimTimeout);
+            memoryTrimTimeout = null;
+        }
         if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
             mainWindow.webContents.focus()
         }
@@ -374,8 +394,10 @@ app.whenReady().then(async () => {
             }).catch(() => {});
         }, 15000);
 
-        // Background startup sync of missing local documents to Supabase Storage
-        startStartupBackfill(app.getPath('userData'));
+        // Background startup sync of missing local documents to Supabase Storage (delayed to prioritize snappy UI startup)
+        setTimeout(() => {
+            startStartupBackfill(app.getPath('userData'));
+        }, 12000);
     } catch (err) {
         log.error('Failed to initialize database:', err)
         if (mainWindow && !mainWindow.isDestroyed()) {
