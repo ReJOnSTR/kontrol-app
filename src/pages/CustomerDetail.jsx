@@ -843,13 +843,11 @@ export default function CustomerDetail() {
 
             {/* Header / Breadcrumb / Actions */}
             <div style={{ marginBottom: '24px' }}>
-
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div className="detail-header-responsive">
+                    <div className="detail-header-left">
                         <div className="employee-avatar" style={{ 
-                            width: '72px', height: '72px', fontSize: '28px', 
-                            borderRadius: '20px', backgroundColor: 'var(--bg-tertiary)',
+                            width: '64px', height: '64px', fontSize: '26px', 
+                            borderRadius: '18px', backgroundColor: 'var(--bg-tertiary)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             color: 'var(--primary)', fontWeight: '600',
                             border: '1px solid var(--border-color)',
@@ -858,10 +856,10 @@ export default function CustomerDetail() {
                             {customer.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                            <h1 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
+                            <h1 style={{ fontSize: '26px', fontWeight: '700', margin: '0 0 6px 0', letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
                                 {customer.name}
                             </h1>
-                            <div style={{ display: 'flex', gap: '16px', color: 'var(--text-secondary)', fontSize: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary)', fontSize: '13.5px', alignItems: 'center', flexWrap: 'wrap' }}>
                                 {customer.phone && <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Phone size={14}/> {customer.phone}</span>}
                                 {customer.email && <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Mail size={14}/> {customer.email}</span>}
                                 {(customer.tax_office || customer.tax_number) && (
@@ -873,7 +871,7 @@ export default function CustomerDetail() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div className="detail-header-actions">
                         <button className="btn btn-secondary" onClick={() => setIsEditModalOpen(true)}>
                             <Pencil size={18} /> Düzenle
                         </button>
@@ -882,13 +880,13 @@ export default function CustomerDetail() {
             </div>
 
             {/* Customer Info Section - Minimal */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div className="detail-card-grid-2">
                 {/* İletişim ve Adres */}
                 <div className="card" style={{ padding: '16px 20px' }}>
                     <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <MapPin size={13} /> İletişim ve Adres
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+                    <div className="detail-inner-grid-2">
                         <div style={{ gridColumn: '1 / -1' }}>
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>Adres</div>
                             <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.5 }}>{customer.address || '-'}</div>
@@ -909,7 +907,7 @@ export default function CustomerDetail() {
                     <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Building2 size={13} /> Kurumsal Bilgiler
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+                    <div className="detail-inner-grid-2">
                         <div>
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>Vergi Dairesi</div>
                             <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{customer.tax_office || '-'}</div>
@@ -927,7 +925,7 @@ export default function CustomerDetail() {
             </div>
 
             {/* Cari Durum Paneli */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' }}>
+            <div className="detail-card-grid-3">
                 {/* Kart 1: Toplam Borç */}
                 <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ 
@@ -1050,11 +1048,11 @@ export default function CustomerDetail() {
             <div>
                 {activeTab === 'works' && (
                     <div className="tab-pane">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                        <div className="detail-action-bar">
                             <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                                 İşler ve Projeler
                             </h3>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="detail-action-bar-right">
                                 <button className="btn btn-primary" onClick={() => setIsWorkModalOpen(true)}>
                                     <Briefcase size={18} /> Yeni İş Ekle
                                 </button>
@@ -1123,11 +1121,11 @@ export default function CustomerDetail() {
 
                 {activeTab === 'ledger' && (
                     <div className="tab-pane">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                        <div className="detail-action-bar">
                             <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                                 Cari Hesap Ekstresi (Ledger)
                             </h3>
-                            <div style={{ display: 'flex', gap: '10px' }}>
+                            <div className="detail-action-bar-right">
                                 <button className="btn btn-secondary" onClick={() => setIsReportModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <FileText size={18} /> Rapor Görüntüle
                                 </button>
@@ -1186,12 +1184,12 @@ export default function CustomerDetail() {
 
                 {activeTab === 'documents' && (
                     <div className="tab-pane">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                        <div className="detail-action-bar">
                             <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                                 Dosyalar ve Belgeler
                             </h3>
                             {!showArchived && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div className="detail-action-bar-right">
                                     <button 
                                         onClick={handleOpenCreateFolder} 
                                         className="btn btn-secondary" 
@@ -1209,7 +1207,7 @@ export default function CustomerDetail() {
                                     <button 
                                         onClick={() => setUploadModalOpen(true)} 
                                         className="btn btn-primary" 
-                                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                                     >
                                         <Plus size={16} /> Belge Yükle
                                     </button>

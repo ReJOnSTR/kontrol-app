@@ -1168,7 +1168,7 @@ export default function WorkDetails(props) {
                 <div>
                     <h3 className="page-title">Puantaj Kayıtları</h3>
                 </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div className="page-actions">
                     <button onClick={openBulkAddModal} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
                         <Calendar size={16} /> Hızlı Üretim (Toplu Ekle)
                     </button>

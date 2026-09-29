@@ -592,13 +592,15 @@ export default function Profile() {
 
                                 {/* ── DETAILED EVENT CATEGORIES TABLE ── */}
                                 <div style={{ border: '1px solid var(--border-color)', borderRadius: '14px', overflow: 'hidden' }}>
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: '1fr 130px 130px',
-                                        background: 'var(--bg-tertiary, #1e293b)',
-                                        padding: '12px 18px',
-                                        borderBottom: '1px solid var(--border-color)'
-                                    }}>
+                                  <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                    <div style={{ minWidth: '460px' }}>
+                                      <div style={{
+                                          display: 'grid',
+                                          gridTemplateColumns: '1fr 130px 130px',
+                                          background: 'var(--bg-tertiary, #1e293b)',
+                                          padding: '12px 18px',
+                                          borderBottom: '1px solid var(--border-color)'
+                                      }}>
                                         <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                                             Bildirim Kategorisi
                                         </div>
@@ -683,6 +685,8 @@ export default function Profile() {
                                             Rolünüze özel bildirim ayarları yüklenemedi.
                                         </div>
                                     )}
+                                      </div>
+                                    </div>
                                 </div>
                             </div>
                         ) : (

@@ -2231,15 +2231,15 @@ export default function EmployeeDetail() {
 
             {/* Header / Breadcrumb / Actions */}
             <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div className="detail-header-responsive">
+                    <div className="detail-header-left">
                         <div>
-                            <h1 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
+                            <h1 style={{ fontSize: '26px', fontWeight: '700', margin: '0 0 6px 0', letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
                                 {employee.first_name} {employee.last_name}
                             </h1>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
                                 <span className={`badge badge-${statusInfo.color}`}>{statusInfo.label}</span>
-                                <span style={{ color: 'var(--text-secondary)', fontSize: '14px', textTransform: 'uppercase' }}>
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '13.5px', textTransform: 'uppercase' }}>
                                     {employee.position || 'POZİSYON BELİRTİLMEDİ'} {employee.department ? `• ${employee.department}` : ''}
                                 </span>
                             </div>
@@ -2247,7 +2247,7 @@ export default function EmployeeDetail() {
                     </div>
 
                     {!isPersonnel && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="detail-header-actions">
                             <button className="btn btn-secondary" onClick={() => openEditModal('employee', employee)}>
                                 <Pencil size={18} /> Düzenle
                             </button>
@@ -2264,7 +2264,7 @@ export default function EmployeeDetail() {
                     <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <User size={13} /> Kişisel Bilgiler
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+                    <div className="detail-inner-grid-2">
                         <div>
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>TC Kimlik No</div>
                             <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{employee.tc_no || '-'}</div>
@@ -2476,13 +2476,13 @@ export default function EmployeeDetail() {
 
             {/* Tab Content */}
             <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div className="detail-action-bar">
                     <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                         {tabs.find(t => t.id === activeTab)?.label} Kayıtları
                     </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="detail-action-bar-right">
                         {(activeTab === 'salary' || activeTab === 'overtime') && (
-                            <div style={{ width: '240px' }}>
+                            <div style={{ minWidth: '180px', flex: '1 1 auto' }}>
                                 <MonthFilter 
                                     value={selectedMonth} 
                                     onChange={setSelectedMonth} 
@@ -2584,7 +2584,7 @@ export default function EmployeeDetail() {
                             )
 
                             return (
-                                <div style={{ display: 'grid', gridTemplateColumns: calc.hasLoanHistory ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                                <div className={calc.hasLoanHistory ? "detail-card-grid-4" : "detail-card-grid-3"}>
                                     {/* Ödenecek Tutar */}
                                     <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column' }}>
                                         <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Ödenecek Tutar (Maaş+Mesai+Ek Haklar)</div>
@@ -2932,7 +2932,7 @@ export default function EmployeeDetail() {
 
                              return (
                                  <>
-                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                                     <div className="detail-card-grid-3">
                                          <div className="card" style={{ padding: '14px 16px' }}>
                                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Bu Ay Toplam Mesai</div>
                                              <div style={{ fontSize: '18px', fontWeight: 700, marginTop: '4px', color: 'var(--text-primary)', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
@@ -2989,7 +2989,7 @@ export default function EmployeeDetail() {
 
                 {activeTab === 'assignment' && (
                     <div className="tab-pane">
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                        <div className="detail-card-grid-3">
                             <div className="card" style={{ padding: '14px 16px' }}>
                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Aktif Zimmet</div>
                                 <div style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: 'var(--accent-primary)' }}>{activeAssignments.length}</div>
@@ -3200,7 +3200,7 @@ export default function EmployeeDetail() {
 
                 {activeTab === 'user_account' && (
                     <div className="tab-pane">
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                        <div className="detail-card-grid-3">
                             <div className="card" style={{ padding: '14px 16px' }}>
                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Giriş Hesabı</div>
                                 <div style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: employee?.user ? 'var(--success)' : 'var(--text-muted)' }}>
@@ -3938,7 +3938,7 @@ export default function EmployeeDetail() {
                 <form onSubmit={handleUserAccountSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     {/* Top Credentials Row for new users */}
                     {!employee?.user && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr', gap: '12px', background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <div className="form-grid-3" style={{ background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                             <CustomInput
                                 label="Kullanıcı Adı"
                                 required

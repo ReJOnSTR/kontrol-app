@@ -927,32 +927,32 @@ export default function VehicleDetail() {
             <div style={{ marginBottom: '24px' }}>
 
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div className="detail-header-responsive">
+                    <div className="detail-header-left">
                         <div className="employee-avatar" style={{ 
-                            width: '72px', height: '72px', fontSize: '28px', 
-                            borderRadius: '20px', backgroundColor: 'var(--bg-tertiary)',
+                            width: '64px', height: '64px', fontSize: '26px', 
+                            borderRadius: '18px', backgroundColor: 'var(--bg-tertiary)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             color: 'var(--primary)', fontWeight: '600',
                             border: '1px solid var(--border-color)',
                             flexShrink: 0
                         }}>
-                            <Car size={32} />
+                            <Car size={28} />
                         </div>
                         <div>
-                            <h1 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
+                            <h1 style={{ fontSize: '26px', fontWeight: '700', margin: '0 0 6px 0', letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
                                 {vehicle.plate}
                             </h1>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
                                 <span className={`badge badge-${statusInfo.color}`}>{statusInfo.label}</span>
-                                <span style={{ color: 'var(--text-secondary)', fontSize: '14px', textTransform: 'uppercase' }}>
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '13.5px', textTransform: 'uppercase' }}>
                                     {vehicle.brand} {vehicle.model} • {vehicle.year || '-'}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div className="detail-header-actions">
                         <button className="btn btn-secondary" onClick={() => openEditModal('vehicle', vehicle)}>
                             <Pencil size={18} /> Düzenle
                         </button>
@@ -968,7 +968,7 @@ export default function VehicleDetail() {
                     <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Settings size={13} /> Temel Bilgiler
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+                    <div className="detail-inner-grid-2">
                         <div>
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>Araç Türü</div>
                             <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{getVehicleTypeLabel(vehicle.type)}</div>
@@ -997,7 +997,7 @@ export default function VehicleDetail() {
                     <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <FileText size={13} /> Diğer Bilgiler
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+                    <div className="detail-inner-grid-2">
                         <div>
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>Kilometre</div>
                             <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{vehicle.current_km ? vehicle.current_km.toLocaleString('tr-TR') + ' KM' : '-'}</div>
@@ -1066,13 +1066,13 @@ export default function VehicleDetail() {
 
             {/* Tab Content */}
             <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div className="detail-action-bar">
                     <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                         {tabs.find(t => t.id === activeTab)?.label} Kayıtları
                     </h3>
                     {activeTab === 'documents' ? (
                         !showArchived && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div className="detail-action-bar-right">
                                 <button 
                                     onClick={handleOpenCreateFolder} 
                                     className="btn btn-secondary" 
@@ -1091,9 +1091,11 @@ export default function VehicleDetail() {
                         )
                     ) : (
                         !showArchived && (
-                            <button className="btn btn-primary" onClick={() => openAddModal(activeTab)}>
-                                <Plus size={18} /> Ekle
-                            </button>
+                            <div className="detail-action-bar-right">
+                                <button className="btn btn-primary" onClick={() => openAddModal(activeTab)}>
+                                    <Plus size={18} /> Ekle
+                                </button>
+                            </div>
                         )
                     )}
                 </div>
