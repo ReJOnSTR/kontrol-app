@@ -841,40 +841,44 @@ export default function CustomerDetail() {
         <div>
             <TopProgressBar loading={loading} />
 
-            {/* Header / Breadcrumb / Actions */}
-            <div style={{ marginBottom: '24px' }}>
-                <div className="detail-header-responsive">
-                    <div className="detail-header-left">
-                        <div className="employee-avatar" style={{ 
-                            width: '64px', height: '64px', fontSize: '26px', 
-                            borderRadius: '18px', backgroundColor: 'var(--bg-tertiary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: 'var(--primary)', fontWeight: '600',
-                            border: '1px solid var(--border-color)',
-                            flexShrink: 0
-                        }}>
-                            {customer.name.charAt(0).toUpperCase()}
+            {/* Executive Detail Header */}
+            <div className="detail-header-card">
+                <div className="detail-header-top">
+                    <button type="button" className="detail-back-btn" onClick={() => navigate('/customers')}>
+                        <ArrowLeft size={14} /> Müşteriler
+                    </button>
+                    <div className="detail-header-top-right">
+                        <button className="btn btn-secondary detail-edit-btn" onClick={() => setIsEditModalOpen(true)}>
+                            <Pencil size={13} /> Düzenle
+                        </button>
+                    </div>
+                </div>
+
+                <div className="detail-header-main">
+                    <div className="detail-header-identity">
+                        <div className="detail-avatar-box">
+                            {customer.name ? customer.name.charAt(0).toUpperCase() : 'C'}
                         </div>
-                        <div>
-                            <h1 style={{ fontSize: '26px', fontWeight: '700', margin: '0 0 6px 0', letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
-                                {customer.name}
-                            </h1>
-                            <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary)', fontSize: '13.5px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                {customer.phone && <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Phone size={14}/> {customer.phone}</span>}
-                                {customer.email && <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Mail size={14}/> {customer.email}</span>}
+                        <div className="detail-title-group">
+                            <h1 className="page-title">{customer.name}</h1>
+                            <div className="detail-chips-row">
+                                {customer.phone && (
+                                    <span className="detail-chip">
+                                        <Phone size={13}/> {customer.phone}
+                                    </span>
+                                )}
+                                {customer.email && (
+                                    <span className="detail-chip">
+                                        <Mail size={13}/> {customer.email}
+                                    </span>
+                                )}
                                 {(customer.tax_office || customer.tax_number) && (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <Building2 size={14}/> {customer.tax_office} {customer.tax_number && `- ${customer.tax_number}`}
+                                    <span className="detail-chip">
+                                        <Building2 size={13}/> {customer.tax_office || ''} {customer.tax_number ? `(${customer.tax_number})` : ''}
                                     </span>
                                 )}
                             </div>
                         </div>
-                    </div>
-
-                    <div className="detail-header-actions">
-                        <button className="btn btn-secondary" onClick={() => setIsEditModalOpen(true)}>
-                            <Pencil size={18} /> Düzenle
-                        </button>
                     </div>
                 </div>
             </div>

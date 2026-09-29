@@ -1044,40 +1044,43 @@ export default function WorkDetails(props) {
 
     return (
         <div className="page-container">
-            {/* Header */}
-            <div className="detail-header-responsive">
-                <div className="detail-header-left">
-                    <div className="employee-avatar" style={{ 
-                        width: '64px', height: '64px', fontSize: '26px', 
-                        borderRadius: '18px', backgroundColor: 'var(--bg-tertiary)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'var(--primary)', fontWeight: '600',
-                        border: '1px solid var(--border-color)',
-                        flexShrink: 0
-                    }}>
-                        <Briefcase size={28} />
+            {/* Executive Detail Header */}
+            <div className="detail-header-card">
+                <div className="detail-header-top">
+                    <button type="button" className="detail-back-btn" onClick={() => navigate('/works')}>
+                        <ArrowLeft size={14} /> İşler & Operasyon
+                    </button>
+                    <div className="detail-header-top-right">
+                        <span className={`badge badge-${getStatusColor(work.status)}`}>
+                            {work.status === 'pending' ? 'Bekliyor' :
+                                work.status === 'in_progress' ? 'Devam Ediyor' :
+                                    work.status === 'completed' ? 'Tamamlandı' : 'İptal'}
+                        </span>
                     </div>
-                    <div>
-                        <h1 className="page-title" style={{ margin: '0 0 6px 0', fontSize: '24px', fontWeight: '700' }}>{work.title}</h1>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '13.5px' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <User size={14} /> 
-                                {work.customer_id ? (
-                                    <Link to={`/customers/${work.customer_id}`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
-                                        {work.customer_name || work.customer}
-                                    </Link>
-                                ) : (
-                                    work.customer_name || work.customer
-                                )}
-                            </span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Calendar size={14} /> {stats.dateRangeText}
-                            </span>
-                            <span className={`badge badge-${getStatusColor(work.status)}`}>
-                                {work.status === 'pending' ? 'Bekliyor' :
-                                    work.status === 'in_progress' ? 'Devam Ediyor' :
-                                        work.status === 'completed' ? 'Tamamlandı' : 'İptal'}
-                            </span>
+                </div>
+
+                <div className="detail-header-main">
+                    <div className="detail-header-identity">
+                        <div className="detail-avatar-box">
+                            <Briefcase size={26} />
+                        </div>
+                        <div className="detail-title-group">
+                            <h1 className="page-title">{work.title}</h1>
+                            <div className="detail-chips-row">
+                                <span className="detail-chip">
+                                    <User size={13} /> 
+                                    {work.customer_id ? (
+                                        <Link to={`/customers/${work.customer_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                                            {work.customer_name || work.customer}
+                                        </Link>
+                                    ) : (
+                                        work.customer_name || work.customer
+                                    )}
+                                </span>
+                                <span className="detail-chip">
+                                    <Calendar size={13} /> {stats.dateRangeText}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

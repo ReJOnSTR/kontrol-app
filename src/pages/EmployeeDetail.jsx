@@ -25,7 +25,7 @@ import {
     Pencil, Trash2, Plus, AlertCircle, Users,
     Banknote, CalendarOff, Clock, Package, FileText, Settings,
     UserCheck, DollarSign, Calendar, CreditCard, User, Briefcase, Wallet,
-    Upload, X, ExternalLink, Archive, ArchiveRestore, Folder, ChevronRight, Info, Check
+    Upload, X, ExternalLink, Archive, ArchiveRestore, Folder, ChevronRight, Info, Check, ArrowLeft, Phone
 } from 'lucide-react'
 
 const paymentTypes = [
@@ -2229,30 +2229,55 @@ export default function EmployeeDetail() {
             />
             <TopProgressBar loading={loading} />
 
-            {/* Header / Breadcrumb / Actions */}
-            <div style={{ marginBottom: '24px' }}>
-                <div className="detail-header-responsive">
-                    <div className="detail-header-left">
-                        <div>
-                            <h1 style={{ fontSize: '26px', fontWeight: '700', margin: '0 0 6px 0', letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
-                                {employee.first_name} {employee.last_name}
-                            </h1>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                                <span className={`badge badge-${statusInfo.color}`}>{statusInfo.label}</span>
-                                <span style={{ color: 'var(--text-secondary)', fontSize: '13.5px', textTransform: 'uppercase' }}>
-                                    {employee.position || 'POZİSYON BELİRTİLMEDİ'} {employee.department ? `• ${employee.department}` : ''}
+            {/* Executive Detail Header */}
+            <div className="detail-header-card">
+                <div className="detail-header-top">
+                    <button type="button" className="detail-back-btn" onClick={() => navigate('/employees')}>
+                        <ArrowLeft size={14} /> Personeller
+                    </button>
+                    <div className="detail-header-top-right">
+                        <span className={`badge badge-${statusInfo.color}`}>{statusInfo.label}</span>
+                        {!isPersonnel && (
+                            <button className="btn btn-secondary detail-edit-btn" onClick={() => openEditModal('employee', employee)}>
+                                <Pencil size={13} /> Düzenle
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="detail-header-main">
+                    <div className="detail-header-identity">
+                        <div className="detail-avatar-box">
+                            {employee.photo ? (
+                                <img src={employee.photo} alt={employee.first_name} style={{ width: '100%', height: '100%', borderRadius: 'inherit', objectFit: 'cover' }} />
+                            ) : (
+                                <User size={26} />
+                            )}
+                        </div>
+                        <div className="detail-title-group">
+                            <h1 className="page-title">{employee.first_name} {employee.last_name}</h1>
+                            <div className="detail-chips-row">
+                                <span className="detail-chip">
+                                    <Briefcase size={13} /> {employee.position || 'POZİSYON BELİRTİLMEDİ'}
                                 </span>
+                                {employee.department && (
+                                    <span className="detail-chip">
+                                        {employee.department}
+                                    </span>
+                                )}
+                                {employee.phone && (
+                                    <span className="detail-chip">
+                                        <Phone size={13} /> {employee.phone}
+                                    </span>
+                                )}
+                                {employee.start_date && (
+                                    <span className="detail-chip">
+                                        <Calendar size={13} /> {formatDate(employee.start_date)}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
-
-                    {!isPersonnel && (
-                        <div className="detail-header-actions">
-                            <button className="btn btn-secondary" onClick={() => openEditModal('employee', employee)}>
-                                <Pencil size={18} /> Düzenle
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
 

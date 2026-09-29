@@ -923,39 +923,48 @@ export default function VehicleDetail() {
     return (
         <div>
             <TopProgressBar loading={loading} />
-            {/* Header / Breadcrumb / Actions */}
-            <div style={{ marginBottom: '24px' }}>
+            {/* Executive Detail Header */}
+            <div className="detail-header-card">
+                <div className="detail-header-top">
+                    <button type="button" className="detail-back-btn" onClick={() => navigate('/vehicles')}>
+                        <ArrowLeft size={14} /> Araçlar
+                    </button>
+                    <div className="detail-header-top-right">
+                        <span className={`badge badge-${statusInfo.color}`}>{statusInfo.label}</span>
+                        <button className="btn btn-secondary detail-edit-btn" onClick={() => openEditModal('vehicle', vehicle)}>
+                            <Pencil size={13} /> Düzenle
+                        </button>
+                    </div>
+                </div>
 
-
-                <div className="detail-header-responsive">
-                    <div className="detail-header-left">
-                        <div className="employee-avatar" style={{ 
-                            width: '64px', height: '64px', fontSize: '26px', 
-                            borderRadius: '18px', backgroundColor: 'var(--bg-tertiary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: 'var(--primary)', fontWeight: '600',
-                            border: '1px solid var(--border-color)',
-                            flexShrink: 0
-                        }}>
-                            <Car size={28} />
+                <div className="detail-header-main">
+                    <div className="detail-header-identity">
+                        <div className="detail-avatar-box">
+                            <Car size={26} />
                         </div>
-                        <div>
-                            <h1 style={{ fontSize: '26px', fontWeight: '700', margin: '0 0 6px 0', letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
-                                {vehicle.plate}
-                            </h1>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                                <span className={`badge badge-${statusInfo.color}`}>{statusInfo.label}</span>
-                                <span style={{ color: 'var(--text-secondary)', fontSize: '13.5px', textTransform: 'uppercase' }}>
-                                    {vehicle.brand} {vehicle.model} • {vehicle.year || '-'}
+                        <div className="detail-title-group">
+                            <h1 className="page-title">{vehicle.plate}</h1>
+                            <div className="detail-chips-row">
+                                <span className="detail-chip">
+                                    <Car size={13} /> {vehicle.brand} {vehicle.model}
                                 </span>
+                                {vehicle.year && (
+                                    <span className="detail-chip">
+                                        <Calendar size={13} /> {vehicle.year}
+                                    </span>
+                                )}
+                                {vehicle.current_km && (
+                                    <span className="detail-chip">
+                                        {vehicle.current_km.toLocaleString('tr-TR')} KM
+                                    </span>
+                                )}
+                                {vehicle.type && (
+                                    <span className="detail-chip">
+                                        {getVehicleTypeLabel(vehicle.type)}
+                                    </span>
+                                )}
                             </div>
                         </div>
-                    </div>
-
-                    <div className="detail-header-actions">
-                        <button className="btn btn-secondary" onClick={() => openEditModal('vehicle', vehicle)}>
-                            <Pencil size={18} /> Düzenle
-                        </button>
                     </div>
                 </div>
             </div>

@@ -1036,8 +1036,144 @@ textarea,
 }
 
 /* ============================================
-   UNIVERSAL DETAIL PAGES RESPONSIVE ENGINE
+   EXECUTIVE DETAIL HEADER DESIGN SYSTEM
    ============================================ */
+.detail-header-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl, 18px);
+  padding: 18px 22px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.detail-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.detail-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px 6px 8px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.detail-back-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.detail-header-top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.detail-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.detail-header-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+}
+
+.detail-avatar-box {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.detail-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.detail-title-group h1,
+.detail-title-group .page-title {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.detail-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detail-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.detail-chip svg {
+  opacity: 0.75;
+}
+
+.detail-edit-btn {
+  height: 34px !important;
+  padding: 0 14px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+/* UNIVERSAL DETAIL PAGES RESPONSIVE ENGINE */
 .detail-header-responsive {
   display: flex;
   align-items: center;
@@ -1124,6 +1260,66 @@ textarea,
 }
 
 @media (max-width: 768px) {
+  /* EXECUTIVE MOBILE DETAIL HEADER CARD */
+  .detail-header-card {
+    padding: 14px 15px 16px 15px !important;
+    border-radius: 20px !important;
+    gap: 14px !important;
+    margin-bottom: 16px !important;
+    background: var(--bg-card) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .detail-header-top {
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid var(--border-light, rgba(255, 255, 255, 0.06)) !important;
+  }
+
+  .detail-back-btn {
+    padding: 5px 10px 5px 6px !important;
+    font-size: 12px !important;
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border-color) !important;
+  }
+
+  .detail-header-main {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .detail-header-identity {
+    gap: 14px !important;
+  }
+
+  .detail-avatar-box {
+    width: 52px !important;
+    height: 52px !important;
+    border-radius: 14px !important;
+    font-size: 22px !important;
+  }
+
+  .detail-title-group h1,
+  .detail-title-group .page-title {
+    font-size: 20px !important;
+    letter-spacing: -0.4px !important;
+  }
+
+  .detail-chips-row {
+    gap: 6px !important;
+  }
+
+  .detail-chip {
+    padding: 4px 9px !important;
+    font-size: 11.5px !important;
+  }
+
+  .detail-edit-btn {
+    height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 12px !important;
+  }
+
   /* PREMIUM MOBILE DETAIL HEADER CARD */
   .detail-header-responsive {
     background: var(--bg-secondary) !important;
