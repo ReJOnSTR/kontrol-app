@@ -1003,6 +1003,23 @@ export default function Settings() {
         }
     }
 
+    const SETTING_TABS = [
+        { id: 'general', label: 'Genel', icon: User },
+        { id: 'users', label: 'Kullanıcılar', icon: Users },
+        { id: 'appearance', label: 'Görünüm', icon: Palette },
+        { id: 'security', label: 'Güvenlik', icon: Shield },
+        { id: 'notifications', label: 'Bildirimler', icon: Bell },
+        { id: 'audit', label: 'Denetim', icon: FileSearch },
+        { id: 'data', label: 'Veri', icon: Database },
+        { id: 'arvento', label: 'Arvento', icon: Zap },
+        { id: 'fleet', label: 'Filo', icon: Car },
+        { id: 'hr', label: 'İK', icon: Users },
+        { id: 'meals', label: 'Yemek', icon: UtensilsCrossed },
+        { id: 'finance', label: 'Finans', icon: Wallet },
+        { id: 'works', label: 'İşler', icon: Briefcase },
+        { id: 'customers', label: 'Cariler', icon: Building2 }
+    ]
+
     const currentMeta = tabMeta[activeTab] || {
         title: 'Ayarlar',
         desc: 'Uygulama tercihlerini yönetin.'
@@ -1011,6 +1028,25 @@ export default function Settings() {
     return (
         <div className="settings-page fade-in">
             <TopProgressBar loading={updateStatus === 'checking' || updateStatus === 'downloading'} />
+
+            {/* Mobile Tab Navigation Strip (Visible only <= 768px) */}
+            <div className="settings-mobile-tabs">
+                {SETTING_TABS.map(tab => {
+                    const Icon = tab.icon
+                    const isActive = activeTab === tab.id
+                    return (
+                        <button
+                            key={tab.id}
+                            type="button"
+                            className={`settings-mobile-tab-btn ${isActive ? 'active' : ''}`}
+                            onClick={() => handleTabChange(tab.id)}
+                        >
+                            <Icon size={14} />
+                            <span>{tab.label}</span>
+                        </button>
+                    )
+                })}
+            </div>
             
             {activeTab !== 'meals' && (
                 <div className="page-header">

@@ -80,11 +80,37 @@ const portalStyles = `
         transition: all 0.3s ease;
         flex-shrink: 0;
     }
-    .portal-card:hover .card-arrow {
-        transform: translateX(4px);
+    .portal-container {
+        padding: 24px 44px;
+        max-width: 1240px;
+        margin: 0 auto;
     }
-    .portal-card:hover .card-arrow {
-        transform: translateX(4px);
+    .portal-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+    }
+    .portal-inactive-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 14px;
+    }
+    @media (max-width: 1024px) {
+        .portal-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    @media (max-width: 768px) {
+        .portal-container {
+            padding: 16px 12px;
+        }
+        .portal-grid {
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+        .portal-inactive-grid {
+            grid-template-columns: 1fr;
+        }
     }
 `
 
@@ -237,7 +263,7 @@ export default function MainPortal() {
     return (
         <>
             <style>{portalStyles}</style>
-            <div style={{ padding: '24px 44px', maxWidth: '1240px', margin: '0 auto' }}>
+            <div className="portal-container">
                 {/* Header */}
                 <div className="portal-header-area" style={{ marginBottom: '32px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -270,12 +296,7 @@ export default function MainPortal() {
                 </div>
 
                 {/* Active Module Cards */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: '18px',
-                    marginBottom: inactiveModules.length > 0 ? '28px' : '0'
-                }}>
+                <div className="portal-grid" style={{ marginBottom: inactiveModules.length > 0 ? '28px' : '0' }}>
                     {activeModules.map((mod, idx) => (
                         <div
                             key={mod.id}
@@ -372,7 +393,7 @@ export default function MainPortal() {
                         <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                             Yakında Gelecek
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${inactiveModules.length}, 1fr)`, gap: '14px' }}>
+                        <div className="portal-inactive-grid">
                             {inactiveModules.map((mod, idx) => (
                                 <div
                                     key={mod.id}

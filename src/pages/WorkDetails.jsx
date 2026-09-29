@@ -1051,7 +1051,7 @@ export default function WorkDetails(props) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <h1 className="page-title">{work.title}</h1>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <User size={14} /> 
                                 {work.customer_id ? (
@@ -1076,9 +1076,9 @@ export default function WorkDetails(props) {
             </div>
 
             {/* Hero Dashboard Style */}
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'stretch' }}>
+            <div className="work-hero-container">
                 {/* Sol Taraf: Finansal Hero Kart */}
-                <div className="stat-card" style={{ flex: '0 0 35%', background: 'linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'space-between', padding: '24px', gap: '0' }}>
+                <div className="stat-card work-hero-card">
                     {/* Arka plan süsü */}
                     <div style={{ position: 'absolute', top: '-20px', right: '-20px', opacity: 0.05, transform: 'scale(2)', pointerEvents: 'none' }}>
                         <DollarSign size={100} />
@@ -1112,7 +1112,7 @@ export default function WorkDetails(props) {
                 </div>
 
                 {/* Sağ Taraf: Operasyonel Grid */}
-                <div style={{ flex: '1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                <div className="work-hero-grid">
                     {/* Toplam Kayıt */}
                     <div className="stat-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '8px' }}>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px' }}>

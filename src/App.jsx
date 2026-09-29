@@ -153,6 +153,7 @@ function PermissionRoute({ module, action = 'can_read', children }) {
 
 import BroadcastBanner from './components/BroadcastBanner'
 import ImpersonationBanner from './components/ImpersonationBanner'
+import MobileHeader from './components/MobileHeader'
 
 function MainLayout() {
     const { user } = useAuth()
@@ -174,6 +175,7 @@ function MainLayout() {
             <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
                 <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
                 <div className="main-content">
+                    <MobileHeader />
                     <ImpersonationBanner />
                     <TabBar />
                     <BroadcastBanner />

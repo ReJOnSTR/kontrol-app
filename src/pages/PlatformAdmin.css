@@ -539,3 +539,29 @@
     line-height: 1;
 }
 
+@media (max-width: 768px) {
+    .platform-tabs {
+        gap: 4px;
+        padding-bottom: 4px;
+        margin-bottom: 16px;
+    }
+    .platform-tab-btn {
+        padding: 8px 10px;
+        font-size: 12.5px;
+    }
+    .platform-stats-grid,
+    .health-grid,
+    .summary-grid,
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .platform-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
