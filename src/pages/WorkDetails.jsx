@@ -6,7 +6,7 @@ import DataTable from '../components/DataTable'
 import CustomSelect from '../components/CustomSelect'
 import CustomInput from '../components/CustomInput'
 import ConfirmModal from '../components/ConfirmModal'
-import { ArrowLeft, Plus, Pencil, Trash2, Calendar, Clock, Truck, User, DollarSign, FileText, Printer, Download, FileDown, Settings, Wallet, ChevronDown, Save } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Calendar, Clock, Truck, User, DollarSign, FileText, Printer, Download, FileDown, Settings, Wallet, ChevronDown, Save, Briefcase } from 'lucide-react'
 import { formatDate, formatCurrency, safeSetLocalStorage, generateUniqueFileName } from '../utils/helpers'
 import { calculateWorkStats } from '../utils/workCalculations'
 import { workItemSchema } from '../schemas/workSchema'
@@ -1045,13 +1045,21 @@ export default function WorkDetails(props) {
     return (
         <div className="page-container">
             {/* Header */}
-            <div className="page-header" style={{ display: 'block', marginBottom: '24px' }}>
-
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div className="detail-header-responsive">
+                <div className="detail-header-left">
+                    <div className="employee-avatar" style={{ 
+                        width: '64px', height: '64px', fontSize: '26px', 
+                        borderRadius: '18px', backgroundColor: 'var(--bg-tertiary)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'var(--primary)', fontWeight: '600',
+                        border: '1px solid var(--border-color)',
+                        flexShrink: 0
+                    }}>
+                        <Briefcase size={28} />
+                    </div>
                     <div>
-                        <h1 className="page-title">{work.title}</h1>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
+                        <h1 className="page-title" style={{ margin: '0 0 6px 0', fontSize: '24px', fontWeight: '700' }}>{work.title}</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '13.5px' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <User size={14} /> 
                                 {work.customer_id ? (
