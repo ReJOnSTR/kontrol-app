@@ -9,12 +9,14 @@ export default function Modal({ isOpen, onClose, title, children, size = 'defaul
                 className={`modal ${size === 'lg' ? 'modal-lg' : size === 'xl' ? 'modal-xl' : size === 'sm' ? 'modal-sm' : (size === 'fullscreen' || size === 'full') ? 'modal-fullscreen' : ''}`}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="modal-drag-indicator" />
                 <div className="modal-header">
-                    <h2 className="modal-title" style={{ width: '100%' }}>{title}</h2>
-                    <button className="modal-close" onClick={onClose} aria-label="Kapat">
-                        <X size={20} />
-                    </button>
+                    <div className="modal-drag-indicator" />
+                    <div className="modal-header-content">
+                        <h2 className="modal-title">{title}</h2>
+                        <button className="modal-close" onClick={onClose} aria-label="Kapat">
+                            <X size={18} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className={`modal-body ${bodyClassName || ''}`} style={bodyStyle}>

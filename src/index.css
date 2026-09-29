@@ -920,15 +920,15 @@ textarea,
     width: 100% !important;
     max-height: 92dvh !important;
     height: auto !important;
-    border-radius: 22px 22px 0 0 !important;
-    border: 1px solid var(--border-color) !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-top: 1px solid var(--border-color) !important;
     border-bottom: none !important;
     border-left: none !important;
     border-right: none !important;
     margin: 0 !important;
-    background: var(--bg-card) !important;
-    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4) !important;
-    animation: mobileSheetIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    background: var(--bg-secondary) !important;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45) !important;
+    animation: mobileSheetIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
@@ -937,7 +937,7 @@ textarea,
   @keyframes mobileSheetIn {
     from {
       transform: translateY(100%);
-      opacity: 0.6;
+      opacity: 0.5;
     }
     to {
       transform: translateY(0);
@@ -949,53 +949,75 @@ textarea,
   .modal-xl {
     max-width: 100vw !important;
     width: 100% !important;
-    height: 95dvh !important;
-    max-height: 95dvh !important;
-    border-radius: 22px 22px 0 0 !important;
+    height: 94dvh !important;
+    max-height: 94dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+
+  /* UNIFIED HEADER & DRAG INDICATOR */
+  .modal-header {
+    padding: 8px 16px 12px 16px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    background: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
   }
 
   .modal-drag-indicator {
     display: block !important;
-    width: 42px !important;
-    height: 4.5px !important;
+    width: 36px !important;
+    height: 4px !important;
     border-radius: 9999px !important;
     background: var(--text-muted) !important;
-    opacity: 0.4 !important;
-    margin: 10px auto 4px auto !important;
+    opacity: 0.35 !important;
+    margin: 2px auto 0 auto !important;
     flex-shrink: 0 !important;
   }
 
-  .modal-header {
-    padding: 10px 18px 12px 18px !important;
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 15 !important;
-    background: var(--bg-card) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-    flex-shrink: 0 !important;
+  .modal-header-content {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
   }
 
   .modal-title {
     font-size: 16px !important;
     font-weight: 700 !important;
     letter-spacing: -0.3px !important;
+    color: var(--text-primary) !important;
+    margin: 0 !important;
   }
 
   .modal-close {
-    width: 36px !important;
-    height: 36px !important;
+    width: 32px !important;
+    height: 32px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     border-radius: 50% !important;
     background: var(--bg-tertiary) !important;
-    color: var(--text-primary) !important;
+    color: var(--text-secondary) !important;
     border: 1px solid var(--border-color) !important;
     flex-shrink: 0 !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .modal-close:hover,
+  .modal-close:active {
+    background: var(--bg-card-hover) !important;
+    color: var(--text-primary) !important;
   }
 
   .modal-body {
-    padding: 16px 18px !important;
+    padding: 16px !important;
+    background: var(--bg-secondary) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     flex: 1 1 auto !important;
@@ -1032,23 +1054,26 @@ textarea,
     box-sizing: border-box !important;
   }
 
+  /* UNIFIED FOOTER & BUTTONS */
   .modal-footer {
     position: sticky !important;
     bottom: 0 !important;
-    z-index: 15 !important;
-    background: var(--bg-card) !important;
+    z-index: 20 !important;
+    background: var(--bg-secondary) !important;
     border-top: 1px solid var(--border-color) !important;
-    padding: 12px 18px 24px 18px !important;
+    padding: 12px 16px max(16px, env(safe-area-inset-bottom, 16px)) 16px !important;
     display: flex !important;
-    flex-wrap: wrap !important;
+    align-items: center !important;
     gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
     flex-shrink: 0 !important;
   }
 
   .modal-footer button,
   .modal-footer .btn {
-    flex: 1 1 calc(50% - 6px) !important;
-    min-width: 120px !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
     height: 44px !important;
     font-size: 14px !important;
     font-weight: 600 !important;
@@ -1056,22 +1081,32 @@ textarea,
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    margin: 0 !important;
   }
 
-  /* Form Internal Submit/Cancel Action Bars */
-  .modal-body form > div:last-child {
+  /* Form Action Bars (İptal / Kaydet row inside forms) */
+  .modal-body form [style*="justify-content: flex-end"],
+  .modal-body form [style*="justifyContent: 'flex-end'"],
+  .modal-body form [style*="justify-content:flex-end"],
+  .modal-body form [style*="justifyContent: \"flex-end\""],
+  .modal-body .form-actions {
     display: flex !important;
-    flex-wrap: wrap !important;
+    align-items: center !important;
     gap: 10px !important;
     width: 100% !important;
-    margin-top: 20px !important;
+    margin-top: 22px !important;
     padding-top: 14px !important;
-    border-top: 1px solid var(--border-color-light, rgba(255, 255, 255, 0.06)) !important;
+    border-top: 1px solid var(--border-color) !important;
+    box-sizing: border-box !important;
   }
 
-  .modal-body form > div:last-child button,
-  .modal-body form > div:last-child .btn {
-    flex: 1 1 calc(50% - 6px) !important;
+  .modal-body form [style*="justify-content: flex-end"] button,
+  .modal-body form [style*="justifyContent: 'flex-end'"] button,
+  .modal-body form [style*="justify-content:flex-end"] button,
+  .modal-body form [style*="justifyContent: \"flex-end\""] button,
+  .modal-body .form-actions button {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
     height: 44px !important;
     font-size: 14px !important;
     font-weight: 600 !important;
@@ -1079,6 +1114,7 @@ textarea,
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    margin: 0 !important;
   }
 
   /* Modal Tabs Scroll */
@@ -4005,10 +4041,18 @@ textarea,
   border-bottom: 1px solid var(--border-color);
 }
 
+.modal-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
 .modal-title {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
+  margin: 0;
 }
 
 .modal-close {
