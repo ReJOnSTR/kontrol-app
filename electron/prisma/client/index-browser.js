@@ -515,6 +515,7 @@ exports.Prisma.WorksScalarFieldEnum = {
   end_date: 'end_date',
   work_start_time: 'work_start_time',
   work_end_time: 'work_end_time',
+  disable_overtime: 'disable_overtime',
   is_archived: 'is_archived',
   pazar_multiplier: 'pazar_multiplier',
   mesai_multiplier: 'mesai_multiplier',

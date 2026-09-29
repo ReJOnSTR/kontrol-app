@@ -236,6 +236,7 @@ async function runAutoMigrations() {
             await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active INT DEFAULT 1;');
             await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password INT DEFAULT 0;');
             await p.$executeRawUnsafe('ALTER TABLE works ADD COLUMN IF NOT EXISTS pdf_settings TEXT;');
+            await p.$executeRawUnsafe('ALTER TABLE works ADD COLUMN IF NOT EXISTS disable_overtime INTEGER DEFAULT 0;');
             await p.$executeRawUnsafe(`
                 CREATE TABLE IF NOT EXISTS revoked_sessions (
                     session_id VARCHAR(255) PRIMARY KEY,

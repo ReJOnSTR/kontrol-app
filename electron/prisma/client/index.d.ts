@@ -37593,6 +37593,7 @@ export namespace Prisma {
     employee_id: number | null
     customer_id: number | null
     price: number | null
+    disable_overtime: number | null
     is_archived: number | null
     pazar_multiplier: number | null
     mesai_multiplier: number | null
@@ -37605,6 +37606,7 @@ export namespace Prisma {
     employee_id: number | null
     customer_id: number | null
     price: number | null
+    disable_overtime: number | null
     is_archived: number | null
     pazar_multiplier: number | null
     mesai_multiplier: number | null
@@ -37627,6 +37629,7 @@ export namespace Prisma {
     end_date: Date | null
     work_start_time: string | null
     work_end_time: string | null
+    disable_overtime: number | null
     is_archived: number | null
     pazar_multiplier: number | null
     mesai_multiplier: number | null
@@ -37650,6 +37653,7 @@ export namespace Prisma {
     end_date: Date | null
     work_start_time: string | null
     work_end_time: string | null
+    disable_overtime: number | null
     is_archived: number | null
     pazar_multiplier: number | null
     mesai_multiplier: number | null
@@ -37673,6 +37677,7 @@ export namespace Prisma {
     end_date: number
     work_start_time: number
     work_end_time: number
+    disable_overtime: number
     is_archived: number
     pazar_multiplier: number
     mesai_multiplier: number
@@ -37688,6 +37693,7 @@ export namespace Prisma {
     employee_id?: true
     customer_id?: true
     price?: true
+    disable_overtime?: true
     is_archived?: true
     pazar_multiplier?: true
     mesai_multiplier?: true
@@ -37700,6 +37706,7 @@ export namespace Prisma {
     employee_id?: true
     customer_id?: true
     price?: true
+    disable_overtime?: true
     is_archived?: true
     pazar_multiplier?: true
     mesai_multiplier?: true
@@ -37722,6 +37729,7 @@ export namespace Prisma {
     end_date?: true
     work_start_time?: true
     work_end_time?: true
+    disable_overtime?: true
     is_archived?: true
     pazar_multiplier?: true
     mesai_multiplier?: true
@@ -37745,6 +37753,7 @@ export namespace Prisma {
     end_date?: true
     work_start_time?: true
     work_end_time?: true
+    disable_overtime?: true
     is_archived?: true
     pazar_multiplier?: true
     mesai_multiplier?: true
@@ -37768,6 +37777,7 @@ export namespace Prisma {
     end_date?: true
     work_start_time?: true
     work_end_time?: true
+    disable_overtime?: true
     is_archived?: true
     pazar_multiplier?: true
     mesai_multiplier?: true
@@ -37878,6 +37888,7 @@ export namespace Prisma {
     end_date: Date | null
     work_start_time: string | null
     work_end_time: string | null
+    disable_overtime: number | null
     is_archived: number | null
     pazar_multiplier: number | null
     mesai_multiplier: number | null
@@ -37920,6 +37931,7 @@ export namespace Prisma {
     end_date?: boolean
     work_start_time?: boolean
     work_end_time?: boolean
+    disable_overtime?: boolean
     is_archived?: boolean
     pazar_multiplier?: boolean
     mesai_multiplier?: boolean
@@ -37949,6 +37961,7 @@ export namespace Prisma {
     end_date?: boolean
     work_start_time?: boolean
     work_end_time?: boolean
+    disable_overtime?: boolean
     is_archived?: boolean
     pazar_multiplier?: boolean
     mesai_multiplier?: boolean
@@ -37976,6 +37989,7 @@ export namespace Prisma {
     end_date?: boolean
     work_start_time?: boolean
     work_end_time?: boolean
+    disable_overtime?: boolean
     is_archived?: boolean
     pazar_multiplier?: boolean
     mesai_multiplier?: boolean
@@ -38003,13 +38017,14 @@ export namespace Prisma {
     end_date?: boolean
     work_start_time?: boolean
     work_end_time?: boolean
+    disable_overtime?: boolean
     is_archived?: boolean
     pazar_multiplier?: boolean
     mesai_multiplier?: boolean
     pdf_settings?: boolean
   }
 
-  export type worksOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "company_id" | "vehicle_id" | "employee_id" | "customer_id" | "customer" | "title" | "description" | "status" | "price" | "location" | "created_at" | "start_date" | "end_date" | "work_start_time" | "work_end_time" | "is_archived" | "pazar_multiplier" | "mesai_multiplier" | "pdf_settings", ExtArgs["result"]["works"]>
+  export type worksOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "company_id" | "vehicle_id" | "employee_id" | "customer_id" | "customer" | "title" | "description" | "status" | "price" | "location" | "created_at" | "start_date" | "end_date" | "work_start_time" | "work_end_time" | "disable_overtime" | "is_archived" | "pazar_multiplier" | "mesai_multiplier" | "pdf_settings", ExtArgs["result"]["works"]>
   export type worksInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     work_items?: boolean | works$work_itemsArgs<ExtArgs>
     employees?: boolean | works$employeesArgs<ExtArgs>
@@ -38057,6 +38072,7 @@ export namespace Prisma {
       end_date: Date | null
       work_start_time: string | null
       work_end_time: string | null
+      disable_overtime: number | null
       is_archived: number | null
       pazar_multiplier: number | null
       mesai_multiplier: number | null
@@ -38505,6 +38521,7 @@ export namespace Prisma {
     readonly end_date: FieldRef<"works", 'DateTime'>
     readonly work_start_time: FieldRef<"works", 'String'>
     readonly work_end_time: FieldRef<"works", 'String'>
+    readonly disable_overtime: FieldRef<"works", 'Int'>
     readonly is_archived: FieldRef<"works", 'Int'>
     readonly pazar_multiplier: FieldRef<"works", 'Float'>
     readonly mesai_multiplier: FieldRef<"works", 'Float'>
@@ -56352,6 +56369,7 @@ export namespace Prisma {
     end_date: 'end_date',
     work_start_time: 'work_start_time',
     work_end_time: 'work_end_time',
+    disable_overtime: 'disable_overtime',
     is_archived: 'is_archived',
     pazar_multiplier: 'pazar_multiplier',
     mesai_multiplier: 'mesai_multiplier',
@@ -59137,6 +59155,7 @@ export namespace Prisma {
     end_date?: DateTimeNullableFilter<"works"> | Date | string | null
     work_start_time?: StringNullableFilter<"works"> | string | null
     work_end_time?: StringNullableFilter<"works"> | string | null
+    disable_overtime?: IntNullableFilter<"works"> | number | null
     is_archived?: IntNullableFilter<"works"> | number | null
     pazar_multiplier?: FloatNullableFilter<"works"> | number | null
     mesai_multiplier?: FloatNullableFilter<"works"> | number | null
@@ -59165,6 +59184,7 @@ export namespace Prisma {
     end_date?: SortOrderInput | SortOrder
     work_start_time?: SortOrderInput | SortOrder
     work_end_time?: SortOrderInput | SortOrder
+    disable_overtime?: SortOrderInput | SortOrder
     is_archived?: SortOrderInput | SortOrder
     pazar_multiplier?: SortOrderInput | SortOrder
     mesai_multiplier?: SortOrderInput | SortOrder
@@ -59196,6 +59216,7 @@ export namespace Prisma {
     end_date?: DateTimeNullableFilter<"works"> | Date | string | null
     work_start_time?: StringNullableFilter<"works"> | string | null
     work_end_time?: StringNullableFilter<"works"> | string | null
+    disable_overtime?: IntNullableFilter<"works"> | number | null
     is_archived?: IntNullableFilter<"works"> | number | null
     pazar_multiplier?: FloatNullableFilter<"works"> | number | null
     mesai_multiplier?: FloatNullableFilter<"works"> | number | null
@@ -59224,6 +59245,7 @@ export namespace Prisma {
     end_date?: SortOrderInput | SortOrder
     work_start_time?: SortOrderInput | SortOrder
     work_end_time?: SortOrderInput | SortOrder
+    disable_overtime?: SortOrderInput | SortOrder
     is_archived?: SortOrderInput | SortOrder
     pazar_multiplier?: SortOrderInput | SortOrder
     mesai_multiplier?: SortOrderInput | SortOrder
@@ -59255,6 +59277,7 @@ export namespace Prisma {
     end_date?: DateTimeNullableWithAggregatesFilter<"works"> | Date | string | null
     work_start_time?: StringNullableWithAggregatesFilter<"works"> | string | null
     work_end_time?: StringNullableWithAggregatesFilter<"works"> | string | null
+    disable_overtime?: IntNullableWithAggregatesFilter<"works"> | number | null
     is_archived?: IntNullableWithAggregatesFilter<"works"> | number | null
     pazar_multiplier?: FloatNullableWithAggregatesFilter<"works"> | number | null
     mesai_multiplier?: FloatNullableWithAggregatesFilter<"works"> | number | null
@@ -62997,6 +63020,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -63025,6 +63049,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -63044,6 +63069,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -63072,6 +63098,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -63096,6 +63123,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -63114,6 +63142,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -63137,6 +63166,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -66333,6 +66363,7 @@ export namespace Prisma {
     end_date?: SortOrder
     work_start_time?: SortOrder
     work_end_time?: SortOrder
+    disable_overtime?: SortOrder
     is_archived?: SortOrder
     pazar_multiplier?: SortOrder
     mesai_multiplier?: SortOrder
@@ -66346,6 +66377,7 @@ export namespace Prisma {
     employee_id?: SortOrder
     customer_id?: SortOrder
     price?: SortOrder
+    disable_overtime?: SortOrder
     is_archived?: SortOrder
     pazar_multiplier?: SortOrder
     mesai_multiplier?: SortOrder
@@ -66368,6 +66400,7 @@ export namespace Prisma {
     end_date?: SortOrder
     work_start_time?: SortOrder
     work_end_time?: SortOrder
+    disable_overtime?: SortOrder
     is_archived?: SortOrder
     pazar_multiplier?: SortOrder
     mesai_multiplier?: SortOrder
@@ -66391,6 +66424,7 @@ export namespace Prisma {
     end_date?: SortOrder
     work_start_time?: SortOrder
     work_end_time?: SortOrder
+    disable_overtime?: SortOrder
     is_archived?: SortOrder
     pazar_multiplier?: SortOrder
     mesai_multiplier?: SortOrder
@@ -66404,6 +66438,7 @@ export namespace Prisma {
     employee_id?: SortOrder
     customer_id?: SortOrder
     price?: SortOrder
+    disable_overtime?: SortOrder
     is_archived?: SortOrder
     pazar_multiplier?: SortOrder
     mesai_multiplier?: SortOrder
@@ -70387,6 +70422,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -70413,6 +70449,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -71041,6 +71078,7 @@ export namespace Prisma {
     end_date?: DateTimeNullableFilter<"works"> | Date | string | null
     work_start_time?: StringNullableFilter<"works"> | string | null
     work_end_time?: StringNullableFilter<"works"> | string | null
+    disable_overtime?: IntNullableFilter<"works"> | number | null
     is_archived?: IntNullableFilter<"works"> | number | null
     pazar_multiplier?: FloatNullableFilter<"works"> | number | null
     mesai_multiplier?: FloatNullableFilter<"works"> | number | null
@@ -71464,6 +71502,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -71490,6 +71529,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -73061,6 +73101,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -73087,6 +73128,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -76171,6 +76213,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -76197,6 +76240,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -76682,6 +76726,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -76709,6 +76754,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -76889,6 +76935,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -76916,6 +76963,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -79778,6 +79826,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -80188,6 +80237,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -80214,6 +80264,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -80237,6 +80288,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -80571,6 +80623,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -80589,6 +80642,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -80615,6 +80669,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -80638,6 +80693,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -80792,6 +80848,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -81198,6 +81255,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -81224,6 +81282,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -81247,6 +81306,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -81588,6 +81648,7 @@ export namespace Prisma {
     end_date?: Date | string | null
     work_start_time?: string | null
     work_end_time?: string | null
+    disable_overtime?: number | null
     is_archived?: number | null
     pazar_multiplier?: number | null
     mesai_multiplier?: number | null
@@ -81911,6 +81972,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -81937,6 +81999,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -81960,6 +82023,7 @@ export namespace Prisma {
     end_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     work_start_time?: NullableStringFieldUpdateOperationsInput | string | null
     work_end_time?: NullableStringFieldUpdateOperationsInput | string | null
+    disable_overtime?: NullableIntFieldUpdateOperationsInput | number | null
     is_archived?: NullableIntFieldUpdateOperationsInput | number | null
     pazar_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
     mesai_multiplier?: NullableFloatFieldUpdateOperationsInput | number | null
