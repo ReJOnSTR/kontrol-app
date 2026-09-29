@@ -96,6 +96,11 @@ export default function Settings() {
     const [errorMsg, setErrorMsg] = useState('')
     const [isBackupPathFocused, setIsBackupPathFocused] = useState(false)
     const [showLockPass, setShowLockPass] = useState(false)
+    const [isLockModalOpen, setIsLockModalOpen] = useState(false)
+    const [newLockPass, setNewLockPass] = useState('')
+    const [confirmLockPass, setConfirmLockPass] = useState('')
+    const [lockModalError, setLockModalError] = useState('')
+    const [savingLockPass, setSavingLockPass] = useState(false)
     const [lockSettings, setLockSettings] = useState(() => {
         return JSON.parse(localStorage.getItem('aractakip_lock_settings') || '{"enabled":false,"timeout":5,"useCustomPassword":false,"customPassword":""}')
     })
@@ -637,17 +642,19 @@ export default function Settings() {
     }
 
     const handleLockSettingChange = async (key, value) => {
-        let newLockSettings = { ...lockSettings, [key]: value }
-        if (key === 'customPassword') {
-            const hash = await hashPassword(value)
-            newLockSettings.customPasswordHash = hash
+        if (key === 'useCustomPassword' && value === true) {
+            // If turning on and no password hash set yet, open modal immediately
+            if (!lockSettings.customPasswordHash) {
+                handleOpenLockModal()
+                return
+            }
         }
+
+        let newLockSettings = { ...lockSettings, [key]: value }
         setLockSettings(newLockSettings)
 
         const toSave = { ...newLockSettings }
-        if (toSave.customPasswordHash) {
-            delete toSave.customPassword
-        }
+        delete toSave.customPassword
         localStorage.setItem('aractakip_lock_settings', JSON.stringify(toSave))
         window.dispatchEvent(new CustomEvent('aractakip_lock_settings_changed', { detail: toSave }))
 
@@ -655,6 +662,76 @@ export default function Settings() {
         if (updateUserPreferences) {
             updateUserPreferences({ lock: toSave })
         }
+    }
+
+    const handleOpenLockModal = () => {
+        setNewLockPass('')
+        setConfirmLockPass('')
+        setLockModalError('')
+        setShowLockPass(false)
+        setIsLockModalOpen(true)
+    }
+
+    const handleSaveCustomPassword = async () => {
+        const pass = newLockPass.trim()
+        if (!pass || pass.length < 4) {
+            setLockModalError('Kilit şifresi veya PIN kodu en az 4 karakter / rakam olmalıdır.')
+            return
+        }
+        if (pass !== confirmLockPass.trim()) {
+            setLockModalError('Şifreler birbiriyle eşleşmiyor. Lütfen kontrol ediniz.')
+            return
+        }
+
+        setSavingLockPass(true)
+        setLockModalError('')
+        try {
+            const hash = await hashPassword(pass)
+            const updated = {
+                ...lockSettings,
+                useCustomPassword: true,
+                customPasswordHash: hash,
+                hasCustomPassword: true
+            }
+            delete updated.customPassword
+            setLockSettings(updated)
+
+            localStorage.setItem('aractakip_lock_settings', JSON.stringify(updated))
+            window.dispatchEvent(new CustomEvent('aractakip_lock_settings_changed', { detail: updated }))
+
+            if (updateUserPreferences) {
+                await updateUserPreferences({ lock: updated })
+            }
+
+            setIsLockModalOpen(false)
+            setNotificationStatusMsg({ type: 'success', text: 'Özel kilit şifresi / PIN başarıyla belirlendi ve kaydedildi!' })
+            setTimeout(() => setNotificationStatusMsg(null), 4000)
+        } catch (e) {
+            setLockModalError('Şifre kaydedilirken hata oluştu: ' + e.message)
+        } finally {
+            setSavingLockPass(false)
+        }
+    }
+
+    const handleRemoveCustomPassword = async () => {
+        const updated = {
+            ...lockSettings,
+            useCustomPassword: false,
+            customPasswordHash: '',
+            hasCustomPassword: false
+        }
+        delete updated.customPassword
+        setLockSettings(updated)
+
+        localStorage.setItem('aractakip_lock_settings', JSON.stringify(updated))
+        window.dispatchEvent(new CustomEvent('aractakip_lock_settings_changed', { detail: updated }))
+
+        if (updateUserPreferences) {
+            await updateUserPreferences({ lock: updated })
+        }
+
+        setNotificationStatusMsg({ type: 'success', text: 'Özel kilit şifresi kaldırıldı. Artık giriş şifreniz geçerlidir.' })
+        setTimeout(() => setNotificationStatusMsg(null), 4000)
     }
 
     const toggleNotification = async (key) => {
@@ -1332,7 +1409,7 @@ export default function Settings() {
                                             <div className="settings-item">
                                                 <div className="settings-item-content">
                                                     <div className="settings-item-label">Özel Kilit Şifresi Kullan</div>
-                                                    <div className="settings-item-desc">Giriş şifresi yerine farklı bir şifre ile kilit açma.</div>
+                                                    <div className="settings-item-desc">Giriş şifresi yerine farklı bir şifre veya 4-6 haneli PIN ile kilit açma.</div>
                                                 </div>
                                                 <label className="toggle-switch">
                                                     <input 
@@ -1345,27 +1422,76 @@ export default function Settings() {
                                             </div>
 
                                             {lockSettings.useCustomPassword && (
-                                                <div className="settings-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
-                                                    <div className="settings-item-label">Kilit Şifresini Belirle</div>
-                                                    <div style={{ width: '100%', position: 'relative' }}>
-                                                        <input 
-                                                            type={showLockPass ? 'text' : 'password'} 
-                                                            className="form-input" 
-                                                            placeholder="Yeni kilit şifresi"
-                                                            value={lockSettings.customPassword}
-                                                            onChange={(e) => handleLockSettingChange('customPassword', e.target.value)}
-                                                            maxLength={64}
-                                                            style={{ paddingRight: '45px' }}
-                                                        />
-                                                        <button 
-                                                            type="button"
-                                                            className="password-toggle-btn" 
-                                                            onClick={() => setShowLockPass(!showLockPass)}
-                                                            title={showLockPass ? "Şifreyi Gizle" : "Şifreyi Göster"}
-                                                        >
-                                                            {showLockPass ? <EyeOff size={18} /> : <Eye size={18} />}
-                                                        </button>
-                                                    </div>
+                                                <div style={{
+                                                    marginTop: '4px',
+                                                    padding: '16px',
+                                                    borderRadius: '12px',
+                                                    background: 'var(--bg-tertiary)',
+                                                    border: '1px solid var(--border-color)',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: '12px'
+                                                }}>
+                                                    {lockSettings.customPasswordHash ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                                    <CheckCircle2 size={20} />
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                                                        Özel Kilit Şifresi / PIN Tanımlı
+                                                                    </div>
+                                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                                        Ekran kilitlendiğinde bu özel şifre veya PIN istenecektir.
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-secondary"
+                                                                    onClick={handleOpenLockModal}
+                                                                    style={{ fontSize: '12px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                                >
+                                                                    <Key size={14} /> Şifreyi Değiştir
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-secondary"
+                                                                    onClick={handleRemoveCustomPassword}
+                                                                    style={{ fontSize: '12px', padding: '7px 14px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.25)' }}
+                                                                    title="Özel şifreyi kaldır ve giriş şifresine dön"
+                                                                >
+                                                                    <Trash2 size={14} /> Kaldır
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(234, 179, 8, 0.15)', color: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                                    <AlertCircle size={20} />
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                                                        Henüz Kilit Şifresi Belirlenmedi
+                                                                    </div>
+                                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                                        Kilit açmak için bir şifre veya 4-6 haneli PIN kodu belirleyiniz.
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-primary"
+                                                                onClick={handleOpenLockModal}
+                                                                style={{ fontSize: '12px', padding: '7px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                            >
+                                                                <Key size={14} /> Kilit Şifresi Belirle
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </>
@@ -2436,6 +2562,110 @@ export default function Settings() {
                     </form>
                 </Modal>
             )}
+
+            {/* ── CUSTOM LOCK PASSWORD MODAL ── */}
+            <Modal
+                isOpen={isLockModalOpen}
+                onClose={() => setIsLockModalOpen(false)}
+                title={lockSettings.customPasswordHash ? "Özel Kilit Şifresini Değiştir" : "Özel Kilit Şifresi Belirle"}
+                size="default"
+                footer={
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', width: '100%' }}>
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => setIsLockModalOpen(false)}
+                            disabled={savingLockPass}
+                        >
+                            İptal
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleSaveCustomPassword}
+                            disabled={savingLockPass || !newLockPass}
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                            {savingLockPass ? <RefreshCw size={16} className="spin" /> : <Check size={16} />}
+                            Şifreyi Kaydet
+                        </button>
+                    </div>
+                }
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        Bilgisayarınız başından ayrıldığınızda veya ekran kilitlendiğinde kilit açmak için kullanılacak şifreyi ya da <strong>4-6 haneli sayısal PIN kodunu</strong> belirleyiniz.
+                    </p>
+
+                    {lockModalError && (
+                        <div style={{
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            color: '#ef4444',
+                            fontSize: '12.5px'
+                        }}>
+                            {lockModalError}
+                        </div>
+                    )}
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>
+                            Yeni Kilit Şifresi / PIN
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type={showLockPass ? 'text' : 'password'}
+                                className="form-input"
+                                placeholder="En az 4 karakter veya PIN kodu"
+                                value={newLockPass}
+                                onChange={(e) => {
+                                    setNewLockPass(e.target.value)
+                                    setLockModalError('')
+                                }}
+                                maxLength={64}
+                                style={{ paddingRight: '45px' }}
+                                autoFocus
+                            />
+                            <button
+                                type="button"
+                                className="password-toggle-btn"
+                                onClick={() => setShowLockPass(!showLockPass)}
+                                tabIndex="-1"
+                            >
+                                {showLockPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>
+                            Yeni Şifre / PIN Tekrarı
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type={showLockPass ? 'text' : 'password'}
+                                className="form-input"
+                                placeholder="Şifreyi / PIN kodunu tekrar giriniz"
+                                value={confirmLockPass}
+                                onChange={(e) => {
+                                    setConfirmLockPass(e.target.value)
+                                    setLockModalError('')
+                                }}
+                                maxLength={64}
+                                style={{ paddingRight: '45px' }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        handleSaveCustomPassword()
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </Modal>
 
         </div>
     )

@@ -8,12 +8,26 @@ export default function LockScreen({ isLocked, onUnlock }) {
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [useAccountPassFallback, setUseAccountPassFallback] = useState(false)
 
     const getLockSettings = () => {
         try {
-            return JSON.parse(localStorage.getItem('aractakip_lock_settings') || '{"enabled":false,"timeout":5,"useCustomPassword":false,"customPassword":""}')
+            const local = JSON.parse(localStorage.getItem('aractakip_lock_settings') || '{}')
+            const userPref = user?.userPreferences?.lock || {}
+            return {
+                enabled: false,
+                timeout: 5,
+                useCustomPassword: false,
+                ...userPref,
+                ...local
+            }
         } catch {
-            return { enabled: false, timeout: 5, useCustomPassword: false, customPassword: "" }
+            return {
+                enabled: false,
+                timeout: 5,
+                useCustomPassword: false,
+                ...(user?.userPreferences?.lock || {})
+            }
         }
     }
 
@@ -23,8 +37,8 @@ export default function LockScreen({ isLocked, onUnlock }) {
         if (isLocked) {
             setPassword('')
             setError('')
+            setUseAccountPassFallback(false)
             document.body.style.overflow = 'hidden'
-            // Force focus on input after a small render tick delay
             const timer = setTimeout(() => {
                 inputRef.current?.focus()
             }, 80)
@@ -69,7 +83,9 @@ export default function LockScreen({ isLocked, onUnlock }) {
         
         try {
             const currentLockSettings = getLockSettings()
-            if (currentLockSettings.useCustomPassword && (currentLockSettings.customPasswordHash || currentLockSettings.customPassword)) {
+            const hasCustom = currentLockSettings.useCustomPassword && !!(currentLockSettings.customPasswordHash || currentLockSettings.customPassword)
+
+            if (hasCustom && !useAccountPassFallback) {
                 const inputHash = await hashPassword(password)
                 const isMatch = (currentLockSettings.customPasswordHash && inputHash === currentLockSettings.customPasswordHash) ||
                                 (currentLockSettings.customPassword && password === currentLockSettings.customPassword)
@@ -77,11 +93,25 @@ export default function LockScreen({ isLocked, onUnlock }) {
                 if (isMatch) {
                     onUnlock()
                     setPassword('')
-                } else {
-                    setError('Hatalı kilit şifresi.')
+                    return
                 }
+
+                // Transparent fallback: check if user typed their master account password instead
+                const identifier = user?.username || user?.email || ''
+                const fallbackResult = await authService.login({
+                    username: identifier,
+                    email: user?.email || identifier,
+                    password
+                })
+                if (fallbackResult.success) {
+                    onUnlock()
+                    setPassword('')
+                    return
+                }
+
+                setError('Hatalı kilit şifresi / PIN.')
             } else {
-                // Use login password
+                // Use master login password
                 const identifier = user?.username || user?.email || ''
                 const result = await authService.login({
                     username: identifier,
@@ -92,17 +122,21 @@ export default function LockScreen({ isLocked, onUnlock }) {
                     onUnlock()
                     setPassword('')
                 } else {
-                    setError('Hatalı şifre. Lütfen giriş şifrenizi girin.')
+                    setError('Hatalı şifre. Lütfen geçerli hesap şifrenizi girin.')
                 }
             }
         } catch (err) {
-            setError('Bir hata oluştu.')
+            setError('Kilit açılırken hata oluştu: ' + (err.message || ''))
         } finally {
             setLoading(false)
         }
     }
 
     if (!isLocked) return null
+
+    const currentLockSettings = getLockSettings()
+    const hasCustom = currentLockSettings.useCustomPassword && !!(currentLockSettings.customPasswordHash || currentLockSettings.customPassword)
+    const isCustomActive = hasCustom && !useAccountPassFallback
 
     return (
         <div className="lock-screen-overlay" onClick={() => inputRef.current?.focus()}>
@@ -122,7 +156,9 @@ export default function LockScreen({ isLocked, onUnlock }) {
 
                 <div className="lock-screen-header">
                     <h2>Uygulama Kilitlendi</h2>
-                    <p>{user?.username || 'Kullanıcı'}, devam etmek için şifrenizi girin.</p>
+                    <p>
+                        {user?.username || 'Kullanıcı'}, devam etmek için {isCustomActive ? 'özel kilit şifrenizi / PIN kodunuzu' : 'giriş şifrenizi'} girin.
+                    </p>
                 </div>
 
                 <form onSubmit={handleUnlock} className="lock-screen-form">
@@ -130,7 +166,7 @@ export default function LockScreen({ isLocked, onUnlock }) {
                         <input
                             ref={inputRef}
                             type="password"
-                            placeholder="Şifreniz"
+                            placeholder={isCustomActive ? "Kilit Şifresi / PIN" : "Hesap Giriş Şifreniz"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             maxLength={64}
@@ -142,6 +178,30 @@ export default function LockScreen({ isLocked, onUnlock }) {
                     </div>
                     {error && <div className="lock-error">{error}</div>}
                 </form>
+
+                {hasCustom && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setUseAccountPassFallback(!useAccountPassFallback)
+                            setError('')
+                            setPassword('')
+                            setTimeout(() => inputRef.current?.focus(), 50)
+                        }}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--text-secondary, #a1a1aa)',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            marginTop: '12px',
+                            textDecoration: 'underline',
+                            padding: '4px'
+                        }}
+                    >
+                        {isCustomActive ? 'Kilit şifrenizi mi unuttunuz? Ana hesap şifresiyle açın' : 'Özel kilit şifresi / PIN ile aç'}
+                    </button>
+                )}
 
                 <div className="lock-screen-footer">
                     <button className="lock-logout-btn" onClick={logout}>
