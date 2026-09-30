@@ -143,10 +143,10 @@ function PermissionRoute({ module, action = 'can_read', children }) {
         }
     }
 
-    if (isAdmin || !isPersonnel) return children
+    if (isAdmin) return children
 
     if (!hasPermission(module, action)) {
-        return <Navigate to="/personnel-profile" replace />
+        return <Navigate to={user?.role === 'personnel' ? "/personnel-profile" : "/portal"} replace />
     }
     return children
 }

@@ -12,6 +12,7 @@ import { formatCurrency, getEmployeeStatusInfo } from '../utils/helpers'
 import { employeeService } from '../services'
 import { Plus, Pencil, Trash2, Users, Building2, AlertCircle, Calendar, FileText, UserCheck, Archive, ArchiveRestore } from 'lucide-react'
 import CreatePersonnelUserModal from '../components/personnel/CreatePersonnelUserModal'
+import { useAuth } from '../context/AuthContext'
 
 const statusOptions = [
     { value: 'active', label: 'Aktif' },
@@ -20,6 +21,7 @@ const statusOptions = [
 
 export default function Employees() {
     const { currentCompany } = useCompany()
+    const { isAdmin, hasPermission } = useAuth()
     const navigate = useNavigate()
     const { openNewTab } = useTabs()
     const [searchParams, setSearchParams] = useSearchParams()
@@ -197,7 +199,11 @@ export default function Employees() {
         return { label: 'Pasif', color: 'secondary' }
     }
 
-    const columns = [
+    const canViewSalary = isAdmin || hasPermission('employees_view_salary')
+    const canCreate = isAdmin || hasPermission('employees_create')
+    const canDelete = isAdmin || hasPermission('employees_delete')
+
+    const rawColumns = [
         {
             key: 'full_name',
             label: 'Ad Soyad & TC',
@@ -238,6 +244,8 @@ export default function Employees() {
         }
     ]
 
+    const columns = rawColumns.filter(c => c.key !== 'salary' || canViewSalary)
+
     if (!currentCompany) {
         return (
             <div className="empty-state">
@@ -261,10 +269,12 @@ export default function Employees() {
                     <p style={{ marginTop: '5px', color: '#666' }}>Personel yönetimi ve detayları.</p>
                 </div>
                 <div className="page-actions">
-                    <button className="btn btn-primary" onClick={openCreateModal}>
-                        <Plus size={18} />
-                        Yeni Personel
-                    </button>
+                    {canCreate && (
+                        <button className="btn btn-primary" onClick={openCreateModal}>
+                            <Plus size={18} />
+                            Yeni Personel
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -403,18 +413,22 @@ export default function Employees() {
                 )}
                 actions={(employee) => (
                     <>
-                        <button title="Düzenle" onClick={() => openEditModal(employee)}>
-                            <Pencil size={16} />
-                        </button>
+                        {canCreate && (
+                            <button title="Düzenle" onClick={() => openEditModal(employee)}>
+                                <Pencil size={16} />
+                            </button>
+                        )}
                         <button 
                             title={showArchived ? "Arşivden Çıkar" : "Arşivle"} 
                             onClick={() => handleArchiveClick(employee)}
                         >
                             {showArchived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
                         </button>
-                        <button title="Sil" className="danger" onClick={() => handleDeleteClick(employee)}>
-                            <Trash2 size={16} />
-                        </button>
+                        {canDelete && (
+                            <button title="Sil" className="danger" onClick={() => handleDeleteClick(employee)}>
+                                <Trash2 size={16} />
+                            </button>
+                        )}
                     </>
                 )}
             />

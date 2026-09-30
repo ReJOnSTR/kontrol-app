@@ -1400,6 +1400,16 @@ async function getUserProfile(userId) {
         if (!user) return { success: false, error: 'User not found' };
 
         let permissionsData = [];
+        // A. Load direct permissions assigned to user (e.g. JSON string in user.permissions)
+        if (user.permissions) {
+            try {
+                permissionsData = typeof user.permissions === 'string' ? JSON.parse(user.permissions) : user.permissions;
+            } catch (e) {
+                log.warn('Failed to parse user.permissions JSON in getUserProfile:', e.message);
+            }
+        }
+
+        // B. Load role permissions from `roles` table if role_id is assigned
         if (user.role_id) {
             try {
                 const roleWithPerms = await prisma.roles.findUnique({
@@ -1407,7 +1417,16 @@ async function getUserProfile(userId) {
                     include: { permissions: true }
                 });
                 if (roleWithPerms?.permissions) {
-                    permissionsData = roleWithPerms.permissions;
+                    if (Array.isArray(permissionsData)) {
+                        const existingModules = new Set(permissionsData.map(p => p.module));
+                        for (const rp of roleWithPerms.permissions) {
+                            if (!existingModules.has(rp.module)) {
+                                permissionsData.push(rp);
+                            }
+                        }
+                    } else if (!permissionsData || (typeof permissionsData === 'object' && Object.keys(permissionsData).length === 0)) {
+                        permissionsData = roleWithPerms.permissions;
+                    }
                 }
             } catch (e) {}
         }
@@ -1417,7 +1436,7 @@ async function getUserProfile(userId) {
             username: user.username,
             email: user.email,
             full_name: user.full_name,
-            role: user.role || 'company_admin',
+            role: user.role || 'user',
             role_id: user.role_id,
             employee_id: user.employee_id,
             company_id: user.company_id || user.employee?.company_id || user.companies?.[0]?.id || null,

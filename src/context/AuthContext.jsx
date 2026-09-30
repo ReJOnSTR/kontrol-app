@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import { authService } from '../services'
 import { supabase } from '../services/supabase'
 import { settingsService } from '../services/settings'
+import { ROLE_PRESETS } from '../components/PermissionMatrix'
 
 const AuthContext = createContext(null)
 
@@ -300,30 +301,75 @@ export function AuthProvider({ children }) {
 
     const normalizedRole = (user?.role || '').toLowerCase()
     const isSuperAdmin = normalizedRole === 'superadmin'
+    const isCompanyAdmin = normalizedRole === 'company_admin' || normalizedRole === 'admin' || normalizedRole === 'company_owner' || normalizedRole === 'owner'
+    // Truly privileged administrators who manage the company or platform
+    const isAdmin = isSuperAdmin || isCompanyAdmin
     const isPersonnel = normalizedRole === 'personnel' || normalizedRole === 'employee'
-    // Every user who is not a restricted field employee/driver has full access to companies, settings, and modules
-    const isAdmin = isSuperAdmin || !isPersonnel
-    const isManager = isAdmin
+    const isManager = normalizedRole === 'manager'
+    const isAccountant = normalizedRole === 'accountant'
 
     const hasPermission = (moduleOrAction, action = 'can_read') => {
-        if (isAdmin) return true;
         if (!user) return false;
+        // SuperAdmin has global unrestricted authority
+        if (isSuperAdmin) return true;
+        // Company Admin has unrestricted authority within the company
+        if (isCompanyAdmin) return true;
 
-        const perms = user.permissions;
+        // Resolve user's effective permissions:
+        // 1. Direct custom permissions on user object (DB JSON string or parsed object/array)
+        let perms = user.permissions;
+        if (typeof perms === 'string') {
+            try {
+                perms = JSON.parse(perms);
+            } catch (e) {
+                perms = null;
+            }
+        }
 
-        // If permissions is an object map e.g. { works: 'ADMIN', employees: 'VIEW' } or { works_view_prices: true }
-        if (perms && !Array.isArray(perms) && typeof perms === 'object' && Object.keys(perms).length > 0) {
+        // 2. If no direct permissions set, resolve role preset defaults
+        if (!perms || (typeof perms === 'object' && !Array.isArray(perms) && Object.keys(perms).length === 0)) {
+            const preset = ROLE_PRESETS.find(p => p.id === normalizedRole);
+            if (preset?.levels) {
+                perms = preset.levels;
+            }
+        }
+
+        // If permissions is an object map e.g. { works: 'editor', works_view_prices: false, finance: 'none' }
+        if (perms && !Array.isArray(perms) && typeof perms === 'object') {
+            // Direct key check (e.g. 'works_view_prices', 'works_create', 'finance_cash')
             if (perms[moduleOrAction] !== undefined) {
-                return !!perms[moduleOrAction];
+                const val = perms[moduleOrAction];
+                if (typeof val === 'boolean') return val;
+                if (val === 'none' || val === 'NONE' || !val) return false;
+                if (val === 'editor' || val === 'ADMIN') return true;
+                if (val === 'viewer' || val === 'VIEW') {
+                    return action === 'can_read' || action.includes('view') || action.includes('read');
+                }
             }
+
+            // Check action on module: e.g. hasPermission('works', 'can_create')
+            if (action && action !== 'can_read') {
+                const actionKeyMap = {
+                    can_create: [`${moduleOrAction}_create`, `${moduleOrAction}_add`],
+                    can_update: [`${moduleOrAction}_edit`, `${moduleOrAction}_update`],
+                    can_delete: [`${moduleOrAction}_delete`],
+                    can_export: [`${moduleOrAction}_export`],
+                    can_view_prices: [`${moduleOrAction}_view_prices`]
+                };
+                const candidateKeys = actionKeyMap[action] || [`${moduleOrAction}_${action}`];
+                for (const key of candidateKeys) {
+                    if (perms[key] !== undefined) {
+                        return Boolean(perms[key]);
+                    }
+                }
+            }
+
+            // Module level check (e.g. perms['works'] or perms['finance'])
             const level = perms[moduleOrAction];
-            if (level === 'NONE' || !level) return false;
-            if (level === 'ADMIN') return true;
-            if (level === 'EDIT') {
-                return action === 'can_read' || action === 'can_create' || action === 'can_update';
-            }
-            if (level === 'VIEW') {
-                return action === 'can_read';
+            if (level === 'none' || level === 'NONE' || !level) return false;
+            if (level === 'editor' || level === 'ADMIN') return true;
+            if (level === 'viewer' || level === 'VIEW') {
+                return action === 'can_read' || action.includes('view') || action.includes('read');
             }
             return false;
         }
@@ -348,15 +394,13 @@ export function AuthProvider({ children }) {
             return !!perm[action];
         }
 
-        // Fallback for standard staff / personnel users without an explicit role matrix assigned:
-        // Sensitive financial & administration modules are strictly blocked unless granted.
+        // Fallback for restricted personnel / staff without explicit matrix:
         const sensitivePrefixes = ['finance', 'check', 'salary', 'payroll', 'employees_view_salary', 'setting', 'compan', 'platform'];
         const isSensitive = sensitivePrefixes.some(s => moduleOrAction.toLowerCase().includes(s));
         if (isSensitive) {
             return false;
         }
 
-        // Standard operational read access for vehicles, works, customers, leaves, assignments:
         if (action === 'can_read' || action.includes('view') || action.includes('read')) {
             return true;
         }

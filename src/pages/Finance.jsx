@@ -8,9 +8,11 @@ import DataTable from '../components/DataTable'
 import TransactionForm from '../components/forms/TransactionForm'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { Plus, Wallet, Banknote, FileSignature, ArrowDownRight, Trash2, Pencil, Check } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 export default function Finance() {
     const { currentCompany } = useCompany()
+    const { isAdmin, hasPermission } = useAuth()
     const [searchParams, setSearchParams] = useSearchParams()
     const [transactions, setTransactions] = useState([])
     const [stats, setStats] = useState({
@@ -271,14 +273,16 @@ export default function Finance() {
                 </div>
 
                 <div className="header-actions">
-                    <button
-                        className="btn btn-primary"
-                        onClick={openCreateModal}
-                        disabled={loading || !currentCompany}
-                    >
-                        <Plus size={18} />
-                        Yeni İşlem
-                    </button>
+                    {(isAdmin || hasPermission('finance_cash') || hasPermission('finance', 'can_create')) && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={openCreateModal}
+                            disabled={loading || !currentCompany}
+                        >
+                            <Plus size={18} />
+                            Yeni İşlem
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -385,8 +389,12 @@ export default function Finance() {
                 ]}
                 actions={(item) => (
                     <>
-                        <button title="Düzenle" onClick={() => openEditModal(item)}><Pencil size={16} /></button>
-                        <button title="Sil" className="danger" onClick={() => handleDeleteClick(item)}><Trash2 size={16} /></button>
+                        {(isAdmin || hasPermission('finance_cash') || hasPermission('finance', 'can_update')) && (
+                            <button title="Düzenle" onClick={() => openEditModal(item)}><Pencil size={16} /></button>
+                        )}
+                        {(isAdmin || hasPermission('finance_delete') || hasPermission('finance', 'can_delete')) && (
+                            <button title="Sil" className="danger" onClick={() => handleDeleteClick(item)}><Trash2 size={16} /></button>
+                        )}
                     </>
                 )}
             />

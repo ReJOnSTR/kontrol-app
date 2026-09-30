@@ -1230,6 +1230,9 @@ async function updatePlatformUser(userId, userData) {
         if (userData.role !== undefined) updateData.role = userData.role;
         if (userData.isActive !== undefined) updateData.is_active = (userData.isActive === 1 || userData.isActive === true) ? 1 : 0;
         if (userData.roleId !== undefined) updateData.role_id = userData.roleId ? parseInt(userData.roleId, 10) : null;
+        if (userData.permissions !== undefined) {
+            updateData.permissions = userData.permissions ? (typeof userData.permissions === 'string' ? userData.permissions : JSON.stringify(userData.permissions)) : null;
+        }
         
         const updated = await prisma.users.update({
             where: { id: uid },

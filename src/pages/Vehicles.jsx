@@ -17,10 +17,12 @@ import {
 import { Plus, Pencil, Trash2, Car, Building2, AlertCircle, Archive, ArchiveRestore } from 'lucide-react'
 import VehicleForm from '../components/VehicleForm'
 import { usePersistentTab } from '../hooks/usePersistentTab'
+import { useAuth } from '../context/AuthContext'
 
 export default function Vehicles() {
     const navigate = useNavigate()
     const { currentCompany } = useCompany()
+    const { isAdmin, hasPermission } = useAuth()
     const { openNewTab } = useTabs()
     const [searchParams, setSearchParams] = useSearchParams()
     const [vehicles, setVehicles] = useState([])
@@ -313,10 +315,12 @@ export default function Vehicles() {
                     <p style={{ marginTop: '5px', color: '#666' }}>Araç filosu yönetimi ve detayları.</p>
                 </div>
                 <div className="page-actions">
-                    <button className="btn btn-primary" onClick={openCreateModal}>
-                        <Plus size={18} />
-                        Yeni Araç
-                    </button>
+                    {(isAdmin || hasPermission('vehicles', 'can_create')) && (
+                        <button className="btn btn-primary" onClick={openCreateModal}>
+                            <Plus size={18} />
+                            Yeni Araç
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -378,18 +382,22 @@ export default function Vehicles() {
                 onContextMenu={handleContextMenu}
                 actions={(vehicle) => (
                     <>
-                        <button title="Düzenle" onClick={() => openEditModal(vehicle)}>
-                            <Pencil size={16} />
-                        </button>
+                        {(isAdmin || hasPermission('vehicles', 'can_update')) && (
+                            <button title="Düzenle" onClick={() => openEditModal(vehicle)}>
+                                <Pencil size={16} />
+                            </button>
+                        )}
                         <button 
                             title={showArchived ? "Arşivden Çıkar" : "Arşivle"} 
                             onClick={() => handleArchiveClick(vehicle)}
                         >
                             {showArchived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
                         </button>
-                        <button title="Sil" className="danger" onClick={() => handleDeleteClick(vehicle)}>
-                            <Trash2 size={16} />
-                        </button>
+                        {(isAdmin || hasPermission('vehicles_delete') || hasPermission('vehicles', 'can_delete')) && (
+                            <button title="Sil" className="danger" onClick={() => handleDeleteClick(vehicle)}>
+                                <Trash2 size={16} />
+                            </button>
+                        )}
                     </>
                 )}
             />

@@ -26,7 +26,10 @@ function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
     if (isSuperAdmin) return true
     if (path.startsWith('/platform')) return false
     if (isAdmin) return true
-    if (path === '/companies' || path.startsWith('/settings') || path.startsWith('/module-settings')) return true
+    if (path === '/companies') return false
+    if (path.startsWith('/settings') || path.startsWith('/module-settings')) {
+        return hasPermission('settings', 'can_read')
+    }
 
     if (path.startsWith('/finance') || path === '/checks') return hasPermission('finance', 'can_read')
     if (path.startsWith('/meal')) return hasPermission('meals', 'can_read')

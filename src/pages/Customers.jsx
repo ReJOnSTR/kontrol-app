@@ -9,9 +9,11 @@ import ConfirmModal from '../components/ConfirmModal'
 import CustomerForm from '../components/forms/CustomerForm'
 import CustomerDocumentGeneratorModal from '../components/CustomerDocumentGeneratorModal'
 import { formatCurrency } from '../utils/helpers'
+import { useAuth } from '../context/AuthContext'
 
 export default function Customers() {
     const { currentCompany } = useCompany()
+    const { isAdmin, hasPermission } = useAuth()
     const navigate = useNavigate()
     const { openNewTab } = useTabs()
     const [searchParams, setSearchParams] = useSearchParams()
@@ -168,7 +170,11 @@ export default function Customers() {
         return acc;
     }, { totalReceivables: 0, totalVolume: 0, totalWorks: 0 })
 
-    const columns = [
+    const canViewBalance = isAdmin || hasPermission('customers_view_balance')
+    const canCreate = isAdmin || hasPermission('customers_create')
+    const canDelete = isAdmin || hasPermission('customers_delete')
+
+    const rawColumns = [
         {
             key: 'name',
             label: 'Müşteri Adı & İletişim',
@@ -212,6 +218,13 @@ export default function Customers() {
         }
     ]
 
+    const columns = rawColumns.filter(c => {
+        if (!canViewBalance && (c.key === 'total_volume' || c.key === 'total_receivable')) {
+            return false
+        }
+        return true
+    })
+
     if (!currentCompany && !loading) return null
 
     return (
@@ -221,9 +234,11 @@ export default function Customers() {
                     <h1 className="page-title">Müşteri (Cari) Yönetimi</h1>
                     <p className="page-subtitle">Müşterilerinizi, bakiyelerini ve iletişim bilgilerini yönetin.</p>
                 </div>
-                <button className="btn btn-primary" onClick={openCreateModal}>
-                    <Plus size={18} /> Yeni Müşteri
-                </button>
+                {canCreate && (
+                    <button className="btn btn-primary" onClick={openCreateModal}>
+                        <Plus size={18} /> Yeni Müşteri
+                    </button>
+                )}
             </div>
 
             {/* Summary Cards */}
@@ -288,7 +303,9 @@ export default function Customers() {
                 actions={(item) => (
                     <>
                         <button className="btn-icon" title="Belge Oluştur" onClick={() => { setSelectedDocCustomer(item); setIsDocModalOpen(true); }}><FileText size={16} /></button>
-                        <button className="btn-icon" title="Düzenle" onClick={() => openEditModal(item)}><Pencil size={16} /></button>
+                        {canCreate && (
+                            <button className="btn-icon" title="Düzenle" onClick={() => openEditModal(item)}><Pencil size={16} /></button>
+                        )}
                         <button 
                             className="btn-icon" 
                             title={showArchived ? "Arşivden Çıkar" : "Arşivle"} 
@@ -296,7 +313,9 @@ export default function Customers() {
                         >
                             {showArchived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
                         </button>
-                        <button className="btn-icon danger" title="Sil" onClick={() => handleDeleteClick(item)}><Trash2 size={16} /></button>
+                        {canDelete && (
+                            <button className="btn-icon danger" title="Sil" onClick={() => handleDeleteClick(item)}><Trash2 size={16} /></button>
+                        )}
                     </>
                 )}
             />

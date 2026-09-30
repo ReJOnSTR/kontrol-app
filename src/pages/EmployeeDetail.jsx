@@ -147,7 +147,7 @@ export default function EmployeeDetail() {
     const location = useLocation()
     const { currentCompany, companies, companySettings } = useCompany()
     const { updateTabInfo } = useTabs()
-    const { user, isAdmin } = useAuth()
+    const { user, isAdmin, hasPermission } = useAuth()
     const id = paramId || user?.employee_id
     const isPersonnel = user?.role === 'personnel'
 
@@ -1916,14 +1916,17 @@ export default function EmployeeDetail() {
 
     // ========== TAB & COLUMN DEFINITIONS ==========
 
+    const canViewSalary = isAdmin || (hasPermission && hasPermission('employees_view_salary'))
+    const canManageUserAccount = isAdmin || (hasPermission && hasPermission('settings_users'))
+
     const tabs = [
-        { id: 'salary', label: 'Ödeme', icon: CreditCard, count: combinedSalaries.length },
+        ...(canViewSalary ? [{ id: 'salary', label: 'Ödeme', icon: CreditCard, count: combinedSalaries.length }] : []),
         { id: 'leave', label: 'İzin', icon: CalendarOff, count: combinedLeaves.length },
         { id: 'overtime', label: 'Mesai', icon: Clock, count: combinedOvertimes.length },
         { id: 'assignment', label: 'Zimmet', icon: Package, count: combinedAssignments.length },
         { id: 'documents', label: 'Belgeler', icon: FileText, count: documents.length },
-        { id: 'salary_history', label: 'Maaş Geçmişi', icon: Banknote, count: employee?.employee_salary_history?.length || 0 },
-        ...(isPersonnel ? [] : [{ id: 'user_account', label: 'Giriş Hesabı', icon: UserCheck, count: employee?.user ? 1 : 0 }])
+        ...(canViewSalary ? [{ id: 'salary_history', label: 'Maaş Geçmişi', icon: Banknote, count: employee?.employee_salary_history?.length || 0 }] : []),
+        ...(isPersonnel || !canManageUserAccount ? [] : [{ id: 'user_account', label: 'Giriş Hesabı', icon: UserCheck, count: employee?.user ? 1 : 0 }])
     ]
 
     const userAccountColumns = [

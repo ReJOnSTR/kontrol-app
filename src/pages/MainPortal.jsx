@@ -117,7 +117,7 @@ const portalStyles = `
 export default function MainPortal() {
     const navigate = useNavigate()
     const { currentCompany, isModuleEnabled } = useCompany()
-    const { user } = useAuth()
+    const { user, isAdmin, hasPermission } = useAuth()
     const [quickStats, setQuickStats] = useState({ vehicleCount: 0, cashBalance: 0, todayMeals: 0 })
 
     useEffect(() => {
@@ -128,9 +128,10 @@ export default function MainPortal() {
 
     const loadQuickStats = async () => {
         try {
+            const canSeeFinance = isAdmin || (hasPermission && hasPermission('finance', 'can_read'))
             const [dashRes, finRes, mealRes] = await Promise.all([
                 window.electronAPI.getDashboardStats(currentCompany.id),
-                window.electronAPI.getFinanceStats(currentCompany.id),
+                canSeeFinance ? window.electronAPI.getFinanceStats(currentCompany.id) : Promise.resolve({ success: false }),
                 window.electronAPI.getMealTicketStats(currentCompany.id)
             ])
             setQuickStats({
@@ -256,9 +257,20 @@ export default function MainPortal() {
 
     const today = new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
 
-    // Split into main (active, first row large) and secondary
-    const activeModules = modules.filter(m => m.active)
-    const inactiveModules = modules.filter(m => !m.active)
+    // Split into active (enabled by company AND permitted for current user) and secondary
+    const activeModules = modules.filter(m => {
+        if (!m.active) return false
+        if (isAdmin || user?.role === 'superadmin') return true
+        if (m.id === 'fleet') return hasPermission('vehicles', 'can_read')
+        if (m.id === 'finance') return hasPermission('finance', 'can_read')
+        if (m.id === 'meals') return hasPermission('meals', 'can_read')
+        if (m.id === 'hr') return hasPermission('employees', 'can_read')
+        if (m.id === 'works') return hasPermission('works', 'can_read')
+        if (m.id === 'customers') return hasPermission('customers', 'can_read')
+        if (m.id === 'platform') return user?.role === 'superadmin'
+        return true
+    })
+    const inactiveModules = modules.filter(m => !activeModules.some(am => am.id === m.id))
 
     return (
         <>
