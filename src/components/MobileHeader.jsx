@@ -90,7 +90,15 @@ export default function MobileHeader() {
     const availableModules = MODULE_LIST.filter(m => {
         if (m.id === 'portal') return true
         if (isSuperAdmin && !isImpersonating) return false
-        return isModuleEnabled(m.id)
+        if (!isModuleEnabled(m.id)) return false
+        if (isAdmin) return true
+        if (m.id === 'fleet') return hasPermission('vehicles', 'can_read')
+        if (m.id === 'finance') return hasPermission('finance', 'can_read')
+        if (m.id === 'meals') return hasPermission('meals', 'can_read')
+        if (m.id === 'hr') return hasPermission('employees', 'can_read')
+        if (m.id === 'works') return hasPermission('works', 'can_read')
+        if (m.id === 'customers') return hasPermission('customers', 'can_read')
+        return false
     })
 
     return (
@@ -341,17 +349,31 @@ export default function MobileHeader() {
 
                 {/* Drawer Footer Actions */}
                 <div className="drawer-footer">
-                    <button
-                        type="button"
-                        className="drawer-footer-btn"
-                        onClick={() => {
-                            navigate('/settings')
-                            setDrawerOpen(false)
-                        }}
-                    >
-                        <Settings size={17} />
-                        <span>Ayarlar</span>
-                    </button>
+                    {(isAdmin || hasPermission('settings', 'can_read')) ? (
+                        <button
+                            type="button"
+                            className="drawer-footer-btn"
+                            onClick={() => {
+                                navigate('/settings')
+                                setDrawerOpen(false)
+                            }}
+                        >
+                            <Settings size={17} />
+                            <span>Ayarlar</span>
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            className="drawer-footer-btn"
+                            onClick={() => {
+                                navigate(user?.role === 'personnel' ? '/personnel-profile' : '/profile')
+                                setDrawerOpen(false)
+                            }}
+                        >
+                            <User size={17} />
+                            <span>Profilim</span>
+                        </button>
+                    )}
                     <button
                         type="button"
                         className="drawer-footer-btn danger"

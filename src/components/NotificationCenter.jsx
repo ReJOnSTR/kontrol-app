@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { Bell, BellOff, AlertTriangle, Calendar, FileText, Wallet, CheckCircle2, ChevronRight, X, Shield, Wrench, User, ClipboardCheck, Sliders } from 'lucide-react'
 import { useCompany } from '../context/CompanyContext'
+import { useAuth } from '../context/AuthContext'
 import { getDaysUntil, formatDate, formatCurrency } from '../utils/helpers'
 import { useNavigate } from 'react-router-dom'
 
 export default function NotificationCenter() {
     const { upcomingEvents } = useCompany()
+    const { user, isAdmin, hasPermission, isPersonnel } = useAuth()
     const [isOpen, setIsOpen] = useState(false)
     const [activeFilter, setActiveFilter] = useState('all') // 'all' | 'overdue' | 'urgent' | 'upcoming'
     const [userSettings, setUserSettings] = useState(() => {
@@ -28,8 +30,43 @@ export default function NotificationCenter() {
 
     const isMasterInAppEnabled = userSettings?.inAppEnabled !== false && localStorage.getItem('user_in_app_enabled') !== 'false'
 
-    // Filter events based on user preferences from user_notification_settings + localStorage
-    const filteredEvents = !isMasterInAppEnabled ? [] : (upcomingEvents || []).filter(e => {
+    // RBAC: Check whether this specific event is permitted for the current user
+    const isEventPermitted = (e) => {
+        if (!user) return false
+        if (isAdmin || user?.role === 'superadmin') return true
+
+        // A. Finance / Checks: Only users with finance permission
+        if (e.eventType === 'finance_check') {
+            return hasPermission('finance', 'can_read')
+        }
+
+        // B. Employee Documents:
+        if (e.eventType === 'employee_document') {
+            // Managers / HR staff with employee read access can see all company employee docs
+            if (hasPermission('employees', 'can_read')) return true
+            // Field personnel can only see documents belonging to themselves
+            if (user?.employee_id && e.employeeId === user.employee_id) return true
+            return false
+        }
+
+        // C. Vehicle Events (Inspection, Insurance, Maintenance):
+        if (['inspection', 'insurance', 'maintenance'].includes(e.eventType)) {
+            // Staff with fleet permission can see all vehicle events
+            if (hasPermission('vehicles', 'can_read')) return true
+            return false
+        }
+
+        // D. Approval Center Requests:
+        if (e.eventType === 'approval_center') {
+            return hasPermission('approval_center', 'can_approve') || hasPermission('employees', 'can_read')
+        }
+
+        return false
+    }
+
+    // Filter events based on User RBAC permissions first, then user in-app preferences
+    const permittedEvents = (upcomingEvents || []).filter(isEventPermitted)
+    const filteredEvents = !isMasterInAppEnabled ? [] : permittedEvents.filter(e => {
         if (userSettings?.items && userSettings.items[e.eventType]) {
             return userSettings.items[e.eventType].inApp !== false
         }
@@ -99,13 +136,25 @@ export default function NotificationCenter() {
     const handleItemClick = (event) => {
         setIsOpen(false)
         if (event.eventType === 'approval_center') {
-            navigate('/personnel/approvals')
+            if (isAdmin || hasPermission('approval_center', 'can_approve')) {
+                navigate('/approval-center')
+            } else {
+                navigate('/personnel/approvals')
+            }
         } else if (event.vehicleId) {
-            navigate(`/vehicles/${event.vehicleId}`)
+            if (isAdmin || hasPermission('vehicles', 'can_read')) {
+                navigate(`/vehicles/${event.vehicleId}`)
+            }
         } else if (event.employeeId) {
-            navigate(`/employees/${event.employeeId}`)
+            if (isAdmin || hasPermission('employees', 'can_read')) {
+                navigate(`/employees/${event.employeeId}`)
+            } else if (user?.employee_id === event.employeeId) {
+                navigate('/personnel-profile')
+            }
         } else if (event.eventType === 'finance_check') {
-            navigate('/finance')
+            if (isAdmin || hasPermission('finance', 'can_read')) {
+                navigate('/finance')
+            }
         }
     }
 
