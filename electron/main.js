@@ -564,6 +564,12 @@ ipcMain.handle('auth:createEmployeeUser', async (event, data) => {
     return result
 })
 
+ipcMain.handle('auth:sendPersonnelInvite', async (event, data) => {
+    const result = await db.sendPersonnelInvite(data)
+    if (result.success) notifyDbUpdate({ table: 'users', action: 'create' })
+    return result
+})
+
 ipcMain.handle('auth:syncEmployeesToSupabaseAuth', async (event, companyId) => {
     const { syncAllEmployeesToSupabaseAuth } = require('./services/supabase.service')
     return await syncAllEmployeesToSupabaseAuth(companyId)
@@ -2700,6 +2706,9 @@ ipcMain.handle('platform:impersonateUser', async (event, userId) => {
 });
 ipcMain.handle('platform:createUser', async (event, userData) => {
     return await db.createPlatformUser(userData);
+});
+ipcMain.handle('platform:sendUserInvite', async (event, data) => {
+    return await db.sendUserInvite(data);
 });
 ipcMain.handle('platform:updateUser', async (event, userId, userData) => {
     return await db.updatePlatformUser(userId, userData);

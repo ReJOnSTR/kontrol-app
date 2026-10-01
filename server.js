@@ -270,6 +270,7 @@ const rpcMap = {
     updateProfile: authService.updateProfile,
     getUserProfile: authService.getUserProfile,
     createEmployeeUser: authService.createEmployeeUser,
+    sendPersonnelInvite: authService.sendPersonnelInvite,
     syncEmployeesToSupabaseAuth: async (companyId) => {
         const { syncAllEmployeesToSupabaseAuth } = require('./electron/services/supabase.service');
         return await syncAllEmployeesToSupabaseAuth(companyId);
@@ -610,6 +611,7 @@ const rpcMap = {
     resetPlatformUserPassword: db.resetPlatformUserPassword,
     impersonatePlatformUser: db.impersonatePlatformUser,
     createPlatformUser: db.createPlatformUser,
+    sendUserInvite: db.sendUserInvite,
     updatePlatformUser: db.updatePlatformUser,
     deletePlatformUser: db.deletePlatformUser,
     toggleCompanyStatus: db.toggleCompanyStatus,

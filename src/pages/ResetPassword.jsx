@@ -31,6 +31,7 @@ export default function ResetPassword() {
     // OTP Fallback state (if user arrives with an OTP code rather than a magic link)
     const [otpCode, setOtpCode] = useState('')
     const [manualEmail, setManualEmail] = useState('')
+    const [isInvite, setIsInvite] = useState(false)
     const [verifyingOtp, setVerifyingOtp] = useState(false)
 
     const navigate = useNavigate()
@@ -42,31 +43,44 @@ export default function ResetPassword() {
         const checkRecoveryState = async () => {
             try {
                 // 0. Check URL query parameters (?email=...&otp=...)
-                const queryParams = new URLSearchParams(location.search)
-                const queryEmail = queryParams.get('email')
-                const queryOtp = queryParams.get('otp')
+                let searchStr = location.search;
+                if (!searchStr && window.location.hash.includes('?')) {
+                    searchStr = window.location.hash.substring(window.location.hash.indexOf('?'));
+                }
+                if (!searchStr && window.location.search) {
+                    searchStr = window.location.search;
+                }
+                const queryParams = new URLSearchParams(searchStr);
+                const queryEmail = queryParams.get('email');
+                const queryOtp = queryParams.get('otp');
+                const queryInvite = queryParams.get('invite') === 'true';
+
+                if (queryInvite && isMounted) {
+                    setIsInvite(true);
+                }
 
                 if (queryEmail && queryOtp) {
                     if (isMounted) {
-                        setManualEmail(queryEmail)
-                        setOtpCode(queryOtp)
-                        setUserEmail(queryEmail)
-                        setHasRecoverySession(true)
-                        setCheckingSession(false)
+                        setManualEmail(queryEmail);
+                        setOtpCode(queryOtp);
+                        setUserEmail(queryEmail);
+                        setHasRecoverySession(true);
+                        setCheckingSession(false);
                     }
-                    return
+                    return;
                 }
 
                 // 0.1. Check URL Hash for error parameters (e.g. otp_expired)
-                const hash = window.location.hash
-                if (hash) {
-                    const params = new URLSearchParams(hash.replace(/^#/, ''))
-                    const errorDesc = params.get('error_description')
-                    const errorCode = params.get('error_code')
+                const hash = window.location.hash;
+                if (hash && hash.includes('=')) {
+                    const hashPart = hash.includes('?') ? hash.substring(hash.indexOf('?') + 1) : hash.replace(/^#\/?/, '');
+                    const params = new URLSearchParams(hashPart);
+                    const errorDesc = params.get('error_description');
+                    const errorCode = params.get('error_code');
                     
                     if (errorCode === 'otp_expired' || errorDesc?.includes('expired') || errorDesc?.includes('invalid')) {
                         if (isMounted) {
-                            setError('Bu bağlantı tek kullanımlıktır ve süresi dolmuş veya daha önce kullanılmış. Aşağıdaki alana e-postanızı ve 6 haneli doğrulama kodunuzu girerek işleminize devam edebilirsiniz.')
+                            setError('Bu bağlantı tek kullanımlıktır ve süresi dolmuş veya daha önce kullanılmış. Aşağıdaki alana e-postanızı ve 6 haneli doğrulama kodunuzu girerek işleminize devam edebilirsiniz.');
                             setCheckingSession(false)
                         }
                         return
@@ -276,7 +290,7 @@ export default function ResetPassword() {
 
                     <div className="brand-footer-clean">
                         <ShieldCheck size={14} className="brand-shield-icon" />
-                        <span>Güvenli Şifre Yenileme</span>
+                        <span>{isInvite ? 'Personel Giriş Davetiyesi' : 'Güvenli Şifre Yenileme'}</span>
                     </div>
                 </div>
 
@@ -377,9 +391,12 @@ export default function ResetPassword() {
                         /* ── SET NEW PASSWORD FORM ── */
                         <div>
                             <div className="form-header-block">
-                                <h2 className="form-header-title">Yeni Şifre Belirleyin</h2>
+                                <h2 className="form-header-title">{isInvite ? 'Hesap Aktivasyonu & Şifre Belirleme' : 'Yeni Şifre Belirleyin'}</h2>
                                 <p className="form-header-subtitle">
-                                    {userEmail ? <strong style={{ color: 'var(--text-primary)' }}>{userEmail}</strong> : 'Hesabınız'} için yeni bir şifre tanımlayın.
+                                    {isInvite 
+                                        ? <>Tek tıkla giriş davetiyeniz doğrulandı. Lütfen {userEmail ? <strong style={{ color: 'var(--text-primary)' }}>{userEmail}</strong> : 'hesabınız'} için yeni bir şifre belirleyin.</>
+                                        : <>{userEmail ? <strong style={{ color: 'var(--text-primary)' }}>{userEmail}</strong> : 'Hesabınız'} için yeni bir şifre tanımlayın.</>
+                                    }
                                 </p>
                             </div>
 
@@ -482,7 +499,7 @@ export default function ResetPassword() {
                                         </>
                                     ) : (
                                         <>
-                                            <span>Şifremi Sıfırla ve Kaydet</span>
+                                            <span>{isInvite ? 'Şifremi Kaydet ve Giriş Yap' : 'Şifremi Sıfırla ve Kaydet'}</span>
                                             <ArrowRight size={16} />
                                         </>
                                     )}

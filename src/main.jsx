@@ -40,6 +40,17 @@ if (typeof window !== 'undefined') {
     });
 }
 
+// Auto-redirect direct path-based URLs to HashRouter format (e.g. /reset-password?email=... -> /#/reset-password?email=...)
+if (typeof window !== 'undefined' && window.location) {
+    const pathname = window.location.pathname || '';
+    const search = window.location.search || '';
+    const hash = window.location.hash || '';
+    if (pathname && pathname !== '/' && pathname !== '/index.html' && (!hash || hash === '' || hash === '#/')) {
+        const cleanPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
+        window.location.replace(`${window.location.origin}/#${cleanPath}${search}`);
+    }
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <QueryClientProvider client={queryClient}>

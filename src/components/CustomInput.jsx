@@ -14,6 +14,7 @@ export default function CustomInput({
     multiline,
     floatingLabel, // Extract floatingLabel so it's not in ...props
     disabled,
+    maxDecimals = 6,
     ...props
 }) {
     const [touched, setTouched] = useState(false)
@@ -23,7 +24,7 @@ export default function CustomInput({
     const handleChange = (e) => {
         let val = e.target.value
 
-        if (props.maxLength && typeof val === 'string' && val.length > props.maxLength) {
+        if (props.maxLength && typeof val === 'string' && val.length > props.maxLength && format !== 'currency') {
             val = val.slice(0, props.maxLength)
         }
 
@@ -101,15 +102,15 @@ export default function CustomInput({
             clean = clean.replace(/^0+(?=\d)/, '')
 
             const parts = clean.split(',')
-            if (parts.length > 2) {
-                clean = parts[0] + ',' + parts.slice(1).join('')
-            }
-            if (parts.length === 2 && parts[1].length > 2) {
-                clean = parts[0] + ',' + parts[1].substring(0, 2)
+            if (parts.length > 1) {
+                const integerPart = parts[0]
+                const decimalPart = parts.slice(1).join('').replace(/,/g, '').substring(0, maxDecimals)
+                clean = integerPart + ',' + decimalPart
             }
 
-            if (props.maxLength && clean.length > props.maxLength) {
-                clean = clean.slice(0, props.maxLength)
+            const maxCleanLength = props.maxLength ? Math.max(props.maxLength, 22) : undefined
+            if (maxCleanLength && clean.length > maxCleanLength) {
+                clean = clean.slice(0, maxCleanLength)
             }
 
             // Convert '1234,56' to standard float '1234.56' for the parent
@@ -132,6 +133,15 @@ export default function CustomInput({
             const start = input.selectionStart
             const end = input.selectionEnd
             const rawVal = input.value
+
+            // If there's already a comma and it's not inside the selected range, move cursor after comma
+            const hasCommaOutsideSelection = rawVal.includes(',') && !(start !== end && rawVal.substring(start, end).includes(','));
+            if (hasCommaOutsideSelection) {
+                const commaIdx = rawVal.indexOf(',')
+                input.setSelectionRange(commaIdx + 1, commaIdx + 1)
+                return
+            }
+
             const nextVal = rawVal.substring(0, start) + ',' + rawVal.substring(end)
             const eventMock = {
                 target: {
@@ -181,6 +191,9 @@ export default function CustomInput({
             strVal = strVal.replace('.', ',');
         }
         const parts = strVal.split(',');
+        if (parts.length > 1 && parts[1].length > maxDecimals) {
+            parts[1] = parts[1].substring(0, maxDecimals);
+        }
         if (parts[0].length > 0) {
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         }
@@ -195,6 +208,12 @@ export default function CustomInput({
 
     // Wrapper classes - ensure label floats when focused even before typing
     const wrapperClass = `form-group ${isFloating ? 'floating-label-group' : ''} ${(hasValue || isFocused) ? 'has-value' : ''} ${className || ''}`
+
+    // Ensure native maxLength doesn't block currency typing with thousands dots & extra decimals
+    const inputProps = { ...props }
+    if (isCurrency && inputProps.maxLength && inputProps.maxLength < 22) {
+        inputProps.maxLength = 22
+    }
 
     return (
         <div className={wrapperClass}>
@@ -229,7 +248,7 @@ export default function CustomInput({
                             ...(isCurrency ? { paddingRight: '36px' } : {}), // Make room for TL symbol
                             ...(type === 'password' ? { paddingRight: '40px' } : {}) // Make room for Eye icon
                         }}
-                        {...props}
+                        {...inputProps}
                     />
                     {isCurrency && (
                         <span style={{
@@ -277,7 +296,7 @@ export default function CustomInput({
                         <span>
                             {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
                         </span>
-                        {props.maxLength && isFocused && (
+                        {props.maxLength && !isCurrency && isFocused && (
                             <span className="char-counter" style={{
                                 fontSize: '10px',
                                 opacity: 0.7,

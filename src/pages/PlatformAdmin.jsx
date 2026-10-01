@@ -53,7 +53,8 @@ import {
     LayoutDashboard,
     Wallet,
     UtensilsCrossed,
-    Sliders
+    Sliders,
+    Mail
 } from 'lucide-react'
 import './PlatformAdmin.css'
 
@@ -557,7 +558,10 @@ export default function PlatformAdmin({ section }) {
         e.preventDefault()
         setCreateUserLoading(true)
         try {
-            const res = await window.electronAPI?.createPlatformUser(newUserForm)
+            const baseUrl = (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('file:'))
+                ? window.location.origin
+                : 'https://kontrol-app.com';
+            const res = await window.electronAPI?.createPlatformUser({ ...newUserForm, baseUrl })
             if (res?.success) {
                 setCreateUserModal(false)
                 setNewUserForm({
@@ -791,6 +795,34 @@ export default function PlatformAdmin({ section }) {
             await loadUsers()
         } else {
             alert('Hata: ' + (res?.error || 'Bilinmiyor'))
+        }
+    }
+
+    // Send User Invite (Email & SMS magic link)
+    const handleSendUserInvite = async (u) => {
+        if (!u.email) {
+            alert('Kullanıcının kayıtlı bir e-posta adresi bulunmuyor.')
+            return
+        }
+        if (!window.confirm(`"${u.username}" (${u.email}) kullanıcısına giriş & şifre belirleme davetiyesi göndermek istediğinize emin misiniz?`)) {
+            return
+        }
+        try {
+            const baseUrl = (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('file:'))
+                ? window.location.origin
+                : 'https://kontrol-app.com';
+            const res = await window.electronAPI?.sendUserInvite({
+                userId: u.id,
+                email: u.email,
+                baseUrl
+            })
+            if (res?.success) {
+                alert(res.message || 'Davet bağlantısı ve e-postası başarıyla gönderildi.')
+            } else {
+                alert('Davet gönderilemedi: ' + (res?.error || 'Bilinmiyor'))
+            }
+        } catch (err) {
+            alert('Hata: ' + (err.message || 'Bilinmeyen sistem hatası'))
         }
     }
 
@@ -1339,6 +1371,12 @@ export default function PlatformAdmin({ section }) {
                                     onClick={() => { setPasswordModalUser(r); setNewPassword(''); }}
                                 >
                                     <KeyRound size={16} />
+                                </button>
+                                <button
+                                    title="Giriş & Şifre Davetiyesi Gönder (E-Posta)"
+                                    onClick={() => handleSendUserInvite(r)}
+                                >
+                                    <Mail size={16} />
                                 </button>
                                 {(r.two_factor_enabled === 1 || r.two_factor_enabled === true || r.has2FA) && (
                                     <button

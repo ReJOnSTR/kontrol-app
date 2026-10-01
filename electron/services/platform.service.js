@@ -3,7 +3,15 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const { getPrismaClient } = require('../prismaClient');
 const { logAudit } = require('./audit.service');
+const { buildInviteEmailHtml } = require('./emailTemplate.service');
 const prisma = getPrismaClient();
+
+function getAppBaseUrl(providedUrl) {
+    if (providedUrl && !providedUrl.startsWith('file:') && (providedUrl.startsWith('http://') || providedUrl.startsWith('https://'))) {
+        return providedUrl.replace(/\/+$/, '');
+    }
+    return 'https://kontrol-app.com';
+}
 
 /**
  * Get comprehensive platform overview and stats from real database
@@ -345,9 +353,9 @@ async function impersonatePlatformUser(userId) {
  */
 async function createPlatformUser(userData) {
     try {
-        const { username, email, password, role, fullName, companyId, position, phone, permissions, roleId } = userData;
-        if (!username || !email || !password) {
-            return { success: false, error: 'Kullanıcı adı, e-posta ve şifre zorunludur' };
+        const { username, email, password, role, fullName, companyId, position, phone, permissions, roleId, sendInvite, baseUrl } = userData;
+        if (!username || !email) {
+            return { success: false, error: 'Kullanıcı adı ve e-posta zorunludur' };
         }
 
         const cleanEmail = email.toLowerCase().trim();
@@ -365,9 +373,13 @@ async function createPlatformUser(userData) {
             return { success: false, error: `"${cleanUsername}" kullanıcı adı zaten kullanımda` };
         }
 
-        const password_hash = bcrypt.hashSync(password, 10);
+        const crypto = require('crypto');
+        const isInvite = !password || sendInvite === true;
+        const actualPassword = password || ('K!' + crypto.randomBytes(8).toString('hex') + '9');
+        const password_hash = bcrypt.hashSync(actualPassword, 10);
         let userRole = role || 'admin';
         let employeeId = userData.employeeId ? parseInt(userData.employeeId, 10) : null;
+        let resolvedCompanyId = companyId ? parseInt(companyId, 10) : null;
 
         if (employeeId) {
             const existingForEmp = await prisma.users.findFirst({
@@ -376,36 +388,39 @@ async function createPlatformUser(userData) {
             if (existingForEmp) {
                 return { success: false, error: `Bu personele ait zaten bir kullanıcı hesabı (${existingForEmp.username}) mevcut.` };
             }
+            const empRecord = await prisma.employees.findUnique({ where: { id: employeeId } });
+            if (empRecord && !resolvedCompanyId) {
+                resolvedCompanyId = empRecord.company_id;
+            }
         }
 
         // If creating for a company without an explicit employee selection, always link via an employee profile
-        if (!employeeId && companyId && userRole !== 'superadmin') {
-            const compId = parseInt(companyId, 10);
-            if (!isNaN(compId)) {
-                const compExists = await prisma.companies.findUnique({
-                    where: { id: compId }
-                });
-                if (compExists) {
-                    let defaultPos = 'Şirket Personeli';
-                    if (userRole === 'company_admin' || userRole === 'owner' || userRole === 'admin') defaultPos = 'Şirket Yöneticisi';
-                    else if (userRole === 'manager') defaultPos = 'Operasyon & Puantör';
-                    else if (userRole === 'accountant') defaultPos = 'Ön Muhasebe';
+        let compRecord = null;
+        if (resolvedCompanyId) {
+            compRecord = await prisma.companies.findUnique({
+                where: { id: resolvedCompanyId }
+            });
+        }
 
-                    const employee = await prisma.employees.create({
-                        data: {
-                            company_id: compId,
-                            first_name: fullName?.split(' ')?.[0] || cleanUsername,
-                            last_name: fullName?.split(' ')?.slice(1)?.join(' ') || '',
-                            position: position || defaultPos,
-                            phone: phone || null,
-                            email: cleanEmail,
-                            start_date: new Date(),
-                            status: 'active'
-                        }
-                    });
-                    employeeId = employee.id;
+        if (!employeeId && resolvedCompanyId && userRole !== 'superadmin' && compRecord) {
+            let defaultPos = 'Şirket Personeli';
+            if (userRole === 'company_admin' || userRole === 'owner' || userRole === 'admin') defaultPos = 'Şirket Yöneticisi';
+            else if (userRole === 'manager') defaultPos = 'Operasyon & Puantör';
+            else if (userRole === 'accountant') defaultPos = 'Ön Muhasebe';
+
+            const employee = await prisma.employees.create({
+                data: {
+                    company_id: resolvedCompanyId,
+                    first_name: fullName?.split(' ')?.[0] || cleanUsername,
+                    last_name: fullName?.split(' ')?.slice(1)?.join(' ') || '',
+                    position: position || defaultPos,
+                    phone: phone || null,
+                    email: cleanEmail,
+                    start_date: new Date(),
+                    status: 'active'
                 }
-            }
+            });
+            employeeId = employee.id;
         }
 
         const newUser = await prisma.users.create({
@@ -418,25 +433,22 @@ async function createPlatformUser(userData) {
                 role_id: roleId ? Number(roleId) : null,
                 permissions: permissions ? (typeof permissions === 'string' ? permissions : JSON.stringify(permissions)) : null,
                 employee_id: employeeId,
-                must_change_password: 0,
+                must_change_password: isInvite ? 1 : 0,
                 is_active: 1
             }
         });
 
         // Safely set company owner ONLY if user is company_admin/owner and company has no existing owner
-        if (companyId && (userRole === 'company_admin' || userRole === 'owner')) {
-            const compId = parseInt(companyId, 10);
-            if (!isNaN(compId)) {
-                const comp = await prisma.companies.findUnique({
-                    where: { id: compId },
-                    select: { user_id: true }
-                });
-                if (comp && !comp.user_id) {
-                    await prisma.companies.update({
-                        where: { id: compId },
-                        data: { user_id: newUser.id }
-                    }).catch(() => {});
-                }
+        if (resolvedCompanyId && (userRole === 'company_admin' || userRole === 'owner')) {
+            const comp = await prisma.companies.findUnique({
+                where: { id: resolvedCompanyId },
+                select: { user_id: true }
+            });
+            if (comp && !comp.user_id) {
+                await prisma.companies.update({
+                    where: { id: resolvedCompanyId },
+                    data: { user_id: newUser.id }
+                }).catch(() => {});
             }
         }
 
@@ -452,7 +464,7 @@ async function createPlatformUser(userData) {
                     username,
                     full_name: fullName || username,
                     employee_id: employeeId,
-                    company_id: companyId ? parseInt(companyId, 10) : null,
+                    company_id: resolvedCompanyId,
                     role: userRole
                 });
 
@@ -520,8 +532,82 @@ async function createPlatformUser(userData) {
             }
         }
 
+        // Generate OTP & Invitation Link
+        const randomOtp = String(Math.floor(100000 + Math.random() * 900000));
+        const inviteToken = crypto.randomUUID();
+
+        try {
+            const { recoveryOtpStore } = require('./auth.service');
+            if (recoveryOtpStore) {
+                recoveryOtpStore.set(cleanEmail, {
+                    otp: randomOtp,
+                    token: inviteToken,
+                    userId: newUser.id,
+                    email: cleanEmail,
+                    employeeId: employeeId || null,
+                    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+                    verified: false,
+                    type: 'user_invite'
+                });
+            }
+        } catch (otpErr) {
+            console.warn('[createPlatformUser] recoveryOtpStore error:', otpErr.message);
+        }
+
+        const appBase = getAppBaseUrl(userData.baseUrl || baseUrl);
+        const inviteLink = `${appBase}/#/reset-password?email=${encodeURIComponent(cleanEmail)}&otp=${randomOtp}&invite=true`;
+
+        const compName = compRecord?.name || 'Kontrol Filo';
+        const roleTitleMap = {
+            superadmin: 'Platform Süper Yöneticisi',
+            company_admin: 'Şirket Yöneticisi',
+            owner: 'Şirket Sahibi / Yetkilisi',
+            admin: 'Yönetici',
+            manager: 'Operasyon & Puantör',
+            accountant: 'Ön Muhasebe',
+            personnel: 'Personel'
+        };
+        const roleTitle = roleTitleMap[userRole] || 'Kullanıcı';
+        const targetName = fullName || cleanUsername;
+
+        const smsText = `Sayın ${targetName}, ${compName} bünyesinde Kontrol App hesabınız (${roleTitle}) tanımlanmıştır. Tek tıkla giriş yapıp şifrenizi belirlemek için tıklayın: ${inviteLink}`;
+
+        let emailSent = false;
+        let emailError = null;
+
+        if (userData.sendEmail !== false && cleanEmail) {
+            try {
+                const { sendCustomHtmlEmail } = require('./mailer.service');
+                const htmlContent = buildInviteEmailHtml({
+                    companyName: compName,
+                    roleTitle,
+                    targetName,
+                    username: cleanUsername,
+                    email: cleanEmail,
+                    otp: randomOtp,
+                    inviteLink,
+                    isPersonnel: userRole === 'personnel'
+                });
+
+                const mailRes = await sendCustomHtmlEmail({
+                    to: cleanEmail,
+                    subject: `Kontrol App - ${compName} Giriş Davetiniz (${roleTitle})`,
+                    html: htmlContent,
+                    senderName: compName
+                });
+
+                if (mailRes.success) {
+                    emailSent = true;
+                } else {
+                    emailError = mailRes.error;
+                }
+            } catch (mailEx) {
+                emailError = mailEx.message;
+            }
+        }
+
         logAudit({
-            companyId: companyId ? parseInt(companyId, 10) : null,
+            companyId: resolvedCompanyId,
             userId: newUser.id,
             username: newUser.username,
             userRole: newUser.role,
@@ -533,12 +619,146 @@ async function createPlatformUser(userData) {
             severity: 'info'
         });
 
-        return { success: true, user: newUser };
+        return {
+            success: true,
+            user: newUser,
+            inviteLink,
+            otp: randomOtp,
+            smsText,
+            emailSent,
+            emailError,
+            message: emailSent
+                ? 'Kullanıcı hesabı oluşturuldu ve davet e-postası başarıyla gönderildi.'
+                : 'Kullanıcı hesabı oluşturuldu ve davet bağlantısı hazırlandı.'
+        };
     } catch (error) {
         console.error('createPlatformUser error:', error);
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * Send an invitation / set password link to any existing user
+ */
+async function sendUserInvite(data) {
+    try {
+        const { userId, email, baseUrl } = data || {};
+        const cleanEmail = (email || '').toLowerCase().trim();
+        const uid = userId ? parseInt(userId, 10) : null;
+
+        const user = await prisma.users.findFirst({
+            where: {
+                OR: [
+                    ...(uid ? [{ id: uid }] : []),
+                    ...(cleanEmail ? [{ email: cleanEmail }] : [])
+                ]
+            }
+        });
+
+        if (!user) {
+            return { success: false, error: 'Kullanıcı hesabı bulunamadı.' };
+        }
+
+        const targetEmail = (user.email || cleanEmail).toLowerCase().trim();
+        if (!targetEmail) {
+            return { success: false, error: 'Kullanıcının kayıtlı bir e-posta adresi bulunmuyor.' };
+        }
+
+        const crypto = require('crypto');
+        const randomOtp = String(Math.floor(100000 + Math.random() * 900000));
+        const inviteToken = crypto.randomUUID();
+
+        const { recoveryOtpStore } = require('./auth.service');
+        if (recoveryOtpStore) {
+            recoveryOtpStore.set(targetEmail, {
+                otp: randomOtp,
+                token: inviteToken,
+                userId: user.id,
+                email: targetEmail,
+                employeeId: user.employee_id || null,
+                expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+                verified: false,
+                type: 'user_invite'
+            });
+        }
+
+        const appBase = getAppBaseUrl(baseUrl);
+        const inviteLink = `${appBase}/#/reset-password?email=${encodeURIComponent(targetEmail)}&otp=${randomOtp}&invite=true`;
+
+        let compName = 'Kontrol Filo';
+        if (user.employee_id) {
+            const emp = await prisma.employees.findUnique({ where: { id: user.employee_id } });
+            if (emp?.company_id) {
+                const comp = await prisma.companies.findUnique({ where: { id: emp.company_id } });
+                if (comp?.name) compName = comp.name;
+            }
+        }
+
+        const roleTitleMap = {
+            superadmin: 'Platform Süper Yöneticisi',
+            company_admin: 'Şirket Yöneticisi',
+            owner: 'Şirket Sahibi / Yetkilisi',
+            admin: 'Yönetici',
+            manager: 'Operasyon & Puantör',
+            accountant: 'Ön Muhasebe',
+            personnel: 'Personel'
+        };
+        const roleTitle = roleTitleMap[user.role] || 'Kullanıcı';
+        const targetName = user.full_name || user.username;
+
+        const smsText = `Sayın ${targetName}, ${compName} bünyesinde Kontrol App hesabınız (${roleTitle}) için şifre belirleme bağlantınız: ${inviteLink}`;
+
+        let emailSent = false;
+        let emailError = null;
+
+        try {
+            const { sendCustomHtmlEmail } = require('./mailer.service');
+            const htmlContent = buildInviteEmailHtml({
+                companyName: compName,
+                roleTitle,
+                targetName,
+                username: user.username,
+                email: targetEmail,
+                otp: randomOtp,
+                inviteLink,
+                isPersonnel: user.role === 'personnel'
+            });
+
+            const mailRes = await sendCustomHtmlEmail({
+                to: targetEmail,
+                subject: `Kontrol App - ${compName} Giriş & Şifre Davetiniz (${roleTitle})`,
+                html: htmlContent,
+                senderName: compName
+            });
+
+            if (mailRes.success) {
+                emailSent = true;
+            } else {
+                emailError = mailRes.error;
+            }
+        } catch (mailEx) {
+            emailError = mailEx.message;
+        }
+
+
+        return {
+            success: true,
+            user,
+            inviteLink,
+            otp: randomOtp,
+            smsText,
+            emailSent,
+            emailError,
+            message: emailSent
+                ? 'Davet e-postası başarıyla iletildi ve davet bağlantısı hazırlandı.'
+                : 'Davet bağlantısı ve SMS metni başarıyla oluşturuldu.'
+        };
+    } catch (err) {
+        console.error('sendUserInvite error:', err);
+        return { success: false, error: err.message };
+    }
+}
+
 
 /**
  * Delete a user account safely
@@ -1325,5 +1545,7 @@ module.exports = {
     deletePlatformAnnouncement,
     createPlatformCompany,
     updatePlatformCompany,
-    deletePlatformCompany
+    deletePlatformCompany,
+    sendUserInvite
 };
+

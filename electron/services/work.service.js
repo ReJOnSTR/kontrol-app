@@ -255,7 +255,8 @@ async function archiveWorks(ids, isArchived = 1) {
 // ====== WORK ITEMS ======
 
 function calculateItemTotalPrice(data, pazarMultiplier = 1.5, mesaiMultiplier = 1.5) {
-    const descUpper = (data.description || '').toUpperCase();
+    const desc = data.description || '';
+    const descUpper = desc.toUpperCase();
     const isSaatlik = descUpper.includes('[SAATLİK]');
 
     let isPazar = descUpper.includes('PAZAR');
@@ -276,8 +277,11 @@ function calculateItemTotalPrice(data, pazarMultiplier = 1.5, mesaiMultiplier = 
         baseTotal = unitPrice * hours;
     } else {
         let gunRate = unitPrice;
-
-        if (isAylik) {
+        const kMatch = desc.match(/\[KATSAYI:([^\]]+)\]/);
+        if (kMatch) {
+            const multVal = parseFloat(kMatch[1]) || 1;
+            gunRate = unitPrice * multVal;
+        } else if (isAylik) {
             if (isPazar) {
                 gunRate = unitPrice + (unitPrice * pazarMultiplier);
             }
@@ -291,8 +295,15 @@ function calculateItemTotalPrice(data, pazarMultiplier = 1.5, mesaiMultiplier = 
         baseTotal = (hours * gunRate) + (overtimeHours * mesaiRate);
     }
 
-    // Add travel price (flat per entry)
-    return baseTotal + travelPrice;
+    // Dynamic additions [EK:type:price]
+    let additionsTotal = 0;
+    const additionMatches = desc.matchAll(/\[EK:([^:]+):([^\]]+)\]/g);
+    for (const match of additionMatches) {
+        additionsTotal += parseFloat(match[2]) || 0;
+    }
+
+    // Round to whole integer (tam sayı / kuruşsuz)
+    return Math.round(baseTotal + travelPrice + additionsTotal);
 }
 
 async function addWorkItem(data) {

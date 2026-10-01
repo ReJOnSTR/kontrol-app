@@ -13,7 +13,7 @@ import {
     Wrench, FileSearch, ClipboardCheck, Layout, Cog, Eye, EyeOff, Clock, CheckCircle,
     UserPlus, Key, Unlock, Trash2, Edit2, ShieldAlert, Check, X, Building2, Sparkles,
     Mail, Send, CheckCircle2, AlertCircle, Filter, Calendar, FileText,
-    Car, Briefcase, UtensilsCrossed
+    Car, Briefcase, UtensilsCrossed, Share2, Copy, MessageSquare, ExternalLink
 } from 'lucide-react'
 import { 
     HrModuleContent, 
@@ -169,6 +169,10 @@ export default function Settings() {
         phone: '',
         permissions: ROLE_PRESETS[1]?.levels || {}
     })
+    const [manualPasswordMode, setManualPasswordMode] = useState(false)
+    const [inviteResult, setInviteResult] = useState(null)
+    const [copiedLink, setCopiedLink] = useState(false)
+    const [copiedSms, setCopiedSms] = useState(false)
 
     const loadCompanyUsers = async () => {
         if (!currentCompany?.id) return
@@ -449,17 +453,34 @@ export default function Settings() {
 
     const handleCreateUserSubmit = async (e) => {
         e.preventDefault()
-        if (!newUserForm.username || !newUserForm.email || !newUserForm.password) {
-            alert('Kullanıcı adı, e-posta ve şifre zorunludur')
+        if (!newUserForm.username || !newUserForm.email) {
+            alert('Kullanıcı adı ve e-posta adresi zorunludur')
             return
         }
+        if (manualPasswordMode && (!newUserForm.password || newUserForm.password.length < 6)) {
+            alert('Manuel şifre belirlerken en az 6 karakterli bir şifre girmelisiniz')
+            return
+        }
+
         setCreateUserLoading(true)
         try {
+            // Auto-generate strong temporary password if in invite mode and password is empty
+            const generatedPassword = (!manualPasswordMode && !newUserForm.password)
+                ? (Math.random().toString(36).substring(2, 8) + 'Aa1!' + Math.random().toString(36).substring(2, 5))
+                : newUserForm.password
+
+            const baseUrl = (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('file:'))
+                ? window.location.origin
+                : 'https://kontrol-app.com';
+
             const res = await window.electronAPI?.createPlatformUser({
                 ...newUserForm,
+                password: generatedPassword,
                 employeeId: selectedEmployeeId || undefined,
-                companyId: currentCompany.id
+                companyId: currentCompany.id,
+                baseUrl
             })
+
             if (res?.success) {
                 setCreateUserModal(false)
                 setSelectedEmployeeId('')
@@ -474,6 +495,10 @@ export default function Settings() {
                     permissions: ROLE_PRESETS[1]?.levels || {}
                 })
                 await loadCompanyUsers()
+
+                if (res.inviteUrl || res.emailSent) {
+                    setInviteResult(res)
+                }
             } else {
                 alert('Kullanıcı oluşturulamadı: ' + (res?.error || 'Bilinmeyen hata'))
             }
@@ -2442,6 +2467,62 @@ export default function Settings() {
                                 </div>
                             )}
 
+                            {/* Invitation vs Manual Password Toggle */}
+                            <div style={{
+                                display: 'flex',
+                                gap: '8px',
+                                background: 'var(--bg-primary)',
+                                padding: '4px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                marginBottom: '14px'
+                            }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setManualPasswordMode(false)}
+                                    style={{
+                                        flex: 1,
+                                        padding: '7px 12px',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        borderRadius: '6px',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        background: !manualPasswordMode ? 'var(--primary)' : 'transparent',
+                                        color: !manualPasswordMode ? '#fff' : 'var(--text-secondary)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    <Sparkles size={14} /> Otomatik Davet Modu (Önerilen)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setManualPasswordMode(true)}
+                                    style={{
+                                        flex: 1,
+                                        padding: '7px 12px',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        borderRadius: '6px',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        background: manualPasswordMode ? 'var(--primary)' : 'transparent',
+                                        color: manualPasswordMode ? '#fff' : 'var(--text-secondary)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    <Key size={14} /> Manuel Şifre Belirle
+                                </button>
+                            </div>
+
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                                 <CustomInput
                                     label="Kullanıcı Adı"
@@ -2460,14 +2541,33 @@ export default function Settings() {
                                     placeholder="ornek@sirket.com"
                                 />
 
-                                <CustomInput
-                                    type="password"
-                                    label="Giriş Şifresi"
-                                    value={newUserForm.password}
-                                    onChange={(val) => setNewUserForm(prev => ({ ...prev, password: val }))}
-                                    required
-                                    placeholder="••••••••"
-                                />
+                                {manualPasswordMode ? (
+                                    <CustomInput
+                                        type="password"
+                                        label="Giriş Şifresi"
+                                        value={newUserForm.password}
+                                        onChange={(val) => setNewUserForm(prev => ({ ...prev, password: val }))}
+                                        required
+                                        placeholder="••••••••"
+                                    />
+                                ) : (
+                                    <div style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center',
+                                        padding: '8px 12px',
+                                        background: 'rgba(59, 130, 246, 0.08)',
+                                        borderRadius: '8px',
+                                        border: '1px dashed rgba(59, 130, 246, 0.3)'
+                                    }}>
+                                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Sparkles size={12} /> Otomatik Şifre Belirleme
+                                        </div>
+                                        <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.3 }}>
+                                            Kullanıcı şifresini davet linkiyle kendisi oluşturacak.
+                                        </div>
+                                    </div>
+                                )}
 
                                 <CustomInput
                                     label="Ad Soyad"
@@ -2514,10 +2614,133 @@ export default function Settings() {
                                 İptal
                             </button>
                             <button type="submit" className="btn btn-primary" disabled={createUserLoading}>
-                                {createUserLoading ? 'Ekleniyor...' : 'Kullanıcıyı Oluştur'}
+                                {createUserLoading ? 'Ekleniyor...' : (manualPasswordMode ? 'Kullanıcıyı Oluştur' : 'Kullanıcıyı Oluştur & Davet Et')}
                             </button>
                         </div>
                     </form>
+                </Modal>
+            )}
+
+            {/* Invite / Share Link Modal */}
+            {inviteResult && (
+                <Modal
+                    isOpen={!!inviteResult}
+                    onClose={() => { setInviteResult(null); setCopiedLink(false); setCopiedSms(false); }}
+                    title="🎉 Kullanıcı Hesabı & Davetiyesi Hazır!"
+                    size="default"
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0' }}>
+                        {inviteResult.emailSent ? (
+                            <div style={{
+                                padding: '12px 14px',
+                                borderRadius: '8px',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                border: '1px solid rgba(16, 185, 129, 0.25)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px'
+                            }}>
+                                <CheckCircle2 size={20} color="#10b981" style={{ flexShrink: 0 }} />
+                                <div style={{ fontSize: '12.5px', color: '#047857', lineHeight: 1.4 }}>
+                                    <strong>Davet E-Postası Başarıyla Gönderildi!</strong><br />
+                                    Kullanıcı <code>{inviteResult.user?.email}</code> adresine gelen bağlantıya tıklayarak şifresini kendisi belirleyebilir.
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{
+                                padding: '12px 14px',
+                                borderRadius: '8px',
+                                background: 'rgba(245, 158, 11, 0.1)',
+                                border: '1px solid rgba(245, 158, 11, 0.25)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px'
+                            }}>
+                                <AlertCircle size={20} color="#d97706" style={{ flexShrink: 0 }} />
+                                <div style={{ fontSize: '12.5px', color: '#b45309', lineHeight: 1.4 }}>
+                                    <strong>Davet Bağlantısı Hazırlandı</strong><br />
+                                    Aşağıdaki güvenli davet bağlantısını kopyalayarak WhatsApp, SMS veya dilediğiniz kanaldan personele iletebilirsiniz.
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Link Copy Box */}
+                        <div style={{ background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <label style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
+                                🔗 Güvenli Giriş & Şifre Belirleme Bağlantısı
+                            </label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={inviteResult.inviteUrl || ''}
+                                    className="form-input"
+                                    style={{ fontSize: '12px', background: 'var(--bg-primary)', cursor: 'text' }}
+                                    onClick={(e) => e.target.select()}
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                        if (navigator?.clipboard?.writeText) {
+                                            navigator.clipboard.writeText(inviteResult.inviteUrl)
+                                            setCopiedLink(true)
+                                            setTimeout(() => setCopiedLink(false), 2500)
+                                        }
+                                    }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+                                >
+                                    {copiedLink ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+                                    {copiedLink ? 'Kopyalandı' : 'Kopyala'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Quick Sharing Options */}
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#16a34a' }}
+                                onClick={() => {
+                                    const text = `Merhaba ${inviteResult.user?.full_name || inviteResult.user?.username || ''},\nKontrol Paneli hesabınız oluşturuldu. Aşağıdaki bağlantıya tıklayarak şifrenizi belirleyebilir ve giriş yapabilirsiniz:\n${inviteResult.inviteUrl}`
+                                    const cleanPhone = (inviteResult.user?.phone || '').replace(/\D/g, '')
+                                    const phoneParam = cleanPhone ? (cleanPhone.startsWith('90') ? cleanPhone : (cleanPhone.startsWith('0') ? '9' + cleanPhone : '90' + cleanPhone)) : ''
+                                    const url = phoneParam ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`
+                                    window.open(url, '_blank')
+                                }}
+                            >
+                                <MessageSquare size={15} /> WhatsApp İle Gönder
+                            </button>
+
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                                onClick={() => {
+                                    const text = `Merhaba ${inviteResult.user?.full_name || inviteResult.user?.username || ''}, Kontrol Paneli şifrenizi belirlemek için link: ${inviteResult.inviteUrl}`
+                                    if (navigator?.clipboard?.writeText) {
+                                        navigator.clipboard.writeText(text)
+                                        setCopiedSms(true)
+                                        setTimeout(() => setCopiedSms(false), 2500)
+                                    }
+                                }}
+                            >
+                                {copiedSms ? <Check size={15} color="#10b981" /> : <Share2 size={15} />}
+                                {copiedSms ? 'Metin Kopyalandı' : 'SMS / Mesaj Metni Kopyala'}
+                            </button>
+                        </div>
+
+                        <div className="modal-footer" style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => { setInviteResult(null); setCopiedLink(false); setCopiedSms(false); }}
+                            >
+                                Tamamla
+                            </button>
+                        </div>
+                    </div>
                 </Modal>
             )}
 

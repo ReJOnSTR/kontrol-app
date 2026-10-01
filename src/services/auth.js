@@ -3,5 +3,6 @@ export const authService = {
     login: (credentials) => window.electronAPI.login(credentials),
     changePassword: (data) => window.electronAPI.changePassword(data),
     updateProfile: (data) => window.electronAPI.updateProfile(data),
-    createEmployeeUser: (data) => window.electronAPI.createEmployeeUser(data)
+    createEmployeeUser: (data) => window.electronAPI.createEmployeeUser(data),
+    sendPersonnelInvite: (data) => window.electronAPI.sendPersonnelInvite(data)
 }

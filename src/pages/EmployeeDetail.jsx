@@ -25,7 +25,8 @@ import {
     Pencil, Trash2, Plus, AlertCircle, Users,
     Banknote, CalendarOff, Clock, Package, FileText, Settings,
     UserCheck, DollarSign, Calendar, CreditCard, User, Briefcase, Wallet,
-    Upload, X, ExternalLink, Archive, ArchiveRestore, Folder, ChevronRight, Info, Check, ArrowLeft, Phone
+    Upload, X, ExternalLink, Archive, ArchiveRestore, Folder, ChevronRight, Info, Check, ArrowLeft, Phone,
+    Zap, KeyRound, Mail, Share2, Copy, MessageSquare, Sparkles
 } from 'lucide-react'
 
 const paymentTypes = [
@@ -149,7 +150,7 @@ export default function EmployeeDetail() {
     const { updateTabInfo } = useTabs()
     const { user, isAdmin, hasPermission } = useAuth()
     const id = paramId || user?.employee_id
-    const isPersonnel = user?.role === 'personnel'
+    const isPersonnel = user?.role === 'personnel' || user?.role === 'employee'
 
     const [employee, setEmployee] = useState(null)
     const [activeTab, setActiveTab ] = usePersistentTab('EmployeeDetail', 'salary')
@@ -369,6 +370,10 @@ export default function EmployeeDetail() {
         roleId: null,
         isActive: true
     })
+    const [inviteMode, setInviteMode] = useState('quick_invite') // 'quick_invite' | 'manual_password'
+    const [inviteResult, setInviteResult] = useState(null)
+    const [copiedLink, setCopiedLink] = useState(false)
+    const [copiedSms, setCopiedSms] = useState(false)
     const confettiCanvasRef = useRef(null)
 
     useEffect(() => {
@@ -473,8 +478,69 @@ export default function EmployeeDetail() {
                 isActive: true
             });
         }
+        setInviteResult(null);
         setUserAccountModalOpen(true);
     }
+
+    const handleSendQuickInvite = async (e) => {
+        if (e) e.preventDefault();
+        if (!userAccountFormData.email) {
+            if (window.showToast) window.showToast('Davetiye oluşturmak için e-posta adresi gereklidir.', 'warning');
+            return;
+        }
+
+        try {
+            const baseUrl = (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('file:'))
+                ? window.location.origin
+                : 'https://kontrol-app.com';
+            const res = await window.electronAPI.sendPersonnelInvite({
+                employeeId: employee.id,
+                username: userAccountFormData.username,
+                email: userAccountFormData.email,
+                phone: employee.phone,
+                role: userAccountFormData.role,
+                permissions: userAccountFormData.permissions,
+                sendEmail: true,
+                baseUrl
+            });
+
+            if (res.success) {
+                setInviteResult(res);
+                if (window.showToast) window.showToast(res.message || 'Davetiye linki başarıyla üretildi!', 'success');
+                await loadEmployeeData();
+            } else {
+                if (window.showToast) window.showToast(res.error || 'Davetiye oluşturulamadı.', 'error');
+            }
+        } catch (err) {
+            console.error('Invite error:', err);
+            if (window.showToast) window.showToast('Hata: ' + err.message, 'error');
+        }
+    };
+
+    const handleCopyText = (text, type) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        if (type === 'link') {
+            setCopiedLink(true);
+            setTimeout(() => setCopiedLink(false), 2500);
+            if (window.showToast) window.showToast('Davetiye bağlantısı panoya kopyalandı.', 'success');
+        } else {
+            setCopiedSms(true);
+            setTimeout(() => setCopiedSms(false), 2500);
+            if (window.showToast) window.showToast('SMS / WhatsApp metni kopyalandı.', 'success');
+        }
+    };
+
+    const handleWhatsAppShare = () => {
+        if (!inviteResult) return;
+        let cleanPhone = (employee.phone || inviteResult.phone || '').replace(/[^0-9]/g, '');
+        if (cleanPhone.startsWith('0')) cleanPhone = '90' + cleanPhone.substring(1);
+        if (cleanPhone.length === 10) cleanPhone = '90' + cleanPhone;
+
+        const text = encodeURIComponent(inviteResult.smsText || `Kontrol App personel davetiniz: ${inviteResult.inviteLink}`);
+        const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+    };
 
     const handleUserAccountSubmit = async (e) => {
         e.preventDefault();
@@ -1293,6 +1359,10 @@ export default function EmployeeDetail() {
     }
 
     const handleCarryOver = async (netRemaining) => {
+        if (isPersonnel || !canManageSalary) {
+            showToast('Devretme işlemi için yetkiniz bulunmamaktadır.', 'warning')
+            return
+        }
         const nextMonth = getNextMonth(selectedMonth)
         const existing = salaries.find(s => s.salary_month === nextMonth && s.period === 'carryover')
 
@@ -1916,7 +1986,9 @@ export default function EmployeeDetail() {
 
     // ========== TAB & COLUMN DEFINITIONS ==========
 
-    const canViewSalary = isAdmin || (hasPermission && hasPermission('employees_view_salary'))
+    const isSelf = isPersonnel || Boolean(user?.employee_id && employee?.id && String(user.employee_id) === String(employee.id))
+    const canManageSalary = isAdmin || (hasPermission && hasPermission('employees_view_salary'))
+    const canViewSalary = canManageSalary || isSelf
     const canManageUserAccount = isAdmin || (hasPermission && hasPermission('settings_users'))
 
     const tabs = [
@@ -2235,9 +2307,11 @@ export default function EmployeeDetail() {
             {/* Executive Detail Header */}
             <div className="detail-header-card">
                 <div className="detail-header-top">
-                    <button type="button" className="detail-back-btn" onClick={() => navigate('/employees')}>
-                        <ArrowLeft size={14} /> Personeller
-                    </button>
+                    {!isPersonnel && (
+                        <button type="button" className="detail-back-btn" onClick={() => navigate('/employees')}>
+                            <ArrowLeft size={14} /> Personeller
+                        </button>
+                    )}
                     <div className="detail-header-top-right">
                         <span className={`badge badge-${statusInfo.color}`}>{statusInfo.label}</span>
                         {!isPersonnel && (
@@ -2657,7 +2731,7 @@ export default function EmployeeDetail() {
                                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
                                                 {calc.isOverpaid ? 'Fazla Ödeme (Avans Fazlası)' : 'Kalan Net Bakiye'}
                                             </div>
-                                            {(() => {
+                                            {canManageSalary && !isPersonnel && (() => {
                                                 const nextMonth = getNextMonth(selectedMonth)
                                                 const hasCarryOver = salaries.some(s => s.salary_month === nextMonth && s.period === 'carryover')
                                                 return (
@@ -2715,11 +2789,11 @@ export default function EmployeeDetail() {
                                 { key: 'period', label: 'Ödeme Türü', options: paymentTypes },
                                 { key: 'status', label: 'Durum', options: paymentStatuses }
                             ]}
-                            onBulkDelete={isPersonnel ? null : (ids) => {
+                            onBulkDelete={!canManageSalary || isPersonnel ? null : (ids) => {
                                 const nonRequestIds = ids.filter(id => typeof id !== 'string' || !id.startsWith('req_'));
                                 if (nonRequestIds.length > 0) handleDeleteClick('salary', null, nonRequestIds);
                             }}
-                            actions={isPersonnel ? null : (item) => {
+                            actions={!canManageSalary || isPersonnel ? null : (item) => {
                                 if (item.isRequest) {
                                     if (item.status === 'talep_bekliyor') {
                                         return (
@@ -2748,8 +2822,8 @@ export default function EmployeeDetail() {
                             columns={salaryHistoryColumns}
                             data={employee.employee_salary_history || []}
                             emptyMessage="Maaş geçmişi bulunmuyor."
-                            onBulkDelete={isPersonnel ? null : (ids) => handleDeleteClick('salary_history', null, ids)}
-                            actions={isPersonnel ? null : (item) => (
+                            onBulkDelete={!canManageSalary || isPersonnel ? null : (ids) => handleDeleteClick('salary_history', null, ids)}
+                            actions={!canManageSalary || isPersonnel ? null : (item) => (
                                 <>
                                     <button onClick={() => openEditModal('salary_history', item)}><Pencil size={16} /></button>
                                     <button className="danger" onClick={() => handleDeleteClick('salary_history', item)}><Trash2 size={16} /></button>
@@ -3959,69 +4033,413 @@ export default function EmployeeDetail() {
             <Modal
                 isOpen={userAccountModalOpen}
                 onClose={() => setUserAccountModalOpen(false)}
-                title={employee?.user ? `Yetkileri Düzenle: ${employee.first_name} ${employee.last_name}` : `Yeni Giriş Hesabı Tanımla: ${employee?.first_name} ${employee?.last_name}`}
+                title={employee?.user ? `Yetkileri Düzenle: ${employee.first_name} ${employee.last_name}` : `Personel Portalı Girişi Tanımla: ${employee?.first_name} ${employee?.last_name}`}
                 size="xl"
                 footer={null}
             >
-                <form onSubmit={handleUserAccountSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {/* Top Credentials Row for new users */}
-                    {!employee?.user && (
-                        <div className="form-grid-3" style={{ background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                            <CustomInput
-                                label="Kullanıcı Adı"
-                                required
-                                value={userAccountFormData.username}
-                                onChange={(val) => setUserAccountFormData({...userAccountFormData, username: val})}
-                                maxLength={50}
-                            />
-                            <CustomInput
-                                label="E-Posta Adresi"
-                                type="email"
-                                required
-                                value={userAccountFormData.email}
-                                onChange={(val) => setUserAccountFormData({...userAccountFormData, email: val})}
-                                maxLength={100}
-                            />
-                            <div>
-                                <CustomInput
-                                    label="Geçici Şifre"
-                                    required
-                                    value={userAccountFormData.password}
-                                    onChange={(val) => setUserAccountFormData({...userAccountFormData, password: val})}
-                                    maxLength={64}
-                                />
-                                <span style={{ fontSize: '10.5px', color: 'var(--warning)', marginTop: '2px', display: 'block' }}>İlk girişte şifre değiştirilecektir.</span>
-                            </div>
+                {!employee?.user ? (
+                    <div>
+                        {/* Mode Switcher */}
+                        <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                            padding: '4px',
+                            background: 'var(--bg-secondary)',
+                            borderRadius: '8px',
+                            marginBottom: '14px',
+                            border: '1px solid var(--border-color)'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => { setInviteMode('quick_invite'); setInviteResult(null); }}
+                                style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    padding: '9px 14px',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    background: inviteMode === 'quick_invite' ? 'var(--accent-primary)' : 'transparent',
+                                    color: inviteMode === 'quick_invite' ? '#ffffff' : 'var(--text-secondary)',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <Zap size={16} />
+                                <span>⚡ Tek Tıkla Davet Linki Gönder (Şifresiz)</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setInviteMode('manual_password')}
+                                style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    padding: '9px 14px',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    background: inviteMode === 'manual_password' ? 'var(--accent-primary)' : 'transparent',
+                                    color: inviteMode === 'manual_password' ? '#ffffff' : 'var(--text-secondary)',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <KeyRound size={16} />
+                                <span>Manuel Şifre Belirle</span>
+                            </button>
                         </div>
-                    )}
 
-                    {/* Unified 2-Column Permission Matrix */}
-                    <PermissionMatrix
-                        selectedPreset={userAccountFormData.role}
-                        onPresetChange={(presetId, levels) => {
-                            setUserAccountFormData(prev => ({
-                                ...prev,
-                                role: presetId,
-                                permissions: levels
-                            }))
-                        }}
-                        permissionLevels={userAccountFormData.permissions || {}}
-                        onLevelChange={(moduleKey, level) => {
-                            setUserAccountFormData(prev => ({
-                                ...prev,
-                                permissions: {
-                                    ...(prev.permissions || {}),
-                                    [moduleKey]: level
-                                }
-                            }))
-                        }}
-                    />
+                        {inviteMode === 'quick_invite' ? (
+                            <form onSubmit={handleSendQuickInvite} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                <div style={{
+                                    background: 'rgba(59, 130, 246, 0.08)',
+                                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                                    borderRadius: '8px',
+                                    padding: '12px 14px',
+                                    fontSize: '12.5px',
+                                    color: 'var(--text-secondary)',
+                                    lineHeight: '1.5'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#3b82f6', fontWeight: 600, marginBottom: '3px' }}>
+                                        <Sparkles size={15} />
+                                        <span>Yönetici Şifre Belirlemekle Uğraşmaz</span>
+                                    </div>
+                                    Personelin e-postasına tek tıkla şifresini oluşturup girebileceği güvenli bir davet bağlantısı iletilir. Dilerseniz bağlantıyı WhatsApp veya SMS ile de tek tıkla personele gönderebilirsiniz.
+                                </div>
 
-                    <div className="modal-footer" style={{ marginTop: '4px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                        <button type="button" className="btn btn-secondary" onClick={() => setUserAccountModalOpen(false)}>İptal</button>
-                        <button type="submit" className="btn btn-primary">Kaydet</button>
+                                <div className="form-grid-3" style={{ background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                                    <CustomInput
+                                        label="Kullanıcı Adı"
+                                        required
+                                        value={userAccountFormData.username}
+                                        onChange={(val) => setUserAccountFormData({...userAccountFormData, username: val})}
+                                        maxLength={50}
+                                    />
+                                    <CustomInput
+                                        label="E-Posta Adresi"
+                                        type="email"
+                                        required
+                                        value={userAccountFormData.email}
+                                        onChange={(val) => setUserAccountFormData({...userAccountFormData, email: val})}
+                                        maxLength={100}
+                                    />
+                                    <div>
+                                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Telefon (WhatsApp / SMS)</label>
+                                        <div style={{ padding: '8px 12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '13px', color: 'var(--text-primary)' }}>
+                                            {employee?.phone || 'Telefon kaydı yok'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <PermissionMatrix
+                                    selectedPreset={userAccountFormData.role}
+                                    onPresetChange={(presetId, levels) => {
+                                        setUserAccountFormData(prev => ({
+                                            ...prev,
+                                            role: presetId,
+                                            permissions: levels
+                                        }))
+                                    }}
+                                    permissionLevels={userAccountFormData.permissions || {}}
+                                    onLevelChange={(moduleKey, level) => {
+                                        setUserAccountFormData(prev => ({
+                                            ...prev,
+                                            permissions: {
+                                                ...(prev.permissions || {}),
+                                                [moduleKey]: level
+                                            }
+                                        }))
+                                    }}
+                                />
+
+                                {inviteResult && (
+                                    <div style={{
+                                        background: 'rgba(16, 185, 129, 0.08)',
+                                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                                        borderRadius: '8px',
+                                        padding: '16px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '12px'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 600, fontSize: '14px' }}>
+                                                <Check size={18} />
+                                                <span>Davetiye Başarıyla Oluşturuldu</span>
+                                            </div>
+                                            {inviteResult.emailSent && (
+                                                <span style={{ fontSize: '11.5px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '2px 8px', borderRadius: '4px', fontWeight: 500 }}>
+                                                    E-posta Gönderildi
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={inviteResult.inviteLink}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '8px 12px',
+                                                    fontSize: '12px',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid var(--border-color)',
+                                                    background: 'var(--bg-primary)',
+                                                    color: 'var(--text-primary)'
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopyText(inviteResult.inviteLink, 'link')}
+                                                className="btn btn-secondary"
+                                                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '0 14px' }}
+                                            >
+                                                {copiedLink ? <Check size={15} color="#10b981" /> : <Copy size={15} />}
+                                                <span>{copiedLink ? 'Kopyalandı' : 'Linki Kopyala'}</span>
+                                            </button>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                            <button
+                                                type="button"
+                                                onClick={handleWhatsAppShare}
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    padding: '8px 14px',
+                                                    background: '#25D366',
+                                                    color: '#ffffff',
+                                                    border: 'none',
+                                                    borderRadius: '6px',
+                                                    fontSize: '12.5px',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <MessageSquare size={15} />
+                                                <span>WhatsApp ile Gönder</span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopyText(inviteResult.smsText, 'sms')}
+                                                className="btn btn-secondary"
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
+                                            >
+                                                {copiedSms ? <Check size={15} color="#10b981" /> : <Share2 size={15} />}
+                                                <span>{copiedSms ? 'SMS Metni Kopyalandı' : 'SMS Metnini Kopyala'}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="modal-footer" style={{ marginTop: '4px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                    <button type="button" className="btn btn-secondary" onClick={() => setUserAccountModalOpen(false)}>
+                                        {inviteResult ? 'Kapat' : 'İptal'}
+                                    </button>
+                                    <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Mail size={16} />
+                                        <span>{inviteResult ? 'Tekrar Davet Gönder' : 'Davetiye Linki Oluştur & E-Posta Gönder'}</span>
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleUserAccountSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                <div className="form-grid-3" style={{ background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                                    <CustomInput
+                                        label="Kullanıcı Adı"
+                                        required
+                                        value={userAccountFormData.username}
+                                        onChange={(val) => setUserAccountFormData({...userAccountFormData, username: val})}
+                                        maxLength={50}
+                                    />
+                                    <CustomInput
+                                        label="E-Posta Adresi"
+                                        type="email"
+                                        required
+                                        value={userAccountFormData.email}
+                                        onChange={(val) => setUserAccountFormData({...userAccountFormData, email: val})}
+                                        maxLength={100}
+                                    />
+                                    <div>
+                                        <CustomInput
+                                            label="Geçici Şifre"
+                                            required
+                                            value={userAccountFormData.password}
+                                            onChange={(val) => setUserAccountFormData({...userAccountFormData, password: val})}
+                                            maxLength={64}
+                                        />
+                                        <span style={{ fontSize: '10.5px', color: 'var(--warning)', marginTop: '2px', display: 'block' }}>İlk girişte şifre değiştirilecektir.</span>
+                                    </div>
+                                </div>
+
+                                <PermissionMatrix
+                                    selectedPreset={userAccountFormData.role}
+                                    onPresetChange={(presetId, levels) => {
+                                        setUserAccountFormData(prev => ({
+                                            ...prev,
+                                            role: presetId,
+                                            permissions: levels
+                                        }))
+                                    }}
+                                    permissionLevels={userAccountFormData.permissions || {}}
+                                    onLevelChange={(moduleKey, level) => {
+                                        setUserAccountFormData(prev => ({
+                                            ...prev,
+                                            permissions: {
+                                                ...(prev.permissions || {}),
+                                                [moduleKey]: level
+                                            }
+                                        }))
+                                    }}
+                                />
+
+                                <div className="modal-footer" style={{ marginTop: '4px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                    <button type="button" className="btn btn-secondary" onClick={() => setUserAccountModalOpen(false)}>İptal</button>
+                                    <button type="submit" className="btn btn-primary">Giriş Hesabını Oluştur</button>
+                                </div>
+                            </form>
+                        )}
                     </div>
-                </form>
+                ) : (
+                    <form onSubmit={handleUserAccountSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {/* Quick Invite Card for Existing User (e.g. password reset / magic link) */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 14px',
+                            background: 'var(--bg-secondary)',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            gap: '12px'
+                        }}>
+                            <div>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                    {employee.user.username} ({employee.user.email})
+                                </div>
+                                <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                                    Personel şifresini unuttuysa veya yeniden giriş bağlantısı gerekiyorsa tek tıkla iletebilirsiniz.
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleSendQuickInvite}
+                                className="btn btn-secondary"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                            >
+                                <Zap size={14} color="var(--accent-primary)" />
+                                <span>Giriş / Sıfırlama Linki Gönder</span>
+                            </button>
+                        </div>
+
+                        {inviteResult && (
+                            <div style={{
+                                background: 'rgba(16, 185, 129, 0.08)',
+                                border: '1px solid rgba(16, 185, 129, 0.3)',
+                                borderRadius: '8px',
+                                padding: '14px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '10px'
+                            }}>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        value={inviteResult.inviteLink}
+                                        style={{
+                                            flex: 1,
+                                            padding: '8px 12px',
+                                            fontSize: '12px',
+                                            borderRadius: '6px',
+                                            border: '1px solid var(--border-color)',
+                                            background: 'var(--bg-primary)',
+                                            color: 'var(--text-primary)'
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => handleCopyText(inviteResult.inviteLink, 'link')}
+                                        className="btn btn-secondary"
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '0 12px' }}
+                                    >
+                                        {copiedLink ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+                                        <span>{copiedLink ? 'Kopyalandı' : 'Kopyala'}</span>
+                                    </button>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        onClick={handleWhatsAppShare}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            padding: '6px 12px',
+                                            background: '#25D366',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            fontSize: '12px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <MessageSquare size={14} />
+                                        <span>WhatsApp</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleCopyText(inviteResult.smsText, 'sms')}
+                                        className="btn btn-secondary"
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+                                    >
+                                        {copiedSms ? <Check size={14} color="#10b981" /> : <Share2 size={14} />}
+                                        <span>SMS Metni</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Unified 2-Column Permission Matrix */}
+                        <PermissionMatrix
+                            selectedPreset={userAccountFormData.role}
+                            onPresetChange={(presetId, levels) => {
+                                setUserAccountFormData(prev => ({
+                                    ...prev,
+                                    role: presetId,
+                                    permissions: levels
+                                }))
+                            }}
+                            permissionLevels={userAccountFormData.permissions || {}}
+                            onLevelChange={(moduleKey, level) => {
+                                setUserAccountFormData(prev => ({
+                                    ...prev,
+                                    permissions: {
+                                        ...(prev.permissions || {}),
+                                        [moduleKey]: level
+                                    }
+                                }))
+                            }}
+                        />
+
+                        <div className="modal-footer" style={{ marginTop: '4px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                            <button type="button" className="btn btn-secondary" onClick={() => setUserAccountModalOpen(false)}>İptal</button>
+                            <button type="submit" className="btn btn-primary">Değişiklikleri Kaydet</button>
+                        </div>
+                    </form>
+                )}
             </Modal>
 
             {/* Request Modal for Personnel */}

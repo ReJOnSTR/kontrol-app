@@ -252,6 +252,261 @@ function generateTemplateHtml(type) {
 }
 
 /**
+ * Build consistent, ultra-modern HTML template for user & personnel invitations
+ */
+function buildInviteEmailHtml({
+    companyName = 'Kontrol Filo',
+    roleTitle = 'Kullanıcı',
+    targetName = 'Kullanıcı',
+    username = '',
+    email = '',
+    otp = '',
+    inviteLink = '',
+    isPersonnel = false
+}) {
+    const brandTitle = 'KONTROL';
+    const pageTitle = isPersonnel 
+        ? 'Personel Giriş & Şifre Davetiyesi' 
+        : 'Kullanıcı Giriş & Şifre Davetiyesi';
+    const roleBadgeText = companyName || 'Kontrol Filo';
+
+    return `<!DOCTYPE html>
+<html lang="tr" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${pageTitle}</title>
+  <style type="text/css">
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+      background-color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #a1a1aa;
+    }
+    table {
+      border-spacing: 0;
+      border-collapse: collapse;
+    }
+    td {
+      padding: 0;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #ffffff;
+      padding: 40px 16px;
+    }
+    .card {
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto;
+      background: #141416;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .header {
+      padding: 24px 36px;
+      border-bottom: 1px solid #27272a;
+      background: #141416;
+    }
+    .brand {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+    .role-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: #a1a1aa;
+      background: #1f1f23;
+      border: 1px solid #2e2e33;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+    }
+    .content {
+      padding: 36px 36px 32px 36px;
+    }
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 21px;
+      font-weight: 600;
+      color: #ffffff;
+      line-height: 1.35;
+      letter-spacing: -0.3px;
+    }
+    .subtitle {
+      font-size: 12.5px;
+      color: #71717a;
+      margin-bottom: 22px;
+    }
+    p {
+      margin: 0 0 20px 0;
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: #a1a1aa;
+    }
+    .btn-wrap {
+      margin: 28px 0;
+    }
+    .btn {
+      display: inline-block;
+      padding: 13px 28px;
+      background: #ffffff;
+      color: #09090b !important;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.1px;
+    }
+    .info-box {
+      margin: 24px 0;
+      padding: 18px 20px;
+      background: #0c0c0e;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+    }
+    .info-table {
+      width: 100%;
+      margin-bottom: 14px;
+    }
+    .info-table td {
+      padding: 5px 0;
+      font-size: 13px;
+    }
+    .info-label {
+      color: #71717a;
+    }
+    .info-val {
+      color: #ffffff;
+      font-weight: 600;
+      text-align: right;
+    }
+    .otp-divider {
+      height: 1px;
+      background: #27272a;
+      margin: 12px 0 14px 0;
+    }
+    .otp-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #71717a;
+      margin-bottom: 6px;
+    }
+    .otp-code {
+      font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 8px;
+      color: #14b8a6;
+    }
+    .notice {
+      margin-top: 26px;
+      padding-top: 20px;
+      border-top: 1px solid #27272a;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: #71717a;
+    }
+    .footer {
+      padding: 22px 36px;
+      border-top: 1px solid #27272a;
+      background: #0f0f11;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #52525b;
+    }
+    @media screen and (max-width: 600px) {
+      .wrapper { padding: 16px 8px; }
+      .content, .header, .footer { padding: 20px 18px; }
+      .btn { display: block; text-align: center; }
+      .otp-code { font-size: 22px; letter-spacing: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <table class="wrapper" role="presentation">
+    <tr>
+      <td align="center">
+        <table class="card" role="presentation">
+          <tr>
+            <td class="header">
+              <table style="width: 100%;">
+                <tr>
+                  <td><div class="brand">${brandTitle}</div></td>
+                  <td align="right"><span class="role-badge">${roleBadgeText}</span></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="content">
+              <h1>${pageTitle}</h1>
+              <div class="subtitle">${companyName} • ${roleTitle}</div>
+              
+              <p>Sayın <strong>${targetName}</strong>,</p>
+              <p>
+                <strong>${companyName}</strong> tarafından Kontrol App yönetim platformundaki <strong>${roleTitle}</strong> hesabınız tanımlanmıştır.
+              </p>
+              <p>
+                Aşağıdaki butona tıklayarak tek tıkla hesabınıza giriş yapabilir ve güvenli şifrenizi hemen belirleyebilirsiniz:
+              </p>
+
+              <div class="btn-wrap">
+                <a href="${inviteLink}" class="btn" target="_blank">Giriş Yap ve Şifreni Belirle</a>
+              </div>
+
+              <div class="info-box">
+                <table class="info-table" role="presentation">
+                  ${username ? `
+                  <tr>
+                    <td class="info-label">Kullanıcı Adı:</td>
+                    <td class="info-val"><span style="font-family: monospace;">${username}</span></td>
+                  </tr>` : ''}
+                  <tr>
+                    <td class="info-label">E-Posta Adresi:</td>
+                    <td class="info-val">${email}</td>
+                  </tr>
+                  <tr>
+                    <td class="info-label">Yetki / Rol:</td>
+                    <td class="info-val">${roleTitle}</td>
+                  </tr>
+                </table>
+
+                ${otp ? `
+                <div class="otp-divider"></div>
+                <div class="otp-label">Tek Kullanımlık Doğrulama Kodu (OTP)</div>
+                <div class="otp-code">${otp}</div>` : ''}
+              </div>
+
+              <div class="notice">
+                Bu davet bağlantısı 7 gün boyunca geçerlidir. Butona tıklamakta sorun yaşıyorsanız aşağıdaki bağlantıyı tarayıcınıza kopyalayabilirsiniz:<br>
+                <a href="${inviteLink}" style="color: #14b8a6; text-decoration: none; word-break: break-all; font-size: 12px; margin-top: 6px; display: inline-block;">${inviteLink}</a>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer">
+              Bu e-posta <strong>${email}</strong> adresine gönderilmiştir.<br>
+              © 2026 Kontrol. Tüm hakları saklıdır.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+/**
  * Ensure email_templates table exists in database
  */
 async function ensureEmailTemplatesTable() {
@@ -453,13 +708,13 @@ async function sendTestEmail(data, actorUser) {
             return { success: false, error: 'Hedef e-posta adresi ve HTML içeriği gereklidir' };
         }
 
-        let redirectTarget = 'https://kontrol-app.com/login?verified=true';
+        let redirectTarget = 'https://kontrol-app.com/#/login?verified=true';
         if (type === 'recovery') {
-            redirectTarget = 'https://kontrol-app.com/reset-password';
+            redirectTarget = 'https://kontrol-app.com/#/reset-password';
         } else if (type === 'invite') {
-            redirectTarget = 'https://kontrol-app.com/reset-password?invite=true';
+            redirectTarget = 'https://kontrol-app.com/#/reset-password?invite=true';
         } else if (type === 'change_email') {
-            redirectTarget = 'https://kontrol-app.com/login?email_changed=true';
+            redirectTarget = 'https://kontrol-app.com/#/login?email_changed=true';
         }
 
         let confirmationUrl = redirectTarget;
@@ -558,5 +813,6 @@ module.exports = {
     sendTestEmail,
     getEmailSettings,
     saveEmailSettings,
-    testSmtpConnection
+    testSmtpConnection,
+    buildInviteEmailHtml
 };

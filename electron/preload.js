@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateProfile: (data) => ipcRenderer.invoke('auth:updateProfile', data),
     getUserProfile: (userId) => ipcRenderer.invoke('auth:getUserProfile', userId),
     createEmployeeUser: (data) => ipcRenderer.invoke('auth:createEmployeeUser', data),
+    sendPersonnelInvite: (data) => ipcRenderer.invoke('auth:sendPersonnelInvite', data),
     syncEmployeesToSupabaseAuth: (companyId) => ipcRenderer.invoke('auth:syncEmployeesToSupabaseAuth', companyId),
 
     // Requests & Approvals
@@ -326,6 +327,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     resetPlatformUserPassword: (userId, newPassword) => ipcRenderer.invoke('platform:resetUserPassword', userId, newPassword),
     impersonatePlatformUser: (userId) => ipcRenderer.invoke('platform:impersonateUser', userId),
     createPlatformUser: (userData) => ipcRenderer.invoke('platform:createUser', userData),
+    sendUserInvite: (data) => ipcRenderer.invoke('platform:sendUserInvite', data),
     updatePlatformUser: (userId, userData) => ipcRenderer.invoke('platform:updateUser', userId, userData),
     deletePlatformUser: (userId) => ipcRenderer.invoke('platform:deleteUser', userId),
     toggleCompanyStatus: (companyId, isActive) => ipcRenderer.invoke('platform:toggleCompanyStatus', companyId, isActive),

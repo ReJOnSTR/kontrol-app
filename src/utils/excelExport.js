@@ -153,8 +153,8 @@ export function exportWorkToExcel(work, vehicles = [], options = {}) {
             if (showPrices) {
                 if (item.isPazar && !desc.includes('[KATSAYI:')) {
                     const baseP = item.unit_price || item.unitPriceVal || 0
-                    const dailyP = (baseP > 10000 && item.isAylik) ? baseP / 26 : baseP
-                    priceText = dailyP > 0 ? formatCurrency(dailyP * pazarMultiplier) : '-'
+                    const dailyP = (baseP > 10000 && item.isAylik) ? Math.round((baseP / 26) * 100) / 100 : baseP
+                    priceText = dailyP > 0 ? formatCurrency(Math.round(dailyP * pazarMultiplier * 100) / 100) : '-'
                 } else {
                     priceText = (item.unit_price || item.unitPriceVal) ? formatCurrency(item.unit_price || item.unitPriceVal) : '-'
                 }
@@ -197,9 +197,9 @@ export function exportWorkToExcel(work, vehicles = [], options = {}) {
             html += `
   <tr>
     <td colspan="${showPrices ? 5 : 4}" class="no-border">&nbsp;</td>
-    <td class="bold text-center" style="border: 0.5pt solid #cbd5e1; background-color: #f8fafc; font-size: 10pt;">${line.typeLabel}</td>
+    <td class="text-bold text-center" style="border: 0.5pt solid #cbd5e1; background-color: #f8fafc; font-size: 10pt;">${line.typeLabel}</td>
     <td class="text-center" style="border: 0.5pt solid #cbd5e1; font-size: 10pt;">${line.countText || `${line.count} ${line.unit}`}</td>
-    <td class="text-right" style="border: 0.5pt solid #cbd5e1; font-size: 10pt;">${line.unitPrice ? formatCurrency(line.unitPrice) : '-'}</td>
+    <td class="text-right" style="border: 0.5pt solid #cbd5e1; font-size: 10pt;">${line.unitPrice ? formatCurrency(line.unitPrice, 6) : '-'}</td>
     <td class="text-right bold total-text" style="border: 0.5pt solid #cbd5e1; font-size: 10pt;">${formatCurrency(line.totalPrice)}</td>
   </tr>
 `
@@ -225,7 +225,7 @@ export function exportWorkToExcel(work, vehicles = [], options = {}) {
         let grandTotalWithKdv = grandTotal
         let kdvAmount = 0
         if (showKdv) {
-            kdvAmount = (grandTotal * (Number(kdvRate) || 20)) / 100
+            kdvAmount = Math.round((grandTotal * (Number(kdvRate) || 20)) / 100)
             grandTotalWithKdv = grandTotal + kdvAmount
         }
 

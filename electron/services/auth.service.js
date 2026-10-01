@@ -1105,7 +1105,7 @@ async function requestPasswordReset(data) {
             }
 
             // 3. Generate password recovery action link & token from Supabase Auth
-            let actionLink = 'https://kontrol-app.com/reset-password';
+            let actionLink = 'https://kontrol-app.com/#/reset-password';
             const randomOtp = String(Math.floor(100000 + Math.random() * 900000));
             let rawOtpCode = randomOtp;
             let otpToken = randomOtp.slice(0, 3) + ' ' + randomOtp.slice(3);
@@ -1115,7 +1115,7 @@ async function requestPasswordReset(data) {
                     type: 'recovery',
                     email: cleanEmail,
                     options: {
-                        redirectTo: 'https://kontrol-app.com/reset-password'
+                        redirectTo: 'https://kontrol-app.com/#/reset-password'
                     }
                 });
                 if (linkData?.properties?.action_link) {
@@ -1168,7 +1168,7 @@ async function requestPasswordReset(data) {
 
             // Fallback: Supabase default mailer if direct send didn't run
             const { error: resetErr } = await supabaseAdmin.auth.resetPasswordForEmail(cleanEmail, {
-                redirectTo: 'https://kontrol-app.com/reset-password'
+                redirectTo: 'https://kontrol-app.com/#/reset-password'
             });
 
             if (resetErr) {
@@ -1194,10 +1194,27 @@ async function verifyRecoveryOtp(data) {
         const cleanOtp = String(otp).replace(/[\s\-_]/g, '').trim();
 
         const entry = recoveryOtpStore.get(cleanEmail);
-        if (entry && entry.expiresAt > Date.now() && entry.otp === cleanOtp) {
-            entry.verified = true;
-            log.info(`[Password Reset] OTP verified via memory cache for ${cleanEmail}`);
-            return { success: true, verified: true };
+
+        if (entry) {
+            // Check expiry
+            if (entry.expiresAt <= Date.now()) {
+                recoveryOtpStore.delete(cleanEmail);
+                return { success: false, error: 'Doğrulama kodunun süresi dolmuş. Lütfen yeni bir davet veya şifre sıfırlama bağlantısı talep edin.' };
+            }
+
+            // Rate-limiting / brute-force protection (max 5 attempts)
+            entry.attempts = (entry.attempts || 0) + 1;
+            if (entry.attempts > 5) {
+                recoveryOtpStore.delete(cleanEmail);
+                log.warn(`[Security Alert] Max OTP attempts exceeded for ${cleanEmail}. Entry invalidated.`);
+                return { success: false, error: 'Çok fazla hatalı kod denemesi yapıldı. Güvenlik nedeniyle bu kod iptal edildi, lütfen yeni bir bağlantı talep edin.' };
+            }
+
+            if (entry.otp === cleanOtp) {
+                entry.verified = true;
+                log.info(`[Password Reset] OTP verified via memory cache for ${cleanEmail}`);
+                return { success: true, verified: true };
+            }
         }
 
         // Also attempt Supabase Auth verify
@@ -1229,24 +1246,56 @@ async function completePasswordReset(data) {
         if (newPassword.length < 6) return { success: false, error: 'Şifre en az 6 karakter olmalıdır' };
         const cleanEmail = email.trim().toLowerCase();
 
+        // 1. Verify user exists in database
+        const user = await prisma.users.findFirst({
+            where: { email: cleanEmail }
+        });
+        if (!user) {
+            return { success: false, error: 'Kullanıcı hesabı bulunamadı.' };
+        }
+
+        // 2. Strict OTP authorization check
         const entry = recoveryOtpStore.get(cleanEmail);
         const cleanOtp = otp ? String(otp).replace(/[\s\-_]/g, '').trim() : '';
 
-        const isAuthorized = Boolean(entry && (entry.verified || (entry.otp === cleanOtp && entry.expiresAt > Date.now())));
+        let isAuthorized = false;
+
+        if (entry && entry.expiresAt > Date.now()) {
+            if (entry.verified) {
+                isAuthorized = true;
+            } else if (cleanOtp && entry.otp === cleanOtp) {
+                entry.verified = true;
+                isAuthorized = true;
+            }
+        }
 
         if (!isAuthorized && cleanOtp) {
             const v = await verifyRecoveryOtp({ email: cleanEmail, otp: cleanOtp });
-            if (!v.success) return v;
+            if (v.success) {
+                isAuthorized = true;
+            } else {
+                return v;
+            }
         }
 
-        // 1. Update PostgreSQL user
+        // Enforce strict authorization requirement
+        if (!isAuthorized) {
+            log.warn(`[Security Alert] Unauthorized completePasswordReset attempt for: ${cleanEmail}`);
+            return { success: false, error: 'Yetkisiz işlem: Şifre belirlemek için geçerli ve doğrulanmış bir güvenlik kodu (OTP) gereklidir.' };
+        }
+
+        // 3. Update PostgreSQL user password & activate
         const newHash = bcrypt.hashSync(newPassword, 10);
         await prisma.users.updateMany({
             where: { email: cleanEmail },
-            data: { password_hash: newHash }
+            data: { 
+                password_hash: newHash,
+                must_change_password: 0,
+                is_active: 1
+            }
         });
 
-        // 2. Update Supabase Auth user
+        // 4. Update Supabase Auth user if configured
         try {
             const { supabaseAdmin } = require('./supabase.service');
             if (supabaseAdmin) {
@@ -1263,8 +1312,26 @@ async function completePasswordReset(data) {
             log.warn('[Password Reset] Supabase sync warning:', supaErr.message);
         }
 
+        // 5. Invalidate single-use OTP
         recoveryOtpStore.delete(cleanEmail);
         log.info(`[Password Reset] Password reset complete for: ${cleanEmail}`);
+
+        // 6. Security Audit Log
+        try {
+            const { logAudit } = require('./audit.service');
+            if (logAudit) {
+                logAudit({
+                    userId: user.id,
+                    username: user.username,
+                    userRole: user.role,
+                    action: 'PASSWORD_RESET',
+                    entityType: 'user',
+                    entityId: String(user.id),
+                    description: `Kullanıcı "${user.username}" (${cleanEmail}) şifresini başarıyla belirledi.`,
+                    severity: 'info'
+                });
+            }
+        } catch (auditErr) {}
 
         return { success: true, message: 'Şifreniz başarıyla güncellendi!' };
     } catch (err) {
@@ -1355,6 +1422,142 @@ async function resendVerificationEmail(data) {
         return { success: true, message: 'Doğrulama bağlantısı e-posta adresinize tekrar gönderildi.' };
     } catch (err) {
         log.error('resendVerificationEmail error:', err);
+        return { success: false, error: err.message };
+    }
+}
+
+/**
+ * Generates a one-click invite magic link for employees / drivers and optionally dispatches an email / SMS template.
+ */
+async function sendPersonnelInvite(data) {
+    try {
+        const { employeeId, username, email, phone, role, roleId, permissions, sendEmail, baseUrl } = data || {};
+        const empId = Number(employeeId);
+        if (!empId) {
+            return { success: false, error: 'Personel ID gereklidir.' };
+        }
+
+        const employee = await prisma.employees.findUnique({
+            where: { id: empId }
+        });
+        if (!employee) {
+            return { success: false, error: 'Personel kaydı bulunamadı.' };
+        }
+
+        const cleanEmail = (email || employee.email || '').trim().toLowerCase();
+        if (!cleanEmail) {
+            return { success: false, error: 'Davetiye linki oluşturmak için personelin geçerli bir e-posta adresi gereklidir.' };
+        }
+
+        const cleanUsername = (username || `${employee.first_name || ''}.${employee.last_name || ''}`
+            .toLowerCase()
+            .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+            .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+            .replace(/[^a-z0-9._-]/g, '') || `personel_${empId}`).trim();
+
+        const employeePhone = (phone || employee.phone || '').trim();
+
+        // 1. Create or ensure user account exists with a secure temporary password
+        const crypto = require('crypto');
+        const tempPassword = 'P!' + crypto.randomBytes(8).toString('hex') + '9';
+        const userRes = await createEmployeeUser({
+            employeeId: empId,
+            username: cleanUsername,
+            email: cleanEmail,
+            password: tempPassword,
+            role: role || 'personnel',
+            roleId: roleId || null,
+            permissions: permissions || null
+        });
+
+        if (!userRes.success && !userRes.user) {
+            return userRes;
+        }
+
+        // 2. Generate 6-digit OTP and single-use Invite Token
+        const randomOtp = String(Math.floor(100000 + Math.random() * 900000));
+        const inviteToken = crypto.randomUUID();
+
+        recoveryOtpStore.set(cleanEmail, {
+            otp: randomOtp,
+            token: inviteToken,
+            userId: userRes.user?.id,
+            email: cleanEmail,
+            employeeId: empId,
+            expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // Valid for 7 days
+            verified: false,
+            type: 'personnel_invite'
+        });
+
+        // 3. Compose Invite Link
+        const appBase = baseUrl && !baseUrl.startsWith('file:') && (baseUrl.startsWith('http://') || baseUrl.startsWith('https://'))
+            ? baseUrl.replace(/\/+$/, '')
+            : 'https://kontrol-app.com';
+        const inviteLink = `${appBase}/#/reset-password?email=${encodeURIComponent(cleanEmail)}&otp=${randomOtp}&invite=true`;
+
+        // 4. Fetch company name for SMS & Email
+        const company = employee.company_id ? await prisma.companies.findUnique({ where: { id: employee.company_id } }) : null;
+        const compName = company?.name || 'Kontrol Filo';
+
+        // 5. Compose formatted SMS / WhatsApp message text
+        const fullName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || cleanUsername;
+        const smsText = `Sayın ${fullName}, ${compName} bünyesinde Kontrol App personel hesabınız oluşturulmuştur. Tek tıkla giriş yapıp kendi şifrenizi belirlemek için tıklayın: ${inviteLink}`;
+
+        // 6. Send Email if requested
+        let emailSent = false;
+        let emailError = null;
+
+        if (sendEmail !== false && cleanEmail) {
+            try {
+                const { sendCustomHtmlEmail } = require('./mailer.service');
+                const { buildInviteEmailHtml } = require('./emailTemplate.service');
+                const htmlContent = buildInviteEmailHtml({
+                    companyName: compName,
+                    roleTitle: 'Personel',
+                    targetName: fullName,
+                    username: cleanUsername,
+                    email: cleanEmail,
+                    otp: randomOtp,
+                    inviteLink,
+                    isPersonnel: true
+                });
+
+                const mailRes = await sendCustomHtmlEmail({
+                    to: cleanEmail,
+                    subject: `Kontrol App - ${compName} Personel Giriş Davetiniz`,
+                    html: htmlContent,
+                    senderName: compName
+                });
+
+                if (mailRes.success) {
+                    emailSent = true;
+                    log.info(`[Personnel Invite] Email sent to ${cleanEmail}`);
+                } else {
+                    emailError = mailRes.error;
+                    log.warn(`[Personnel Invite] Mail warning: ${mailRes.error}`);
+                }
+            } catch (mailEx) {
+                emailError = mailEx.message;
+                log.warn('[Personnel Invite] Mail error:', mailEx.message);
+            }
+        }
+
+        return {
+            success: true,
+            inviteLink,
+            otp: randomOtp,
+            smsText,
+            phone: employeePhone,
+            email: cleanEmail,
+            emailSent,
+            emailError,
+            user: userRes.user,
+            message: emailSent
+                ? 'Davetiye e-postası başarıyla iletildi ve davet linki hazırlandı.'
+                : 'Davetiye linki ve SMS metni başarıyla oluşturuldu.'
+        };
+    } catch (err) {
+        log.error('sendPersonnelInvite error:', err);
         return { success: false, error: err.message };
     }
 }
@@ -1465,6 +1668,9 @@ module.exports = {
     updateProfile,
     getUserPasswordHash,
     createEmployeeUser,
+    sendPersonnelInvite,
     ensureSuperAdminExists,
-    getUserProfile
+    getUserProfile,
+    recoveryOtpStore
 };
+

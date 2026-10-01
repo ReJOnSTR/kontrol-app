@@ -519,17 +519,17 @@ export default function WorkPdfReport({
                                                                     {showPrices ? (() => {
                                                                         const kMatch = (desc || '').match(/\[KATSAYI:([^\]]+)\]/);
                                                                         const baseP = item.unit_price || item.unitPriceVal || 0;
-                                                                        const dailyP = (baseP > 10000 && item.isAylik) ? baseP / 26 : baseP;
+                                                                        const dailyP = (baseP > 10000 && item.isAylik) ? Math.round((baseP / 26) * 100) / 100 : baseP;
                                                                         
                                                                         let finalPrice = dailyP;
                                                                         if (kMatch) {
                                                                             const multVal = parseFloat(kMatch[1]) || 1;
-                                                                            finalPrice = dailyP * multVal;
+                                                                            finalPrice = multVal === 1 ? dailyP : Number((dailyP * multVal).toFixed(6));
                                                                         } else if (item.isPazar) {
-                                                                            finalPrice = dailyP * pazarMultiplier;
+                                                                            finalPrice = pazarMultiplier === 1 ? dailyP : Number((dailyP * pazarMultiplier).toFixed(6));
                                                                         }
 
-                                                                        return finalPrice > 0 ? formatCurrency(finalPrice) : '';
+                                                                        return finalPrice > 0 ? formatCurrency(finalPrice, 6) : '';
                                                                     })() : ''}
                                                                 </td>
                                                             </tr>
@@ -558,7 +558,7 @@ export default function WorkPdfReport({
                                                             <tr key={lIdx} className="bg-light-gray">
                                                                 <td className="bold center">{line.typeLabel}</td>
                                                                 <td className="center">{line.countText || `${line.count} ${line.unit}`}</td>
-                                                                <td className="right">{line.unitPrice ? formatCurrency(line.unitPrice) : '-'}</td>
+                                                                <td className="right">{line.unitPrice ? formatCurrency(line.unitPrice, 6) : '-'}</td>
                                                                 <td className="right bold total-text">{formatCurrency(line.totalPrice)}</td>
                                                             </tr>
                                                         ))}
@@ -591,11 +591,11 @@ export default function WorkPdfReport({
                                                 <>
                                                     <tr>
                                                         <td className="bold right" style={{ padding: '4px 8px', fontSize: '9px', backgroundColor: '#f8fafc', color: '#333' }}>KDV (%{kdvRateProp})</td>
-                                                        <td className="right bold total-text" style={{ padding: '4px 8px', fontSize: '10px', backgroundColor: '#f1f5f9', color: '#000' }}>{formatCurrency(grandTotalPrice * (kdvRateProp / 100))}</td>
+                                                        <td className="right bold total-text" style={{ padding: '4px 8px', fontSize: '10px', backgroundColor: '#f1f5f9', color: '#000' }}>{formatCurrency(Math.round(grandTotalPrice * (kdvRateProp / 100)))}</td>
                                                     </tr>
                                                     <tr style={{ borderTop: '1.5px solid #cbd5e1' }}>
                                                         <td className="bold right" style={{ padding: '4px 8px', fontSize: '9.5px', backgroundColor: '#e2e8f0', color: '#000' }}>TOPLAM (KDV DAHİL)</td>
-                                                        <td className="right bold total-text" style={{ padding: '4px 8px', fontSize: '10.5px', backgroundColor: '#cbd5e1', color: '#000' }}>{formatCurrency(grandTotalPrice * (1 + kdvRateProp / 100))}</td>
+                                                        <td className="right bold total-text" style={{ padding: '4px 8px', fontSize: '10.5px', backgroundColor: '#cbd5e1', color: '#000' }}>{formatCurrency(Math.round(grandTotalPrice * (1 + kdvRateProp / 100)))}</td>
                                                     </tr>
                                                 </>
                                             )}

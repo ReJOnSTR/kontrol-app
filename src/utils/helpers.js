@@ -54,12 +54,17 @@ export function safeSetLocalStorage(key, value) {
     }
 }
 
-export function formatCurrency(amount) {
-    if (amount === null || amount === undefined) return '-'
+export function formatCurrency(amount, maxDecimals = 2) {
+    if (amount === null || amount === undefined || amount === '' || isNaN(amount)) return '-'
+    const num = Number(amount)
+    const min = 2
+    const max = Math.max(min, Number(maxDecimals) || 2)
     return new Intl.NumberFormat('tr-TR', {
         style: 'currency',
-        currency: 'TRY'
-    }).format(amount)
+        currency: 'TRY',
+        minimumFractionDigits: min,
+        maximumFractionDigits: max
+    }).format(num)
 }
 
 export function getDaysUntil(dateString) {

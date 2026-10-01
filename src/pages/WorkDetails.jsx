@@ -608,7 +608,7 @@ export default function WorkDetails(props) {
                 const payloadList = []
                 let currentDate = new Date(parsed.date)
                 const monthlyTotal = parsed.unitPrice || 0
-                const dailyPrice = monthlyTotal / 26
+                const dailyPrice = Math.round(monthlyTotal / 26)
                 let workDaysAdded = 0
 
                 while (workDaysAdded < 26) {
@@ -689,7 +689,7 @@ export default function WorkDetails(props) {
             let finalUnitPrice = bulkFormData.unitPrice ? parseFloat(bulkFormData.unitPrice) : 0;
             if (bulkFormData.pricingType === 'monthly' && bulkFormData.monthlyPrice) {
                 // Aylar 26 gündür (Pazar hariç)
-                finalUnitPrice = parseFloat(bulkFormData.monthlyPrice) / 26;
+                finalUnitPrice = Math.round(parseFloat(bulkFormData.monthlyPrice) / 26);
             }
 
             while (currentDate <= end) {
@@ -1261,19 +1261,22 @@ export default function WorkDetails(props) {
                             
                             let finalPrice = baseP;
                             let badgeText = null;
+                            let isCalculated = false;
 
                             if (kMatch) {
                                 const multVal = parseFloat(kMatch[1]) || 1;
-                                finalPrice = baseP * multVal;
-                                badgeText = `${multVal}x`;
+                                finalPrice = multVal === 1 ? baseP : Number((baseP * multVal).toFixed(6));
+                                badgeText = multVal !== 1 ? `${multVal}x` : null;
+                                isCalculated = multVal !== 1;
                             } else {
                                 const dateObj = new Date(row.date);
                                 const isSunday = !isNaN(dateObj.getTime()) && dateObj.getDay() === 0;
                                 const isPazar = isSunday || desc.toUpperCase().includes('PAZAR');
                                 if (isPazar) {
                                     const pazarMult = pazarMultiplier ? parseFloat(pazarMultiplier) : 1.5;
-                                    finalPrice = baseP * pazarMult;
-                                    badgeText = `${pazarMult}x`;
+                                    finalPrice = pazarMult === 1 ? baseP : Number((baseP * pazarMult).toFixed(6));
+                                    badgeText = pazarMult !== 1 ? `${pazarMult}x` : null;
+                                    isCalculated = pazarMult !== 1;
                                 }
                             }
 
@@ -1281,7 +1284,7 @@ export default function WorkDetails(props) {
 
                             return (
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                    <span>{formatCurrency(finalPrice)}</span>
+                                    <span>{formatCurrency(finalPrice, 6)}</span>
                                     {badgeText && (
                                         <span style={{
                                             fontSize: '10px',
@@ -1424,9 +1427,10 @@ export default function WorkDetails(props) {
                             <CustomInput
                                 label={formData.pricingType === 'monthly' ? "Aylık Toplam Fiyat" : "Birim Fiyat"}
                                 format="currency"
+                                maxDecimals={6}
+                                maxLength={18}
                                 value={formData.unitPrice}
                                 onChange={(val) => setFormData({ ...formData, unitPrice: val })}
-                                maxLength={12}
                             />
                         </div>
                     </div>
@@ -1457,7 +1461,7 @@ export default function WorkDetails(props) {
                                 display: 'inline-flex',
                                 alignItems: 'center'
                             }}>
-                                Toplam: {formatCurrency((formData.additions || []).reduce((sum, add) => sum + (parseFloat(add.price) || 0), 0))}
+                                Toplam: {formatCurrency(Math.round((formData.additions || []).reduce((sum, add) => sum + (parseFloat(add.price) || 0), 0)))}
                             </span>
                         </div>
 
@@ -1593,11 +1597,12 @@ export default function WorkDetails(props) {
                                 <CustomInput
                                     label="Fiyat ₺"
                                     format="currency"
+                                    maxDecimals={6}
+                                    maxLength={18}
                                     value={curAdditionPrice}
                                     onChange={(val) => setCurAdditionPrice(val)}
                                     placeholder="0,00"
                                     className="mb-0"
-                                    maxLength={12}
                                 />
                             </div>
                             <button
@@ -1804,7 +1809,7 @@ export default function WorkDetails(props) {
                     {parseFloat(formData.multiplier) > 0 && parseFloat(formData.multiplier) !== 1 && (
                         <div style={{ background: 'var(--accent-subtle)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--accent-primary)', fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>
                             Birim fiyat {formData.multiplier} katı olarak uygulanacaktır.<br />
-                            Etkili Fiyat: {formatCurrency((parseFloat(formData.unitPrice) || 0) * parseFloat(formData.multiplier))}
+                            Etkili Fiyat: {formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * parseFloat(formData.multiplier)))}
                         </div>
                     )}
 
@@ -1920,17 +1925,19 @@ export default function WorkDetails(props) {
                                 <CustomInput
                                     label="Aylık Tutar"
                                     format="currency"
+                                    maxDecimals={6}
+                                    maxLength={18}
                                     value={bulkFormData.monthlyPrice}
                                     onChange={(val) => setBulkFormData({ ...bulkFormData, monthlyPrice: val })}
-                                    maxLength={12}
                                 />
                             ) : (
                                 <CustomInput
                                     label="Birim Fiyat"
                                     format="currency"
+                                    maxDecimals={6}
+                                    maxLength={18}
                                     value={bulkFormData.unitPrice}
                                     onChange={(val) => setBulkFormData({ ...bulkFormData, unitPrice: val })}
-                                    maxLength={12}
                                 />
                             )}
                         </div>
@@ -1962,7 +1969,7 @@ export default function WorkDetails(props) {
                                 display: 'inline-flex',
                                 alignItems: 'center'
                             }}>
-                                Toplam: {formatCurrency((bulkFormData.additions || []).reduce((sum, add) => sum + (parseFloat(add.price) || 0), 0))}
+                                Toplam: {formatCurrency(Math.round((bulkFormData.additions || []).reduce((sum, add) => sum + (parseFloat(add.price) || 0), 0)))}
                             </span>
                         </div>
 
@@ -2098,10 +2105,11 @@ export default function WorkDetails(props) {
                                 <CustomInput
                                     label="Fiyat ₺"
                                     format="currency"
+                                    maxDecimals={6}
+                                    maxLength={18}
                                     value={curBulkAdditionPrice}
                                     onChange={(val) => setCurBulkAdditionPrice(val)}
                                     placeholder="0,00"
-                                    maxLength={12}
                                     className="mb-0"
                                 />
                             </div>
@@ -2254,10 +2262,9 @@ export default function WorkDetails(props) {
                         />
                         <CustomInput
                             label="Birim Fiyat"
-                            type="number"
-                            min={0}
-                            max={999999999}
-                            maxLength={12}
+                            format="currency"
+                            maxDecimals={6}
+                            maxLength={18}
                             placeholder="Değiştirme"
                             value={bulkEditFormData.unitPrice}
                             onChange={(val) => setBulkEditFormData({ ...bulkEditFormData, unitPrice: val })}

@@ -55,11 +55,16 @@ export default function Login() {
     const [verifying2FA, setVerifying2FA] = useState(false)
     const mfaInputRef = useRef(null)
 
-    // Check if user arrived after confirming email
+    const [inviteOnlyNotice, setInviteOnlyNotice] = useState(false)
+
+    // Check if user arrived after confirming email or from invite-only redirect
     useEffect(() => {
         const params = new URLSearchParams(location.search)
         if (params.get('verified') === 'true') {
             setEmailVerified(true)
+        }
+        if (params.get('notice') === 'invite_only') {
+            setInviteOnlyNotice(true)
         }
     }, [location])
 
@@ -200,7 +205,7 @@ export default function Login() {
                 }
             } else {
                 const { error: resetErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-                    redirectTo: 'https://kontrol-app.com/reset-password'
+                    redirectTo: 'https://kontrol-app.com/#/reset-password'
                 })
                 if (resetErr) {
                     setForgotError(resetErr.message || 'Sıfırlama talebi gönderilemedi.')
@@ -453,6 +458,27 @@ export default function Login() {
                                 </div>
                             )}
 
+                            {inviteOnlyNotice && (
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    gap: '10px',
+                                    padding: '12px 14px',
+                                    background: 'rgba(59, 130, 246, 0.1)',
+                                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                                    borderRadius: '8px',
+                                    marginBottom: '18px',
+                                    color: '#60a5fa',
+                                    fontSize: '13px',
+                                    lineHeight: '1.45'
+                                }}>
+                                    <ShieldCheck size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#3b82f6' }} />
+                                    <span>
+                                        <strong>Kurumsal Erişim:</strong> Kontrol platformuna yalnızca yetkili şirket davetiyesi ile giriş yapılabilir. Hesabınız yoksa lütfen şirket yöneticinizden davet talep ediniz.
+                                    </span>
+                                </div>
+                            )}
+
                             <form onSubmit={handleSubmit} noValidate>
                                 <div className="form-group" style={{ marginBottom: '18px' }}>
                                     <label className="form-label" style={{ marginBottom: '8px', display: 'block', fontSize: '13px', fontWeight: 500 }}>
@@ -567,8 +593,9 @@ export default function Login() {
                                 </button>
                             </form>
 
-                            <div className="auth-bottom-footer">
-                                Hesabınız yok mu? <Link to="/register">Hemen Kayıt Olun</Link>
+                            <div className="auth-bottom-footer" style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                <ShieldCheck size={14} style={{ color: '#10b981', flexShrink: 0 }} />
+                                <span>Kurumsal B2B Platformu • Erişim yalnızca yetkili davetiyesi iledir.</span>
                             </div>
                         </div>
                     )}

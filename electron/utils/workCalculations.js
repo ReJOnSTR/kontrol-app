@@ -296,12 +296,12 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
 
         if (isAylikGroup) {
             const baseMonthlyDays = Math.max(0, 26 - customRateDaysCount);
-            const baseMonthlyTotal = baseMonthlyDays * dailyRate;
+            const baseMonthlyTotal = Math.round(baseMonthlyDays * dailyRate);
 
             summaryLines.push({
                 typeLabel: 'AYLIK',
                 countText: customRateDaysCount > 0 ? `1 AY (${baseMonthlyDays} Gün)` : '1 AY (26 Gün)',
-                unitPrice: dailyRate,
+                unitPrice: dailyRate % 1 === 0 ? Math.round(dailyRate) : Number(dailyRate.toFixed(6)),
                 totalPrice: baseMonthlyTotal
             });
 
@@ -319,11 +319,12 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
                 });
 
                 Object.values(customMap).forEach(itemData => {
+                    const lineTotal = Math.round(itemData.count * itemData.price);
                     summaryLines.push({
                         typeLabel: itemData.label,
                         countText: `${itemData.count} ${itemData.unit}`,
-                        unitPrice: itemData.price,
-                        totalPrice: itemData.count * itemData.price
+                        unitPrice: itemData.price % 1 === 0 ? Math.round(itemData.price) : Number(itemData.price.toFixed(6)),
+                        totalPrice: lineTotal
                     });
                 });
             }
@@ -345,11 +346,12 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
                 });
 
                 Object.values(dailyPricesMap).forEach(itemData => {
+                    const lineTotal = Math.round(itemData.count * itemData.price);
                     summaryLines.push({
                         typeLabel: itemData.label,
                         countText: `${itemData.count} GÜN`,
-                        unitPrice: itemData.price,
-                        totalPrice: itemData.count * itemData.price
+                        unitPrice: itemData.price % 1 === 0 ? Math.round(itemData.price) : Number(itemData.price.toFixed(6)),
+                        totalPrice: lineTotal
                     });
                 });
             }
@@ -362,7 +364,9 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
                 const hrs = Number(i.hours) || 0;
                 if (hrs > 0) {
                     const itemDailyPrice = getItemEffectivePrice(i, dailyRate);
-                    const itemPazarPrice = itemDailyPrice > 0 ? itemDailyPrice * parsedPazarMultiplier : 0;
+                    const itemPazarPrice = itemDailyPrice > 0 
+                        ? (parsedPazarMultiplier === 1 ? itemDailyPrice : Number((itemDailyPrice * parsedPazarMultiplier).toFixed(6))) 
+                        : 0;
                     const key = `${itemPazarPrice}`;
                     if (!pazarPricesMap[key]) {
                         pazarPricesMap[key] = { price: itemPazarPrice, count: 0 };
@@ -372,11 +376,11 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
             });
 
             Object.values(pazarPricesMap).forEach(itemData => {
-                const pazarTutar = itemData.count * itemData.price;
+                const pazarTutar = Math.round(itemData.count * itemData.price);
                 summaryLines.push({
                     typeLabel: 'PAZAR',
                     countText: `${itemData.count} GÜN`,
-                    unitPrice: itemData.price,
+                    unitPrice: itemData.price % 1 === 0 ? Math.round(itemData.price) : Number(itemData.price.toFixed(6)),
                     totalPrice: pazarTutar
                 });
                 totalPazarPriceAmount += pazarTutar;
@@ -386,13 +390,14 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
         // 3. SAAT Line
         if (groupSaatlikCount > 0) {
             const saatlikPrice = group.items.find(i => i.isSaatlik && i.unitPriceVal > 0)?.unitPriceVal || 0;
+            const saatTutar = Math.round(groupSaatlikCount * saatlikPrice);
             summaryLines.push({
                 typeLabel: 'SAAT',
                 countText: `${groupSaatlikCount} SAAT`,
-                unitPrice: saatlikPrice,
-                totalPrice: groupSaatlikCount * saatlikPrice
+                unitPrice: saatlikPrice % 1 === 0 ? Math.round(saatlikPrice) : Number(saatlikPrice.toFixed(6)),
+                totalPrice: saatTutar
             });
-            totalSaatlikTutar += groupSaatlikCount * saatlikPrice;
+            totalSaatlikTutar += saatTutar;
         }
 
         // 4. MESAİ Line (calculated per 8 net daily working hours)
@@ -403,7 +408,9 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
                 if (mesaiHrs > 0) {
                     const itemDailyPrice = getItemEffectivePrice(i, dailyRate);
                     const itemHourlyRate = itemDailyPrice > 0 ? itemDailyPrice / 8 : 0;
-                    const itemMesaiPrice = parseFloat((itemHourlyRate * parsedMesaiMultiplier).toFixed(2));
+                    const itemMesaiPrice = itemHourlyRate > 0 
+                        ? (parsedMesaiMultiplier === 1 ? itemHourlyRate : Number((itemHourlyRate * parsedMesaiMultiplier).toFixed(6))) 
+                        : 0;
                     const key = `${itemMesaiPrice}`;
                     if (!mesaiPricesMap[key]) {
                         mesaiPricesMap[key] = { price: itemMesaiPrice, count: 0 };
@@ -413,11 +420,11 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
             });
 
             Object.values(mesaiPricesMap).forEach(itemData => {
-                const mesaiTutar = itemData.count * itemData.price;
+                const mesaiTutar = Math.round(itemData.count * itemData.price);
                 summaryLines.push({
                     typeLabel: 'MESAİ',
                     countText: `${itemData.count} SAAT`,
-                    unitPrice: itemData.price,
+                    unitPrice: itemData.price % 1 === 0 ? Math.round(itemData.price) : Number(itemData.price.toFixed(6)),
                     totalPrice: mesaiTutar
                 });
                 totalMesaiPriceAmount += mesaiTutar;
@@ -426,17 +433,18 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
 
         // 5. EK ÖDEMELER Lines
         Object.entries(additionsMap).forEach(([type, data]) => {
+            const addTutar = Math.round(data.count * data.price);
             summaryLines.push({
                 typeLabel: type.toUpperCase(),
                 countText: `${data.count} ADET`,
                 unitPrice: data.price,
-                totalPrice: data.count * data.price
+                totalPrice: addTutar
             });
-            totalEkOdemeler += data.count * data.price;
+            totalEkOdemeler += addTutar;
         });
 
-        const groupGrandTotal = summaryLines.reduce((sum, l) => sum + (l.totalPrice || 0), 0);
-        grandTotal += groupGrandTotal;
+        const groupGrandTotal = Math.round(summaryLines.reduce((sum, l) => sum + (l.totalPrice || 0), 0));
+        grandTotal = Math.round(grandTotal + groupGrandTotal);
 
         return {
             ...group,
@@ -466,12 +474,12 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
         durationText,
         totalOvertime,
         totalPazarDayCount,
-        totalEkOdemeler,
-        grandTotal,
-        totalMesaiPriceAmount,
-        totalPazarPriceAmount,
-        totalGunTutar,
-        totalSaatlikTutar,
+        totalEkOdemeler: Math.round(totalEkOdemeler),
+        grandTotal: Math.round(grandTotal),
+        totalMesaiPriceAmount: Math.round(totalMesaiPriceAmount),
+        totalPazarPriceAmount: Math.round(totalPazarPriceAmount),
+        totalGunTutar: Math.round(totalGunTutar),
+        totalSaatlikTutar: Math.round(totalSaatlikTutar),
         uniqueVehicles,
         uniqueEmployees,
         itemCount: items.length
