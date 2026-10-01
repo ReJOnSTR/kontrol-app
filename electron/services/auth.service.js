@@ -330,7 +330,9 @@ async function ensureUserColumnsExist() {
                         ['full_name', 'TEXT'],
                         ['role_id', 'INTEGER'],
                         ['employee_id', 'INTEGER'],
-                        ['permissions', 'TEXT']
+                        ['permissions', 'TEXT'],
+                        ['recovery_otp', 'TEXT'],
+                        ['recovery_otp_expires_at', 'DATETIME']
                     ];
                     for (const [col, def] of needed) {
                         if (!cols.includes(col)) {
@@ -343,6 +345,22 @@ async function ensureUserColumnsExist() {
                 db.close();
             }
         }
+
+        // PostgreSQL self-heal columns
+        const dbUrl = process.env.DATABASE_URL || '';
+        if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
+            try {
+                const { Client } = require('pg');
+                const pgClient = new Client({ connectionString: dbUrl });
+                await pgClient.connect();
+                await pgClient.query(`
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_otp VARCHAR(50);
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_otp_expires_at TIMESTAMP;
+                `);
+                await pgClient.end();
+            } catch (pgColErr) {}
+        }
+
         userColumnsEnsured = true;
     } catch (err) {
         // Silently continue for remote postgres or other drivers
@@ -1029,9 +1047,16 @@ async function ensureSuperAdminExists() {
     }
 }
 
-async function syncPasswordReset(data) {
+async function syncPasswordReset(arg1, arg2) {
     try {
-        const { email, newPassword } = data || {};
+        let email, newPassword;
+        if (arg1 && typeof arg1 === 'object') {
+            email = arg1.email;
+            newPassword = arg1.newPassword || arg1.password;
+        } else {
+            email = arg1;
+            newPassword = arg2;
+        }
         if (!email || !newPassword) {
             return { success: false, error: 'E-posta ve yeni şifre gereklidir' };
         }
@@ -1136,6 +1161,20 @@ async function requestPasswordReset(data) {
                 verified: false
             });
 
+            // Also persist to PostgreSQL database for cross-instance and web access
+            try {
+                const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
+                await prisma.users.updateMany({
+                    where: { email: cleanEmail },
+                    data: {
+                        recovery_otp: rawOtpCode,
+                        recovery_otp_expires_at: otpExpiry
+                    }
+                });
+            } catch (dbOtpErr) {
+                log.warn('[requestPasswordReset] db otp save warning:', dbOtpErr.message);
+            }
+
             // 4. Load custom HTML template from database
             const { getEmailTemplates } = require('./emailTemplate.service');
             const { sendCustomHtmlEmail } = require('./mailer.service');
@@ -1186,13 +1225,21 @@ async function requestPasswordReset(data) {
     }
 }
 
-async function verifyRecoveryOtp(data) {
+async function verifyRecoveryOtp(arg1, arg2) {
     try {
-        const { email, otp } = data || {};
+        let email, otp;
+        if (arg1 && typeof arg1 === 'object') {
+            email = arg1.email;
+            otp = arg1.otp || arg1.token;
+        } else {
+            email = arg1;
+            otp = arg2;
+        }
         if (!email || !otp) return { success: false, error: 'E-posta ve doğrulama kodu gereklidir' };
         const cleanEmail = email.trim().toLowerCase();
         const cleanOtp = String(otp).replace(/[\s\-_]/g, '').trim();
 
+        // 1. Check in-memory store
         const entry = recoveryOtpStore.get(cleanEmail);
 
         if (entry) {
@@ -1217,7 +1264,39 @@ async function verifyRecoveryOtp(data) {
             }
         }
 
-        // Also attempt Supabase Auth verify
+        // 2. Check Database persistent recovery OTP (for cross-client Web / Mobile / Desktop sync)
+        const dbUser = await prisma.users.findFirst({
+            where: {
+                OR: [
+                    { email: cleanEmail },
+                    { username: cleanEmail }
+                ]
+            }
+        });
+
+        if (dbUser && dbUser.recovery_otp) {
+            const isExpired = dbUser.recovery_otp_expires_at && new Date(dbUser.recovery_otp_expires_at).getTime() <= Date.now();
+            if (isExpired) {
+                await prisma.users.updateMany({
+                    where: { id: dbUser.id },
+                    data: { recovery_otp: null, recovery_otp_expires_at: null }
+                }).catch(() => {});
+                return { success: false, error: 'Doğrulama kodunun süresi dolmuş. Lütfen yeni bir davet veya şifre sıfırlama bağlantısı talep edin.' };
+            }
+
+            if (dbUser.recovery_otp === cleanOtp) {
+                // Cache into memory store as verified
+                recoveryOtpStore.set(cleanEmail, {
+                    otp: cleanOtp,
+                    expiresAt: Date.now() + 15 * 60 * 1000,
+                    verified: true
+                });
+                log.info(`[Password Reset] OTP verified via Database for ${cleanEmail}`);
+                return { success: true, verified: true };
+            }
+        }
+
+        // 3. Also attempt Supabase Auth verify
         try {
             const { supabaseAdmin } = require('./supabase.service');
             if (supabaseAdmin) {
@@ -1239,16 +1318,30 @@ async function verifyRecoveryOtp(data) {
     }
 }
 
-async function completePasswordReset(data) {
+async function completePasswordReset(arg1, arg2, arg3) {
     try {
-        const { email, newPassword, otp } = data || {};
+        let email, newPassword, otp;
+        if (arg1 && typeof arg1 === 'object') {
+            email = arg1.email;
+            newPassword = arg1.newPassword || arg1.password;
+            otp = arg1.otp || arg1.token;
+        } else {
+            email = arg1;
+            otp = arg2;
+            newPassword = arg3;
+        }
         if (!email || !newPassword) return { success: false, error: 'E-posta ve yeni şifre gereklidir' };
         if (newPassword.length < 6) return { success: false, error: 'Şifre en az 6 karakter olmalıdır' };
         const cleanEmail = email.trim().toLowerCase();
 
-        // 1. Verify user exists in database
+        // 1. Verify user exists in database (check by email or username)
         const user = await prisma.users.findFirst({
-            where: { email: cleanEmail }
+            where: {
+                OR: [
+                    { email: cleanEmail },
+                    { username: cleanEmail }
+                ]
+            }
         });
         if (!user) {
             return { success: false, error: 'Kullanıcı hesabı bulunamadı.' };
@@ -1284,18 +1377,38 @@ async function completePasswordReset(data) {
             return { success: false, error: 'Yetkisiz işlem: Şifre belirlemek için geçerli ve doğrulanmış bir güvenlik kodu (OTP) gereklidir.' };
         }
 
-        // 3. Update PostgreSQL user password & activate
+        // 3. Update PostgreSQL user password & activate & clear recovery OTP
         const newHash = bcrypt.hashSync(newPassword, 10);
         await prisma.users.updateMany({
-            where: { email: cleanEmail },
+            where: { id: user.id },
             data: { 
                 password_hash: newHash,
                 must_change_password: 0,
-                is_active: 1
+                is_active: 1,
+                recovery_otp: null,
+                recovery_otp_expires_at: null
             }
         });
 
-        // 4. Update Supabase Auth user if configured
+        // 4. Update Supabase Auth user (auth.users)
+        try {
+            const dbUrl = process.env.DATABASE_URL || '';
+            if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
+                const { Client } = require('pg');
+                const pgClient = new Client({ connectionString: dbUrl });
+                await pgClient.connect();
+                await pgClient.query(`
+                    UPDATE auth.users 
+                    SET encrypted_password = $1, email_confirmed_at = COALESCE(email_confirmed_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP
+                    WHERE email = $2
+                `, [newHash, user.email || cleanEmail]);
+                await pgClient.end();
+                log.info(`[Password Reset] Directly updated auth.users encrypted_password for: ${cleanEmail}`);
+            }
+        } catch (pgAuthErr) {
+            log.warn('[Password Reset] Direct pg auth.users update notice:', pgAuthErr.message);
+        }
+
         try {
             const { supabaseAdmin } = require('./supabase.service');
             if (supabaseAdmin) {
@@ -1387,6 +1500,20 @@ async function resendVerificationEmail(data) {
                 expiresAt: Date.now() + 24 * 60 * 60 * 1000,
                 verified: false
             });
+
+            // Also persist to PostgreSQL database
+            try {
+                const otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                await prisma.users.updateMany({
+                    where: { email: cleanEmail },
+                    data: {
+                        recovery_otp: rawOtpCode,
+                        recovery_otp_expires_at: otpExpiry
+                    }
+                });
+            } catch (dbOtpErr) {
+                log.warn('[resendVerificationEmail] db otp save warning:', dbOtpErr.message);
+            }
 
             // Send custom HTML template via direct SMTP mailer
             const { getEmailTemplates } = require('./emailTemplate.service');
@@ -1488,6 +1615,21 @@ async function sendPersonnelInvite(data) {
             verified: false,
             type: 'personnel_invite'
         });
+
+        // Persist OTP to database for dynamic cross-platform verification (Web, Desktop, Mobile)
+        try {
+            const otpExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            await prisma.users.updateMany({
+                where: { email: cleanEmail },
+                data: {
+                    recovery_otp: randomOtp,
+                    recovery_otp_expires_at: otpExpiry,
+                    must_change_password: 1
+                }
+            });
+        } catch (dbOtpErr) {
+            log.warn('[sendPersonnelInvite] Database OTP save warning:', dbOtpErr.message);
+        }
 
         // 3. Compose Invite Link
         const appBase = baseUrl && !baseUrl.startsWith('file:') && (baseUrl.startsWith('http://') || baseUrl.startsWith('https://'))

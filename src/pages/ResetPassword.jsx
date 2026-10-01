@@ -228,8 +228,9 @@ export default function ResetPassword() {
         try {
             const activeEmail = userEmail || manualEmail
             let resetSuccess = false
+            let lastErrorMessage = ''
 
-            // 1. Direct Electron reset API
+            // 1. Direct Electron / RPC reset API
             if (window.electronAPI?.completePasswordReset && activeEmail) {
                 const res = await window.electronAPI.completePasswordReset({
                     email: activeEmail,
@@ -238,27 +239,33 @@ export default function ResetPassword() {
                 })
                 if (res?.success) {
                     resetSuccess = true
+                } else if (res?.error) {
+                    lastErrorMessage = res.error
                 }
             }
 
             // 2. Supabase Auth updateUser fallback
-            try {
-                const { data, error: updateError } = await supabase.auth.updateUser({
-                    password: password
-                })
-                if (!updateError) {
-                    resetSuccess = true
-                }
-            } catch (supaErr) {}
+            if (!resetSuccess) {
+                try {
+                    const { data, error: updateError } = await supabase.auth.updateUser({
+                        password: password
+                    })
+                    if (!updateError) {
+                        resetSuccess = true
+                    }
+                } catch (supaErr) {}
+            }
 
             // 3. Fallback sync if needed
             if (!resetSuccess && activeEmail && window.electronAPI?.syncPasswordReset) {
                 try {
-                    await window.electronAPI.syncPasswordReset({
+                    const syncRes = await window.electronAPI.syncPasswordReset({
                         email: activeEmail,
                         newPassword: password
                     })
-                    resetSuccess = true
+                    if (syncRes?.success) {
+                        resetSuccess = true
+                    }
                 } catch (syncErr) {}
             }
 
@@ -268,7 +275,7 @@ export default function ResetPassword() {
                     navigate('/login')
                 }, 2000)
             } else {
-                setError('Şifre güncellenemedi. Lütfen tekrar deneyin.')
+                setError(lastErrorMessage || 'Şifre güncellenemedi. Lütfen tekrar deneyin.')
             }
         } catch (err) {
             setError('Şifre güncelleme hatası: ' + err.message)

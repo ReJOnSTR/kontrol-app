@@ -6,6 +6,7 @@ const log = require('./logger'); // Use the app's existing logger
 const jwt = require('jsonwebtoken');
 const authService = require('./services/auth.service');
 const db = require('./prismaService');
+const { createRpcMap } = require('./rpcMap');
 
 const SECRET_KEY = process.env.JWT_SECRET || 'dev-admin-secret-key-12345';
 
@@ -81,8 +82,41 @@ function startAdminServer(prisma, onDbUpdate) {
     app.use(express.static(adminStaticFolder));
 
     // Serve uploaded documents statically
-    const filesDir = path.join(electron.app.getPath('userData'), 'files');
+    let filesDir;
+    try {
+        filesDir = path.join(electron.app.getPath('userData'), 'files');
+    } catch (e) {
+        filesDir = path.join(process.env.DATA_DIR || path.join(__dirname, '../data'), 'files');
+    }
     app.use('/uploads', express.static(filesDir));
+
+    // Initialize full RPC map for browser development mode
+    let rpcMap;
+    try {
+        rpcMap = createRpcMap();
+    } catch (e) {
+        log.warn('Could not initialize full rpcMap for adminServer:', e.message);
+    }
+
+    // Generic RPC Router for Web mode (bridges window.electronAPI calls over HTTP)
+    app.post('/api/rpc/:method', async (req, res) => {
+        const { method } = req.params;
+        const { args = [] } = req.body;
+
+        const fn = (rpcMap && rpcMap[method]) || db[method] || authService[method];
+        if (typeof fn !== 'function') {
+            log.warn(`[RPC 404] Method "${method}" not found in adminServer`);
+            return res.status(404).json({ success: false, error: `Method "${method}" not found` });
+        }
+
+        try {
+            const result = await fn(...args);
+            res.json(result !== undefined ? result : { success: true });
+        } catch (err) {
+            log.error(`RPC Error [${method}]:`, err);
+            res.status(500).json({ success: false, error: err.message });
+        }
+    });
 
     // API: Login
     app.post('/api/login', async (req, res) => {
@@ -97,9 +131,9 @@ function startAdminServer(prisma, onDbUpdate) {
         }
     });
 
-    // JWT Security Middleware
+    // JWT Security Middleware for Admin Table Explorer
     app.use('/api', (req, res, next) => {
-        if (req.path === '/login') return next(); // Skip logic for login
+        if (req.path === '/login' || req.path.startsWith('/rpc/')) return next(); // Skip logic for login and RPC calls
 
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {

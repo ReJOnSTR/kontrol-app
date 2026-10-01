@@ -36,7 +36,7 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
             }
 
             if (prop === 'getAppVersion') {
-                return async () => '1.13.8-web';
+                return async () => '1.13.121-web';
             }
 
             if (prop === 'openExternal') {

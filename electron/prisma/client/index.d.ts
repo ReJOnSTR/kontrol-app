@@ -33429,6 +33429,8 @@ export namespace Prisma {
     two_factor_secret: string | null
     two_factor_enabled: number | null
     two_factor_backup_codes: string | null
+    recovery_otp: string | null
+    recovery_otp_expires_at: Date | null
   }
 
   export type UsersMaxAggregateOutputType = {
@@ -33447,6 +33449,8 @@ export namespace Prisma {
     two_factor_secret: string | null
     two_factor_enabled: number | null
     two_factor_backup_codes: string | null
+    recovery_otp: string | null
+    recovery_otp_expires_at: Date | null
   }
 
   export type UsersCountAggregateOutputType = {
@@ -33465,6 +33469,8 @@ export namespace Prisma {
     two_factor_secret: number
     two_factor_enabled: number
     two_factor_backup_codes: number
+    recovery_otp: number
+    recovery_otp_expires_at: number
     _all: number
   }
 
@@ -33503,6 +33509,8 @@ export namespace Prisma {
     two_factor_secret?: true
     two_factor_enabled?: true
     two_factor_backup_codes?: true
+    recovery_otp?: true
+    recovery_otp_expires_at?: true
   }
 
   export type UsersMaxAggregateInputType = {
@@ -33521,6 +33529,8 @@ export namespace Prisma {
     two_factor_secret?: true
     two_factor_enabled?: true
     two_factor_backup_codes?: true
+    recovery_otp?: true
+    recovery_otp_expires_at?: true
   }
 
   export type UsersCountAggregateInputType = {
@@ -33539,6 +33549,8 @@ export namespace Prisma {
     two_factor_secret?: true
     two_factor_enabled?: true
     two_factor_backup_codes?: true
+    recovery_otp?: true
+    recovery_otp_expires_at?: true
     _all?: true
   }
 
@@ -33644,6 +33656,8 @@ export namespace Prisma {
     two_factor_secret: string | null
     two_factor_enabled: number | null
     two_factor_backup_codes: string | null
+    recovery_otp: string | null
+    recovery_otp_expires_at: Date | null
     _count: UsersCountAggregateOutputType | null
     _avg: UsersAvgAggregateOutputType | null
     _sum: UsersSumAggregateOutputType | null
@@ -33681,6 +33695,8 @@ export namespace Prisma {
     two_factor_secret?: boolean
     two_factor_enabled?: boolean
     two_factor_backup_codes?: boolean
+    recovery_otp?: boolean
+    recovery_otp_expires_at?: boolean
     companies?: boolean | users$companiesArgs<ExtArgs>
     employee?: boolean | users$employeeArgs<ExtArgs>
     custom_role?: boolean | users$custom_roleArgs<ExtArgs>
@@ -33705,6 +33721,8 @@ export namespace Prisma {
     two_factor_secret?: boolean
     two_factor_enabled?: boolean
     two_factor_backup_codes?: boolean
+    recovery_otp?: boolean
+    recovery_otp_expires_at?: boolean
     employee?: boolean | users$employeeArgs<ExtArgs>
     custom_role?: boolean | users$custom_roleArgs<ExtArgs>
   }, ExtArgs["result"]["users"]>
@@ -33725,6 +33743,8 @@ export namespace Prisma {
     two_factor_secret?: boolean
     two_factor_enabled?: boolean
     two_factor_backup_codes?: boolean
+    recovery_otp?: boolean
+    recovery_otp_expires_at?: boolean
     employee?: boolean | users$employeeArgs<ExtArgs>
     custom_role?: boolean | users$custom_roleArgs<ExtArgs>
   }, ExtArgs["result"]["users"]>
@@ -33745,9 +33765,11 @@ export namespace Prisma {
     two_factor_secret?: boolean
     two_factor_enabled?: boolean
     two_factor_backup_codes?: boolean
+    recovery_otp?: boolean
+    recovery_otp_expires_at?: boolean
   }
 
-  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "email" | "full_name" | "password_hash" | "created_at" | "role" | "role_id" | "employee_id" | "permissions" | "must_change_password" | "is_active" | "two_factor_secret" | "two_factor_enabled" | "two_factor_backup_codes", ExtArgs["result"]["users"]>
+  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "email" | "full_name" | "password_hash" | "created_at" | "role" | "role_id" | "employee_id" | "permissions" | "must_change_password" | "is_active" | "two_factor_secret" | "two_factor_enabled" | "two_factor_backup_codes" | "recovery_otp" | "recovery_otp_expires_at", ExtArgs["result"]["users"]>
   export type usersInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     companies?: boolean | users$companiesArgs<ExtArgs>
     employee?: boolean | users$employeeArgs<ExtArgs>
@@ -33790,6 +33812,8 @@ export namespace Prisma {
       two_factor_secret: string | null
       two_factor_enabled: number | null
       two_factor_backup_codes: string | null
+      recovery_otp: string | null
+      recovery_otp_expires_at: Date | null
     }, ExtArgs["result"]["users"]>
     composites: {}
   }
@@ -34233,6 +34257,8 @@ export namespace Prisma {
     readonly two_factor_secret: FieldRef<"users", 'String'>
     readonly two_factor_enabled: FieldRef<"users", 'Int'>
     readonly two_factor_backup_codes: FieldRef<"users", 'String'>
+    readonly recovery_otp: FieldRef<"users", 'String'>
+    readonly recovery_otp_expires_at: FieldRef<"users", 'DateTime'>
   }
     
 
@@ -56302,7 +56328,9 @@ export namespace Prisma {
     is_active: 'is_active',
     two_factor_secret: 'two_factor_secret',
     two_factor_enabled: 'two_factor_enabled',
-    two_factor_backup_codes: 'two_factor_backup_codes'
+    two_factor_backup_codes: 'two_factor_backup_codes',
+    recovery_otp: 'recovery_otp',
+    recovery_otp_expires_at: 'recovery_otp_expires_at'
   };
 
   export type UsersScalarFieldEnum = (typeof UsersScalarFieldEnum)[keyof typeof UsersScalarFieldEnum]
@@ -58781,6 +58809,8 @@ export namespace Prisma {
     two_factor_secret?: StringNullableFilter<"users"> | string | null
     two_factor_enabled?: IntNullableFilter<"users"> | number | null
     two_factor_backup_codes?: StringNullableFilter<"users"> | string | null
+    recovery_otp?: StringNullableFilter<"users"> | string | null
+    recovery_otp_expires_at?: DateTimeNullableFilter<"users"> | Date | string | null
     companies?: CompaniesListRelationFilter
     employee?: XOR<EmployeesNullableScalarRelationFilter, employeesWhereInput> | null
     custom_role?: XOR<RolesNullableScalarRelationFilter, rolesWhereInput> | null
@@ -58804,6 +58834,8 @@ export namespace Prisma {
     two_factor_secret?: SortOrderInput | SortOrder
     two_factor_enabled?: SortOrderInput | SortOrder
     two_factor_backup_codes?: SortOrderInput | SortOrder
+    recovery_otp?: SortOrderInput | SortOrder
+    recovery_otp_expires_at?: SortOrderInput | SortOrder
     companies?: companiesOrderByRelationAggregateInput
     employee?: employeesOrderByWithRelationInput
     custom_role?: rolesOrderByWithRelationInput
@@ -58830,6 +58862,8 @@ export namespace Prisma {
     two_factor_secret?: StringNullableFilter<"users"> | string | null
     two_factor_enabled?: IntNullableFilter<"users"> | number | null
     two_factor_backup_codes?: StringNullableFilter<"users"> | string | null
+    recovery_otp?: StringNullableFilter<"users"> | string | null
+    recovery_otp_expires_at?: DateTimeNullableFilter<"users"> | Date | string | null
     companies?: CompaniesListRelationFilter
     employee?: XOR<EmployeesNullableScalarRelationFilter, employeesWhereInput> | null
     custom_role?: XOR<RolesNullableScalarRelationFilter, rolesWhereInput> | null
@@ -58853,6 +58887,8 @@ export namespace Prisma {
     two_factor_secret?: SortOrderInput | SortOrder
     two_factor_enabled?: SortOrderInput | SortOrder
     two_factor_backup_codes?: SortOrderInput | SortOrder
+    recovery_otp?: SortOrderInput | SortOrder
+    recovery_otp_expires_at?: SortOrderInput | SortOrder
     _count?: usersCountOrderByAggregateInput
     _avg?: usersAvgOrderByAggregateInput
     _max?: usersMaxOrderByAggregateInput
@@ -58879,6 +58915,8 @@ export namespace Prisma {
     two_factor_secret?: StringNullableWithAggregatesFilter<"users"> | string | null
     two_factor_enabled?: IntNullableWithAggregatesFilter<"users"> | number | null
     two_factor_backup_codes?: StringNullableWithAggregatesFilter<"users"> | string | null
+    recovery_otp?: StringNullableWithAggregatesFilter<"users"> | string | null
+    recovery_otp_expires_at?: DateTimeNullableWithAggregatesFilter<"users"> | Date | string | null
   }
 
   export type vehiclesWhereInput = {
@@ -62600,6 +62638,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     companies?: companiesCreateNestedManyWithoutUsersInput
     employee?: employeesCreateNestedOneWithoutUserInput
     custom_role?: rolesCreateNestedOneWithoutUsersInput
@@ -62623,6 +62663,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
     created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
@@ -62641,6 +62683,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companies?: companiesUpdateManyWithoutUsersNestedInput
     employee?: employeesUpdateOneWithoutUserNestedInput
     custom_role?: rolesUpdateOneWithoutUsersNestedInput
@@ -62664,6 +62708,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
     created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
@@ -62685,6 +62731,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
   }
 
   export type usersUpdateManyMutationInput = {
@@ -62700,6 +62748,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type usersUncheckedUpdateManyInput = {
@@ -62718,6 +62768,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type vehiclesCreateInput = {
@@ -66064,6 +66116,8 @@ export namespace Prisma {
     two_factor_secret?: SortOrder
     two_factor_enabled?: SortOrder
     two_factor_backup_codes?: SortOrder
+    recovery_otp?: SortOrder
+    recovery_otp_expires_at?: SortOrder
   }
 
   export type usersAvgOrderByAggregateInput = {
@@ -66091,6 +66145,8 @@ export namespace Prisma {
     two_factor_secret?: SortOrder
     two_factor_enabled?: SortOrder
     two_factor_backup_codes?: SortOrder
+    recovery_otp?: SortOrder
+    recovery_otp_expires_at?: SortOrder
   }
 
   export type usersMinOrderByAggregateInput = {
@@ -66109,6 +66165,8 @@ export namespace Prisma {
     two_factor_secret?: SortOrder
     two_factor_enabled?: SortOrder
     two_factor_backup_codes?: SortOrder
+    recovery_otp?: SortOrder
+    recovery_otp_expires_at?: SortOrder
   }
 
   export type usersSumOrderByAggregateInput = {
@@ -70108,6 +70166,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     employee?: employeesCreateNestedOneWithoutUserInput
     custom_role?: rolesCreateNestedOneWithoutUsersInput
     created_requests?: requestsCreateNestedManyWithoutCreatorInput
@@ -70130,6 +70190,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
   }
@@ -70808,6 +70870,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     employee?: employeesUpdateOneWithoutUserNestedInput
     custom_role?: rolesUpdateOneWithoutUsersNestedInput
     created_requests?: requestsUpdateManyWithoutCreatorNestedInput
@@ -70830,6 +70894,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
   }
@@ -72622,6 +72688,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     companies?: companiesCreateNestedManyWithoutUsersInput
     custom_role?: rolesCreateNestedOneWithoutUsersInput
     created_requests?: requestsCreateNestedManyWithoutCreatorInput
@@ -72643,6 +72711,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
     created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
@@ -73170,6 +73240,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companies?: companiesUpdateManyWithoutUsersNestedInput
     custom_role?: rolesUpdateOneWithoutUsersNestedInput
     created_requests?: requestsUpdateManyWithoutCreatorNestedInput
@@ -73191,6 +73263,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
     created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
@@ -78560,6 +78634,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     companies?: companiesCreateNestedManyWithoutUsersInput
     employee?: employeesCreateNestedOneWithoutUserInput
     created_requests?: requestsCreateNestedManyWithoutCreatorInput
@@ -78581,6 +78657,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
     created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
@@ -78742,6 +78820,8 @@ export namespace Prisma {
     two_factor_secret?: StringNullableFilter<"users"> | string | null
     two_factor_enabled?: IntNullableFilter<"users"> | number | null
     two_factor_backup_codes?: StringNullableFilter<"users"> | string | null
+    recovery_otp?: StringNullableFilter<"users"> | string | null
+    recovery_otp_expires_at?: DateTimeNullableFilter<"users"> | Date | string | null
   }
 
   export type permissionsUpsertWithWhereUniqueWithoutRolesInput = {
@@ -78924,6 +79004,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     companies?: companiesCreateNestedManyWithoutUsersInput
     employee?: employeesCreateNestedOneWithoutUserInput
     custom_role?: rolesCreateNestedOneWithoutUsersInput
@@ -78946,6 +79028,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
     approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
   }
@@ -79168,6 +79252,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companies?: companiesUpdateManyWithoutUsersNestedInput
     employee?: employeesUpdateOneWithoutUserNestedInput
     custom_role?: rolesUpdateOneWithoutUsersNestedInput
@@ -79190,6 +79276,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
     approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
   }
@@ -79435,6 +79523,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     companies?: companiesCreateNestedManyWithoutUsersInput
     employee?: employeesCreateNestedOneWithoutUserInput
     custom_role?: rolesCreateNestedOneWithoutUsersInput
@@ -79457,6 +79547,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
     companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
     created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
   }
@@ -79534,6 +79626,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companies?: companiesUpdateManyWithoutUsersNestedInput
     employee?: employeesUpdateOneWithoutUserNestedInput
     custom_role?: rolesUpdateOneWithoutUsersNestedInput
@@ -79556,6 +79650,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
     created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
   }
@@ -82124,6 +82220,8 @@ export namespace Prisma {
     two_factor_secret?: string | null
     two_factor_enabled?: number | null
     two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
   }
 
   export type permissionsCreateManyRolesInput = {
@@ -82150,6 +82248,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companies?: companiesUpdateManyWithoutUsersNestedInput
     employee?: employeesUpdateOneWithoutUserNestedInput
     created_requests?: requestsUpdateManyWithoutCreatorNestedInput
@@ -82171,6 +82271,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
     created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
@@ -82191,6 +82293,8 @@ export namespace Prisma {
     two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
     two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type permissionsUpdateWithoutRolesInput = {

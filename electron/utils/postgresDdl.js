@@ -11,8 +11,13 @@ CREATE TABLE IF NOT EXISTS users (
     employee_id INT,
     status VARCHAR(50) DEFAULT 'active',
     role_id INT,
-    is_active INT DEFAULT 1
+    is_active INT DEFAULT 1,
+    recovery_otp VARCHAR(50),
+    recovery_otp_expires_at TIMESTAMP
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_otp VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_otp_expires_at TIMESTAMP;
 
 CREATE TABLE IF NOT EXISTS companies (
     id SERIAL PRIMARY KEY,

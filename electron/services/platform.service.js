@@ -554,6 +554,20 @@ async function createPlatformUser(userData) {
             console.warn('[createPlatformUser] recoveryOtpStore error:', otpErr.message);
         }
 
+        // Persist OTP to database for dynamic cross-platform verification (Web, Desktop, Mobile)
+        try {
+            const otpExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            await prisma.users.update({
+                where: { id: newUser.id },
+                data: {
+                    recovery_otp: randomOtp,
+                    recovery_otp_expires_at: otpExpiry
+                }
+            });
+        } catch (dbOtpErr) {
+            console.warn('[createPlatformUser] Database OTP save warning:', dbOtpErr.message);
+        }
+
         const appBase = getAppBaseUrl(userData.baseUrl || baseUrl);
         const inviteLink = `${appBase}/#/reset-password?email=${encodeURIComponent(cleanEmail)}&otp=${randomOtp}&invite=true`;
 
@@ -680,6 +694,21 @@ async function sendUserInvite(data) {
                 verified: false,
                 type: 'user_invite'
             });
+        }
+
+        // Persist OTP to database for dynamic cross-platform verification (Web, Desktop, Mobile)
+        try {
+            const otpExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            await prisma.users.update({
+                where: { id: user.id },
+                data: {
+                    recovery_otp: randomOtp,
+                    recovery_otp_expires_at: otpExpiry,
+                    must_change_password: 1
+                }
+            });
+        } catch (dbOtpErr) {
+            console.warn('[sendUserInvite] Database OTP save warning:', dbOtpErr.message);
         }
 
         const appBase = getAppBaseUrl(baseUrl);
