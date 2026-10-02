@@ -259,16 +259,21 @@ function calculateItemTotalPrice(data, pazarMultiplier = 1.5, mesaiMultiplier = 
     const descUpper = desc.toUpperCase();
     const isSaatlik = descUpper.includes('[SAATLİK]');
 
-    let isPazar = descUpper.includes('PAZAR');
-    if (data.date) {
-        const d = new Date(data.date);
-        if (d.getDay() === 0) isPazar = true;
-    }
-
     const hours = parseFloat(data.hours || 0);
     const overtimeHours = parseFloat(data.overtimeHours || 0);
     const unitPrice = parseFloat(data.unitPrice || 0);
     const travelPrice = parseFloat(data.travelPrice || 0);
+
+    // If both hours and overtime are 0 and no additions/travel, total is strictly 0
+    if (hours === 0 && overtimeHours === 0 && travelPrice === 0 && !descUpper.includes('[EK:')) {
+        return 0;
+    }
+
+    let isPazar = descUpper.includes('PAZAR') && !descUpper.includes('PAZAR TATİLİ');
+    if (data.date) {
+        const d = new Date(data.date);
+        if (d.getDay() === 0 && !descUpper.includes('TATİL') && !descUpper.includes('ÇALIŞILMADI')) isPazar = true;
+    }
 
     const isAylik = descUpper.includes('[AYLIK]');
 

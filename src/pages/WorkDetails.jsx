@@ -48,6 +48,7 @@ export default function WorkDetails(props) {
         pricingType: 'daily',
         monthlyPrice: '',
         unitPrice: '',
+        sundayAction: 'zero', // 'zero' (Çalışılmadı 0 Gün - 0 TL), 'skip' (Pazarları atla), 'work' (Normal çalışma)
         additions: [],
         description: ''
     })
@@ -239,16 +240,20 @@ export default function WorkDetails(props) {
     // Auto-calculate hours for single form
     useEffect(() => {
         if (!isModalOpen) return;
-        const result = calculateAutoHours(formData.startTime, formData.endTime, formData.pricingType);
-        setFormData(prev => ({ ...prev, ...result }));
-    }, [formData.startTime, formData.endTime, formData.pricingType, isModalOpen, work])
+        if (formData._manualHours) return;
+        if (formData.startTime && formData.endTime) {
+            const result = calculateAutoHours(formData.startTime, formData.endTime, formData.pricingType);
+            setFormData(prev => prev._manualHours ? prev : ({ ...prev, ...result }));
+        }
+    }, [formData.startTime, formData.endTime, formData.pricingType, isModalOpen, work, formData._manualHours])
 
     // Auto-calculate hours for bulk form
     useEffect(() => {
         if (!isBulkModalOpen) return;
+        if (bulkFormData._manualHours) return;
         const result = calculateAutoHours(bulkFormData.startTime, bulkFormData.endTime, bulkFormData.pricingType);
-        setBulkFormData(prev => ({ ...prev, ...result }));
-    }, [bulkFormData.startTime, bulkFormData.endTime, bulkFormData.pricingType, isBulkModalOpen, work])
+        setBulkFormData(prev => prev._manualHours ? prev : ({ ...prev, ...result }));
+    }, [bulkFormData.startTime, bulkFormData.endTime, bulkFormData.pricingType, isBulkModalOpen, work, bulkFormData._manualHours])
 
     // Auto-calculate hours for bulk edit modal
     useEffect(() => {
@@ -432,6 +437,7 @@ export default function WorkDetails(props) {
             pricingType: 'daily',
             monthlyPrice: '',
             unitPrice: '',
+            sundayAction: 'zero',
             travelEnabled: false,
             travelPrice: '',
             description: ''
@@ -477,7 +483,9 @@ export default function WorkDetails(props) {
             customColor: '',
             travelEnabled: false,
             travelPrice: '',
-            description: ''
+            description: '',
+            _manualHours: false,
+            _manualOvertime: false
         })
         setShowAdvancedOptions(false)
         setModalError('')
@@ -548,14 +556,16 @@ export default function WorkDetails(props) {
             employeeId: item.employee_id || item.custom_employee || '',
             startTime: item.start_time || '',
             endTime: item.end_time || '',
-            hours: item.hours || 0,
-            overtimeHours: item.overtime_hours || 0,
+            hours: item.hours !== undefined && item.hours !== null ? item.hours : 0,
+            overtimeHours: item.overtime_hours !== undefined && item.overtime_hours !== null ? item.overtime_hours : 0,
             pricingType: determinedPricingType,
             unitPrice: item.unit_price || 0,
             multiplier: multiplier,
             customColor: customColor,
             additions: additions,
-            description: desc
+            description: desc,
+            _manualHours: true,
+            _manualOvertime: true
         })
         setModalError('')
         setIsModalOpen(true)
@@ -633,23 +643,17 @@ export default function WorkDetails(props) {
                 return
             }
 
-            const start = new Date(bulkFormData.startDate)
-            const end = new Date(bulkFormData.endDate)
+            const [sYear, sMonth, sDay] = bulkFormData.startDate.split('-').map(Number);
+            const [eYear, eMonth, eDay] = bulkFormData.endDate.split('-').map(Number);
+            let currentDate = new Date(sYear, sMonth - 1, sDay, 12, 0, 0);
+            const end = new Date(eYear, eMonth - 1, eDay, 12, 0, 0);
 
-            if (start > end) {
+            if (currentDate > end) {
                 setModalError('Bitiş tarihi başlangıç tarihinden küçük olamaz.')
                 return
             }
 
             const payloadList = []
-            let currentDate = new Date(start)
-
-            let daysCount = 0;
-            let tempDate = new Date(start);
-            while (tempDate <= end) {
-                daysCount++;
-                tempDate.setDate(tempDate.getDate() + 1);
-            }
 
             let finalUnitPrice = bulkFormData.unitPrice ? parseFloat(bulkFormData.unitPrice) : 0;
             if (bulkFormData.pricingType === 'monthly' && bulkFormData.monthlyPrice) {
@@ -657,7 +661,18 @@ export default function WorkDetails(props) {
                 finalUnitPrice = Math.round(parseFloat(bulkFormData.monthlyPrice) / 26);
             }
 
+            const sundayMode = bulkFormData.sundayAction || 'zero';
+
             while (currentDate <= end) {
+                const dayOfWeek = currentDate.getDay(); // 0 is Sunday
+                const isSunday = (dayOfWeek === 0);
+
+                if (isSunday && sundayMode === 'skip') {
+                    // Pazar gününü puantaja hiç ekleme
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    continue;
+                }
+
                 let itemDesc = bulkFormData.description || '';
                 if (bulkFormData.pricingType === 'monthly') {
                     if (!itemDesc.includes('[AYLIK]')) {
@@ -665,24 +680,51 @@ export default function WorkDetails(props) {
                     }
                 }
 
-                // Append custom addition tag if enabled
-                if (bulkFormData.additionEnabled && bulkFormData.additionType && bulkFormData.additionPrice) {
-                    itemDesc = `[EK:${bulkFormData.additionType}:${bulkFormData.additionPrice}] ` + itemDesc;
+                let itemHours = bulkFormData.hours ? parseFloat(bulkFormData.hours) : 1;
+                let itemOvertime = bulkFormData.overtimeHours ? parseFloat(bulkFormData.overtimeHours) : 0;
+                let itemUnitPrice = finalUnitPrice;
+                let itemStartTime = bulkFormData.startTime;
+                let itemEndTime = bulkFormData.endTime;
+
+                if (isSunday && sundayMode === 'zero') {
+                    // Pazar günü çalışılmadı (0 Gün - 0 TL)
+                    itemHours = 0;
+                    itemOvertime = 0;
+                    itemUnitPrice = 0;
+                    itemStartTime = '';
+                    itemEndTime = '';
+                    if (!itemDesc.includes('PAZAR')) {
+                        itemDesc = itemDesc ? `[PAZAR TATİLİ] ${itemDesc}` : '[PAZAR TATİLİ]';
+                    }
                 }
+
+                // Additions tags (only if not Sunday zero)
+                if (!isSunday || sundayMode !== 'zero') {
+                    if (bulkFormData.additions && bulkFormData.additions.length > 0) {
+                        bulkFormData.additions.forEach(add => {
+                            if (add.type && add.price) {
+                                itemDesc = `[EK:${add.type}:${add.price}] ` + itemDesc;
+                            }
+                        });
+                    } else if (bulkFormData.additionEnabled && bulkFormData.additionType && bulkFormData.additionPrice) {
+                        itemDesc = `[EK:${bulkFormData.additionType}:${bulkFormData.additionPrice}] ` + itemDesc;
+                    }
+                }
+
+                const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
 
                 payloadList.push({
                     workId: id,
-                    date: currentDate.toISOString().split('T')[0],
+                    date: dateStr,
                     receiptNo: bulkFormData.receiptNo,
                     vehicleId: bulkFormData.vehicleId,
                     employeeId: bulkFormData.employeeId,
-                    startTime: bulkFormData.startTime,
-                    endTime: bulkFormData.endTime,
-                    hours: bulkFormData.hours ? parseFloat(bulkFormData.hours) : 0,
-                    overtimeHours: bulkFormData.overtimeHours ? parseFloat(bulkFormData.overtimeHours) : 0,
-                    unitPrice: finalUnitPrice,
-                    // Still save to travelPrice if type is 'Yol' for backward compatibility
-                    travelPrice: (bulkFormData.additionEnabled && bulkFormData.additionType === 'Yol') ? (parseFloat(bulkFormData.additionPrice) || 0) : 0,
+                    startTime: itemStartTime,
+                    endTime: itemEndTime,
+                    hours: itemHours,
+                    overtimeHours: itemOvertime,
+                    unitPrice: itemUnitPrice,
+                    travelPrice: (bulkFormData.additionEnabled && bulkFormData.additionType === 'Yol' && (!isSunday || sundayMode !== 'zero')) ? (parseFloat(bulkFormData.additionPrice) || 0) : 0,
                     description: itemDesc || null
                 })
 
@@ -803,6 +845,48 @@ export default function WorkDetails(props) {
             }
         } catch (err) {
             setModalError(err.message)
+        }
+    }
+
+    const handleBulkSetZeroDays = async () => {
+        if (!selectedIds || selectedIds.length === 0) return;
+        const confirmMsg = `Seçili ${selectedIds.length} adet kaydı "Çalışılmadı (0 Gün - 0 TL)" olarak ayarlamak istediğinize emin misiniz?`;
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            setLoading(true);
+            await Promise.all(selectedIds.map(async (selectedId) => {
+                const existingItem = (work.items || []).find(item => item.id === selectedId);
+                if (!existingItem) return;
+
+                let itemDesc = existingItem.description || '';
+                if (!itemDesc.includes('TATİL') && !itemDesc.includes('ÇALIŞILMADI')) {
+                    itemDesc = `[TATİL] ${itemDesc}`.trim();
+                }
+
+                const finalPayload = {
+                    id: selectedId,
+                    date: existingItem.date,
+                    receiptNo: existingItem.receipt_no,
+                    vehicleId: existingItem.vehicle_id || existingItem.custom_vehicle,
+                    employeeId: existingItem.employee_id || existingItem.custom_employee,
+                    startTime: '',
+                    endTime: '',
+                    hours: 0,
+                    overtimeHours: 0,
+                    unitPrice: 0,
+                    travelPrice: 0,
+                    description: itemDesc
+                };
+                return await window.electronAPI.updateWorkItem(finalPayload);
+            }));
+
+            setSelectedIds([]);
+            await loadData();
+        } catch (err) {
+            alert('İşlem sırasında hata oluştu: ' + err.message);
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -1204,6 +1288,26 @@ export default function WorkDetails(props) {
                             const descUpper = (row.description || '').toUpperCase();
                             const isHourly = row.pricingType === 'hourly' || descUpper.includes('[SAATLİK]') || row.unit === 'saat';
                             const unitLabel = isHourly ? 'Saat' : 'Gün';
+                            const isZero = Number(row.hours) === 0;
+
+                            if (isZero) {
+                                return (
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <span style={{ 
+                                            fontSize: '11px', 
+                                            fontWeight: 700, 
+                                            background: 'rgba(239, 68, 68, 0.1)', 
+                                            color: 'var(--danger)', 
+                                            padding: '2px 8px', 
+                                            borderRadius: '12px',
+                                            border: '1px solid rgba(239, 68, 68, 0.2)'
+                                        }}>
+                                            0 Gün (Tatil)
+                                        </span>
+                                    </div>
+                                );
+                            }
+
                             return (
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                                     <span>{row.hours ?? 0} {unitLabel}</span>
@@ -1220,6 +1324,8 @@ export default function WorkDetails(props) {
                     },
                     {
                         label: 'FİYAT', key: 'unit_price', render: (val, row) => {
+                            if (Number(row.hours) === 0 && Number(row.overtime_hours) === 0) return '-';
+
                             const desc = row.description || '';
                             const kMatch = desc.match(/\[KATSAYI:([^\]]+)\]/);
                             const baseP = Number(row.unit_price) || Number(row.unitPriceVal) || 0;
@@ -1290,10 +1396,29 @@ export default function WorkDetails(props) {
                 selectable={true}
                 onSelectionChange={setSelectedIds}
                 customBulkActions={() => (
-                    <button className="btn-bulk-action secondary" onClick={openBulkEditModal}>
-                        <Pencil size={15} />
-                        Düzenle
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button 
+                            type="button" 
+                            className="btn-bulk-action" 
+                            style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '6px', 
+                                background: 'rgba(239, 68, 68, 0.1)', 
+                                color: 'var(--danger)', 
+                                borderColor: 'rgba(239, 68, 68, 0.3)' 
+                            }} 
+                            onClick={handleBulkSetZeroDays}
+                            title="Seçili kayıtları 0 Gün (Tatil / Çalışılmadı) yapar"
+                        >
+                            <Calendar size={15} />
+                            Çalışılmadı (0 Gün) Yap
+                        </button>
+                        <button type="button" className="btn-bulk-action secondary" onClick={openBulkEditModal}>
+                            <Pencil size={15} />
+                            Düzenle
+                        </button>
+                    </div>
                 )}
                 actions={(row) => (
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
@@ -1361,23 +1486,17 @@ export default function WorkDetails(props) {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                             <CustomInput
                                 type="time"
-                                label="B. Saati"
+                                label="Başlangıç Saati"
                                 value={formData.startTime}
-                                onChange={(val) => setFormData({ ...formData, startTime: val })}
+                                onChange={(val) => setFormData({ ...formData, startTime: val, _manualHours: false, _manualOvertime: false })}
                             />
                             <CustomInput
                                 type="time"
-                                label="B. Saati"
+                                label="Bitiş Saati"
                                 value={formData.endTime}
-                                onChange={(val) => setFormData({ ...formData, endTime: val })}
+                                onChange={(val) => setFormData({ ...formData, endTime: val, _manualHours: false, _manualOvertime: false })}
                             />
                         </div>
-                        {/* 
-                        <div style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: 'var(--radius-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Otomatik Gün Sayısı: <strong>{formData.hours}</strong></span>
-                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Otomatik Mesai: <strong className={formData.overtimeHours > 0 ? 'text-warning' : ''}>{formData.overtimeHours}</strong></span>
-                        </div>
-                        */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                             <CustomSelect
                                 label="Fiyatlandırma"
@@ -1396,6 +1515,101 @@ export default function WorkDetails(props) {
                                 maxLength={18}
                                 value={formData.unitPrice}
                                 onChange={(val) => setFormData({ ...formData, unitPrice: val })}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Çalışma Süresi & Mesai (Elle Giriş ve Hızlı Butonlar) */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                        padding: '10px 12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Clock size={15} style={{ color: 'var(--accent-primary)' }} />
+                                Çalışma Süresi & Mesai
+                            </label>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            startTime: '',
+                                            endTime: '',
+                                            hours: 0,
+                                            overtimeHours: 0,
+                                            unitPrice: 0,
+                                            _manualHours: true,
+                                            _manualOvertime: true,
+                                            description: (prev.description || '').includes('TATİL') || (prev.description || '').includes('ÇALIŞILMADI') 
+                                                ? prev.description 
+                                                : `[TATİL] ${prev.description || ''}`.trim()
+                                        }));
+                                    }}
+                                    style={{
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        color: 'var(--danger)',
+                                        borderRadius: 'var(--radius-full)',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        padding: '3px 10px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    ⛔ Çalışılmadı / Tatil (0 Gün)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            startTime: '08:00',
+                                            endTime: '17:00',
+                                            hours: 1,
+                                            overtimeHours: 0,
+                                            _manualHours: false,
+                                            _manualOvertime: false
+                                        }));
+                                    }}
+                                    style={{
+                                        border: '1px solid var(--border-color)',
+                                        background: 'var(--bg-tertiary)',
+                                        color: 'var(--text-secondary)',
+                                        borderRadius: 'var(--radius-full)',
+                                        fontSize: '11px',
+                                        fontWeight: 500,
+                                        padding: '3px 10px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    ✓ Normal Gün (1 Gün)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <CustomInput
+                                type="number"
+                                step="any"
+                                min={0}
+                                label={formData.pricingType === 'hourly' ? "Çalışma Süresi (Saat)" : "Çalışma Süresi (Gün Sayısı)"}
+                                value={formData.hours ?? 0}
+                                onChange={(val) => setFormData({ ...formData, hours: val === '' ? '' : parseFloat(val), _manualHours: true })}
+                            />
+                            <CustomInput
+                                type="number"
+                                step="any"
+                                min={0}
+                                label="Fazla Mesai (Saat)"
+                                value={formData.overtimeHours ?? 0}
+                                onChange={(val) => setFormData({ ...formData, overtimeHours: val === '' ? '' : parseFloat(val), _manualOvertime: true })}
                             />
                         </div>
                     </div>
@@ -1794,8 +2008,8 @@ export default function WorkDetails(props) {
                     {modalError && <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '12px', borderRadius: 'var(--radius-sm)', fontSize: '14px' }}>{modalError}</div>}
 
                     <div style={{ background: 'var(--bg-secondary)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                        Seçtiğiniz <strong>Başlangıç</strong> ve <strong>Bitiş</strong> tarihi aralığındaki her bir gün için girdiğiniz bilgilerle (Araç, Personel, Gün/Saat vb.) ayrı bir kayıt listeye otomatik eklenecektir.<br />
-                        <em>Not: Hafta sonu, bayram tatili ayırmaz. İstemediğiniz günleri liste üzerinden tek tuşla kolayca silebilirsiniz.</em>
+                        Seçtiğiniz <strong>Başlangıç</strong> ve <strong>Bitiş</strong> tarihi aralığındaki her bir gün için ayrı bir puantaj kaydı oluşturulacaktır.<br />
+                        <em>İpucu: Pazar günlerini aşağıdan "Çalışılmadı (0 Gün - 0 TL)" olarak seçebilir veya puantaj tablosundan istediğiniz günleri tek tıkla 0 gün yapabilirsiniz.</em>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
@@ -1830,6 +2044,36 @@ export default function WorkDetails(props) {
                         />
                     </div>
 
+                    {/* Pazar Günleri Ayarı */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        padding: '10px 12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)'
+                    }}>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Calendar size={15} style={{ color: 'var(--danger)' }} />
+                            Pazar Günleri İşlemi
+                        </label>
+                        <CustomSelect
+                            value={bulkFormData.sundayAction || 'zero'}
+                            onChange={(val) => setBulkFormData({ ...bulkFormData, sundayAction: val })}
+                            options={[
+                                { value: 'zero', label: '⛔ Pazar Günlerini Çalışılmadı Olarak Ekle (0 Gün - 0 TL)' },
+                                { value: 'skip', label: '⏭️ Pazar Günlerini Atla (Puantaja Hiç Ekleme)' },
+                                { value: 'work', label: '💼 Normal Çalışma Olarak Ekle' }
+                            ]}
+                        />
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            {bulkFormData.sundayAction === 'zero' && 'Pazar günleri puantajda 0 Gün ve 0 TL olarak listelenir, silmeye gerek kalmaz ve resmi olarak belgelenir.'}
+                            {bulkFormData.sundayAction === 'skip' && 'Pazar günleri puantaj tablosuna hiç yazılmaz, sadece iş günleri eklenir.'}
+                            {bulkFormData.sundayAction === 'work' && 'Pazar günleri normal çalışma gibi (1 gün ve pazar katsayısı ile) hesaplanarak eklenir.'}
+                        </div>
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <CustomSelect
                             label="Araç"
@@ -1851,23 +2095,17 @@ export default function WorkDetails(props) {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                             <CustomInput
                                 type="time"
-                                label="B. Saati"
+                                label="Başlangıç Saati"
                                 value={bulkFormData.startTime}
-                                onChange={(val) => setBulkFormData({ ...bulkFormData, startTime: val })}
+                                onChange={(val) => setBulkFormData({ ...bulkFormData, startTime: val, _manualHours: false, _manualOvertime: false })}
                             />
                             <CustomInput
                                 type="time"
-                                label="B. Saati"
+                                label="Bitiş Saati"
                                 value={bulkFormData.endTime}
-                                onChange={(val) => setBulkFormData({ ...bulkFormData, endTime: val })}
+                                onChange={(val) => setBulkFormData({ ...bulkFormData, endTime: val, _manualHours: false, _manualOvertime: false })}
                             />
                         </div>
-                        {/* 
-                        <div style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: 'var(--radius-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Otomatik Gün Sayısı: <strong>{bulkFormData.hours}</strong></span>
-                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Otomatik Mesai: <strong className={bulkFormData.overtimeHours > 0 ? 'text-warning' : ''}>{bulkFormData.overtimeHours}</strong></span>
-                        </div>
-                        */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                             <CustomSelect
                                 label="Fiyatlandırma"
@@ -1906,6 +2144,26 @@ export default function WorkDetails(props) {
                                 />
                             )}
                         </div>
+                    </div>
+
+                    {/* Çalışma Süresi & Fazla Mesai Saati */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <CustomInput
+                            type="number"
+                            step="any"
+                            min={0}
+                            label={bulkFormData.pricingType === 'hourly' ? "Çalışma Süresi (Saat)" : "Çalışma Süresi (Gün Sayısı)"}
+                            value={bulkFormData.hours ?? 1}
+                            onChange={(val) => setBulkFormData({ ...bulkFormData, hours: val === '' ? '' : parseFloat(val), _manualHours: true })}
+                        />
+                        <CustomInput
+                            type="number"
+                            step="any"
+                            min={0}
+                            label="Fazla Mesai (Saat)"
+                            value={bulkFormData.overtimeHours ?? 0}
+                            onChange={(val) => setBulkFormData({ ...bulkFormData, overtimeHours: val === '' ? '' : parseFloat(val), _manualOvertime: true })}
+                        />
                     </div>
 
                     {/* Yol (Travel) Add-on Replaced with Dynamic Additions */}

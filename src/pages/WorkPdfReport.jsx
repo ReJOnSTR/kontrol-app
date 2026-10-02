@@ -510,13 +510,20 @@ export default function WorkPdfReport({
                                                                 <td className="center">{item.start_time || '-'}</td>
                                                                 <td className="center">{item.end_time || '-'}</td>
                                                                 <td className="center">
-                                                                    {item.hours || 0} {(desc.toUpperCase().includes('[SAATLİK]') ? 'Saat' : 'Gün')}
+                                                                    {(Number(item.hours) === 0) ? (
+                                                                        <span style={{ color: '#ef4444', fontWeight: 600 }}>0 (Tatil)</span>
+                                                                    ) : (
+                                                                        `${item.hours || 0} ${(desc.toUpperCase().includes('[SAATLİK]') ? 'Saat' : 'Gün')}`
+                                                                    )}
                                                                 </td>
                                                                 <td className="center">{item.overtime_hours > 0 ? `${item.overtime_hours} Saat` : ''}</td>
                                                                 <td className="center">{group.rawMachineName || group.machineName}</td>
                                                                 <td>{cleanDesc}</td>
                                                                 <td className="right">
                                                                     {showPrices ? (() => {
+                                                                        if (Number(item.hours) === 0 && Number(item.overtime_hours) === 0) {
+                                                                            return '-';
+                                                                        }
                                                                         const kMatch = (desc || '').match(/\[KATSAYI:([^\]]+)\]/);
                                                                         const baseP = item.unit_price || item.unitPriceVal || 0;
                                                                         const dailyP = (baseP > 10000 && item.isAylik) ? Math.round((baseP / 26) * 100) / 100 : baseP;

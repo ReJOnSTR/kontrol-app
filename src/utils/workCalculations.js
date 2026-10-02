@@ -144,7 +144,8 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
 
         const info = vehicleRateInfo[vehicleBaseKey]
         if (info) {
-            if (unitPriceVal === 0 && info.firstPositivePrice > 0) {
+            const itemHours = Number(item.hours) || 0
+            if (unitPriceVal === 0 && info.firstPositivePrice > 0 && itemHours > 0) {
                 unitPriceVal = info.firstPositivePrice
             }
             if (!cleanDesc && unitPriceVal > 0 && info.descByPrice[unitPriceVal]) {
@@ -165,7 +166,8 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
         const descUpper = (item.description || '').toUpperCase()
         const dateObj = new Date(item.date)
         const isSunday = !isNaN(dateObj.getTime()) && dateObj.getDay() === 0
-        const isPazar = isSunday || descUpper.includes('PAZAR')
+        const isHoliday = descUpper.includes('TATİL') || descUpper.includes('ÇALIŞILMADI') || (Number(item.hours) === 0 && Number(item.overtime_hours) === 0)
+        const isPazar = !isHoliday && (isSunday || descUpper.includes('PAZAR'))
         const isSaatlik = descUpper.includes('[SAATLİK]') || item.pricingType === 'hourly'
         const isAylik = descUpper.includes('[AYLIK]') || item.pricingType === 'monthly'
 
@@ -290,6 +292,7 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
 
         const customRateItems = group.items.filter(i => {
             if (i.isPazar || i.isSaatlik) return false;
+            if ((Number(i.hours) || 0) === 0) return false;
             const kMatch = (i.description || '').match(/\[KATSAYI:([^\]]+)\]/);
             if (kMatch && parseFloat(kMatch[1]) !== 1) return true;
             return i.unitPriceVal > 0 && Math.abs(i.unitPriceVal - dailyRate) > 1;
@@ -332,7 +335,7 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
             }
         } else {
             // Regular Daily Job
-            const allDailyItems = group.items.filter(i => !i.isPazar && !i.isSaatlik);
+            const allDailyItems = group.items.filter(i => !i.isPazar && !i.isSaatlik && (Number(i.hours) || 0) > 0);
             if (allDailyItems.length > 0) {
                 const dailyPricesMap = {};
                 allDailyItems.forEach(i => {
@@ -347,7 +350,7 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
                     dailyPricesMap[key].count += hrs;
                 });
 
-                Object.values(dailyPricesMap).forEach(itemData => {
+                Object.values(dailyPricesMap).filter(itemData => itemData.count > 0).forEach(itemData => {
                     const lineTotal = Math.round(itemData.count * itemData.price);
                     summaryLines.push({
                         typeLabel: itemData.label,
@@ -464,8 +467,8 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
         durationText = `${totalSaatCount} Saat`
     } else if (totalGunCount > 0) {
         durationText = `${totalGunCount} Gün`
-    } else if (items.length > 0) {
-        durationText = `${items.length} Gün`
+    } else {
+        durationText = '0 Gün'
     }
 
     return {
