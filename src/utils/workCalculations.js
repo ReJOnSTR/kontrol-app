@@ -223,13 +223,38 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
         let monthlyAmount = rawPrimaryPrice;
 
         if (isAylikGroup && rawPrimaryPrice > 0) {
-            const positiveItems = group.items.filter(i => (Number(i.hours) || 0) > 0 && i.unitPriceVal > 0);
-            if (positiveItems.length === 1 && rawPrimaryPrice >= 50000) {
-                dailyRate = rawPrimaryPrice / 26;
-                monthlyAmount = rawPrimaryPrice;
+            // 1. Açıklamada açıkça [AYLIK:320000] veya [AYLIK:250000] belirtilmiş mi?
+            const aylikTagItem = group.items.find(i => (i.description || '').match(/\[AYLIK:([0-9.]+)\]/));
+            let explicitMonthly = null;
+            if (aylikTagItem) {
+                const m = aylikTagItem.description.match(/\[AYLIK:([0-9.]+)\]/);
+                if (m && parseFloat(m[1]) > 0) explicitMonthly = parseFloat(m[1]);
+            }
+
+            if (explicitMonthly) {
+                monthlyAmount = explicitMonthly;
+                dailyRate = explicitMonthly / 26;
             } else {
-                dailyRate = rawPrimaryPrice;
-                monthlyAmount = Math.round(rawPrimaryPrice * 26);
+                const positiveItems = group.items.filter(i => (Number(i.hours) || 0) > 0 && i.unitPriceVal > 0);
+                if (positiveItems.length === 1 && rawPrimaryPrice >= 50000) {
+                    dailyRate = rawPrimaryPrice / 26;
+                    monthlyAmount = rawPrimaryPrice;
+                } else if (Math.abs(Math.round(rawPrimaryPrice) - 9615) < 2) {
+                    // 250.000 TL için önceden yuvarlanmış kayıtlar (9615 TL)
+                    dailyRate = 250000 / 26;
+                    monthlyAmount = 250000;
+                } else if (Math.abs(Math.round(rawPrimaryPrice) - 12308) < 2) {
+                    // 320.000 TL için önceden yuvarlanmış kayıtlar (12308 TL)
+                    dailyRate = 320000 / 26;
+                    monthlyAmount = 320000;
+                } else if (rawPrimaryPrice > 0 && Math.abs(rawPrimaryPrice * 26 - Math.round(rawPrimaryPrice * 26)) < 0.1) {
+                    // 250.000 / 26 = 9615.384615... gibi tam oranlı değerler
+                    dailyRate = rawPrimaryPrice;
+                    monthlyAmount = Math.round(rawPrimaryPrice * 26);
+                } else {
+                    dailyRate = rawPrimaryPrice;
+                    monthlyAmount = Math.round(rawPrimaryPrice * 26);
+                }
             }
         }
 

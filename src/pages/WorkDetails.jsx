@@ -671,8 +671,8 @@ export default function WorkDetails(props) {
 
             let finalUnitPrice = bulkFormData.unitPrice ? parseFloat(bulkFormData.unitPrice) : 0;
             if (bulkFormData.pricingType === 'monthly' && bulkFormData.monthlyPrice) {
-                // Aylar 26 gündür (Pazar hariç)
-                finalUnitPrice = Math.round(parseFloat(bulkFormData.monthlyPrice) / 26);
+                // Aylar 26 gündür (Pazar hariç) - Tam oran (yuvarlama hatası olmadan)
+                finalUnitPrice = parseFloat(bulkFormData.monthlyPrice) / 26;
             }
 
             const sundayMode = bulkFormData.sundayAction || 'zero';
@@ -689,7 +689,10 @@ export default function WorkDetails(props) {
 
                 let itemDesc = bulkFormData.description || '';
                 if (bulkFormData.pricingType === 'monthly') {
-                    if (!itemDesc.includes('[AYLIK]')) {
+                    const monthlyVal = parseFloat(bulkFormData.monthlyPrice) || 0;
+                    if (monthlyVal > 0 && !itemDesc.includes('[AYLIK:')) {
+                        itemDesc = itemDesc ? `[AYLIK:${monthlyVal}] ${itemDesc}` : `[AYLIK:${monthlyVal}]`;
+                    } else if (!itemDesc.includes('[AYLIK]')) {
                         itemDesc = itemDesc ? `[AYLIK] ${itemDesc}` : '[AYLIK]';
                     }
                 }
