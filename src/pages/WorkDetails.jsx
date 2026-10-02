@@ -6,7 +6,7 @@ import DataTable from '../components/DataTable'
 import CustomSelect from '../components/CustomSelect'
 import CustomInput from '../components/CustomInput'
 import ConfirmModal from '../components/ConfirmModal'
-import { ArrowLeft, Plus, Pencil, Trash2, Calendar, Clock, Truck, User, DollarSign, FileText, Printer, Download, FileDown, Settings, Wallet, ChevronDown, Save, Briefcase } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Calendar, Clock, Truck, User, DollarSign, FileText, Printer, Download, FileDown, Settings, Wallet, ChevronDown, Save, Briefcase, CheckCircle2, AlertCircle, Info, Tag, Layers, RotateCcw } from 'lucide-react'
 import { formatDate, formatCurrency, safeSetLocalStorage, generateUniqueFileName } from '../utils/helpers'
 import { calculateWorkStats } from '../utils/workCalculations'
 import { workItemSchema } from '../schemas/workSchema'
@@ -579,6 +579,20 @@ export default function WorkDetails(props) {
             const parsed = workItemSchema.parse(formData)
 
             let finalDesc = parsed.description || '';
+
+            // Clean or assign holiday tags based on parsed.hours
+            if (Number(parsed.hours) > 0) {
+                finalDesc = finalDesc
+                    .replace(/\[TATİL\]\s*/gi, '')
+                    .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                    .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                    .trim();
+            } else if (Number(parsed.hours) === 0) {
+                if (!/\[(TATİL|ÇALIŞILMADI|PAZAR TATİLİ)\]/i.test(finalDesc)) {
+                    finalDesc = `[TATİL] ${finalDesc}`.trim();
+                }
+            }
+
             if (formData.pricingType === 'hourly' && !finalDesc.startsWith('[SAATLİK]')) {
                 finalDesc = '[SAATLİK] ' + finalDesc;
             } else if (formData.pricingType === 'monthly' && !finalDesc.startsWith('[AYLIK]')) {
@@ -890,6 +904,77 @@ export default function WorkDetails(props) {
         }
     }
 
+    const getVehicleStandardPrice = (vehicleId) => {
+        if (!vehicleId) return '';
+        if (work?.items) {
+            const match = work.items.find(i => 
+                (String(i.vehicle_id) === String(vehicleId) || String(i.custom_vehicle) === String(vehicleId)) && 
+                Number(i.unit_price) > 0 && 
+                Number(i.hours) > 0
+            );
+            if (match) return String(match.unit_price);
+        }
+        const vObj = vehicles.find(v => String(v.id) === String(vehicleId));
+        if (vObj && (vObj.standard_rate || vObj.daily_price || vObj.unit_price)) {
+            return String(vObj.standard_rate || vObj.daily_price || vObj.unit_price);
+        }
+        return '';
+    }
+
+    const handleBulkSetNormalDays = async () => {
+        if (!selectedIds || selectedIds.length === 0) return;
+        const confirmMsg = `Seçili ${selectedIds.length} adet kaydı tekrar "Normal Çalışma (1 Gün)" durumuna getirmek istediğinize emin misiniz?`;
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            setLoading(true);
+            const defaultStart = work?.work_start_time || '08:00';
+            const defaultEnd = work?.work_end_time || '17:00';
+
+            await Promise.all(selectedIds.map(async (selectedId) => {
+                const existingItem = (work.items || []).find(item => item.id === selectedId);
+                if (!existingItem) return;
+
+                // Clean holiday tags from description
+                let itemDesc = (existingItem.description || '')
+                    .replace(/\[TATİL\]\s*/gi, '')
+                    .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                    .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                    .trim();
+
+                // If unitPrice was 0, restore it from vehicle standard price
+                let restoredUnitPrice = Number(existingItem.unit_price) || 0;
+                if (restoredUnitPrice === 0) {
+                    const stdP = getVehicleStandardPrice(existingItem.vehicle_id || existingItem.custom_vehicle);
+                    if (stdP) restoredUnitPrice = parseFloat(stdP);
+                }
+
+                const finalPayload = {
+                    id: selectedId,
+                    date: existingItem.date,
+                    receiptNo: existingItem.receipt_no,
+                    vehicleId: existingItem.vehicle_id || existingItem.custom_vehicle,
+                    employeeId: existingItem.employee_id || existingItem.custom_employee,
+                    startTime: existingItem.start_time || defaultStart,
+                    endTime: existingItem.end_time || defaultEnd,
+                    hours: 1,
+                    overtimeHours: 0,
+                    unitPrice: restoredUnitPrice,
+                    travelPrice: existingItem.travel_price,
+                    description: itemDesc || null
+                };
+                return await window.electronAPI.updateWorkItem(finalPayload);
+            }));
+
+            setSelectedIds([]);
+            await loadData();
+        } catch (err) {
+            alert('İşlem sırasında hata oluştu: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
     const handleDeleteClick = (item) => {
         setConfirmModal({
             item,
@@ -1091,6 +1176,35 @@ export default function WorkDetails(props) {
     if (loading) return <div className="p-8 text-center">Yükleniyor...</div>
     if (!work) return <div className="p-8 text-center">İş bulunamadı.</div>
 
+    // Live calculations for Add/Edit Modal Preview
+    const modalIsZeroDay = Number(formData.hours) === 0;
+    const modalUnitPriceNum = parseFloat(formData.unitPrice) || 0;
+    const modalMultiplierNum = parseFloat(formData.multiplier) || 1;
+    const modalHoursNum = parseFloat(formData.hours) || 0;
+    const modalOvertimeHoursNum = parseFloat(formData.overtimeHours) || 0;
+
+    let modalBaseDailyTotal = 0;
+    if (!modalIsZeroDay) {
+        if (formData.pricingType === 'hourly') {
+            modalBaseDailyTotal = modalHoursNum * modalUnitPriceNum * modalMultiplierNum;
+        } else if (formData.pricingType === 'monthly') {
+            modalBaseDailyTotal = (modalHoursNum / 26) * modalUnitPriceNum * modalMultiplierNum;
+        } else {
+            modalBaseDailyTotal = modalHoursNum * modalUnitPriceNum * modalMultiplierNum;
+        }
+    }
+
+    let modalOvertimeTotal = 0;
+    if (!modalIsZeroDay && modalOvertimeHoursNum > 0 && !work?.disable_overtime) {
+        const mesaiMult = work?.mesai_multiplier ? parseFloat(work.mesai_multiplier) : 1.5;
+        const hourlyBase = formData.pricingType === 'hourly' ? modalUnitPriceNum : (modalUnitPriceNum / 9);
+        modalOvertimeTotal = modalOvertimeHoursNum * (hourlyBase * mesaiMult);
+    }
+
+    const modalAdditionsTotal = (formData.additions || []).reduce((sum, add) => sum + (parseFloat(add.price) || 0), 0);
+    const modalLiveDailyGrandTotal = modalIsZeroDay ? modalAdditionsTotal : (modalBaseDailyTotal + modalOvertimeTotal + modalAdditionsTotal);
+    const modalIsSundayDate = formData.date ? new Date(formData.date).getDay() === 0 : false;
+
     return (
         <div className="page-container">
             {/* Executive Detail Header */}
@@ -1291,18 +1405,21 @@ export default function WorkDetails(props) {
                             const isZero = Number(row.hours) === 0;
 
                             if (isZero) {
+                                const dateObj = new Date(row.date);
+                                const isSunday = !isNaN(dateObj.getTime()) && dateObj.getDay() === 0;
+                                const isPazar = isSunday || descUpper.includes('PAZAR');
                                 return (
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
                                         <span style={{ 
                                             fontSize: '11px', 
-                                            fontWeight: 700, 
-                                            background: 'rgba(239, 68, 68, 0.1)', 
-                                            color: 'var(--danger)', 
+                                            fontWeight: 600, 
+                                            background: isPazar ? 'rgba(234, 88, 12, 0.09)' : 'rgba(239, 68, 68, 0.08)', 
+                                            color: isPazar ? '#ea580c' : '#dc2626', 
                                             padding: '2px 8px', 
                                             borderRadius: '12px',
-                                            border: '1px solid rgba(239, 68, 68, 0.2)'
+                                            border: `1px solid ${isPazar ? 'rgba(234, 88, 12, 0.22)' : 'rgba(239, 68, 68, 0.2)'}`
                                         }}>
-                                            0 Gün (Tatil)
+                                            {isPazar ? '0 Gün (Pazar Tatili)' : '0 Gün (Tatil)'}
                                         </span>
                                     </div>
                                 );
@@ -1396,7 +1513,7 @@ export default function WorkDetails(props) {
                 selectable={true}
                 onSelectionChange={setSelectedIds}
                 customBulkActions={() => (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <button 
                             type="button" 
                             className="btn-bulk-action" 
@@ -1406,13 +1523,32 @@ export default function WorkDetails(props) {
                                 gap: '6px', 
                                 background: 'rgba(239, 68, 68, 0.1)', 
                                 color: 'var(--danger)', 
-                                borderColor: 'rgba(239, 68, 68, 0.3)' 
+                                borderColor: 'rgba(239, 68, 68, 0.3)',
+                                fontWeight: '600'
                             }} 
                             onClick={handleBulkSetZeroDays}
                             title="Seçili kayıtları 0 Gün (Tatil / Çalışılmadı) yapar"
                         >
                             <Calendar size={15} />
-                            Çalışılmadı (0 Gün) Yap
+                            ⛔ Çalışılmadı (0 Gün) Yap
+                        </button>
+                        <button 
+                            type="button" 
+                            className="btn-bulk-action" 
+                            style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '6px', 
+                                background: 'rgba(16, 185, 129, 0.1)', 
+                                color: 'var(--success)', 
+                                borderColor: 'rgba(16, 185, 129, 0.3)',
+                                fontWeight: '600'
+                            }} 
+                            onClick={handleBulkSetNormalDays}
+                            title="Seçili kayıtları tekrar Normal Çalışma (1 Gün) durumuna getirir"
+                        >
+                            <Clock size={15} />
+                            ✓ Normal Çalışmaya Al (1 Gün)
                         </button>
                         <button type="button" className="btn-bulk-action secondary" onClick={openBulkEditModal}>
                             <Pencil size={15} />
@@ -1445,31 +1581,169 @@ export default function WorkDetails(props) {
                 onClose={() => setIsModalOpen(false)}
                 title={editingItem ? 'Kaydı Düzenle' : 'Yeni Çalışma Kaydı Ekle'}
             >
-                <form onSubmit={handleModalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {modalError && <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '12px', borderRadius: 'var(--radius-sm)', fontSize: '14px' }}>{modalError}</div>}
+                <form onSubmit={handleModalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {modalError && (
+                        <div style={{
+                            background: 'var(--danger-bg)',
+                            color: 'var(--danger)',
+                            padding: '10px 14px',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '13px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}>
+                            <AlertCircle size={16} />
+                            <span>{modalError}</span>
+                        </div>
+                    )}
 
+                    {/* 1. Day Mode / Status Switcher */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        background: 'var(--bg-secondary)',
+                        padding: '6px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-color)'
+                    }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const stdPrice = getVehicleStandardPrice(formData.vehicleId);
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        hours: prev.hours === 0 ? 1 : prev.hours,
+                                        startTime: prev.startTime || work?.work_start_time || '08:00',
+                                        endTime: prev.endTime || work?.work_end_time || '17:00',
+                                        unitPrice: (prev.unitPrice && parseFloat(prev.unitPrice) > 0) ? prev.unitPrice : (stdPrice || prev.unitPrice),
+                                        description: (prev.description || '')
+                                            .replace(/\[TATİL\]\s*/gi, '')
+                                            .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                            .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                            .trim(),
+                                        _manualHours: false,
+                                        _manualOvertime: false
+                                    }));
+                                }}
+                                style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    padding: '8px 12px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: !modalIsZeroDay ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                                    fontSize: '12.5px',
+                                    fontWeight: !modalIsZeroDay ? 600 : 500,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    background: !modalIsZeroDay ? 'var(--accent-primary)' : 'transparent',
+                                    color: !modalIsZeroDay ? '#ffffff' : 'var(--text-secondary)'
+                                }}
+                            >
+                                <CheckCircle2 size={15} />
+                                <span>Normal Çalışma {formData.hours > 0 ? `(${formData.hours} Gün)` : '(1 Gün)'}</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        hours: 0,
+                                        overtimeHours: 0,
+                                        startTime: '',
+                                        endTime: '',
+                                        _manualHours: true,
+                                        _manualOvertime: true,
+                                        description: (prev.description || '').includes('TATİL') || (prev.description || '').includes('ÇALIŞILMADI') || (prev.description || '').includes('PAZAR TATİLİ')
+                                            ? prev.description
+                                            : `[TATİL] ${prev.description || ''}`.trim()
+                                    }));
+                                }}
+                                style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    padding: '8px 12px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: modalIsZeroDay ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid transparent',
+                                    fontSize: '12.5px',
+                                    fontWeight: modalIsZeroDay ? 600 : 500,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    background: modalIsZeroDay ? 'rgba(239, 68, 68, 0.12)' : 'transparent',
+                                    color: modalIsZeroDay ? 'var(--danger)' : 'var(--text-secondary)'
+                                }}
+                            >
+                                <span>⛔</span>
+                                <span>Çalışılmadı / Tatil (0 Gün)</span>
+                            </button>
+                        </div>
+
+                        {modalIsZeroDay && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '6px 10px',
+                                background: 'rgba(239, 68, 68, 0.08)',
+                                borderRadius: 'var(--radius-sm)',
+                                color: 'var(--danger)',
+                                fontSize: '11.5px',
+                                fontWeight: 500
+                            }}>
+                                <Info size={14} style={{ flexShrink: 0 }} />
+                                <span>Bu gün puantaj ve PDF raporunda <strong>0 Gün (Tatil / Çalışılmadı)</strong> olarak işlenecek ve çalışma ücretine yansıtılmayacaktır.</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 2. Tarih & Fiş No */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <CustomInput
-                            label="Tarih"
-                            type="date"
-                            value={formData.date}
-                            onChange={(val) => setFormData({ ...formData, date: val })}
-                            required
-                        />
+                        <div>
+                            <CustomInput
+                                label="Tarih"
+                                type="date"
+                                value={formData.date}
+                                onChange={(val) => setFormData({ ...formData, date: val })}
+                                required
+                            />
+                            {modalIsSundayDate && (
+                                <div style={{ fontSize: '11px', color: '#ea580c', fontWeight: 500, marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span>📅 Bu tarih Pazar günüdür.</span>
+                                </div>
+                            )}
+                        </div>
                         <CustomInput
                             label="Fiş No"
                             type="text"
                             value={formData.receiptNo}
                             onChange={(val) => setFormData({ ...formData, receiptNo: val })}
                             maxLength={20}
+                            placeholder="Örn: 1042"
                         />
                     </div>
 
+                    {/* 3. Araç & Personel */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <CustomSelect
                             label="Araç"
                             value={formData.vehicleId}
-                            onChange={(val) => setFormData({ ...formData, vehicleId: val })}
+                            onChange={(val) => {
+                                const stdPrice = getVehicleStandardPrice(val);
+                                setFormData(prev => ({
+                                    ...prev,
+                                    vehicleId: val,
+                                    unitPrice: (!prev.unitPrice || parseFloat(prev.unitPrice) === 0) && stdPrice ? stdPrice : prev.unitPrice
+                                }));
+                            }}
                             options={vehicles.filter(v => v.type !== 'automobile').map(v => ({ value: v.id, label: `${v.plate} - ${v.brand || ''} ${v.model || ''}` }))}
                             creatable={true}
                         />
@@ -1482,18 +1756,21 @@ export default function WorkDetails(props) {
                         />
                     </div>
 
+                    {/* 4. Saatler & Fiyatlandırma */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                             <CustomInput
                                 type="time"
                                 label="Başlangıç Saati"
                                 value={formData.startTime}
+                                disabled={modalIsZeroDay}
                                 onChange={(val) => setFormData({ ...formData, startTime: val, _manualHours: false, _manualOvertime: false })}
                             />
                             <CustomInput
                                 type="time"
                                 label="Bitiş Saati"
                                 value={formData.endTime}
+                                disabled={modalIsZeroDay}
                                 onChange={(val) => setFormData({ ...formData, endTime: val, _manualHours: false, _manualOvertime: false })}
                             />
                         </div>
@@ -1501,11 +1778,12 @@ export default function WorkDetails(props) {
                             <CustomSelect
                                 label="Fiyatlandırma"
                                 value={formData.pricingType}
+                                disabled={modalIsZeroDay}
                                 onChange={(val) => setFormData({ ...formData, pricingType: val })}
                                 options={[
-                                { value: 'daily', label: 'Günlük' },
-                                { value: 'hourly', label: 'Saatlik' },
-                                { value: 'monthly', label: 'Aylık' }
+                                    { value: 'daily', label: 'Günlük' },
+                                    { value: 'hourly', label: 'Saatlik' },
+                                    { value: 'monthly', label: 'Aylık' }
                                 ]}
                             />
                             <CustomInput
@@ -1519,7 +1797,7 @@ export default function WorkDetails(props) {
                         </div>
                     </div>
 
-                    {/* Çalışma Süresi & Mesai (Elle Giriş ve Hızlı Butonlar) */}
+                    {/* 5. Çalışma Süresi & Mesai (Hızlı Butonlar Dahil) */}
                     <div style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -1534,87 +1812,125 @@ export default function WorkDetails(props) {
                                 <Clock size={15} style={{ color: 'var(--accent-primary)' }} />
                                 Çalışma Süresi & Mesai
                             </label>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            startTime: '',
-                                            endTime: '',
-                                            hours: 0,
-                                            overtimeHours: 0,
-                                            unitPrice: 0,
-                                            _manualHours: true,
-                                            _manualOvertime: true,
-                                            description: (prev.description || '').includes('TATİL') || (prev.description || '').includes('ÇALIŞILMADI') 
-                                                ? prev.description 
-                                                : `[TATİL] ${prev.description || ''}`.trim()
-                                        }));
-                                    }}
-                                    style={{
-                                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                                        background: 'rgba(239, 68, 68, 0.1)',
-                                        color: 'var(--danger)',
-                                        borderRadius: 'var(--radius-full)',
-                                        fontSize: '11px',
-                                        fontWeight: 600,
-                                        padding: '3px 10px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ⛔ Çalışılmadı / Tatil (0 Gün)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            startTime: '08:00',
-                                            endTime: '17:00',
-                                            hours: 1,
-                                            overtimeHours: 0,
-                                            _manualHours: false,
-                                            _manualOvertime: false
-                                        }));
-                                    }}
-                                    style={{
-                                        border: '1px solid var(--border-color)',
-                                        background: 'var(--bg-tertiary)',
-                                        color: 'var(--text-secondary)',
-                                        borderRadius: 'var(--radius-full)',
-                                        fontSize: '11px',
-                                        fontWeight: 500,
-                                        padding: '3px 10px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ✓ Normal Gün (1 Gün)
-                                </button>
-                            </div>
+                            {!modalIsZeroDay && (
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                    Saatlerden otomatik hesaplanır veya butonlardan seçebilirsiniz
+                                </span>
+                            )}
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                            <CustomInput
-                                type="number"
-                                step="any"
-                                min={0}
-                                label={formData.pricingType === 'hourly' ? "Çalışma Süresi (Saat)" : "Çalışma Süresi (Gün Sayısı)"}
-                                value={formData.hours ?? 0}
-                                onChange={(val) => setFormData({ ...formData, hours: val === '' ? '' : parseFloat(val), _manualHours: true })}
-                            />
-                            <CustomInput
-                                type="number"
-                                step="any"
-                                min={0}
-                                label="Fazla Mesai (Saat)"
-                                value={formData.overtimeHours ?? 0}
-                                onChange={(val) => setFormData({ ...formData, overtimeHours: val === '' ? '' : parseFloat(val), _manualOvertime: true })}
-                            />
+                            <div>
+                                <CustomInput
+                                    type="number"
+                                    step="any"
+                                    min={0}
+                                    label={formData.pricingType === 'hourly' ? "Çalışma Süresi (Saat)" : "Çalışma Süresi (Gün Sayısı)"}
+                                    value={formData.hours ?? 0}
+                                    onChange={(val) => setFormData({ ...formData, hours: val === '' ? '' : parseFloat(val), _manualHours: true })}
+                                />
+                                {/* Quick Duration Buttons */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
+                                    {[
+                                        { label: '0 Gün (Tatil)', val: 0, isDanger: true },
+                                        { label: '0.5 Gün', val: 0.5 },
+                                        { label: '1 Gün (Tam)', val: 1 },
+                                        { label: '1.5 Gün', val: 1.5 }
+                                    ].map((chip) => {
+                                        const isSelected = formData.hours === chip.val;
+                                        return (
+                                            <button
+                                                key={chip.val}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (chip.val === 0) {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            hours: 0,
+                                                            overtimeHours: 0,
+                                                            startTime: '',
+                                                            endTime: '',
+                                                            _manualHours: true
+                                                        }));
+                                                    } else {
+                                                        const stdPrice = getVehicleStandardPrice(formData.vehicleId);
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            hours: chip.val,
+                                                            startTime: prev.startTime || work?.work_start_time || '08:00',
+                                                            endTime: prev.endTime || work?.work_end_time || '17:00',
+                                                            unitPrice: (!prev.unitPrice || parseFloat(prev.unitPrice) === 0) && stdPrice ? stdPrice : prev.unitPrice,
+                                                            description: (prev.description || '')
+                                                                .replace(/\[TATİL\]\s*/gi, '')
+                                                                .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                                                .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                                                .trim(),
+                                                            _manualHours: true
+                                                        }));
+                                                    }
+                                                }}
+                                                style={{
+                                                    padding: '2px 8px',
+                                                    fontSize: '10.5px',
+                                                    borderRadius: 'var(--radius-full)',
+                                                    border: '1px solid ' + (isSelected ? (chip.isDanger ? 'var(--danger)' : 'var(--accent-primary)') : 'var(--border-color)'),
+                                                    background: isSelected ? (chip.isDanger ? 'rgba(239, 68, 68, 0.12)' : 'var(--accent-subtle)') : 'var(--bg-tertiary)',
+                                                    color: isSelected ? (chip.isDanger ? 'var(--danger)' : 'var(--accent-primary)') : 'var(--text-secondary)',
+                                                    fontWeight: isSelected ? 600 : 500,
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {chip.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div>
+                                <CustomInput
+                                    type="number"
+                                    step="any"
+                                    min={0}
+                                    disabled={modalIsZeroDay}
+                                    label="Fazla Mesai (Saat)"
+                                    value={formData.overtimeHours ?? 0}
+                                    onChange={(val) => setFormData({ ...formData, overtimeHours: val === '' ? '' : parseFloat(val), _manualOvertime: true })}
+                                />
+                                {/* Quick Overtime Buttons */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
+                                    {[0, 1, 2, 3, 4].map((hours) => {
+                                        const isSelected = formData.overtimeHours === hours;
+                                        return (
+                                            <button
+                                                key={hours}
+                                                type="button"
+                                                disabled={modalIsZeroDay}
+                                                onClick={() => setFormData(prev => ({ ...prev, overtimeHours: hours, _manualOvertime: true }))}
+                                                style={{
+                                                    padding: '2px 8px',
+                                                    fontSize: '10.5px',
+                                                    borderRadius: 'var(--radius-full)',
+                                                    border: '1px solid ' + (isSelected ? 'var(--accent-primary)' : 'var(--border-color)'),
+                                                    background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                                    color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                    fontWeight: isSelected ? 600 : 500,
+                                                    cursor: modalIsZeroDay ? 'not-allowed' : 'pointer',
+                                                    opacity: modalIsZeroDay ? 0.5 : 1,
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {hours === 0 ? 'Mesai Yok' : `+${hours}s`}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Yol (Travel) Add-on */}
+                    {/* 6. Ek Ödemeler (Yol, Yemek, Mesai, vb.) */}
                     <div style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -1625,17 +1941,17 @@ export default function WorkDetails(props) {
                         borderRadius: 'var(--radius-md)',
                         boxShadow: 'var(--shadow-sm)'
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
                             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <Wallet size={15} style={{ color: 'var(--accent-primary)' }} /> Ek Ödemeler
                             </span>
                             <span style={{
-                                fontSize: '10px',
+                                fontSize: '11px',
                                 fontWeight: 700,
                                 color: 'var(--accent-primary)',
                                 background: 'var(--accent-subtle)',
                                 border: '1px solid var(--accent-primary)',
-                                padding: '3px 8px',
+                                padding: '2px 8px',
                                 borderRadius: 'var(--radius-full)',
                                 display: 'inline-flex',
                                 alignItems: 'center'
@@ -1645,7 +1961,7 @@ export default function WorkDetails(props) {
                         </div>
 
                         {/* Quick Selection Tags */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '0 0 2px 0' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {['Yol', 'Yemek', 'Mesai', 'Prim', 'Avans', 'Diğer'].map(type => {
                                 const isActive = curAdditionType === type;
                                 return (
@@ -1680,9 +1996,9 @@ export default function WorkDetails(props) {
                             })}
                         </div>
                         
-                        {/* List of current additions as Clean Chips inside a scrollable box */}
+                        {/* List of current additions as Clean Chips */}
                         <div style={{ 
-                            height: '42px', 
+                            height: '38px', 
                             overflowX: 'auto', 
                             overflowY: 'hidden',
                             border: '1px solid var(--border-color)', 
@@ -1703,15 +2019,16 @@ export default function WorkDetails(props) {
                                         alignItems: 'center', 
                                         gap: '6px',
                                         background: 'var(--bg-secondary)', 
-                                        padding: '4px 10px', 
+                                        padding: '3px 8px', 
                                         borderRadius: 'var(--radius-full)', 
                                         border: '1px solid var(--border-color)',
                                         fontSize: '11px',
                                         color: 'var(--text-primary)',
-                                        height: '24px'
+                                        height: '24px',
+                                        flexShrink: 0
                                     }}>
                                         <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>{add.type}</span>
-                                        <span style={{ fontWeight: 700, color: 'var(--accent-primary)', marginLeft: '2px' }}>{formatCurrency(add.price)}</span>
+                                        <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{formatCurrency(add.price)}</span>
                                         <button 
                                             type="button" 
                                             onClick={() => {
@@ -1728,17 +2045,7 @@ export default function WorkDetails(props) {
                                                 alignItems: 'center', 
                                                 justifyContent: 'center',
                                                 padding: '2px',
-                                                marginLeft: '4px',
-                                                borderRadius: '50%',
-                                                transition: 'all 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.color = 'var(--text-error)';
-                                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.color = 'var(--text-muted)';
-                                                e.currentTarget.style.background = 'transparent';
+                                                borderRadius: '50%'
                                             }}
                                         >
                                             <Plus size={12} style={{ transform: 'rotate(45deg)' }} />
@@ -1746,22 +2053,14 @@ export default function WorkDetails(props) {
                                     </div>
                                 ))
                             ) : (
-                                <div style={{ 
-                                    fontSize: '11px', 
-                                    color: 'var(--text-muted)', 
-                                    width: '100%', 
-                                    height: '100%', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center' 
-                                }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                                     Ek ödeme bulunmuyor.
                                 </div>
                             )}
                         </div>
 
-                        {/* Modern Input Group for adding new addition using CustomInput */}
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', width: '100%', marginTop: '0' }}>
+                        {/* Input Group for adding new addition */}
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', width: '100%' }}>
                             <div style={{ flex: 1 }}>
                                 <CustomInput
                                     label="Ek Ödeme Türü"
@@ -1813,8 +2112,8 @@ export default function WorkDetails(props) {
                         </div>
                     </div>
 
-                    {/* Dedicated Sub-Option Buttons */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                    {/* 7. Özel Seçenekler (Renk & Katsayı) */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                         <button
                             type="button"
                             onClick={() => setIsColorModalOpen(true)}
@@ -1866,17 +2165,50 @@ export default function WorkDetails(props) {
                         </button>
                     </div>
 
+                    {/* 8. Açıklama */}
                     <CustomInput
                         label="Açıklama"
                         type="text"
                         value={formData.description}
                         onChange={(val) => setFormData({ ...formData, description: val })}
                         maxLength={250}
+                        placeholder="İsteğe bağlı not veya açıklama..."
                     />
 
-                    <div className="modal-footer">
+                    {/* 9. Canlı Hakediş Özeti Kartı */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        background: modalIsZeroDay ? 'rgba(239, 68, 68, 0.05)' : 'var(--accent-subtle)',
+                        border: modalIsZeroDay ? '1px dashed rgba(239, 68, 68, 0.3)' : '1px solid rgba(var(--accent-primary-rgb, 59, 130, 246), 0.25)',
+                        marginTop: '2px'
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                {modalIsZeroDay ? 'Tatil / Çalışılmadı Günü' : `Hesaplanan Günlük Süre: ${formData.hours || 0} ${formData.pricingType === 'hourly' ? 'Saat' : 'Gün'}${formData.overtimeHours > 0 ? ` + ${formData.overtimeHours}s Mesai` : ''}`}
+                            </span>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: modalIsZeroDay ? 'var(--danger)' : 'var(--text-primary)' }}>
+                                {modalIsZeroDay ? '⛔ Çalışma Ücreti Hesaplanmaz' : `Birim: ${formatCurrency(formData.unitPrice || 0)}${formData.multiplier && formData.multiplier !== '1' ? ` (${formData.multiplier}x)` : ''}`}
+                            </span>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>GÜNLÜK TOPLAM</span>
+                            <span style={{ fontSize: '16px', fontWeight: 700, color: modalIsZeroDay ? 'var(--danger)' : 'var(--accent-primary)' }}>
+                                {formatCurrency(modalLiveDailyGrandTotal)}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* 10. Modal Footer */}
+                    <div className="modal-footer" style={{ marginTop: '4px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
                         <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">İptal</button>
-                        <button type="submit" className="btn btn-primary">{editingItem ? 'Güncelle' : 'Ekle'}</button>
+                        <button type="submit" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <Save size={16} />
+                            <span>{editingItem ? 'Değişiklikleri Kaydet' : 'Kaydı Ekle'}</span>
+                        </button>
                     </div>
                 </form>
             </Modal>

@@ -494,34 +494,67 @@ export default function WorkPdfReport({
                                                 <tbody>
                                                     {(group.items || []).map((item, itemIdx) => {
                                                         const desc = item.description || '';
+                                                        const descUpper = desc.toUpperCase();
+                                                        const isZeroHours = (Number(item.hours) === 0 && Number(item.overtime_hours) === 0);
+                                                        const isHoliday = isZeroHours || descUpper.includes('[TATİL]') || descUpper.includes('[ÇALIŞILMADI]') || descUpper.includes('[PAZAR TATİLİ]');
+
                                                         let pdfRowClass = '';
-                                                        if (desc.includes('[RENK:red]') || item.isPazar) pdfRowClass = 'pdf-row-red';
-                                                        else if (desc.includes('[RENK:orange]')) pdfRowClass = 'pdf-row-orange';
-                                                        else if (desc.includes('[RENK:blue]')) pdfRowClass = 'pdf-row-blue';
-                                                        else if (desc.includes('[RENK:green]')) pdfRowClass = 'pdf-row-green';
-                                                        else if (desc.includes('[RENK:purple]')) pdfRowClass = 'pdf-row-purple';
+                                                        if (isHoliday) {
+                                                            pdfRowClass = 'pdf-row-holiday';
+                                                        } else if (desc.includes('[RENK:red]') || item.isPazar) {
+                                                            pdfRowClass = 'pdf-row-red';
+                                                        } else if (desc.includes('[RENK:orange]')) {
+                                                            pdfRowClass = 'pdf-row-orange';
+                                                        } else if (desc.includes('[RENK:blue]')) {
+                                                            pdfRowClass = 'pdf-row-blue';
+                                                        } else if (desc.includes('[RENK:green]')) {
+                                                            pdfRowClass = 'pdf-row-green';
+                                                        } else if (desc.includes('[RENK:purple]')) {
+                                                            pdfRowClass = 'pdf-row-purple';
+                                                        }
 
                                                         const cleanDesc = desc.replace(/\[[^\]]*\]\s*/g, '').trim();
 
                                                         return (
                                                             <tr key={item.id || itemIdx} className={pdfRowClass}>
-                                                                <td className="center">{formatDate(item.date)}</td>
-                                                                <td className="center">{item.receipt_no || '-'}</td>
-                                                                <td className="center">{item.start_time || '-'}</td>
-                                                                <td className="center">{item.end_time || '-'}</td>
                                                                 <td className="center">
-                                                                    {(Number(item.hours) === 0) ? (
-                                                                        <span style={{ color: '#ef4444', fontWeight: 600 }}>0 (Tatil)</span>
+                                                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', justifyContent: 'center' }}>
+                                                                        <span>{formatDate(item.date)}</span>
+                                                                        {item.isPazar && (
+                                                                            <span style={{ 
+                                                                                fontSize: '7px', 
+                                                                                fontWeight: 700, 
+                                                                                background: isHoliday ? '#f1f5f9' : '#fee2e2', 
+                                                                                color: isHoliday ? '#64748b' : '#b91c1c', 
+                                                                                padding: '1px 3px', 
+                                                                                borderRadius: '2px',
+                                                                                border: isHoliday ? '1px solid #cbd5e1' : '1px solid #fca5a5'
+                                                                            }}>
+                                                                                PAZ
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="center">{item.receipt_no || '-'}</td>
+                                                                <td className="center">{isHoliday ? '-' : (item.start_time || '-')}</td>
+                                                                <td className="center">{isHoliday ? '-' : (item.end_time || '-')}</td>
+                                                                <td className="center">
+                                                                    {isHoliday ? (
+                                                                        <span className={`pdf-badge-holiday ${item.isPazar ? 'sunday' : 'neutral'}`}>
+                                                                            0 Gün ({item.isPazar ? 'Pazar Tatili' : 'Tatil'})
+                                                                        </span>
                                                                     ) : (
-                                                                        `${item.hours || 0} ${(desc.toUpperCase().includes('[SAATLİK]') ? 'Saat' : 'Gün')}`
+                                                                        `${item.hours || 0} ${(descUpper.includes('[SAATLİK]') ? 'Saat' : 'Gün')}`
                                                                     )}
                                                                 </td>
-                                                                <td className="center">{item.overtime_hours > 0 ? `${item.overtime_hours} Saat` : ''}</td>
+                                                                <td className="center">{!isHoliday && item.overtime_hours > 0 ? `${item.overtime_hours} Saat` : '-'}</td>
                                                                 <td className="center">{group.rawMachineName || group.machineName}</td>
-                                                                <td>{cleanDesc}</td>
+                                                                <td>
+                                                                    {cleanDesc ? cleanDesc : (isHoliday ? (item.isPazar ? 'Pazar Tatili' : 'Çalışılmadı / Tatil') : '')}
+                                                                </td>
                                                                 <td className="right">
                                                                     {showPrices ? (() => {
-                                                                        if (Number(item.hours) === 0 && Number(item.overtime_hours) === 0) {
+                                                                        if (isHoliday) {
                                                                             return '-';
                                                                         }
                                                                         const kMatch = (desc || '').match(/\[KATSAYI:([^\]]+)\]/);
