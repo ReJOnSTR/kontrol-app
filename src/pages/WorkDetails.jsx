@@ -603,41 +603,6 @@ export default function WorkDetails(props) {
             if (editingItem) {
                 // Single item update
                 result = await window.electronAPI.updateWorkItem({ ...payload, id: editingItem.id })
-            } else if (formData.pricingType === 'monthly') {
-                // Auto-generate 26 work days (skipping Sundays)
-                const payloadList = []
-                let currentDate = new Date(parsed.date)
-                const monthlyTotal = parsed.unitPrice || 0
-                const dailyPrice = Math.round(monthlyTotal / 26)
-                let workDaysAdded = 0
-
-                while (workDaysAdded < 26) {
-                    const isSunday = currentDate.getDay() === 0
-                    let itemDesc = parsed.description || ''
-                    
-                    if (isSunday) {
-                        if (!itemDesc.startsWith('[PAZAR]')) {
-                            itemDesc = '[PAZAR] ' + itemDesc
-                        }
-                    } else {
-                        workDaysAdded++
-                        if (!itemDesc.startsWith('[AYLIK]')) {
-                            itemDesc = '[AYLIK] ' + itemDesc
-                        }
-                    }
-
-                    payloadList.push({
-                        ...parsed,
-                        date: currentDate.toISOString().split('T')[0],
-                        unitPrice: isSunday ? 0 : dailyPrice,
-                        description: itemDesc,
-                        travelPrice: formData.travelEnabled ? (parseFloat(formData.travelPrice) || 0) : 0,
-                        workId: id
-                    })
-                    
-                    currentDate.setDate(currentDate.getDate() + 1)
-                }
-                result = await window.electronAPI.addBulkWorkItems(payloadList)
             } else {
                 // Standard single item add
                 result = await window.electronAPI.addWorkItem(payload)

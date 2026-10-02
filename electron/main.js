@@ -367,26 +367,6 @@ app.whenReady().then(async () => {
 
         startAdminServer(getPrismaClient(), notifyDbUpdate)
 
-        // Background one-time SQLite -> Supabase auto-sync check for existing desktop installs
-        try {
-            const flagPath = path.join(app.getPath('userData'), 'data', 'supabase_synced.flag');
-            if (!fs.existsSync(flagPath)) {
-                const { migrateSqliteToPostgres } = require('./services/postgresMigration.service');
-                const pgUrl = process.env.DATABASE_URL || DEFAULT_POSTGRES_URL;
-                log.info('Checking for initial SQLite -> Supabase auto-sync...');
-                migrateSqliteToPostgres(null, pgUrl).then(res => {
-                    if (res && res.success) {
-                        try { fs.writeFileSync(flagPath, new Date().toISOString()); } catch(e) {}
-                        log.info('✓ Local SQLite data successfully synced to Supabase on startup.');
-                        notifyDbUpdate('all');
-                    }
-                }).catch(e => {
-                    log.warn('Auto-sync notice:', e.message);
-                });
-            }
-        } catch (syncErr) {
-            log.warn('Startup sync check notice:', syncErr.message);
-        }
 
         // Background purge of audit logs older than 180 days
         setTimeout(() => {

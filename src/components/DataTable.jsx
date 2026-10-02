@@ -626,11 +626,11 @@ export default function DataTable({
     }
 
     const handleSelectAll = () => {
-        if (selectedRows.size === paginatedData.length) {
+        if (selectedRows.size >= sortedData.length && sortedData.length > 0) {
             setSelectedRows(new Set())
             onSelectionChange?.([])
         } else {
-            const allIds = new Set(paginatedData.map(row => row.id))
+            const allIds = new Set(sortedData.map(row => row.id))
             setSelectedRows(allIds)
             onSelectionChange?.(Array.from(allIds))
         }
@@ -701,8 +701,8 @@ export default function DataTable({
         }
     }
 
-    const isAllSelected = paginatedData.length > 0 && selectedRows.size === paginatedData.length
-    const isSomeSelected = selectedRows.size > 0 && selectedRows.size < paginatedData.length
+    const isAllSelected = sortedData.length > 0 && selectedRows.size === sortedData.length
+    const isSomeSelected = selectedRows.size > 0 && selectedRows.size < sortedData.length
 
     const startRecord = sortedData.length > 0 ? (currentPage - 1) * pageSize + 1 : 0
     const endRecord = Math.min(currentPage * pageSize, sortedData?.length || 0)
