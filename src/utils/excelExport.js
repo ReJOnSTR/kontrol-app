@@ -153,7 +153,8 @@ export function exportWorkToExcel(work, vehicles = [], options = {}) {
             if (showPrices) {
                 if (item.isPazar && !desc.includes('[KATSAYI:')) {
                     const baseP = item.unit_price || item.unitPriceVal || 0
-                    const dailyP = (baseP > 10000 && item.isAylik) ? Math.round((baseP / 26) * 100) / 100 : baseP
+                    const positiveItems = (group.items || []).filter(i => (Number(i.hours) || 0) > 0 && ((i.unit_price || i.unitPriceVal || 0) > 0))
+                    const dailyP = (item.isAylik && positiveItems.length === 1 && baseP >= 50000) ? Math.round((baseP / 26) * 100) / 100 : baseP
                     priceText = dailyP > 0 ? formatCurrency(Math.round(dailyP * pazarMultiplier * 100) / 100) : '-'
                 } else {
                     priceText = (item.unit_price || item.unitPriceVal) ? formatCurrency(item.unit_price || item.unitPriceVal) : '-'

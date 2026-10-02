@@ -223,12 +223,13 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
         let monthlyAmount = rawPrimaryPrice;
 
         if (isAylikGroup && rawPrimaryPrice > 0) {
-            if (rawPrimaryPrice > 10000) {
+            const positiveItems = group.items.filter(i => (Number(i.hours) || 0) > 0 && i.unitPriceVal > 0);
+            if (positiveItems.length === 1 && rawPrimaryPrice >= 50000) {
                 dailyRate = rawPrimaryPrice / 26;
                 monthlyAmount = rawPrimaryPrice;
             } else {
                 dailyRate = rawPrimaryPrice;
-                monthlyAmount = rawPrimaryPrice * 26;
+                monthlyAmount = Math.round(rawPrimaryPrice * 26);
             }
         }
 
@@ -306,7 +307,7 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
             summaryLines.push({
                 typeLabel: 'AYLIK',
                 countText: customRateDaysCount > 0 ? `1 AY (${baseMonthlyDays} Gün)` : '1 AY (26 Gün)',
-                unitPrice: dailyRate % 1 === 0 ? Math.round(dailyRate) : Number(dailyRate.toFixed(6)),
+                unitPrice: monthlyAmount % 1 === 0 ? Math.round(monthlyAmount) : Number(monthlyAmount.toFixed(6)),
                 totalPrice: baseMonthlyTotal
             });
 

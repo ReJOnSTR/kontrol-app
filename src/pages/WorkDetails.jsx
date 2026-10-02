@@ -1623,7 +1623,7 @@ export default function WorkDetails(props) {
                                 ]}
                             />
                             <CustomInput
-                                label={formData.pricingType === 'monthly' ? "Aylık Toplam Fiyat" : "Birim Fiyat"}
+                                label={formData.pricingType === 'monthly' ? "Günlük Birim Fiyat" : (formData.pricingType === 'hourly' ? "Saatlik Birim Fiyat" : "Birim Fiyat")}
                                 format="currency"
                                 maxDecimals={6}
                                 maxLength={18}
