@@ -184,6 +184,9 @@ function createWindow() {
         })
     } else {
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+        mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+            log.error(`Production window failed to load: [${errorCode}] ${errorDescription} at ${validatedURL}`);
+        })
     }
 
     mainWindow.once('ready-to-show', () => {

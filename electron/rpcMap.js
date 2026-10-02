@@ -65,7 +65,7 @@ function createRpcMap() {
         checkForUpdates: async () => ({ success: true, updateAvailable: false }),
         downloadUpdate: async () => ({ success: true }),
         quitAndInstall: async () => ({ success: true }),
-        getAppVersion: async () => '1.13.121-web',
+        getAppVersion: async () => '1.13.122-web',
 
         // Companies
         getCompanies: db.getCompanies,

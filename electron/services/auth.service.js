@@ -382,8 +382,8 @@ async function loginUser(credentials) {
         const upperLookup = rawLookup.toUpperCase();
         log.info(`Attempting login for: "${rawLookup}"`);
 
-        // 1. Safe simple query with case-insensitive matching
-        let user = await prisma.users.findFirst({
+        // 1. Safe simple query with case-insensitive matching (with transient network timeout retry)
+        const findUserQuery = () => prisma.users.findFirst({
             where: {
                 OR: [
                     { email: rawLookup },
@@ -395,6 +395,25 @@ async function loginUser(credentials) {
                 ]
             }
         });
+
+        let user;
+        try {
+            user = await findUserQuery();
+        } catch (queryErr) {
+            const isConnErr = queryErr.message && (
+                queryErr.message.includes('ETIMEDOUT') ||
+                queryErr.message.includes('ECONNRESET') ||
+                queryErr.message.includes('closed') ||
+                queryErr.message.includes('timed out')
+            );
+            if (isConnErr) {
+                log.warn(`Transient DB connection timeout during login lookup for "${rawLookup}", retrying once...`, queryErr.message);
+                await new Promise(r => setTimeout(r, 600));
+                user = await findUserQuery();
+            } else {
+                throw queryErr;
+            }
+        }
 
         // 2. Fallback: If no user found and attempting 'superadmin'
         if (!user && (lowerLookup === 'superadmin' || lowerLookup === 'superadmin@kontrolapp.com')) {

@@ -184,11 +184,14 @@ function getPrismaClient() {
                 if (PrismaPg && pg) {
                     const pool = new pg.Pool({
                         connectionString: dbUrl,
-                        connectionTimeoutMillis: 10000,
+                        connectionTimeoutMillis: 15000,
                         idleTimeoutMillis: 30000,
                         max: 20,
                         keepAlive: true,
-                        keepAliveInitialDelayMillis: 10000
+                        keepAliveInitialDelayMillis: 5000
+                    });
+                    pool.on('error', (err) => {
+                        log.warn('PostgreSQL pool idle client error (auto-recovering):', err.message);
                     });
                     const adapter = new PrismaPg(pool);
                     prisma = new PrismaClient({ adapter });

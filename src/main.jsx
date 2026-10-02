@@ -41,13 +41,27 @@ if (typeof window !== 'undefined') {
 }
 
 // Auto-redirect direct path-based URLs to HashRouter format (e.g. /reset-password?email=... -> /#/reset-password?email=...)
-if (typeof window !== 'undefined' && window.location) {
+// CRITICAL: Must ONLY run on HTTP/HTTPS web browsers. Never run in Electron desktop mode (file:// protocol) where origin is "null" and loads index.html directly
+if (
+    typeof window !== 'undefined' &&
+    window.location &&
+    window.location.protocol &&
+    window.location.protocol.startsWith('http')
+) {
+    const origin = window.location.origin;
     const pathname = window.location.pathname || '';
     const search = window.location.search || '';
     const hash = window.location.hash || '';
-    if (pathname && pathname !== '/' && pathname !== '/index.html' && (!hash || hash === '' || hash === '#/')) {
+    if (
+        origin &&
+        origin !== 'null' &&
+        pathname &&
+        pathname !== '/' &&
+        !pathname.endsWith('index.html') &&
+        (!hash || hash === '' || hash === '#/')
+    ) {
         const cleanPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
-        window.location.replace(`${window.location.origin}/#${cleanPath}${search}`);
+        window.location.replace(`${origin}/#${cleanPath}${search}`);
     }
 }
 
