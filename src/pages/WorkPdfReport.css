@@ -224,31 +224,7 @@
     color: #000;
 }
 .pdf-row-holiday td {
-    background-color: #f8fafc !important; 
-    color: #475569 !important;
-}
-
-.pdf-badge-holiday {
-    display: inline-block;
-    padding: 1.5px 6px;
-    border-radius: 4px;
-    font-size: 8px;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: 0.2px;
-    white-space: nowrap;
-}
-
-.pdf-badge-holiday.neutral {
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #cbd5e1;
-}
-
-.pdf-badge-holiday.sunday {
-    background: #fff1f2;
-    color: #be123c;
-    border: 1px solid #fecdd3;
+    background-color: #fafafa !important; 
 }
 
 /* Summary Block */

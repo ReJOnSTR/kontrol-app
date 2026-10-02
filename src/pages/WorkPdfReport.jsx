@@ -517,40 +517,17 @@ export default function WorkPdfReport({
 
                                                         return (
                                                             <tr key={item.id || itemIdx} className={pdfRowClass}>
-                                                                <td className="center">
-                                                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', justifyContent: 'center' }}>
-                                                                        <span>{formatDate(item.date)}</span>
-                                                                        {item.isPazar && (
-                                                                            <span style={{ 
-                                                                                fontSize: '7px', 
-                                                                                fontWeight: 700, 
-                                                                                background: isHoliday ? '#f1f5f9' : '#fee2e2', 
-                                                                                color: isHoliday ? '#64748b' : '#b91c1c', 
-                                                                                padding: '1px 3px', 
-                                                                                borderRadius: '2px',
-                                                                                border: isHoliday ? '1px solid #cbd5e1' : '1px solid #fca5a5'
-                                                                            }}>
-                                                                                PAZ
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                </td>
+                                                                <td className="center">{formatDate(item.date)}</td>
                                                                 <td className="center">{item.receipt_no || '-'}</td>
                                                                 <td className="center">{isHoliday ? '-' : (item.start_time || '-')}</td>
                                                                 <td className="center">{isHoliday ? '-' : (item.end_time || '-')}</td>
                                                                 <td className="center">
-                                                                    {isHoliday ? (
-                                                                        <span className={`pdf-badge-holiday ${item.isPazar ? 'sunday' : 'neutral'}`}>
-                                                                            0 Gün ({item.isPazar ? 'Pazar Tatili' : 'Tatil'})
-                                                                        </span>
-                                                                    ) : (
-                                                                        `${item.hours || 0} ${(descUpper.includes('[SAATLİK]') ? 'Saat' : 'Gün')}`
-                                                                    )}
+                                                                    {isHoliday ? '0 Gün' : `${item.hours || 0} ${(descUpper.includes('[SAATLİK]') ? 'Saat' : 'Gün')}`}
                                                                 </td>
                                                                 <td className="center">{!isHoliday && item.overtime_hours > 0 ? `${item.overtime_hours} Saat` : '-'}</td>
                                                                 <td className="center">{group.rawMachineName || group.machineName}</td>
                                                                 <td>
-                                                                    {cleanDesc ? cleanDesc : (isHoliday ? (item.isPazar ? 'Pazar Tatili' : 'Çalışılmadı / Tatil') : '')}
+                                                                    {cleanDesc ? cleanDesc : (isHoliday ? (item.isPazar ? 'Pazar Tatili' : 'Tatil / Çalışılmadı') : '')}
                                                                 </td>
                                                                 <td className="right">
                                                                     {showPrices ? (() => {
