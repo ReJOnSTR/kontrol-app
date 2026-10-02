@@ -58,7 +58,7 @@ export function formatCurrency(amount, maxDecimals = 2) {
     if (amount === null || amount === undefined || amount === '' || isNaN(amount)) return '-'
     const num = Number(amount)
     const min = 2
-    const max = Math.max(min, Number(maxDecimals) || 2)
+    const max = Math.min(2, Math.max(min, Number(maxDecimals) || 2))
     return new Intl.NumberFormat('tr-TR', {
         style: 'currency',
         currency: 'TRY',

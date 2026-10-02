@@ -1443,7 +1443,7 @@ export default function WorkDetails(props) {
 
                             return (
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                    <span>{formatCurrency(finalPrice, 6)}</span>
+                                    <span>{formatCurrency(finalPrice)}</span>
                                     {badgeText && (
                                         <span style={{
                                             fontSize: '10px',

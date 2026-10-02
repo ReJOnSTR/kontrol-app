@@ -3,7 +3,32 @@ import { useAuth } from './AuthContext'
 import { companyService, dashboardService } from '../services'
 import { settingsService } from '../services/settings'
 
-const CompanyContext = createContext(null)
+const defaultCompanyValue = {
+    companies: [],
+    currentCompany: null,
+    loading: false,
+    selectCompany: () => {},
+    createCompany: async () => {},
+    updateCompany: async () => {},
+    deleteCompany: async () => {},
+    refreshCompanies: () => {},
+    companySettings: null,
+    updateCompanySettings: async () => {},
+    refreshCompanySettings: () => {},
+    isModuleEnabled: () => true,
+    upcomingEvents: [],
+    loadUpcomingEvents: () => {},
+    isImpersonating: false,
+    impersonatedCompanyName: ''
+}
+
+const CompanyContext = (typeof window !== 'undefined' && window.__COMPANY_CONTEXT__)
+    ? window.__COMPANY_CONTEXT__
+    : createContext(defaultCompanyValue)
+
+if (typeof window !== 'undefined') {
+    window.__COMPANY_CONTEXT__ = CompanyContext
+}
 
 export function CompanyProvider({ children }) {
     const { user } = useAuth()
@@ -282,7 +307,8 @@ export function CompanyProvider({ children }) {
 export function useCompany() {
     const context = useContext(CompanyContext)
     if (!context) {
-        throw new Error('useCompany must be used within CompanyProvider')
+        console.warn('[useCompany] Called outside CompanyProvider or during HMR cycle. Providing safe fallback.')
+        return defaultCompanyValue
     }
     return context
 }

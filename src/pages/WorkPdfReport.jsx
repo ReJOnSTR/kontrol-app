@@ -547,7 +547,7 @@ export default function WorkPdfReport({
                                                                             finalPrice = pazarMultiplier === 1 ? dailyP : Number((dailyP * pazarMultiplier).toFixed(6));
                                                                         }
 
-                                                                        return finalPrice > 0 ? formatCurrency(finalPrice, 6) : '';
+                                                                        return finalPrice > 0 ? formatCurrency(finalPrice) : '';
                                                                     })() : ''}
                                                                 </td>
                                                             </tr>
@@ -576,7 +576,7 @@ export default function WorkPdfReport({
                                                             <tr key={lIdx} className="bg-light-gray">
                                                                 <td className="bold center">{line.typeLabel}</td>
                                                                 <td className="center">{line.countText || `${line.count} ${line.unit}`}</td>
-                                                                <td className="right">{line.unitPrice ? formatCurrency(line.unitPrice, 6) : '-'}</td>
+                                                                <td className="right">{line.unitPrice ? formatCurrency(line.unitPrice) : '-'}</td>
                                                                 <td className="right bold total-text">{formatCurrency(line.totalPrice)}</td>
                                                             </tr>
                                                         ))}

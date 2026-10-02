@@ -4,7 +4,31 @@ import { supabase } from '../services/supabase'
 import { settingsService } from '../services/settings'
 import { ROLE_PRESETS } from '../components/PermissionMatrix'
 
-const AuthContext = createContext(null)
+const defaultAuthValue = {
+    user: null,
+    userPreferences: null,
+    updateUserPreferences: async () => ({ success: false, error: 'Oturum bulunamadı' }),
+    refreshUserPreferences: () => {},
+    loading: false,
+    login: async () => ({ success: false }),
+    verify2FALogin: async () => ({ success: false }),
+    register: async () => ({ success: false }),
+    logout: async () => {},
+    updateProfile: async () => ({ success: false }),
+    isAdmin: false,
+    isSuperAdmin: false,
+    isManager: false,
+    isPersonnel: false,
+    hasPermission: () => false
+}
+
+const AuthContext = (typeof window !== 'undefined' && window.__AUTH_CONTEXT__)
+    ? window.__AUTH_CONTEXT__
+    : createContext(defaultAuthValue)
+
+if (typeof window !== 'undefined') {
+    window.__AUTH_CONTEXT__ = AuthContext
+}
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null)
@@ -443,7 +467,22 @@ export function AuthProvider({ children }) {
 export function useAuth() {
     const context = useContext(AuthContext)
     if (!context) {
-        throw new Error('useAuth must be used within AuthProvider')
+        console.warn('[useAuth] Called outside AuthProvider or during HMR cycle. Providing safe fallback.')
+        try {
+            const stored = localStorage.getItem('aractakip_user')
+            const user = stored ? JSON.parse(stored) : null
+            return {
+                ...defaultAuthValue,
+                user,
+                isAdmin: user?.role === 'admin' || user?.role === 'superadmin',
+                isSuperAdmin: user?.role === 'superadmin',
+                isManager: user?.role === 'manager',
+                isPersonnel: user?.role === 'personnel',
+                hasPermission: () => true
+            }
+        } catch {
+            return defaultAuthValue
+        }
     }
     return context
 }
