@@ -65,6 +65,8 @@ export default function WorkDetails(props) {
     const [showWorkTitle, setShowWorkTitle] = useState(true)
     const [selectedIds, setSelectedIds] = useState([])
     const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
+    const [isBulkStatusDropdownOpen, setIsBulkStatusDropdownOpen] = useState(false)
+    const bulkStatusDropdownRef = useRef(null)
     const [bulkEditFormData, setBulkEditFormData] = useState({
         date: '',
         receiptNo: '',
@@ -77,6 +79,7 @@ export default function WorkDetails(props) {
         pricingType: '',
         unitPrice: '',
         description: '',
+        workStatus: '', // '' (Değiştirme), 'normal' (Normal Çalışma 1 Gün), 'zero' (Çalışılmadı 0 Gün - 0 TL)
         _manualHours: false,
         _manualOvertime: false
     })
@@ -184,6 +187,25 @@ export default function WorkDetails(props) {
         })
         return () => { if (unsub) unsub() }
     }, [id])
+
+    // Close bulk status dropdown on click outside or escape
+    useEffect(() => {
+        if (!isBulkStatusDropdownOpen) return
+        const handleClickOutside = (e) => {
+            if (bulkStatusDropdownRef.current && !bulkStatusDropdownRef.current.contains(e.target)) {
+                setIsBulkStatusDropdownOpen(false)
+            }
+        }
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') setIsBulkStatusDropdownOpen(false)
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        document.addEventListener('keydown', handleKeyDown)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+            document.removeEventListener('keydown', handleKeyDown)
+        }
+    }, [isBulkStatusDropdownOpen])
 
     const calculateAutoHours = (startTime, endTime, pricingType) => {
         if (!startTime || !endTime) return { hours: 1, overtimeHours: 0 };
@@ -459,6 +481,7 @@ export default function WorkDetails(props) {
             pricingType: '',
             unitPrice: '',
             description: '',
+            workStatus: '',
             _manualHours: false,
             _manualOvertime: false
         })
@@ -791,8 +814,8 @@ export default function WorkDetails(props) {
         if (bulkEditFormData.unitPrice !== '') updates.unitPrice = parseFloat(bulkEditFormData.unitPrice)
         if (bulkEditFormData.description !== '') updates.description = bulkEditFormData.description
 
-        if (Object.keys(updates).length === 0) {
-            setModalError('Lütfen en az bir alanı doldurun.')
+        if (Object.keys(updates).length === 0 && !bulkEditFormData.workStatus) {
+            setModalError('Lütfen en az bir alanı doldurun veya çalışma durumunu belirleyin.')
             return
         }
 
@@ -814,24 +837,57 @@ export default function WorkDetails(props) {
 
                 const itemPricingType = updates.pricingType || (itemDesc.includes('[SAATLİK]') || existingItem.pricingType === 'hourly' ? 'hourly' : (itemDesc.includes('[AYLIK]') || existingItem.pricingType === 'monthly' ? 'monthly' : 'daily'));
 
-                const finalStartTime = updates.startTime !== undefined ? updates.startTime : existingItem.start_time;
-                const finalEndTime = updates.endTime !== undefined ? updates.endTime : existingItem.end_time;
-
+                let finalStartTime = updates.startTime !== undefined ? updates.startTime : existingItem.start_time;
+                let finalEndTime = updates.endTime !== undefined ? updates.endTime : existingItem.end_time;
                 let finalHours = existingItem.hours;
                 let finalOvertime = existingItem.overtime_hours;
+                let finalUnitPrice = updates.unitPrice !== undefined ? updates.unitPrice : existingItem.unit_price;
 
-                if (updates.hours !== undefined) {
-                    finalHours = updates.hours;
-                } else if (updates.startTime !== undefined || updates.endTime !== undefined) {
-                    const autoH = calculateAutoHours(finalStartTime, finalEndTime, itemPricingType);
-                    finalHours = autoH.hours;
-                }
+                if (bulkEditFormData.workStatus === 'zero') {
+                    // 0 Gün, 0 TL, Tatil
+                    finalHours = 0;
+                    finalOvertime = 0;
+                    finalStartTime = '';
+                    finalEndTime = '';
+                    finalUnitPrice = 0;
+                    if (!itemDesc.includes('TATİL') && !itemDesc.includes('ÇALIŞILMADI')) {
+                        itemDesc = `[TATİL] ${itemDesc}`.trim();
+                    }
+                } else if (bulkEditFormData.workStatus === 'normal') {
+                    // Normal Gün (1 Gün)
+                    finalHours = updates.hours !== undefined ? updates.hours : 1;
+                    finalOvertime = updates.overtimeHours !== undefined ? updates.overtimeHours : 0;
+                    finalStartTime = updates.startTime !== undefined ? updates.startTime : (existingItem.start_time || work?.work_start_time || '08:00');
+                    finalEndTime = updates.endTime !== undefined ? updates.endTime : (existingItem.end_time || work?.work_end_time || '17:00');
 
-                if (updates.overtimeHours !== undefined) {
-                    finalOvertime = updates.overtimeHours;
-                } else if (updates.startTime !== undefined || updates.endTime !== undefined) {
-                    const autoH = calculateAutoHours(finalStartTime, finalEndTime, itemPricingType);
-                    finalOvertime = autoH.overtimeHours;
+                    // Tatil etiketlerini temizle
+                    itemDesc = itemDesc
+                        .replace(/\[TATİL\]\s*/gi, '')
+                        .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                        .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                        .trim();
+
+                    if (updates.unitPrice !== undefined) {
+                        finalUnitPrice = updates.unitPrice;
+                    } else if (Number(existingItem.unit_price) === 0) {
+                        const targetVehId = updates.vehicleId !== undefined ? updates.vehicleId : (existingItem.vehicle_id || existingItem.custom_vehicle);
+                        const stdP = getVehicleStandardPrice(targetVehId);
+                        if (stdP) finalUnitPrice = parseFloat(stdP);
+                    }
+                } else {
+                    if (updates.hours !== undefined) {
+                        finalHours = updates.hours;
+                    } else if (updates.startTime !== undefined || updates.endTime !== undefined) {
+                        const autoH = calculateAutoHours(finalStartTime, finalEndTime, itemPricingType);
+                        finalHours = autoH.hours;
+                    }
+
+                    if (updates.overtimeHours !== undefined) {
+                        finalOvertime = updates.overtimeHours;
+                    } else if (updates.startTime !== undefined || updates.endTime !== undefined) {
+                        const autoH = calculateAutoHours(finalStartTime, finalEndTime, itemPricingType);
+                        finalOvertime = autoH.overtimeHours;
+                    }
                 }
 
                 const finalPayload = {
@@ -844,7 +900,7 @@ export default function WorkDetails(props) {
                     endTime: finalEndTime,
                     hours: finalHours,
                     overtimeHours: finalOvertime,
-                    unitPrice: updates.unitPrice !== undefined ? updates.unitPrice : existingItem.unit_price,
+                    unitPrice: finalUnitPrice,
                     travelPrice: existingItem.travel_price,
                     description: itemDesc
                 }
@@ -1487,45 +1543,154 @@ export default function WorkDetails(props) {
                 selectable={true}
                 onSelectionChange={setSelectedIds}
                 customBulkActions={() => (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+                        {/* Menü Şeklinde Açılan Çalışma Durumu Seçimi */}
+                        <div ref={bulkStatusDropdownRef} style={{ position: 'relative' }}>
+                            <button 
+                                type="button" 
+                                className="btn-bulk-action"
+                                style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '6px', 
+                                    background: isBulkStatusDropdownOpen ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.12)', 
+                                    color: '#fff', 
+                                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                                    fontWeight: '600',
+                                    borderRadius: '20px',
+                                    padding: '8px 14px',
+                                    cursor: 'pointer'
+                                }} 
+                                onClick={() => setIsBulkStatusDropdownOpen(prev => !prev)}
+                                title="Seçili kayıtların çalışma durumunu toplu olarak belirleyin"
+                            >
+                                <Briefcase size={14} style={{ color: isBulkStatusDropdownOpen ? '#fff' : 'var(--accent-primary)' }} />
+                                <span>Durum Belirle</span>
+                                <ChevronDown size={14} style={{ transform: isBulkStatusDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                            </button>
+
+                            {isBulkStatusDropdownOpen && (
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: 'calc(100% + 10px)',
+                                    left: '0',
+                                    background: 'var(--bg-primary, #1e1e24)',
+                                    border: '1px solid rgba(255, 255, 255, 0.16)',
+                                    borderRadius: '12px',
+                                    padding: '6px',
+                                    minWidth: '250px',
+                                    boxShadow: '0 16px 36px rgba(0, 0, 0, 0.65)',
+                                    backdropFilter: 'blur(16px)',
+                                    WebkitBackdropFilter: 'blur(16px)',
+                                    zIndex: 1000,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px'
+                                }}>
+                                    <div style={{
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        textTransform: 'uppercase',
+                                        color: 'var(--text-muted, #a1a1aa)',
+                                        padding: '6px 10px 4px 10px',
+                                        letterSpacing: '0.5px'
+                                    }}>
+                                        Çalışma Durumu Seçin
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsBulkStatusDropdownOpen(false);
+                                            handleBulkSetNormalDays();
+                                        }}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            padding: '8px 10px',
+                                            borderRadius: '8px',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'var(--text-primary, #fff)',
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            transition: 'background 0.15s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.18)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <div style={{
+                                            width: '28px',
+                                            height: '28px',
+                                            borderRadius: '6px',
+                                            background: 'rgba(16, 185, 129, 0.2)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#10b981',
+                                            flexShrink: 0
+                                        }}>
+                                            <CheckCircle2 size={16} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#10b981' }}>Normal Çalışma (1 Gün)</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted, #a1a1aa)' }}>1 Gün ve standart birim fiyat</div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsBulkStatusDropdownOpen(false);
+                                            handleBulkSetZeroDays();
+                                        }}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            padding: '8px 10px',
+                                            borderRadius: '8px',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'var(--text-primary, #fff)',
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            transition: 'background 0.15s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <div style={{
+                                            width: '28px',
+                                            height: '28px',
+                                            borderRadius: '6px',
+                                            background: 'rgba(239, 68, 68, 0.2)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#ef4444',
+                                            flexShrink: 0
+                                        }}>
+                                            <AlertCircle size={16} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#ef4444' }}>Çalışılmadı / Tatil (0 Gün)</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted, #a1a1aa)' }}>0 Gün ve 0 TL tatil kaydı</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
                         <button 
                             type="button" 
-                            className="btn-bulk-action" 
-                            style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '6px', 
-                                background: 'rgba(239, 68, 68, 0.1)', 
-                                color: 'var(--danger)', 
-                                borderColor: 'rgba(239, 68, 68, 0.3)',
-                                fontWeight: '600'
-                            }} 
-                            onClick={handleBulkSetZeroDays}
-                            title="Seçili kayıtları 0 Gün (Tatil / Çalışılmadı) yapar"
+                            className="btn-bulk-action secondary" 
+                            onClick={openBulkEditModal}
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                            title="Seçili kayıtları toplu düzenleme penceresinde açar"
                         >
-                            <Calendar size={15} />
-                            ⛔ Çalışılmadı (0 Gün) Yap
-                        </button>
-                        <button 
-                            type="button" 
-                            className="btn-bulk-action" 
-                            style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '6px', 
-                                background: 'rgba(16, 185, 129, 0.1)', 
-                                color: 'var(--success)', 
-                                borderColor: 'rgba(16, 185, 129, 0.3)',
-                                fontWeight: '600'
-                            }} 
-                            onClick={handleBulkSetNormalDays}
-                            title="Seçili kayıtları tekrar Normal Çalışma (1 Gün) durumuna getirir"
-                        >
-                            <Clock size={15} />
-                            ✓ Normal Çalışmaya Al (1 Gün)
-                        </button>
-                        <button type="button" className="btn-bulk-action secondary" onClick={openBulkEditModal}>
-                            <Pencil size={15} />
+                            <Pencil size={14} />
                             Düzenle
                         </button>
                     </div>
@@ -1599,6 +1764,136 @@ export default function WorkDetails(props) {
                         />
                     </div>
 
+                    {/* Çalışma Durumu (Normal Çalışma vs Çalışılmadı / Tatil) */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        padding: '12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Briefcase size={15} style={{ color: 'var(--accent-primary)' }} />
+                                Çalışma Durumu
+                            </span>
+                            <span style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                color: Number(formData.hours) === 0 ? '#ef4444' : '#10b981',
+                                border: `1px solid ${Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
+                            }}>
+                                {Number(formData.hours) === 0 ? '⛔ Çalışılmadı (0 Gün - 0 TL)' : '🟢 Normal Çalışma (1 Gün)'}
+                            </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '2px' }}>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const stdPrice = getVehicleStandardPrice(formData.vehicleId);
+                                    const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
+                                        ? formData._savedUnitPrice
+                                        : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        startTime: prev.startTime || work?.work_start_time || '08:00',
+                                        endTime: prev.endTime || work?.work_end_time || '17:00',
+                                        hours: 1,
+                                        overtimeHours: 0,
+                                        unitPrice: restoredPrice,
+                                        _savedUnitPrice: undefined,
+                                        description: (prev.description || '')
+                                            .replace(/\[TATİL\]\s*/gi, '')
+                                            .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                            .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                            .trim(),
+                                        _manualHours: false,
+                                        _manualOvertime: false
+                                    }));
+                                }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    padding: '10px 12px',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    border: Number(formData.hours) > 0 ? '2px solid #10b981' : '1px solid var(--border-color)',
+                                    background: Number(formData.hours) > 0 ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-tertiary)',
+                                    color: Number(formData.hours) > 0 ? '#10b981' : 'var(--text-secondary)'
+                                }}
+                            >
+                                <CheckCircle2 size={16} />
+                                <span>Normal Çalışma (1 Gün)</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        _savedUnitPrice: prev.unitPrice && parseFloat(prev.unitPrice) > 0 ? prev.unitPrice : prev._savedUnitPrice,
+                                        startTime: '',
+                                        endTime: '',
+                                        hours: 0,
+                                        overtimeHours: 0,
+                                        unitPrice: 0,
+                                        _manualHours: true,
+                                        _manualOvertime: true,
+                                        description: (prev.description || '').includes('TATİL') || (prev.description || '').includes('ÇALIŞILMADI') || (prev.description || '').includes('PAZAR TATİLİ')
+                                            ? prev.description 
+                                            : `[TATİL] ${prev.description || ''}`.trim()
+                                    }));
+                                }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    padding: '10px 12px',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    border: Number(formData.hours) === 0 ? '2px solid #ef4444' : '1px solid var(--border-color)',
+                                    background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-tertiary)',
+                                    color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--text-secondary)'
+                                }}
+                            >
+                                <AlertCircle size={16} />
+                                <span>Çalışılmadı / Tatil (0 Gün)</span>
+                            </button>
+                        </div>
+
+                        {Number(formData.hours) === 0 && (
+                            <div style={{
+                                fontSize: '11px',
+                                color: '#ef4444',
+                                background: 'rgba(239, 68, 68, 0.08)',
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                marginTop: '2px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                            }}>
+                                <Info size={13} />
+                                Bu kayıt puantajda 0 Gün ve 0 TL olarak listelenecektir. Açıklamaya otomatik [TATİL] eklenmiştir.
+                            </div>
+                        )}
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                             <CustomInput
@@ -1651,70 +1946,6 @@ export default function WorkDetails(props) {
                                 <Clock size={15} style={{ color: 'var(--accent-primary)' }} />
                                 Çalışma Süresi & Mesai
                             </label>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            startTime: '',
-                                            endTime: '',
-                                            hours: 0,
-                                            overtimeHours: 0,
-                                            _manualHours: true,
-                                            _manualOvertime: true,
-                                            description: (prev.description || '').includes('TATİL') || (prev.description || '').includes('ÇALIŞILMADI') || (prev.description || '').includes('PAZAR TATİLİ')
-                                                ? prev.description 
-                                                : `[TATİL] ${prev.description || ''}`.trim()
-                                        }));
-                                    }}
-                                    style={{
-                                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                                        background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.08)',
-                                        color: 'var(--danger)',
-                                        borderRadius: 'var(--radius-full)',
-                                        fontSize: '11px',
-                                        fontWeight: 600,
-                                        padding: '3px 10px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ⛔ Çalışılmadı / Tatil (0 Gün)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const stdPrice = getVehicleStandardPrice(formData.vehicleId);
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            startTime: prev.startTime || work?.work_start_time || '08:00',
-                                            endTime: prev.endTime || work?.work_end_time || '17:00',
-                                            hours: 1,
-                                            overtimeHours: 0,
-                                            unitPrice: (prev.unitPrice && parseFloat(prev.unitPrice) > 0) ? prev.unitPrice : (stdPrice || prev.unitPrice),
-                                            description: (prev.description || '')
-                                                .replace(/\[TATİL\]\s*/gi, '')
-                                                .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
-                                                .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
-                                                .trim(),
-                                            _manualHours: false,
-                                            _manualOvertime: false
-                                        }));
-                                    }}
-                                    style={{
-                                        border: '1px solid var(--border-color)',
-                                        background: Number(formData.hours) > 0 ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
-                                        color: Number(formData.hours) > 0 ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                        borderRadius: 'var(--radius-full)',
-                                        fontSize: '11px',
-                                        fontWeight: 500,
-                                        padding: '3px 10px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ✓ Normal Gün (1 Gün)
-                                </button>
-                            </div>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -2553,6 +2784,133 @@ export default function WorkDetails(props) {
                             ]}
                             creatable={true}
                         />
+                    </div>
+
+                    {/* Çalışma Durumu (Toplu Düzenleme) */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        padding: '12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Briefcase size={15} style={{ color: 'var(--accent-primary)' }} />
+                                Çalışma Durumu
+                            </label>
+                            {bulkEditFormData.workStatus && (
+                                <span style={{
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    background: bulkEditFormData.workStatus === 'zero' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                    color: bulkEditFormData.workStatus === 'zero' ? '#ef4444' : '#10b981',
+                                    border: `1px solid ${bulkEditFormData.workStatus === 'zero' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
+                                }}>
+                                    {bulkEditFormData.workStatus === 'zero' ? '⛔ 0 Gün / Tatil Olarak Ayarlanacak' : '🟢 1 Gün / Normal Çalışmaya Alınacak'}
+                                </span>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '2px' }}>
+                            <button
+                                type="button"
+                                onClick={() => setBulkEditFormData(prev => ({ ...prev, workStatus: '' }))}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '8px 10px',
+                                    borderRadius: '8px',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    border: bulkEditFormData.workStatus === '' ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                                    background: bulkEditFormData.workStatus === '' ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                    color: bulkEditFormData.workStatus === '' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                Değiştirme (Kalsın)
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setBulkEditFormData(prev => ({
+                                    ...prev,
+                                    workStatus: 'normal',
+                                    hours: prev.hours || '1',
+                                    startTime: prev.startTime || work?.work_start_time || '08:00',
+                                    endTime: prev.endTime || work?.work_end_time || '17:00'
+                                }))}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    padding: '8px 10px',
+                                    borderRadius: '8px',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    border: bulkEditFormData.workStatus === 'normal' ? '2px solid #10b981' : '1px solid var(--border-color)',
+                                    background: bulkEditFormData.workStatus === 'normal' ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-tertiary)',
+                                    color: bulkEditFormData.workStatus === 'normal' ? '#10b981' : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                <CheckCircle2 size={14} />
+                                Normal Çalışma (1 Gün)
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setBulkEditFormData(prev => ({
+                                    ...prev,
+                                    workStatus: 'zero',
+                                    hours: '0',
+                                    overtimeHours: '0',
+                                    startTime: '',
+                                    endTime: '',
+                                    unitPrice: '0'
+                                }))}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    padding: '8px 10px',
+                                    borderRadius: '8px',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    border: bulkEditFormData.workStatus === 'zero' ? '2px solid #ef4444' : '1px solid var(--border-color)',
+                                    background: bulkEditFormData.workStatus === 'zero' ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-tertiary)',
+                                    color: bulkEditFormData.workStatus === 'zero' ? '#ef4444' : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                <AlertCircle size={14} />
+                                Çalışılmadı (0 Gün - 0 TL)
+                            </button>
+                        </div>
+
+                        {bulkEditFormData.workStatus === 'zero' && (
+                            <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Info size={12} />
+                                Seçili tüm kayıtlar 0 gün ve 0 TL yapılarak [TATİL] olarak işaretlenecektir.
+                            </div>
+                        )}
+                        {bulkEditFormData.workStatus === 'normal' && (
+                            <div style={{ fontSize: '11px', color: '#10b981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Info size={12} />
+                                Seçili tüm kayıtların tatil etiketleri kaldırılacak, 1 gün çalışma ve araç standart birim fiyatı atanacaktır.
+                            </div>
+                        )}
                     </div>
 
                     {/* Çalışma Saatleri (Başlangıç - Bitiş) */}
