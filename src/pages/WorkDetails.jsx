@@ -3002,7 +3002,7 @@ export default function WorkDetails(props) {
                                     Toplu Çalışma Durumu, Renk & Katsayı Ayarları
                                 </div>
                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                    Seçili {selectedItems.length} kayıt için durum, katsayı ve renk belirleyin
+                                    Seçili {(selectedIds || []).length} kayıt için durum, katsayı ve renk belirleyin
                                 </div>
                             </div>
                         </div>
@@ -3208,7 +3208,7 @@ export default function WorkDetails(props) {
                             )}
                         </div>
                         <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                            Seçili {selectedItems.length} kaydın çalışma durumunu belirleyin:
+                            Seçili {(selectedIds || []).length} kaydın çalışma durumunu belirleyin:
                         </p>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
