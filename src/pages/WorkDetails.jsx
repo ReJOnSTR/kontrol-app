@@ -80,6 +80,8 @@ export default function WorkDetails(props) {
         unitPrice: '',
         description: '',
         workStatus: '', // '' (Değiştirme), 'normal' (Normal Çalışma 1 Gün), 'zero' (Çalışılmadı 0 Gün - 0 TL)
+        customColor: '', // '' (Değiştirme), 'none' (Kaldır), 'red', 'orange', 'blue', 'green', 'purple'
+        multiplier: '', // '' (Değiştirme), '1' (Kaldır), '1.5', '2', etc.
         _manualHours: false,
         _manualOvertime: false
     })
@@ -482,6 +484,8 @@ export default function WorkDetails(props) {
             unitPrice: '',
             description: '',
             workStatus: '',
+            customColor: '',
+            multiplier: '',
             _manualHours: false,
             _manualOvertime: false
         })
@@ -814,8 +818,8 @@ export default function WorkDetails(props) {
         if (bulkEditFormData.unitPrice !== '') updates.unitPrice = parseFloat(bulkEditFormData.unitPrice)
         if (bulkEditFormData.description !== '') updates.description = bulkEditFormData.description
 
-        if (Object.keys(updates).length === 0 && !bulkEditFormData.workStatus) {
-            setModalError('Lütfen en az bir alanı doldurun veya çalışma durumunu belirleyin.')
+        if (Object.keys(updates).length === 0 && !bulkEditFormData.workStatus && !bulkEditFormData.customColor && !bulkEditFormData.multiplier) {
+            setModalError('Lütfen en az bir alanı doldurun veya bir işlem seçin.')
             return
         }
 
@@ -887,6 +891,22 @@ export default function WorkDetails(props) {
                     } else if (updates.startTime !== undefined || updates.endTime !== undefined) {
                         const autoH = calculateAutoHours(finalStartTime, finalEndTime, itemPricingType);
                         finalOvertime = autoH.overtimeHours;
+                    }
+                }
+
+                // Toplu Gün Rengi Uygulama
+                if (bulkEditFormData.customColor) {
+                    itemDesc = itemDesc.replace(/\[RENK:[^\]]+\]\s*/g, '').trim();
+                    if (bulkEditFormData.customColor !== 'none') {
+                        itemDesc = `[RENK:${bulkEditFormData.customColor}] ` + itemDesc;
+                    }
+                }
+
+                // Toplu Manuel Katsayı Uygulama
+                if (bulkEditFormData.multiplier) {
+                    itemDesc = itemDesc.replace(/\[KATSAYI:[^\]]+\]\s*/g, '').trim();
+                    if (bulkEditFormData.multiplier !== '1' && bulkEditFormData.multiplier !== 'none') {
+                        itemDesc = `[KATSAYI:${bulkEditFormData.multiplier}] ` + itemDesc;
                     }
                 }
 
@@ -2167,57 +2187,109 @@ export default function WorkDetails(props) {
                         </div>
                     </div>
 
-                    {/* Dedicated Sub-Option Buttons */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
-                        <button
-                            type="button"
-                            onClick={() => setIsColorModalOpen(true)}
-                            className="btn btn-secondary"
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '6px',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                padding: '8px 12px',
-                                border: '1px solid var(--border-color)',
-                                background: formData.customColor ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
-                                color: formData.customColor ? 'var(--accent-primary)' : 'var(--text-primary)'
-                            }}
-                        >
-                            <span>Gün Rengi / Etiket</span>
-                            {formData.customColor && (
-                                <span style={{ fontSize: '10px', background: 'var(--accent-primary)', color: '#fff', padding: '1px 6px', borderRadius: '10px' }}>
-                                    {formData.customColor === 'red' ? 'Kırmızı' : formData.customColor === 'orange' ? 'Turuncu' : formData.customColor === 'blue' ? 'Mavi' : formData.customColor === 'green' ? 'Yeşil' : 'Mor'}
-                                </span>
-                            )}
-                        </button>
+                    {/* Özel Ayarlar: Gün Rengi & Manuel Katsayı */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        padding: '12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)'
+                    }}>
+                        {/* Gün Rengi */}
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Tag size={13} style={{ color: 'var(--accent-primary)' }} />
+                                    Gün Rengi / Satır Vurgusu
+                                </label>
+                                {formData.customColor && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setFormData({ ...formData, customColor: '' })}
+                                        style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                                    >
+                                        Temizle
+                                    </button>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {[
+                                    { id: '', label: 'Standart', color: 'var(--border-color)', bg: 'var(--bg-tertiary)' },
+                                    { id: 'red', label: 'Kırmızı (Tatil)', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
+                                    { id: 'orange', label: 'Turuncu (Cumartesi)', color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' },
+                                    { id: 'blue', label: 'Mavi (Gece)', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+                                    { id: 'green', label: 'Yeşil (Özel Saha)', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
+                                    { id: 'purple', label: 'Mor (Özel Durum)', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)' }
+                                ].map(col => {
+                                    const isSelected = (formData.customColor || '') === col.id;
+                                    return (
+                                        <button
+                                            key={col.id}
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, customColor: col.id })}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                padding: '4px 10px',
+                                                borderRadius: '16px',
+                                                fontSize: '11px',
+                                                fontWeight: isSelected ? 700 : 500,
+                                                cursor: 'pointer',
+                                                border: isSelected ? (col.id ? `2px solid ${col.color}` : '2px solid var(--accent-primary)') : '1px solid var(--border-color)',
+                                                background: isSelected ? (col.bg || 'var(--accent-subtle)') : 'var(--bg-tertiary)',
+                                                color: isSelected ? (col.id ? col.color : 'var(--accent-primary)') : 'var(--text-secondary)',
+                                                transition: 'all 0.15s ease'
+                                            }}
+                                        >
+                                            {col.id && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: col.color }} />}
+                                            <span>{col.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
-                        <button
-                            type="button"
-                            onClick={() => setIsMultiplierModalOpen(true)}
-                            className="btn btn-secondary"
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '6px',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                padding: '8px 12px',
-                                border: '1px solid var(--border-color)',
-                                background: (formData.multiplier && formData.multiplier !== '1') ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
-                                color: (formData.multiplier && formData.multiplier !== '1') ? 'var(--accent-primary)' : 'var(--text-primary)'
-                            }}
-                        >
-                            <span>Manuel Katsayı</span>
-                            {(formData.multiplier && formData.multiplier !== '1') && (
-                                <span style={{ fontSize: '10px', background: 'var(--accent-primary)', color: '#fff', padding: '1px 6px', borderRadius: '10px' }}>
-                                    {formData.multiplier}x
-                                </span>
-                            )}
-                        </button>
+                        {/* Manuel Katsayı */}
+                        <div>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                                <Layers size={13} style={{ color: 'var(--accent-primary)' }} />
+                                Manuel Katsayı (Birim Fiyat Çarpanı)
+                            </label>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                                {[
+                                    { id: '1', label: '1x (Standart)' },
+                                    { id: '1.5', label: '1.5x (Mesaili / Pazar)' },
+                                    { id: '2', label: '2x (Çift Mesai)' },
+                                    { id: '2.5', label: '2.5x' },
+                                    { id: '3', label: '3x' }
+                                ].map(mult => {
+                                    const isSelected = String(formData.multiplier || '1') === mult.id;
+                                    return (
+                                        <button
+                                            key={mult.id}
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, multiplier: mult.id })}
+                                            style={{
+                                                padding: '4px 12px',
+                                                borderRadius: '16px',
+                                                fontSize: '11px',
+                                                fontWeight: isSelected ? 700 : 500,
+                                                cursor: 'pointer',
+                                                border: isSelected ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                                                background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                                color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                transition: 'all 0.15s ease'
+                                            }}
+                                        >
+                                            {mult.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
 
                     <CustomInput
@@ -2973,6 +3045,124 @@ export default function WorkDetails(props) {
                             value={bulkEditFormData.unitPrice}
                             onChange={(val) => setBulkEditFormData({ ...bulkEditFormData, unitPrice: val })}
                         />
+                    </div>
+
+                    {/* Özel Ayarlar: Gün Rengi & Manuel Katsayı (Toplu) */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        padding: '12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)'
+                    }}>
+                        {/* Gün Rengi (Toplu) */}
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Tag size={13} style={{ color: 'var(--accent-primary)' }} />
+                                    Gün Rengi / Satır Vurgusu (Toplu)
+                                </label>
+                                {bulkEditFormData.customColor && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setBulkEditFormData(prev => ({ ...prev, customColor: '' }))}
+                                        style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                                    >
+                                        Vazgeç (Kalsın)
+                                    </button>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {[
+                                    { id: '', label: 'Değiştirme (Kalsın)' },
+                                    { id: 'none', label: 'Rengi Kaldır (Standart)' },
+                                    { id: 'red', label: 'Kırmızı', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
+                                    { id: 'orange', label: 'Turuncu', color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' },
+                                    { id: 'blue', label: 'Mavi', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+                                    { id: 'green', label: 'Yeşil', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
+                                    { id: 'purple', label: 'Mor', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)' }
+                                ].map(col => {
+                                    const isSelected = (bulkEditFormData.customColor || '') === col.id;
+                                    return (
+                                        <button
+                                            key={col.id}
+                                            type="button"
+                                            onClick={() => setBulkEditFormData(prev => ({ ...prev, customColor: col.id }))}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                padding: '4px 10px',
+                                                borderRadius: '16px',
+                                                fontSize: '11px',
+                                                fontWeight: isSelected ? 700 : 500,
+                                                cursor: 'pointer',
+                                                border: isSelected ? (col.color ? `2px solid ${col.color}` : '2px solid var(--accent-primary)') : '1px solid var(--border-color)',
+                                                background: isSelected ? (col.bg || 'var(--accent-subtle)') : 'var(--bg-tertiary)',
+                                                color: isSelected ? (col.color || 'var(--accent-primary)') : 'var(--text-secondary)',
+                                                transition: 'all 0.15s ease'
+                                            }}
+                                        >
+                                            {col.color && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: col.color }} />}
+                                            <span>{col.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Manuel Katsayı (Toplu) */}
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Layers size={13} style={{ color: 'var(--accent-primary)' }} />
+                                    Manuel Katsayı / Çarpan (Toplu)
+                                </label>
+                                {bulkEditFormData.multiplier && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setBulkEditFormData(prev => ({ ...prev, multiplier: '' }))}
+                                        style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                                    >
+                                        Vazgeç (Kalsın)
+                                    </button>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                                {[
+                                    { id: '', label: 'Değiştirme (Kalsın)' },
+                                    { id: '1', label: '1x (Standart / Kaldır)' },
+                                    { id: '1.5', label: '1.5x (Mesaili / Pazar)' },
+                                    { id: '2', label: '2x (Çift Mesai)' },
+                                    { id: '2.5', label: '2.5x' },
+                                    { id: '3', label: '3x' }
+                                ].map(mult => {
+                                    const isSelected = (bulkEditFormData.multiplier || '') === mult.id;
+                                    return (
+                                        <button
+                                            key={mult.id}
+                                            type="button"
+                                            onClick={() => setBulkEditFormData(prev => ({ ...prev, multiplier: mult.id }))}
+                                            style={{
+                                                padding: '4px 12px',
+                                                borderRadius: '16px',
+                                                fontSize: '11px',
+                                                fontWeight: isSelected ? 700 : 500,
+                                                cursor: 'pointer',
+                                                border: isSelected ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                                                background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                                color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                transition: 'all 0.15s ease'
+                                            }}
+                                        >
+                                            {mult.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Ek Ödemeler (Disabled representation) */}
