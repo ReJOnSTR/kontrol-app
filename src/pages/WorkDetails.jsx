@@ -6,7 +6,7 @@ import DataTable from '../components/DataTable'
 import CustomSelect from '../components/CustomSelect'
 import CustomInput from '../components/CustomInput'
 import ConfirmModal from '../components/ConfirmModal'
-import { ArrowLeft, Plus, Pencil, Trash2, Calendar, Clock, Truck, User, DollarSign, FileText, Printer, Download, FileDown, Settings, Wallet, ChevronDown, Save, Briefcase, CheckCircle2, AlertCircle, Info, Tag, Layers, RotateCcw, Sliders, ChevronRight, Check } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Calendar, Clock, Truck, User, DollarSign, FileText, Printer, Download, FileDown, Settings, Wallet, ChevronDown, Save, Briefcase, CheckCircle2, AlertCircle, Info, Tag, Layers, RotateCcw, Sliders, ChevronRight, Check, X } from 'lucide-react'
 import { formatDate, formatCurrency, safeSetLocalStorage, generateUniqueFileName } from '../utils/helpers'
 import { calculateWorkStats } from '../utils/workCalculations'
 import { workItemSchema } from '../schemas/workSchema'
@@ -1896,6 +1896,54 @@ export default function WorkDetails(props) {
                                 </span>
                             )}
 
+                            {(Number(formData.hours) === 0 || (formData.multiplier && formData.multiplier !== '1') || formData.customColor) && (
+                                <button
+                                    type="button"
+                                    title="Tüm gün ayarlarını varsayılana sıfırla"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const stdPrice = getVehicleStandardPrice(formData.vehicleId);
+                                        const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
+                                            ? formData._savedUnitPrice
+                                            : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            startTime: prev.startTime || work?.work_start_time || '08:00',
+                                            endTime: prev.endTime || work?.work_end_time || '17:00',
+                                            hours: 1,
+                                            overtimeHours: 0,
+                                            unitPrice: restoredPrice,
+                                            multiplier: '1',
+                                            customColor: '',
+                                            _savedUnitPrice: undefined,
+                                            description: (prev.description || '')
+                                                .replace(/\[TATİL\]\s*/gi, '')
+                                                .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                                .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                                .trim(),
+                                            _manualHours: false,
+                                            _manualOvertime: false
+                                        }));
+                                    }}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        color: '#ef4444',
+                                        background: 'rgba(239, 68, 68, 0.12)',
+                                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                                        padding: '3px 7px',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <X size={12} />
+                                    <span>Sıfırla</span>
+                                </button>
+                            )}
+
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -2202,333 +2250,528 @@ export default function WorkDetails(props) {
                 </form>
             </Modal>
 
-            {/* Özel Ayarlar Penceresi: Çalışma Durumu, Gün Rengi & Manuel Katsayı */}
-            <Modal
-                isOpen={isDaySettingsModalOpen}
-                onClose={() => setIsDaySettingsModalOpen(false)}
-                title="Çalışma Durumu & Özel Gün Ayarları"
-                size="md"
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {/* 1. Bölüm: Çalışma Durumu */}
-                    <div style={{
+            {/* Özel Ayarlar Penceresi: Çalışma Durumu, Gün Rengi & Manuel Katsayı (Floating Window) */}
+            {isDaySettingsModalOpen && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 1200,
+                        background: 'rgba(0, 0, 0, 0.45)',
+                        backdropFilter: 'blur(3px)',
                         display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        padding: '12px',
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-md)'
-                    }}>
-                        <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Briefcase size={15} style={{ color: 'var(--accent-primary)' }} />
-                            1. Çalışma Durumu (Puantaj & Gün Hesabı)
-                        </label>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                            Bu günün puantaj kaydında çalışılmış (1 gün) veya tatil/çalışılmadı (0 gün) sayılacağını belirleyin:
-                        </p>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '4px' }}>
-                            {/* 🟢 Normal Çalışma */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const stdPrice = getVehicleStandardPrice(formData.vehicleId);
-                                    const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
-                                        ? formData._savedUnitPrice
-                                        : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        startTime: prev.startTime || work?.work_start_time || '08:00',
-                                        endTime: prev.endTime || work?.work_end_time || '17:00',
-                                        hours: 1,
-                                        overtimeHours: 0,
-                                        unitPrice: restoredPrice,
-                                        _savedUnitPrice: undefined,
-                                        description: (prev.description || '')
-                                            .replace(/\[TATİL\]\s*/gi, '')
-                                            .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
-                                            .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
-                                            .trim(),
-                                        _manualHours: false,
-                                        _manualOvertime: false
-                                    }));
-                                }}
-                                style={{
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '16px'
+                    }}
+                    onClick={() => setIsDaySettingsModalOpen(false)}
+                >
+                    <div
+                        style={{
+                            width: '100%',
+                            maxWidth: '560px',
+                            background: 'var(--bg-primary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '16px',
+                            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Pencere Başlık Barı (Window Header & Ekstra Çarpı X Butonu) */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '14px 18px',
+                            borderBottom: '1px solid var(--border-color)',
+                            background: 'var(--bg-secondary)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{
+                                    width: '34px',
+                                    height: '34px',
+                                    borderRadius: '10px',
+                                    background: 'var(--accent-subtle)',
+                                    color: 'var(--accent-primary)',
                                     display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'flex-start',
-                                    padding: '10px 12px',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: Number(formData.hours) > 0 ? '2px solid #10b981' : '1px solid var(--border-color)',
-                                    background: Number(formData.hours) > 0 ? 'rgba(16, 185, 129, 0.12)' : 'var(--bg-tertiary)',
-                                    cursor: 'pointer',
-                                    textAlign: 'left',
-                                    transition: 'all 0.15s ease'
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '13px', color: Number(formData.hours) > 0 ? '#10b981' : 'var(--text-primary)' }}>
-                                    <CheckCircle2 size={16} />
-                                    Normal Çalışma (1 Gün)
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '1px solid var(--border-color)'
+                                }}>
+                                    <Sliders size={18} />
                                 </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                    Standart saatler ve araç birim fiyatı geçerli olur.
+                                <div>
+                                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                        Çalışma Durumu & Gün Ayarları
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                        Puantaj, birim katsayısı ve görsel satır rengi
+                                    </div>
                                 </div>
-                            </button>
-
-                            {/* ⛔ Çalışılmadı / Tatil */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        _savedUnitPrice: prev.unitPrice && parseFloat(prev.unitPrice) > 0 ? prev.unitPrice : prev._savedUnitPrice,
-                                        startTime: '',
-                                        endTime: '',
-                                        hours: 0,
-                                        overtimeHours: 0,
-                                        unitPrice: 0,
-                                        _manualHours: true,
-                                        _manualOvertime: true,
-                                        description: (prev.description || '').includes('TATİL') || (prev.description || '').includes('ÇALIŞILMADI') || (prev.description || '').includes('PAZAR TATİLİ')
-                                            ? prev.description 
-                                            : `[TATİL] ${prev.description || ''}`.trim()
-                                    }));
-                                }}
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'flex-start',
-                                    padding: '10px 12px',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: Number(formData.hours) === 0 ? '2px solid #ef4444' : '1px solid var(--border-color)',
-                                    background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.12)' : 'var(--bg-tertiary)',
-                                    cursor: 'pointer',
-                                    textAlign: 'left',
-                                    transition: 'all 0.15s ease'
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '13px', color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--text-primary)' }}>
-                                    <AlertCircle size={16} />
-                                    Çalışılmadı / Tatil (0 Gün)
-                                </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                    Puantajda 0 gün ve 0 TL yazılır, [TATİL] eklenir.
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 2. Bölüm: Manuel Katsayı */}
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        padding: '12px',
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-md)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Layers size={15} style={{ color: 'var(--accent-primary)' }} />
-                                2. Manuel Katsayı (Birim Fiyat Çarpanı)
-                            </label>
-                            {formData.multiplier && formData.multiplier !== '1' && (
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, multiplier: '1' }))}
-                                    style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                                >
-                                    Standarta Sıfırla (1x)
-                                </button>
-                            )}
-                        </div>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                            Normal birim fiyat üzerine uygulanacak çarpan oranını seçin:
-                        </p>
-
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }}>
-                            {[
-                                { id: '1', label: '1x (Standart)' },
-                                { id: '1.25', label: '1.25x (%25 Zammı)' },
-                                { id: '1.5', label: '1.5x (Mesaili / Pazar)' },
-                                { id: '2', label: '2x (Çift Mesai / Bayram)' },
-                                { id: '2.5', label: '2.5x' },
-                                { id: '3', label: '3x' }
-                            ].map(mult => {
-                                const isSelected = String(formData.multiplier || '1') === mult.id;
-                                return (
-                                    <button
-                                        key={mult.id}
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, multiplier: mult.id }))}
-                                        style={{
-                                            padding: '6px 12px',
-                                            borderRadius: '16px',
-                                            fontSize: '12px',
-                                            fontWeight: isSelected ? 700 : 500,
-                                            cursor: 'pointer',
-                                            border: isSelected ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                                            background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
-                                            color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                            transition: 'all 0.15s ease'
-                                        }}
-                                    >
-                                        {mult.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Custom Multiplier Input */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Farklı Katsayı:</span>
-                            <div style={{ width: '90px' }}>
-                                <CustomInput
-                                    type="number"
-                                    step="0.05"
-                                    min="0.1"
-                                    max="10"
-                                    value={formData.multiplier || '1'}
-                                    onChange={(val) => setFormData(prev => ({ ...prev, multiplier: val }))}
-                                    className="mb-0"
-                                />
                             </div>
-                            {parseFloat(formData.multiplier) > 0 && parseFloat(formData.multiplier) !== 1 && (
-                                <span style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
-                                    Etkili Birim: {formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * parseFloat(formData.multiplier)))}
-                                </span>
-                            )}
-                        </div>
-                    </div>
 
-                    {/* 3. Bölüm: Gün Rengi / Satır Vurgusu */}
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        padding: '12px',
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-md)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Tag size={15} style={{ color: 'var(--accent-primary)' }} />
-                                3. Gün Rengi (Tablo & PDF Satır Vurgusu)
-                            </label>
-                            {formData.customColor && (
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, customColor: '' }))}
-                                    style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                                >
-                                    Rengi Kaldır (Standart)
-                                </button>
-                            )}
+                            {/* Pencere Ekstra Çarpı (X) Kapat Butonu */}
+                            <button
+                                type="button"
+                                onClick={() => setIsDaySettingsModalOpen(false)}
+                                title="Pencereyi Kapat (X)"
+                                style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border-color)',
+                                    background: 'var(--bg-tertiary)',
+                                    color: 'var(--text-secondary)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                                    e.currentTarget.style.color = '#ef4444';
+                                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'var(--bg-tertiary)';
+                                    e.currentTarget.style.color = 'var(--text-secondary)';
+                                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                                }}
+                            >
+                                <X size={18} />
+                            </button>
                         </div>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                            Tabloda ve raporda bu günün satırına uygulanacak rengi seçin:
-                        </p>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
-                            {WORK_COLOR_OPTIONS.map(col => {
-                                const isSelected = (formData.customColor || '') === col.id;
-                                return (
+                        {/* Pencere İçeriği (Scrollable Body) */}
+                        <div style={{
+                            padding: '16px 18px',
+                            maxHeight: 'calc(85vh - 130px)',
+                            overflowY: 'auto',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '14px'
+                        }}>
+                            {/* 1. Bölüm: Çalışma Durumu */}
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                padding: '12px',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Briefcase size={15} style={{ color: 'var(--accent-primary)' }} />
+                                        1. Çalışma Durumu (Puantaj & Gün Hesabı)
+                                    </label>
+                                    {Number(formData.hours) === 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const stdPrice = getVehicleStandardPrice(formData.vehicleId);
+                                                const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
+                                                    ? formData._savedUnitPrice
+                                                    : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    startTime: prev.startTime || work?.work_start_time || '08:00',
+                                                    endTime: prev.endTime || work?.work_end_time || '17:00',
+                                                    hours: 1,
+                                                    overtimeHours: 0,
+                                                    unitPrice: restoredPrice,
+                                                    _savedUnitPrice: undefined,
+                                                    description: (prev.description || '')
+                                                        .replace(/\[TATİL\]\s*/gi, '')
+                                                        .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                                        .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                                        .trim(),
+                                                    _manualHours: false,
+                                                    _manualOvertime: false
+                                                }));
+                                            }}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '3px',
+                                                fontSize: '11px',
+                                                color: '#ef4444',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            <X size={12} /> Normale Sıfırla (1 Gün)
+                                        </button>
+                                    )}
+                                </div>
+                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                                    Bu günün puantaj kaydında çalışılmış (1 gün) veya tatil/çalışılmadı (0 gün) sayılacağını belirleyin:
+                                </p>
+                                
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '4px' }}>
+                                    {/* 🟢 Normal Çalışma */}
                                     <button
-                                        key={col.id}
                                         type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, customColor: col.id }))}
+                                        onClick={() => {
+                                            const stdPrice = getVehicleStandardPrice(formData.vehicleId);
+                                            const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
+                                                ? formData._savedUnitPrice
+                                                : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                startTime: prev.startTime || work?.work_start_time || '08:00',
+                                                endTime: prev.endTime || work?.work_end_time || '17:00',
+                                                hours: 1,
+                                                overtimeHours: 0,
+                                                unitPrice: restoredPrice,
+                                                _savedUnitPrice: undefined,
+                                                description: (prev.description || '')
+                                                    .replace(/\[TATİL\]\s*/gi, '')
+                                                    .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                                    .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                                    .trim(),
+                                                _manualHours: false,
+                                                _manualOvertime: false
+                                            }));
+                                        }}
                                         style={{
                                             display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            padding: '8px 10px',
-                                            borderRadius: 'var(--radius-sm)',
-                                            border: isSelected ? (col.id ? `2px solid ${col.color}` : '2px solid var(--accent-primary)') : '1px solid var(--border-color)',
-                                            background: isSelected ? (col.bg || 'var(--accent-subtle)') : 'var(--bg-tertiary)',
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-start',
+                                            padding: '10px 12px',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: Number(formData.hours) > 0 ? '2px solid #10b981' : '1px solid var(--border-color)',
+                                            background: Number(formData.hours) > 0 ? 'rgba(16, 185, 129, 0.12)' : 'var(--bg-tertiary)',
                                             cursor: 'pointer',
                                             textAlign: 'left',
                                             transition: 'all 0.15s ease'
                                         }}
                                     >
-                                        {col.id ? (
-                                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: col.color, flexShrink: 0 }} />
-                                        ) : (
-                                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px dashed var(--text-muted)', flexShrink: 0 }} />
-                                        )}
-                                        <div>
-                                            <div style={{ fontSize: '12px', fontWeight: isSelected ? 700 : 600, color: isSelected ? (col.id ? col.color : 'var(--accent-primary)') : 'var(--text-primary)' }}>
-                                                {col.label}
-                                            </div>
-                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{col.desc}</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '13px', color: Number(formData.hours) > 0 ? '#10b981' : 'var(--text-primary)' }}>
+                                            <CheckCircle2 size={16} />
+                                            Normal Çalışma (1 Gün)
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                            Standart saatler ve araç birim fiyatı geçerli olur.
                                         </div>
                                     </button>
-                                );
-                            })}
-                        </div>
-                    </div>
 
-                    {/* 4. Bölüm: Canlı Tablo Önizlemesi */}
-                    <div style={{
-                        padding: '10px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--border-color)',
-                        background: formData.customColor === 'red' ? 'rgba(239, 68, 68, 0.1)'
-                            : formData.customColor === 'orange' ? 'rgba(249, 115, 22, 0.1)'
-                            : formData.customColor === 'blue' ? 'rgba(59, 130, 246, 0.1)'
-                            : formData.customColor === 'green' ? 'rgba(16, 185, 129, 0.1)'
-                            : formData.customColor === 'purple' ? 'rgba(168, 85, 247, 0.1)'
-                            : 'var(--bg-tertiary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '12px'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Tablo Görünümü:</span>
-                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.date || 'Seçili Tarih'}</span>
-                            <span style={{
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                padding: '2px 6px',
-                                borderRadius: '8px',
-                                background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                                color: Number(formData.hours) === 0 ? '#ef4444' : '#10b981'
+                                    {/* ⛔ Çalışılmadı / Tatil */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                _savedUnitPrice: prev.unitPrice && parseFloat(prev.unitPrice) > 0 ? prev.unitPrice : prev._savedUnitPrice,
+                                                startTime: '',
+                                                endTime: '',
+                                                hours: 0,
+                                                overtimeHours: 0,
+                                                unitPrice: 0,
+                                                _manualHours: true,
+                                                _manualOvertime: true,
+                                                description: (prev.description || '').includes('TATİL') || (prev.description || '').includes('ÇALIŞILMADI') || (prev.description || '').includes('PAZAR TATİLİ')
+                                                    ? prev.description 
+                                                    : `[TATİL] ${prev.description || ''}`.trim()
+                                            }));
+                                        }}
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-start',
+                                            padding: '10px 12px',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: Number(formData.hours) === 0 ? '2px solid #ef4444' : '1px solid var(--border-color)',
+                                            background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.12)' : 'var(--bg-tertiary)',
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '13px', color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--text-primary)' }}>
+                                            <AlertCircle size={16} />
+                                            Çalışılmadı / Tatil (0 Gün)
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                            Puantajda 0 gün ve 0 TL yazılır, [TATİL] eklenir.
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 2. Bölüm: Manuel Katsayı */}
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                padding: '12px',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)'
                             }}>
-                                {Number(formData.hours) === 0 ? '0 Gün (Tatil)' : '1 Gün'}
-                            </span>
-                            {formData.multiplier && formData.multiplier !== '1' && (
-                                <span style={{
-                                    fontSize: '10px',
-                                    fontWeight: 700,
-                                    padding: '2px 6px',
-                                    borderRadius: '8px',
-                                    background: 'rgba(59, 130, 246, 0.2)',
-                                    color: '#3b82f6'
-                                }}>
-                                    {formData.multiplier}x
-                                </span>
-                            )}
-                        </div>
-                        <div style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>
-                            {Number(formData.hours) === 0 ? '0,00 ₺' : formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * (parseFloat(formData.multiplier) || 1)))}
-                        </div>
-                    </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Layers size={15} style={{ color: 'var(--accent-primary)' }} />
+                                        2. Manuel Katsayı (Birim Fiyat Çarpanı)
+                                    </label>
+                                    {formData.multiplier && formData.multiplier !== '1' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, multiplier: '1' }))}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '3px',
+                                                fontSize: '11px',
+                                                color: '#ef4444',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            <X size={12} /> Katsayıyı Sıfırla (1x)
+                                        </button>
+                                    )}
+                                </div>
+                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                                    Normal birim fiyat üzerine uygulanacak çarpan oranını seçin:
+                                </p>
 
-                    <div className="modal-footer" style={{ marginTop: '4px', padding: 0 }}>
-                        <button
-                            type="button"
-                            onClick={() => setIsDaySettingsModalOpen(false)}
-                            className="btn btn-primary"
-                            style={{ width: '100%', height: '42px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                        >
-                            <Check size={16} /> Ayarları Uygula ve Kapat
-                        </button>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }}>
+                                    {[
+                                        { id: '1', label: '1x (Standart)' },
+                                        { id: '1.25', label: '1.25x (%25 Zammı)' },
+                                        { id: '1.5', label: '1.5x (Mesaili / Pazar)' },
+                                        { id: '2', label: '2x (Çift Mesai / Bayram)' },
+                                        { id: '2.5', label: '2.5x' },
+                                        { id: '3', label: '3x' }
+                                    ].map(mult => {
+                                        const isSelected = String(formData.multiplier || '1') === mult.id;
+                                        return (
+                                            <button
+                                                key={mult.id}
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, multiplier: mult.id }))}
+                                                style={{
+                                                    padding: '6px 12px',
+                                                    borderRadius: '16px',
+                                                    fontSize: '12px',
+                                                    fontWeight: isSelected ? 700 : 500,
+                                                    cursor: 'pointer',
+                                                    border: isSelected ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                                                    background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                                    color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {mult.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Farklı Katsayı Alanı */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Farklı Katsayı:</span>
+                                    <div style={{ width: '90px' }}>
+                                        <CustomInput
+                                            type="number"
+                                            step="0.05"
+                                            min="0.1"
+                                            max="10"
+                                            value={formData.multiplier || '1'}
+                                            onChange={(val) => setFormData(prev => ({ ...prev, multiplier: val }))}
+                                            className="mb-0"
+                                        />
+                                    </div>
+                                    {parseFloat(formData.multiplier) > 0 && parseFloat(formData.multiplier) !== 1 && (
+                                        <span style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                            Etkili Birim: {formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * parseFloat(formData.multiplier)))}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 3. Bölüm: Gün Rengi / Satır Vurgusu */}
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                padding: '12px',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Tag size={15} style={{ color: 'var(--accent-primary)' }} />
+                                        3. Gün Rengi (Tablo & PDF Satır Vurgusu)
+                                    </label>
+                                    {formData.customColor && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, customColor: '' }))}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '3px',
+                                                fontSize: '11px',
+                                                color: '#ef4444',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            <X size={12} /> Rengi Temizle (Standart)
+                                        </button>
+                                    )}
+                                </div>
+                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                                    Tabloda ve raporda bu günün satırına uygulanacak rengi seçin:
+                                </p>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
+                                    {WORK_COLOR_OPTIONS.map(col => {
+                                        const isSelected = (formData.customColor || '') === col.id;
+                                        return (
+                                            <button
+                                                key={col.id}
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, customColor: col.id }))}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    padding: '8px 10px',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    border: isSelected ? (col.id ? `2px solid ${col.color}` : '2px solid var(--accent-primary)') : '1px solid var(--border-color)',
+                                                    background: isSelected ? (col.bg || 'var(--accent-subtle)') : 'var(--bg-tertiary)',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {col.id ? (
+                                                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: col.color, flexShrink: 0 }} />
+                                                ) : (
+                                                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px dashed var(--text-muted)', flexShrink: 0 }} />
+                                                )}
+                                                <div>
+                                                    <div style={{ fontSize: '12px', fontWeight: isSelected ? 700 : 600, color: isSelected ? (col.id ? col.color : 'var(--accent-primary)') : 'var(--text-primary)' }}>
+                                                        {col.label}
+                                                    </div>
+                                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{col.desc}</div>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* 4. Bölüm: Canlı Tablo Önizlemesi */}
+                            <div style={{
+                                padding: '10px 14px',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid var(--border-color)',
+                                background: formData.customColor === 'red' ? 'rgba(239, 68, 68, 0.1)'
+                                    : formData.customColor === 'orange' ? 'rgba(249, 115, 22, 0.1)'
+                                    : formData.customColor === 'blue' ? 'rgba(59, 130, 246, 0.1)'
+                                    : formData.customColor === 'green' ? 'rgba(16, 185, 129, 0.1)'
+                                    : formData.customColor === 'purple' ? 'rgba(168, 85, 247, 0.1)'
+                                    : 'var(--bg-tertiary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '12px'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Tablo Görünümü:</span>
+                                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formData.date || 'Seçili Tarih'}</span>
+                                    <span style={{
+                                        fontSize: '10px',
+                                        fontWeight: 700,
+                                        padding: '2px 6px',
+                                        borderRadius: '8px',
+                                        background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                                        color: Number(formData.hours) === 0 ? '#ef4444' : '#10b981'
+                                    }}>
+                                        {Number(formData.hours) === 0 ? '0 Gün (Tatil)' : '1 Gün'}
+                                    </span>
+                                    {formData.multiplier && formData.multiplier !== '1' && (
+                                        <span style={{
+                                            fontSize: '10px',
+                                            fontWeight: 700,
+                                            padding: '2px 6px',
+                                            borderRadius: '8px',
+                                            background: 'rgba(59, 130, 246, 0.2)',
+                                            color: '#3b82f6'
+                                        }}>
+                                            {formData.multiplier}x
+                                        </span>
+                                    )}
+                                </div>
+                                <div style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>
+                                    {Number(formData.hours) === 0 ? '0,00 ₺' : formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * (parseFloat(formData.multiplier) || 1)))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Pencere Alt Butonları (Vazgeç & Uygula) */}
+                        <div style={{
+                            padding: '12px 18px',
+                            background: 'var(--bg-secondary)',
+                            borderTop: '1px solid var(--border-color)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setIsDaySettingsModalOpen(false)}
+                                className="btn btn-secondary"
+                                style={{
+                                    height: '38px',
+                                    padding: '0 16px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontSize: '13px',
+                                    fontWeight: 600
+                                }}
+                            >
+                                <X size={15} /> Kapat
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setIsDaySettingsModalOpen(false)}
+                                className="btn btn-primary"
+                                style={{
+                                    height: '38px',
+                                    padding: '0 20px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontSize: '13px',
+                                    fontWeight: 700
+                                }}
+                            >
+                                <Check size={16} /> Ayarları Uygula
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </Modal>
+            )}
 
             {/* Bulk Add Modal */}
             <Modal
@@ -3060,6 +3303,38 @@ export default function WorkDetails(props) {
                                 </span>
                             ) : null}
 
+                            {(bulkEditFormData.workStatus || bulkEditFormData.multiplier || bulkEditFormData.customColor) && (
+                                <button
+                                    type="button"
+                                    title="Toplu gün ayarlarını temizle (Değiştirilmesin)"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setBulkEditFormData(prev => ({
+                                            ...prev,
+                                            workStatus: '',
+                                            multiplier: '',
+                                            customColor: ''
+                                        }));
+                                    }}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        color: '#ef4444',
+                                        background: 'rgba(239, 68, 68, 0.12)',
+                                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                                        padding: '3px 7px',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <X size={12} />
+                                    <span>Temizle</span>
+                                </button>
+                            )}
+
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -3174,265 +3449,428 @@ export default function WorkDetails(props) {
                 </form>
             </Modal>
 
-            {/* Toplu Özel Ayarlar Penceresi: Çalışma Durumu, Gün Rengi & Manuel Katsayı */}
-            <Modal
-                isOpen={isBulkDaySettingsModalOpen}
-                onClose={() => setIsBulkDaySettingsModalOpen(false)}
-                title="Toplu Çalışma Durumu, Renk & Katsayı Ayarları"
-                size="md"
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {/* 1. Bölüm: Toplu Çalışma Durumu */}
-                    <div style={{
+            {/* Toplu Özel Ayarlar Penceresi: Çalışma Durumu, Gün Rengi & Manuel Katsayı (Floating Window) */}
+            {isBulkDaySettingsModalOpen && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 1200,
+                        background: 'rgba(0, 0, 0, 0.45)',
+                        backdropFilter: 'blur(3px)',
                         display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        padding: '12px',
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-md)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Briefcase size={15} style={{ color: 'var(--accent-primary)' }} />
-                                1. Toplu Çalışma Durumu
-                            </label>
-                            {bulkEditFormData.workStatus && (
-                                <button
-                                    type="button"
-                                    onClick={() => setBulkEditFormData(prev => ({ ...prev, workStatus: '' }))}
-                                    style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                                >
-                                    Değiştirme (Kalsın)
-                                </button>
-                            )}
-                        </div>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                            Seçili {(selectedIds || []).length} kaydın çalışma durumunu belirleyin:
-                        </p>
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '16px'
+                    }}
+                    onClick={() => setIsBulkDaySettingsModalOpen(false)}
+                >
+                    <div
+                        style={{
+                            width: '100%',
+                            maxWidth: '560px',
+                            background: 'var(--bg-primary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '16px',
+                            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Pencere Başlık Barı (Window Header & Ekstra Çarpı X Butonu) */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '14px 18px',
+                            borderBottom: '1px solid var(--border-color)',
+                            background: 'var(--bg-secondary)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{
+                                    width: '34px',
+                                    height: '34px',
+                                    borderRadius: '10px',
+                                    background: 'var(--accent-subtle)',
+                                    color: 'var(--accent-primary)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '1px solid var(--border-color)'
+                                }}>
+                                    <Sliders size={18} />
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                        Toplu Gün Ayarları Penceresi
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                        Seçili {(selectedIds || []).length} kayıt için durum, katsayı ve renk belirleyin
+                                    </div>
+                                </div>
+                            </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
+                            {/* Pencere Ekstra Çarpı (X) Kapat Butonu */}
                             <button
                                 type="button"
-                                onClick={() => setBulkEditFormData(prev => ({ ...prev, workStatus: '' }))}
+                                onClick={() => setIsBulkDaySettingsModalOpen(false)}
+                                title="Pencereyi Kapat (X)"
                                 style={{
-                                    padding: '8px 10px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    fontSize: '12px',
-                                    fontWeight: bulkEditFormData.workStatus === '' ? 700 : 500,
-                                    border: bulkEditFormData.workStatus === '' ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                                    background: bulkEditFormData.workStatus === '' ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
-                                    color: bulkEditFormData.workStatus === '' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border-color)',
+                                    background: 'var(--bg-tertiary)',
+                                    color: 'var(--text-secondary)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                     cursor: 'pointer',
                                     transition: 'all 0.15s ease'
                                 }}
-                            >
-                                ⚪ Değiştirme (Kalsın)
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setBulkEditFormData(prev => ({
-                                    ...prev,
-                                    workStatus: 'normal',
-                                    hours: prev.hours || '1',
-                                    startTime: prev.startTime || work?.work_start_time || '08:00',
-                                    endTime: prev.endTime || work?.work_end_time || '17:00'
-                                }))}
-                                style={{
-                                    padding: '8px 10px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    fontSize: '12px',
-                                    fontWeight: bulkEditFormData.workStatus === 'normal' ? 700 : 500,
-                                    border: bulkEditFormData.workStatus === 'normal' ? '2px solid #10b981' : '1px solid var(--border-color)',
-                                    background: bulkEditFormData.workStatus === 'normal' ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-tertiary)',
-                                    color: bulkEditFormData.workStatus === 'normal' ? '#10b981' : 'var(--text-secondary)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease'
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                                    e.currentTarget.style.color = '#ef4444';
+                                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'var(--bg-tertiary)';
+                                    e.currentTarget.style.color = 'var(--text-secondary)';
+                                    e.currentTarget.style.borderColor = 'var(--border-color)';
                                 }}
                             >
-                                🟢 Normal (1 Gün)
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setBulkEditFormData(prev => ({
-                                    ...prev,
-                                    workStatus: 'zero',
-                                    hours: '0',
-                                    overtimeHours: '0',
-                                    startTime: '',
-                                    endTime: '',
-                                    unitPrice: '0'
-                                }))}
-                                style={{
-                                    padding: '8px 10px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    fontSize: '12px',
-                                    fontWeight: bulkEditFormData.workStatus === 'zero' ? 700 : 500,
-                                    border: bulkEditFormData.workStatus === 'zero' ? '2px solid #ef4444' : '1px solid var(--border-color)',
-                                    background: bulkEditFormData.workStatus === 'zero' ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-tertiary)',
-                                    color: bulkEditFormData.workStatus === 'zero' ? '#ef4444' : 'var(--text-secondary)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease'
-                                }}
-                            >
-                                ⛔ Tatil (0 Gün - 0 TL)
+                                <X size={18} />
                             </button>
                         </div>
-                    </div>
 
-                    {/* 2. Bölüm: Toplu Manuel Katsayı */}
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        padding: '12px',
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-md)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Layers size={15} style={{ color: 'var(--accent-primary)' }} />
-                                2. Toplu Manuel Katsayı (Çarpan)
-                            </label>
-                            {bulkEditFormData.multiplier && (
-                                <button
-                                    type="button"
-                                    onClick={() => setBulkEditFormData(prev => ({ ...prev, multiplier: '' }))}
-                                    style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                                >
-                                    Değiştirme (Kalsın)
-                                </button>
-                            )}
-                        </div>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                            Seçili kayıtlara uygulanacak çarpan oranı:
-                        </p>
+                        {/* Pencere İçeriği (Scrollable Body) */}
+                        <div style={{
+                            padding: '16px 18px',
+                            maxHeight: 'calc(85vh - 130px)',
+                            overflowY: 'auto',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '14px'
+                        }}>
+                            {/* 1. Bölüm: Toplu Çalışma Durumu */}
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                padding: '12px',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Briefcase size={15} style={{ color: 'var(--accent-primary)' }} />
+                                        1. Toplu Çalışma Durumu
+                                    </label>
+                                    {bulkEditFormData.workStatus && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setBulkEditFormData(prev => ({ ...prev, workStatus: '' }))}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '3px',
+                                                fontSize: '11px',
+                                                color: '#ef4444',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            <X size={12} /> Değiştirme (Kalsın)
+                                        </button>
+                                    )}
+                                </div>
+                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                                    Seçili {(selectedIds || []).length} kaydın çalışma durumunu belirleyin:
+                                </p>
 
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }}>
-                            {[
-                                { id: '', label: 'Değiştirme (Kalsın)' },
-                                { id: '1', label: '1x (Standart / Kaldır)' },
-                                { id: '1.25', label: '1.25x (%25 Zammı)' },
-                                { id: '1.5', label: '1.5x (Mesaili / Pazar)' },
-                                { id: '2', label: '2x (Çift Mesai / Bayram)' },
-                                { id: '2.5', label: '2.5x' },
-                                { id: '3', label: '3x' }
-                            ].map(mult => {
-                                const isSelected = (bulkEditFormData.multiplier || '') === mult.id;
-                                return (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
                                     <button
-                                        key={mult.id}
                                         type="button"
-                                        onClick={() => setBulkEditFormData(prev => ({ ...prev, multiplier: mult.id }))}
+                                        onClick={() => setBulkEditFormData(prev => ({ ...prev, workStatus: '' }))}
                                         style={{
-                                            padding: '6px 12px',
-                                            borderRadius: '16px',
-                                            fontSize: '12px',
-                                            fontWeight: isSelected ? 700 : 500,
-                                            cursor: 'pointer',
-                                            border: isSelected ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                                            background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
-                                            color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                            transition: 'all 0.15s ease'
-                                        }}
-                                    >
-                                        {mult.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* 3. Bölüm: Toplu Gün Rengi */}
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        padding: '12px',
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-md)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Tag size={15} style={{ color: 'var(--accent-primary)' }} />
-                                3. Toplu Gün Rengi / Satır Vurgusu
-                            </label>
-                            {bulkEditFormData.customColor && (
-                                <button
-                                    type="button"
-                                    onClick={() => setBulkEditFormData(prev => ({ ...prev, customColor: '' }))}
-                                    style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                                >
-                                    Değiştirme (Kalsın)
-                                </button>
-                            )}
-                        </div>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                            Seçili kayıtların satır rengini değiştirin veya mevcut olanları kaldırın:
-                        </p>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
-                            {[
-                                { id: '', label: 'Değiştirme', desc: 'Kalsın', color: 'var(--border-color)', bg: 'var(--bg-tertiary)' },
-                                { id: 'none', label: 'Rengi Kaldır', desc: 'Standart yap', color: 'var(--text-muted)', bg: 'var(--bg-tertiary)' },
-                                { id: 'red', label: 'Kırmızı', desc: 'Resmi Tatil', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
-                                { id: 'orange', label: 'Turuncu', desc: 'Cumartesi / Yarım', color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' },
-                                { id: 'blue', label: 'Mavi', desc: 'Gece Vardiyası', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
-                                { id: 'green', label: 'Yeşil', desc: 'Özel Saha', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
-                                { id: 'purple', label: 'Mor', desc: 'Özel Durum', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)' }
-                            ].map(col => {
-                                const isSelected = (bulkEditFormData.customColor || '') === col.id;
-                                return (
-                                    <button
-                                        key={col.id}
-                                        type="button"
-                                        onClick={() => setBulkEditFormData(prev => ({ ...prev, customColor: col.id }))}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
                                             padding: '8px 10px',
                                             borderRadius: 'var(--radius-sm)',
-                                            border: isSelected ? (col.color ? `2px solid ${col.color}` : '2px solid var(--accent-primary)') : '1px solid var(--border-color)',
-                                            background: isSelected ? (col.bg || 'var(--accent-subtle)') : 'var(--bg-tertiary)',
+                                            fontSize: '12px',
+                                            fontWeight: bulkEditFormData.workStatus === '' ? 700 : 500,
+                                            border: bulkEditFormData.workStatus === '' ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                                            background: bulkEditFormData.workStatus === '' ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                            color: bulkEditFormData.workStatus === '' ? 'var(--accent-primary)' : 'var(--text-secondary)',
                                             cursor: 'pointer',
-                                            textAlign: 'left',
                                             transition: 'all 0.15s ease'
                                         }}
                                     >
-                                        {col.id && col.id !== 'none' ? (
-                                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: col.color, flexShrink: 0 }} />
-                                        ) : (
-                                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px dashed var(--text-muted)', flexShrink: 0 }} />
-                                        )}
-                                        <div>
-                                            <div style={{ fontSize: '12px', fontWeight: isSelected ? 700 : 600, color: isSelected ? (col.color || 'var(--accent-primary)') : 'var(--text-primary)' }}>
-                                                {col.label}
-                                            </div>
-                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{col.desc}</div>
-                                        </div>
+                                        ⚪ Değiştirme (Kalsın)
                                     </button>
-                                );
-                            })}
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkEditFormData(prev => ({
+                                            ...prev,
+                                            workStatus: 'normal',
+                                            hours: prev.hours || '1',
+                                            startTime: prev.startTime || work?.work_start_time || '08:00',
+                                            endTime: prev.endTime || work?.work_end_time || '17:00'
+                                        }))}
+                                        style={{
+                                            padding: '8px 10px',
+                                            borderRadius: 'var(--radius-sm)',
+                                            fontSize: '12px',
+                                            fontWeight: bulkEditFormData.workStatus === 'normal' ? 700 : 500,
+                                            border: bulkEditFormData.workStatus === 'normal' ? '2px solid #10b981' : '1px solid var(--border-color)',
+                                            background: bulkEditFormData.workStatus === 'normal' ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-tertiary)',
+                                            color: bulkEditFormData.workStatus === 'normal' ? '#10b981' : 'var(--text-secondary)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        🟢 Normal (1 Gün)
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkEditFormData(prev => ({
+                                            ...prev,
+                                            workStatus: 'zero',
+                                            hours: '0',
+                                            overtimeHours: '0',
+                                            startTime: '',
+                                            endTime: '',
+                                            unitPrice: '0'
+                                        }))}
+                                        style={{
+                                            padding: '8px 10px',
+                                            borderRadius: 'var(--radius-sm)',
+                                            fontSize: '12px',
+                                            fontWeight: bulkEditFormData.workStatus === 'zero' ? 700 : 500,
+                                            border: bulkEditFormData.workStatus === 'zero' ? '2px solid #ef4444' : '1px solid var(--border-color)',
+                                            background: bulkEditFormData.workStatus === 'zero' ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-tertiary)',
+                                            color: bulkEditFormData.workStatus === 'zero' ? '#ef4444' : 'var(--text-secondary)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        ⛔ Tatil (0 Gün - 0 TL)
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 2. Bölüm: Toplu Manuel Katsayı */}
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                padding: '12px',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Layers size={15} style={{ color: 'var(--accent-primary)' }} />
+                                        2. Toplu Manuel Katsayı (Çarpan)
+                                    </label>
+                                    {bulkEditFormData.multiplier && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setBulkEditFormData(prev => ({ ...prev, multiplier: '' }))}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '3px',
+                                                fontSize: '11px',
+                                                color: '#ef4444',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            <X size={12} /> Değiştirme (Kalsın)
+                                        </button>
+                                    )}
+                                </div>
+                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                                    Seçili kayıtlara uygulanacak çarpan oranı:
+                                </p>
+
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }}>
+                                    {[
+                                        { id: '', label: 'Değiştirme (Kalsın)' },
+                                        { id: '1', label: '1x (Standart / Kaldır)' },
+                                        { id: '1.25', label: '1.25x (%25 Zammı)' },
+                                        { id: '1.5', label: '1.5x (Mesaili / Pazar)' },
+                                        { id: '2', label: '2x (Çift Mesai / Bayram)' },
+                                        { id: '2.5', label: '2.5x' },
+                                        { id: '3', label: '3x' }
+                                    ].map(mult => {
+                                        const isSelected = (bulkEditFormData.multiplier || '') === mult.id;
+                                        return (
+                                            <button
+                                                key={mult.id}
+                                                type="button"
+                                                onClick={() => setBulkEditFormData(prev => ({ ...prev, multiplier: mult.id }))}
+                                                style={{
+                                                    padding: '6px 12px',
+                                                    borderRadius: '16px',
+                                                    fontSize: '12px',
+                                                    fontWeight: isSelected ? 700 : 500,
+                                                    cursor: 'pointer',
+                                                    border: isSelected ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                                                    background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                                    color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {mult.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* 3. Bölüm: Toplu Gün Rengi */}
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                padding: '12px',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Tag size={15} style={{ color: 'var(--accent-primary)' }} />
+                                        3. Toplu Gün Rengi / Satır Vurgusu
+                                    </label>
+                                    {bulkEditFormData.customColor && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setBulkEditFormData(prev => ({ ...prev, customColor: '' }))}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '3px',
+                                                fontSize: '11px',
+                                                color: '#ef4444',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            <X size={12} /> Değiştirme (Kalsın)
+                                        </button>
+                                    )}
+                                </div>
+                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                                    Seçili kayıtların satır rengini değiştirin veya mevcut olanları kaldırın:
+                                </p>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
+                                    {[
+                                        { id: '', label: 'Değiştirme', desc: 'Kalsın', color: 'var(--border-color)', bg: 'var(--bg-tertiary)' },
+                                        { id: 'none', label: 'Rengi Kaldır', desc: 'Standart yap', color: 'var(--text-muted)', bg: 'var(--bg-tertiary)' },
+                                        { id: 'red', label: 'Kırmızı', desc: 'Resmi Tatil', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
+                                        { id: 'orange', label: 'Turuncu', desc: 'Cumartesi / Yarım', color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' },
+                                        { id: 'blue', label: 'Mavi', desc: 'Gece Vardiyası', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+                                        { id: 'green', label: 'Yeşil', desc: 'Özel Saha', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
+                                        { id: 'purple', label: 'Mor', desc: 'Özel Durum', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)' }
+                                    ].map(col => {
+                                        const isSelected = (bulkEditFormData.customColor || '') === col.id;
+                                        return (
+                                            <button
+                                                key={col.id}
+                                                type="button"
+                                                onClick={() => setBulkEditFormData(prev => ({ ...prev, customColor: col.id }))}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    padding: '8px 10px',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    border: isSelected ? (col.color ? `2px solid ${col.color}` : '2px solid var(--accent-primary)') : '1px solid var(--border-color)',
+                                                    background: isSelected ? (col.bg || 'var(--accent-subtle)') : 'var(--bg-tertiary)',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {col.id && col.id !== 'none' ? (
+                                                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: col.color, flexShrink: 0 }} />
+                                                ) : (
+                                                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px dashed var(--text-muted)', flexShrink: 0 }} />
+                                                )}
+                                                <div>
+                                                    <div style={{ fontSize: '12px', fontWeight: isSelected ? 700 : 600, color: isSelected ? (col.color || 'var(--accent-primary)') : 'var(--text-primary)' }}>
+                                                        {col.label}
+                                                    </div>
+                                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{col.desc}</div>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Pencere Alt Butonları (Vazgeç & Uygula) */}
+                        <div style={{
+                            padding: '12px 18px',
+                            background: 'var(--bg-secondary)',
+                            borderTop: '1px solid var(--border-color)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setIsBulkDaySettingsModalOpen(false)}
+                                className="btn btn-secondary"
+                                style={{
+                                    height: '38px',
+                                    padding: '0 16px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontSize: '13px',
+                                    fontWeight: 600
+                                }}
+                            >
+                                <X size={15} /> Kapat
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setIsBulkDaySettingsModalOpen(false)}
+                                className="btn btn-primary"
+                                style={{
+                                    height: '38px',
+                                    padding: '0 20px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontSize: '13px',
+                                    fontWeight: 700
+                                }}
+                            >
+                                <Check size={16} /> Toplu Ayarları Uygula
+                            </button>
                         </div>
                     </div>
-
-                    <div className="modal-footer" style={{ marginTop: '4px', padding: 0 }}>
-                        <button
-                            type="button"
-                            onClick={() => setIsBulkDaySettingsModalOpen(false)}
-                            className="btn btn-primary"
-                            style={{ width: '100%', height: '42px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                        >
-                            <Check size={16} /> Toplu Ayarları Uygula ve Kapat
-                        </button>
-                    </div>
                 </div>
-            </Modal>
+            )}
 
             {/* Confirm Modal */}
             <ConfirmModal
