@@ -90,27 +90,51 @@ async function runMigration() {
         'users',
         'companies',
         'roles',
+        'permissions',
+        'user_company_access',
+        'user_permissions',
         'company_settings',
+        'user_preferences',
+        'revoked_sessions',
+        'departments',
+        'leave_types',
+        'document_categories',
+        'vehicle_types',
+        'public_holidays',
+        'document_folders',
         'vehicles',
         'customers',
+        'employees',
+        'requests',
+        'request_approvals',
+        'employee_assignments',
+        'employee_attendance',
+        'employee_documents',
+        'employee_movements',
+        'employee_salary_history',
+        'salaries',
+        'leaves',
+        'overtimes',
         'maintenances',
         'inspections',
         'insurances',
         'assignments',
         'services',
-        'employees',
-        'salaries',
-        'salary_history',
-        'leaves',
-        'overtimes',
-        'meal_ticket_settings',
-        'meal_tickets',
+        'documents',
         'works',
         'work_items',
-        'documents',
-        'checks',
+        'meal_settings',
+        'meal_price_history',
+        'meal_tickets',
+        'recurring_transactions',
         'transactions',
-        'activity_logs'
+        'audit_logs',
+        'system_announcements',
+        'company_notification_settings',
+        'user_notification_settings',
+        'email_settings',
+        'email_templates',
+        'arvento_history'
     ];
 
     for (const tableName of tablesToMigrate) {
@@ -121,7 +145,7 @@ async function runMigration() {
                 continue;
             }
 
-            const rows = sqlite.prepare(`SELECT * FROM ${tableName}`).all();
+            const rows = sqlite.prepare(`SELECT * FROM "${tableName}"`).all();
             if (rows.length === 0) {
                 console.log(`ℹ️ [${tableName}] 0 records found in SQLite.`);
                 continue;
@@ -134,6 +158,16 @@ async function runMigration() {
                 WHERE table_name = $1
             `, [tableName]);
             const pgColumns = new Set(pgColsRes.rows.map(r => r.column_name));
+
+            // Detect Primary Key column in PostgreSQL dynamically
+            const pkRes = await pg.query(`
+                SELECT a.attname
+                FROM   pg_index i
+                JOIN   pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+                WHERE  i.indrelid = $1::regclass
+                AND    i.indisprimary;
+            `, [`public."${tableName}"`]).catch(() => ({ rows: [] }));
+            const pkName = pkRes.rows[0]?.attname;
 
             for (const row of rows) {
                 const cols = Object.keys(row).filter(c => pgColumns.has(c));
@@ -166,17 +200,27 @@ async function runMigration() {
                 const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
                 const colNames = cols.map(c => `"${c}"`).join(', ');
 
-                const updateSets = cols.filter(c => c !== 'id').map(c => `"${c}" = EXCLUDED."${c}"`).join(', ');
-                const insertSql = `INSERT INTO "${tableName}" (${colNames}) VALUES (${placeholders}) ON CONFLICT (id) DO UPDATE SET ${updateSets};`;
+                let insertSql;
+                if (pkName && cols.includes(pkName)) {
+                    const updateSets = cols.filter(c => c !== pkName).map(c => `"${c}" = EXCLUDED."${c}"`).join(', ');
+                    insertSql = updateSets.length > 0
+                        ? `INSERT INTO "${tableName}" (${colNames}) VALUES (${placeholders}) ON CONFLICT ("${pkName}") DO UPDATE SET ${updateSets};`
+                        : `INSERT INTO "${tableName}" (${colNames}) VALUES (${placeholders}) ON CONFLICT ("${pkName}") DO NOTHING;`;
+                } else {
+                    insertSql = `INSERT INTO "${tableName}" (${colNames}) VALUES (${placeholders});`;
+                }
+
                 try {
                     await pg.query(insertSql, values);
                 } catch (rowErr) {}
             }
 
-            // Sync serial sequence if table has integer id
-            try {
-                await pg.query(`SELECT setval(pg_get_serial_sequence('"${tableName}"', 'id'), coalesce(max(id), 1)) FROM "${tableName}";`);
-            } catch (seqErr) {}
+            // Sync serial sequence if table has integer primary key sequence
+            if (pkName) {
+                try {
+                    await pg.query(`SELECT setval(pg_get_serial_sequence('"${tableName}"', '${pkName}'), coalesce(max("${pkName}"), 1)) FROM "${tableName}";`);
+                } catch (seqErr) {}
+            }
 
             console.log(`✅ [${tableName}] Migrated ${rows.length} records.`);
         } catch (tblErr) {

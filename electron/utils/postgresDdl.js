@@ -564,6 +564,36 @@ CREATE TABLE IF NOT EXISTS revoked_sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_revoked_sessions_expires ON revoked_sessions (expires_at);
 
+CREATE INDEX IF NOT EXISTS idx_work_items_employee ON public.work_items (employee_id);
+CREATE INDEX IF NOT EXISTS idx_work_items_vehicle ON public.work_items (vehicle_id);
+CREATE INDEX IF NOT EXISTS idx_works_employee ON public.works (employee_id);
+CREATE INDEX IF NOT EXISTS idx_works_vehicle ON public.works (vehicle_id);
+CREATE INDEX IF NOT EXISTS idx_requests_company ON public.requests (company_id);
+CREATE INDEX IF NOT EXISTS idx_requests_employee ON public.requests (employee_id);
+CREATE INDEX IF NOT EXISTS idx_requests_created_by ON public.requests (created_by_id);
+CREATE INDEX IF NOT EXISTS idx_requests_status ON public.requests (status);
+CREATE INDEX IF NOT EXISTS idx_request_approvals_request ON public.request_approvals (request_id);
+CREATE INDEX IF NOT EXISTS idx_request_approvals_approver ON public.request_approvals (approver_id);
+CREATE INDEX IF NOT EXISTS idx_roles_company ON public.roles (company_id);
+CREATE INDEX IF NOT EXISTS idx_permissions_role ON public.permissions (role_id);
+CREATE INDEX IF NOT EXISTS idx_departments_company ON public.departments (company_id);
+CREATE INDEX IF NOT EXISTS idx_leave_types_company ON public.leave_types (company_id);
+CREATE INDEX IF NOT EXISTS idx_doc_categories_company ON public.document_categories (company_id);
+CREATE INDEX IF NOT EXISTS idx_doc_folders_company ON public.document_folders (company_id);
+CREATE INDEX IF NOT EXISTS idx_vehicle_types_company ON public.vehicle_types (company_id);
+CREATE INDEX IF NOT EXISTS idx_meal_tickets_company ON public.meal_tickets (company_id);
+CREATE INDEX IF NOT EXISTS idx_meal_price_history_company ON public.meal_price_history (company_id);
+CREATE INDEX IF NOT EXISTS idx_documents_vehicle ON public.documents (vehicle_id);
+CREATE INDEX IF NOT EXISTS idx_user_company_access_user ON public.user_company_access (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_company_access_company ON public.user_company_access (company_id);
+CREATE INDEX IF NOT EXISTS idx_user_permissions_user ON public.user_permissions (user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_company ON public.audit_logs (company_id);
+CREATE INDEX IF NOT EXISTS idx_audit_user ON public.audit_logs (user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON public.audit_logs (created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON public.audit_logs (action);
+CREATE INDEX IF NOT EXISTS idx_announcements_company ON public.system_announcements (company_id);
+CREATE INDEX IF NOT EXISTS idx_announcements_active ON public.system_announcements (is_active);
+
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'PRO';
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
