@@ -1793,7 +1793,7 @@ export default function WorkDetails(props) {
                         />
                     </div>
 
-                    {/* Çalışma Durumu & Gün Ayarları Butonu (Ayrı Pencere Açıcı) */}
+                    {/* Gün & Ücret Ayarları Geçiş Butonu (Sade & Modern Tasarım) */}
                     <div
                         role="button"
                         tabIndex={0}
@@ -1804,20 +1804,20 @@ export default function WorkDetails(props) {
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '10px 14px',
-                            background: Number(formData.hours) === 0 
-                                ? 'rgba(239, 68, 68, 0.08)' 
-                                : (formData.customColor || (formData.multiplier && formData.multiplier !== '1'))
-                                    ? 'var(--accent-subtle)'
-                                    : 'var(--bg-secondary)',
-                            border: '1px solid ' + (Number(formData.hours) === 0 
-                                ? 'rgba(239, 68, 68, 0.4)' 
-                                : (formData.customColor || (formData.multiplier && formData.multiplier !== '1'))
-                                    ? 'var(--accent-primary)'
-                                    : 'var(--border-color)'),
+                            background: Number(formData.hours) === 0 ? 'var(--danger-bg)' : 'var(--bg-secondary)',
+                            border: '1px solid ' + (Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-color)'),
                             borderRadius: 'var(--radius-md)',
                             cursor: 'pointer',
-                            transition: 'all 0.2s ease',
+                            transition: 'all 0.15s ease',
                             userSelect: 'none'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = Number(formData.hours) === 0 ? '#ef4444' : 'var(--accent-primary)';
+                            e.currentTarget.style.background = Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.12)' : 'var(--bg-tertiary)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-color)';
+                            e.currentTarget.style.background = Number(formData.hours) === 0 ? 'var(--danger-bg)' : 'var(--bg-secondary)';
                         }}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1825,140 +1825,78 @@ export default function WorkDetails(props) {
                                 width: '32px',
                                 height: '32px',
                                 borderRadius: '8px',
-                                background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-tertiary)',
+                                background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'var(--accent-subtle)',
+                                color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--accent-primary)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--accent-primary)',
                                 flexShrink: 0
                             }}>
                                 <Sliders size={16} />
                             </div>
                             <div>
-                                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                    Çalışma Durumu & Gün Ayarları
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                        Gün & Ücret Ayarları
+                                    </span>
+                                    {/* Durum Rozeti */}
+                                    <span style={{
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-tertiary)',
+                                        color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--text-secondary)',
+                                        border: '1px solid ' + (Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.25)' : 'var(--border-color)')
+                                    }}>
+                                        {Number(formData.hours) === 0 ? '⛔ Tatil (0 Gün)' : Number(formData.hours) === 0.5 ? '🌓 Yarım Gün (0.5)' : '🟢 Tam Gün (1)'}
+                                    </span>
+                                    {formData.multiplier && formData.multiplier !== '1' && (
+                                        <span style={{
+                                            fontSize: '11px',
+                                            fontWeight: 600,
+                                            padding: '1px 6px',
+                                            borderRadius: '4px',
+                                            background: 'rgba(59, 130, 246, 0.12)',
+                                            color: '#3b82f6',
+                                            border: '1px solid rgba(59, 130, 246, 0.25)'
+                                        }}>
+                                            ⚡ {formData.multiplier}x
+                                        </span>
+                                    )}
+                                    {formData.customColor && (
+                                        <span style={{
+                                            width: '8px',
+                                            height: '8px',
+                                            borderRadius: '50%',
+                                            background: WORK_COLOR_OPTIONS.find(c => c.id === formData.customColor)?.color || '#14b8a6',
+                                            display: 'inline-block',
+                                            marginLeft: '2px',
+                                            boxShadow: '0 0 0 1px var(--border-color)'
+                                        }} title={`Satır Rengi: ${WORK_COLOR_OPTIONS.find(c => c.id === formData.customColor)?.label || ''}`} />
+                                    )}
                                 </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                                     {Number(formData.hours) === 0 
-                                        ? '⛔ 0 Gün / 0 TL (Tatil) işaretlendi • Değiştirmek için tıkla' 
-                                        : '🟢 Normal Çalışma (1 Gün) • Katsayı, renk veya tatil ayarları'}
+                                        ? '0 Gün ve 0 TL uygulandı • Düzenlemek için tıklayın' 
+                                        : 'Puantaj çarpanı, mesai katsayısı ve tablo rengi ayarları'}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Canlı Rozetler ve Ayarla Butonu */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <span style={{
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                padding: '3px 8px',
-                                borderRadius: '12px',
-                                background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                                color: Number(formData.hours) === 0 ? '#ef4444' : '#10b981',
-                                border: `1px solid ${Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
-                            }}>
-                                {Number(formData.hours) === 0 ? '⛔ 0 Gün' : '🟢 1 Gün'}
-                            </span>
-
-                            {formData.multiplier && formData.multiplier !== '1' && (
-                                <span style={{
-                                    fontSize: '11px',
-                                    fontWeight: 700,
-                                    padding: '3px 8px',
-                                    borderRadius: '12px',
-                                    background: 'rgba(59, 130, 246, 0.15)',
-                                    color: '#3b82f6',
-                                    border: '1px solid rgba(59, 130, 246, 0.3)'
-                                }}>
-                                    ⚡ {formData.multiplier}x
-                                </span>
-                            )}
-
-                            {formData.customColor && (
-                                <span style={{
-                                    fontSize: '11px',
-                                    fontWeight: 700,
-                                    padding: '3px 8px',
-                                    borderRadius: '12px',
-                                    background: formData.customColor === 'red' ? 'rgba(239, 68, 68, 0.15)'
-                                        : formData.customColor === 'orange' ? 'rgba(249, 115, 22, 0.15)'
-                                        : formData.customColor === 'blue' ? 'rgba(59, 130, 246, 0.15)'
-                                        : formData.customColor === 'green' ? 'rgba(16, 185, 129, 0.15)'
-                                        : 'rgba(168, 85, 247, 0.15)',
-                                    color: formData.customColor === 'red' ? '#ef4444'
-                                        : formData.customColor === 'orange' ? '#f97316'
-                                        : formData.customColor === 'blue' ? '#3b82f6'
-                                        : formData.customColor === 'green' ? '#10b981'
-                                        : '#a855f7',
-                                    border: '1px solid currentColor'
-                                }}>
-                                    ● {WORK_COLOR_OPTIONS.find(c => c.id === formData.customColor)?.label || formData.customColor}
-                                </span>
-                            )}
-
-                            {(Number(formData.hours) === 0 || (formData.multiplier && formData.multiplier !== '1') || formData.customColor) && (
-                                <button
-                                    type="button"
-                                    title="Tüm gün ayarlarını varsayılana sıfırla"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        const stdPrice = getVehicleStandardPrice(formData.vehicleId);
-                                        const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
-                                            ? formData._savedUnitPrice
-                                            : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            startTime: prev.startTime || work?.work_start_time || '08:00',
-                                            endTime: prev.endTime || work?.work_end_time || '17:00',
-                                            hours: 1,
-                                            overtimeHours: 0,
-                                            unitPrice: restoredPrice,
-                                            multiplier: '1',
-                                            customColor: '',
-                                            _savedUnitPrice: undefined,
-                                            description: (prev.description || '')
-                                                .replace(/\[TATİL\]\s*/gi, '')
-                                                .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
-                                                .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
-                                                .trim(),
-                                            _manualHours: false,
-                                            _manualOvertime: false
-                                        }));
-                                    }}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '3px',
-                                        fontSize: '11px',
-                                        fontWeight: 700,
-                                        color: '#ef4444',
-                                        background: 'rgba(239, 68, 68, 0.12)',
-                                        border: '1px solid rgba(239, 68, 68, 0.25)',
-                                        padding: '3px 7px',
-                                        borderRadius: '6px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <X size={12} />
-                                    <span>Sıfırla</span>
-                                </button>
-                            )}
-
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                fontSize: '11px',
-                                color: 'var(--accent-primary)',
-                                fontWeight: 700,
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                background: 'var(--accent-subtle)',
-                                marginLeft: '2px'
-                            }}>
-                                <span>Ayarla</span>
-                                <ChevronRight size={13} />
-                            </div>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: 'var(--accent-primary)',
+                            padding: '5px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--accent-subtle)'
+                        }}>
+                            <span>Ayarla</span>
+                            <ChevronRight size={14} />
                         </div>
                     </div>
 
