@@ -1,12 +1,13 @@
 import { X } from 'lucide-react'
 
-export default function Modal({ isOpen, onClose, title, children, size = 'default', footer, bodyStyle, bodyClassName }) {
+export default function Modal({ isOpen, onClose, title, children, size = 'default', footer, bodyStyle, bodyClassName, overlayStyle, modalStyle }) {
     if (!isOpen) return null
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" style={overlayStyle} onClick={onClose}>
             <div
                 className={`modal ${size === 'lg' ? 'modal-lg' : size === 'xl' ? 'modal-xl' : size === 'sm' ? 'modal-sm' : (size === 'fullscreen' || size === 'full') ? 'modal-fullscreen' : ''}`}
+                style={modalStyle}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="modal-header">
