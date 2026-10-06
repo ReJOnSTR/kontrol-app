@@ -43,7 +43,19 @@ function SortableTab({ tab, isActive, activateTab, closeTab }) {
 }
 
 export default function TabBar() {
-    const { tabs, activeTabId, activateTab, closeTab, updateTabsOrder, openNewTab, canGoBack, canGoForward, goBack, goForward } = useTabs()
+    const tabContext = useTabs() || {}
+    const {
+        tabs = [],
+        activeTabId = null,
+        activateTab = () => {},
+        closeTab = () => {},
+        updateTabsOrder = () => {},
+        openNewTab = () => {},
+        canGoBack = () => false,
+        canGoForward = () => false,
+        goBack = () => {},
+        goForward = () => {}
+    } = tabContext
     const { user, logout } = useAuth()
     const { companies, currentCompany, selectCompany, isImpersonating } = useCompany()
     const navigate = useNavigate()
@@ -115,8 +127,8 @@ export default function TabBar() {
         };
     };
 
-    const backEnabled = canGoBack()
-    const forwardEnabled = canGoForward()
+    const backEnabled = typeof canGoBack === 'function' ? canGoBack() : false
+    const forwardEnabled = typeof canGoForward === 'function' ? canGoForward() : false
 
     return (
         <div className="tab-bar">

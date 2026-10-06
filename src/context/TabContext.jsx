@@ -2,7 +2,25 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getRouteInfo } from '../config/navigation'
 
-const TabContext = createContext()
+const defaultTabContext = {
+    tabs: [],
+    activeTabId: null,
+    openNewTab: () => {},
+    addTab: () => {},
+    replaceTab: () => {},
+    activateTab: () => {},
+    closeTab: () => {},
+    closeOtherTabs: () => {},
+    closeAll: () => {},
+    updateTabsOrder: () => {},
+    updateTabInfo: () => {},
+    canGoBack: () => false,
+    canGoForward: () => false,
+    goBack: () => {},
+    goForward: () => {}
+}
+
+const TabContext = createContext(defaultTabContext)
 
 export function TabProvider({ children }) {
     // Tabs: [{ id: '1', path: '/vehicles', label: 'Araçlar', icon: Icon }]
@@ -221,11 +239,32 @@ export function TabProvider({ children }) {
         }
     }, [activeTabId, navigate])
 
+    const replaceTab = useCallback((oldPathOrId, newPath, customLabel = null) => {
+        const routeInfo = getRouteInfo(newPath)
+        setTabs(prev => prev.map(tab => {
+            if (tab.id === oldPathOrId || tab.path === oldPathOrId || (activeTabId && tab.id === activeTabId)) {
+                return {
+                    ...tab,
+                    path: newPath,
+                    label: customLabel || routeInfo.label,
+                    icon: routeInfo.icon
+                }
+            }
+            return tab
+        }))
+        if (newPath) {
+            internalNavRef.current = true
+            navigate(newPath)
+        }
+    }, [activeTabId, navigate])
+
     return (
         <TabContext.Provider value={{
             tabs,
             activeTabId,
             openNewTab,
+            addTab: openNewTab,
+            replaceTab,
             activateTab,
             closeTab,
             closeOtherTabs,
@@ -243,5 +282,6 @@ export function TabProvider({ children }) {
 }
 
 export function useTabs() {
-    return useContext(TabContext)
+    const context = useContext(TabContext)
+    return context || defaultTabContext
 }
