@@ -82,9 +82,39 @@ const PersonnelDashboardPortal = lazyWithRetry(() => import('./components/person
 const ApprovalCenter = lazyWithRetry(() => import('./components/personnel/ApprovalCenter'))
 const PlatformAdmin = lazyWithRetry(() => import('./pages/PlatformAdmin'))
 
-// Suspense fallback — invisible placeholder (TopProgressBar handles the visual)
+// Suspense fallback with sleek loading indicator
 function PageLoader() {
-    return null
+    return (
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100vh',
+            width: '100vw',
+            background: 'var(--bg-primary, #0f0f11)',
+            color: 'var(--text-secondary, #a1a1aa)',
+            userSelect: 'none'
+        }}>
+            <div style={{
+                width: 36,
+                height: 36,
+                border: '3px solid rgba(20, 184, 166, 0.2)',
+                borderTopColor: '#14b8a6',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite'
+            }} />
+            <div style={{ marginTop: 14, fontSize: 13, color: '#71717a', fontWeight: 500, letterSpacing: '0.2px' }}>
+                Yükleniyor...
+            </div>
+            <style>{`
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `}</style>
+        </div>
+    )
 }
 
 function ProtectedRoute({ children }) {

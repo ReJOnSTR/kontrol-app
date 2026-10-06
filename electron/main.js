@@ -169,13 +169,20 @@ function createWindow() {
     });
 
     // Development or production mode
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+        log.info(`[Renderer L${level}] ${message} (${sourceId}:${line})`)
+    })
+    mainWindow.webContents.on('render-process-gone', (event, details) => {
+        log.error(`[Renderer Crash] ${JSON.stringify(details)}`)
+    })
+
     if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
         const devUrl = 'http://127.0.0.1:5173'
         mainWindow.loadURL(devUrl)
         mainWindow.webContents.openDevTools()
 
-        mainWindow.webContents.on('did-fail-load', () => {
-            log.warn('Dev server loading failed, retrying in 1s...')
+        mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+            log.warn(`Dev server loading failed: [${errorCode}] ${errorDescription} at ${validatedURL}, retrying in 1s...`)
             setTimeout(() => {
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.loadURL(devUrl)
