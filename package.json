@@ -8,7 +8,7 @@
     "start": "node server.js",
     "dev": "node scripts/clear-port.js && concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
-    "dev:electron": "wait-on tcp:127.0.0.1:5173 && electron .",
+    "dev:electron": "wait-on tcp:5173 && electron .",
     "build": "npx prisma generate && vite build && electron-builder",
     "build:web": "npx prisma generate --schema=./prisma/schema.pg.prisma && vite build",
     "publish": "npx prisma generate && vite build && electron-builder --publish always",
