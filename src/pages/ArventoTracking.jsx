@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCompany } from '../context/CompanyContext'
 import { useAuth } from '../context/AuthContext'
@@ -292,7 +292,7 @@ export default function ArventoTracking() {
     const { user } = useAuth()
     const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
-    const [leafletLoaded, setLeafletLoaded] = useState(false)
+    const [leafletLoaded, setLeafletLoaded] = useState(() => typeof window !== 'undefined' && !!window.L)
     const isDemoMode = false
     const [settings, setSettings] = useState(null)
     const [searchQuery, setSearchQuery] = useState('')
@@ -409,6 +409,11 @@ export default function ArventoTracking() {
     const hasInitialDistanceFit = useRef(false)
 
     const mapRef = useRef(null)
+    const [mapContainerElement, setMapContainerElement] = useState(null)
+    const mapRefCallback = useCallback((node) => {
+        mapRef.current = node
+        setMapContainerElement(node)
+    }, [])
     const mapInstance = useRef(null)
     const markersRef = useRef({})
     const hasInitialFit = useRef(false)
@@ -591,9 +596,19 @@ export default function ArventoTracking() {
         } else {
             const handleLoad = () => setLeafletLoaded(true)
             existingScript.addEventListener('load', handleLoad)
-            return () => {
-                existingScript.removeEventListener('load', handleLoad)
+        }
+
+        // Periodic check ensures state is updated immediately when window.L is ready,
+        // avoiding issues where existing script load event already passed
+        const interval = setInterval(() => {
+            if (window.L) {
+                setLeafletLoaded(true)
+                clearInterval(interval)
             }
+        }, 50)
+
+        return () => {
+            clearInterval(interval)
         }
     }, [])
 
@@ -1428,13 +1443,20 @@ export default function ArventoTracking() {
 
     // Initialize Map
     useEffect(() => {
-        if (!leafletLoaded || !isMapTab || !mapRef.current) {
+        if (!leafletLoaded || !isMapTab || !mapContainerElement) {
             setMapReady(false)
             return
         }
 
         let timer1, timer2, timer3
+        let resizeObserver = null
+
         if (!mapInstance.current) {
+            // Safety guard: if container already has a leaflet id from previous instance, reset it
+            if (mapContainerElement._leaflet_id) {
+                delete mapContainerElement._leaflet_id
+            }
+
             // Check if we already have loaded vehicles with valid coordinates to center on
             const validVehicles = vehicles.filter(v => v.lat && v.lng && v.lat !== 0 && v.lng !== 0 && !isNaN(v.lat) && !isNaN(v.lng))
             let initialCenter = [40.993, 29.02] // Fallback to Istanbul
@@ -1463,7 +1485,7 @@ export default function ArventoTracking() {
                 }
             }
 
-            mapInstance.current = window.L.map(mapRef.current, {
+            mapInstance.current = window.L.map(mapContainerElement, {
                 zoomControl: false,
                 attributionControl: false
             }).setView(initialCenter, initialZoom)
@@ -1491,14 +1513,24 @@ export default function ArventoTracking() {
 
             timer2 = setTimeout(() => {
                 if (mapInstance.current) mapInstance.current.invalidateSize()
-            }, 500)
+            }, 400)
 
             timer3 = setTimeout(() => {
                 if (mapInstance.current) mapInstance.current.invalidateSize()
-            }, 1200)
+            }, 1000)
         }
 
         setMapReady(true)
+
+        // Observe container size changes (CSS layout changes, sidebar collapse)
+        if (typeof ResizeObserver !== 'undefined' && mapContainerElement) {
+            resizeObserver = new ResizeObserver(() => {
+                if (mapInstance.current) {
+                    mapInstance.current.invalidateSize()
+                }
+            })
+            resizeObserver.observe(mapContainerElement)
+        }
 
         // Handle resize events
         const handleResize = () => {
@@ -1509,6 +1541,9 @@ export default function ArventoTracking() {
         window.addEventListener('resize', handleResize)
 
         return () => {
+            if (resizeObserver) {
+                resizeObserver.disconnect()
+            }
             window.removeEventListener('resize', handleResize)
             clearTimeout(timer1)
             clearTimeout(timer2)
@@ -1523,7 +1558,7 @@ export default function ArventoTracking() {
             setMapReady(false)
             hasInitialFit.current = false // Reset initial fit when map is destroyed
         }
-    }, [leafletLoaded, isMapTab])
+    }, [leafletLoaded, isMapTab, mapContainerElement])
 
     // Map Search functions
     const handleMapSearch = async (e) => {
@@ -3139,15 +3174,7 @@ export default function ArventoTracking() {
         }
     }, [combinedDailyReports])
 
-    if (!settings) {
-        return (
-            <div className="tracking-page-wrapper">
-                <TopProgressBar loading={true} />
-            </div>
-        )
-    }
-
-    if (!settings.arvento?.enabled || !settings.arvento?.username) {
+    if (settings && (!settings.arvento?.enabled || !settings.arvento?.username)) {
         return (
             <div className="tracking-page-wrapper">
                 <div className="page-header" style={{ marginBottom: 0 }}>
@@ -3201,7 +3228,7 @@ export default function ArventoTracking() {
 
     return (
         <div className="tracking-page-wrapper">
-            <TopProgressBar loading={loading} />
+            <TopProgressBar loading={loading || !settings} />
             
             {/* Header section */}
             <div className="page-header" style={{ marginBottom: 0 }}>
@@ -3646,7 +3673,7 @@ export default function ArventoTracking() {
                         <div className={`tracking-map-wrapper ${isMapFullscreen ? 'fullscreen' : ''} ${
                             activeTab === 'live' && selectedVehicle ? 'drawer-open' : ''
                         }`}>
-                            <div ref={mapRef} style={{ width: '100%', height: '100%', zIndex: 1 }} onClick={() => showMapPicker && setShowMapPicker(false)}></div>
+                            <div ref={mapRefCallback} style={{ width: '100%', height: '100%', zIndex: 1 }} onClick={() => showMapPicker && setShowMapPicker(false)}></div>
 
                             {/* Floating Map Search Container (Nominatim Geocoder) */}
                             <div className="map-search-container" onClick={e => e.stopPropagation()}>
