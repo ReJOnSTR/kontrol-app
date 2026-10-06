@@ -2250,100 +2250,129 @@ export default function WorkDetails(props) {
                 </form>
             </Modal>
 
-            {/* Gün Çalışma & Ücret Ayarları Modalı (Proje Tasarımına Uygun Standart Modal) */}
+            {/* Gün & Ücret Ayarları Modalı (Minimalist & Modern Tasarım) */}
             <Modal
                 isOpen={isDaySettingsModalOpen}
                 onClose={() => setIsDaySettingsModalOpen(false)}
                 title={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Sliders size={18} style={{ color: 'var(--accent-primary)' }} />
-                        <span>Gün Çalışma & Ücret Ayarları</span>
-                        {formData.date && (
-                            <span className="badge badge-secondary" style={{ fontSize: '11px', fontWeight: 600 }}>
-                                📅 {formData.date}
-                            </span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Sliders size={16} style={{ color: 'var(--accent-primary)' }} />
+                            <span style={{ fontSize: '14px', fontWeight: 600 }}>Gün & Ücret Ayarları</span>
+                            {formData.date && (
+                                <span style={{
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    color: 'var(--text-muted)',
+                                    background: 'var(--bg-tertiary)',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px'
+                                }}>
+                                    {formData.date}
+                                </span>
+                            )}
+                        </div>
+                        {(formData.multiplier !== '1' || formData.customColor || Number(formData.hours) !== 1) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const stdPrice = getVehicleStandardPrice(formData.vehicleId);
+                                    const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
+                                        ? formData._savedUnitPrice
+                                        : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        startTime: prev.startTime || work?.work_start_time || '08:00',
+                                        endTime: prev.endTime || work?.work_end_time || '17:00',
+                                        hours: 1,
+                                        overtimeHours: 0,
+                                        unitPrice: restoredPrice,
+                                        multiplier: '1',
+                                        customColor: '',
+                                        _savedUnitPrice: undefined,
+                                        description: (prev.description || '')
+                                            .replace(/\[TATİL\]\s*/gi, '')
+                                            .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                            .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                            .trim(),
+                                        _manualHours: false,
+                                        _manualOvertime: false
+                                    }));
+                                }}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-muted)',
+                                    fontSize: '11px',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px'
+                                }}
+                                title="Varsayılan değerlere sıfırla"
+                            >
+                                <RotateCcw size={11} /> Sıfırla
+                            </button>
                         )}
                     </div>
                 }
-                size="default"
+                size="sm"
                 overlayStyle={{ zIndex: 1100 }}
                 footer={
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <button
-                            type="button"
-                            className="btn btn-secondary"
-                            title="Tüm ayarları varsayılan standart değerlere döndür"
-                            onClick={() => {
-                                const stdPrice = getVehicleStandardPrice(formData.vehicleId);
-                                const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
-                                    ? formData._savedUnitPrice
-                                    : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
-                                setFormData(prev => ({
-                                    ...prev,
-                                    startTime: prev.startTime || work?.work_start_time || '08:00',
-                                    endTime: prev.endTime || work?.work_end_time || '17:00',
-                                    hours: 1,
-                                    overtimeHours: 0,
-                                    unitPrice: restoredPrice,
-                                    multiplier: '1',
-                                    customColor: '',
-                                    _savedUnitPrice: undefined,
-                                    description: (prev.description || '')
-                                        .replace(/\[TATİL\]\s*/gi, '')
-                                        .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
-                                        .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
-                                        .trim(),
-                                    _manualHours: false,
-                                    _manualOvertime: false
-                                }));
-                            }}
-                            style={{ fontSize: '12px', gap: '6px' }}
-                        >
-                            <RotateCcw size={13} /> Varsayılana Sıfırla
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                Yevmiye Tutarı
+                            </span>
+                            <span style={{
+                                fontSize: '15px',
+                                fontWeight: 700,
+                                color: Number(formData.hours) === 0 ? 'var(--danger)' : 'var(--text-primary)'
+                            }}>
+                                {Number(formData.hours) === 0
+                                    ? '0,00 ₺ (Tatil)'
+                                    : formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * (parseFloat(formData.multiplier) || 1) * (parseFloat(formData.hours) || 1)))}
+                            </span>
+                        </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <button
                                 type="button"
                                 className="btn btn-secondary"
                                 onClick={() => setIsDaySettingsModalOpen(false)}
+                                style={{ padding: '6px 14px', fontSize: '12px' }}
                             >
-                                Kapat
+                                Vazgeç
                             </button>
                             <button
                                 type="button"
                                 className="btn btn-primary"
                                 onClick={() => setIsDaySettingsModalOpen(false)}
+                                style={{ padding: '6px 16px', fontSize: '12px' }}
                             >
-                                <Check size={16} /> Uygula & Devam Et
+                                Tamam
                             </button>
                         </div>
                     </div>
                 }
             >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* 1. Bölüm: Çalışma Durumu & Puantaj */}
-                    <div className="form-group mb-0">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <label className="form-label mb-0" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                                <Briefcase size={15} style={{ color: 'var(--accent-primary)' }} />
-                                Çalışma Durumu (Puantaj Hesabı)
-                            </label>
-                            <span style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                padding: '2px 8px',
-                                borderRadius: 'var(--radius-sm)',
-                                background: Number(formData.hours) === 0 ? 'var(--danger-bg)' : Number(formData.hours) === 0.5 ? 'rgba(249, 115, 22, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-                                color: Number(formData.hours) === 0 ? 'var(--danger)' : Number(formData.hours) === 0.5 ? '#f97316' : '#10b981',
-                                border: `1px solid ${Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.3)' : Number(formData.hours) === 0.5 ? 'rgba(249, 115, 22, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
-                            }}>
-                                {Number(formData.hours) === 0 ? '⛔ 0 Gün (Tatil)' : Number(formData.hours) === 0.5 ? '🌓 0.5 Gün' : '🟢 1 Gün'}
-                            </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '2px 0' }}>
+                    {/* 1. Çalışma Durumu (Minimal Segmented Control) */}
+                    <div>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                            Çalışma Durumu
                         </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                            {/* 🟢 Tam Gün (1 Gün) */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(3, 1fr)',
+                            background: 'var(--bg-tertiary)',
+                            padding: '3px',
+                            borderRadius: 'var(--radius-md)',
+                            gap: '3px'
+                        }}>
+                            {/* Tam Gün (1) */}
                             <button
                                 type="button"
                                 onClick={() => {
@@ -2369,27 +2398,27 @@ export default function WorkDetails(props) {
                                     }));
                                 }}
                                 style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    padding: '12px 8px',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: Number(formData.hours) === 1 ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                                    background: Number(formData.hours) === 1 ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                    padding: '7px 0',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: 'none',
+                                    background: Number(formData.hours) === 1 ? 'var(--bg-primary)' : 'transparent',
+                                    color: Number(formData.hours) === 1 ? 'var(--text-primary)' : 'var(--text-muted)',
+                                    fontWeight: Number(formData.hours) === 1 ? 600 : 500,
+                                    fontSize: '12px',
                                     cursor: 'pointer',
-                                    textAlign: 'center',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    boxShadow: Number(formData.hours) === 1 ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
                                     transition: 'all 0.15s ease'
                                 }}
                             >
-                                <div style={{ fontWeight: 700, fontSize: '13px', color: Number(formData.hours) === 1 ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
-                                    🟢 Tam Gün (1)
-                                </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                    Normal mesai
-                                </div>
+                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981' }} />
+                                Tam Gün (1)
                             </button>
 
-                            {/* 🌓 Yarım Gün (0.5 Gün) */}
+                            {/* Yarım Gün (0.5) */}
                             <button
                                 type="button"
                                 onClick={() => {
@@ -2410,27 +2439,27 @@ export default function WorkDetails(props) {
                                     }));
                                 }}
                                 style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    padding: '12px 8px',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: Number(formData.hours) === 0.5 ? '2px solid #f97316' : '1px solid var(--border-color)',
-                                    background: Number(formData.hours) === 0.5 ? 'rgba(249, 115, 22, 0.12)' : 'var(--bg-tertiary)',
+                                    padding: '7px 0',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: 'none',
+                                    background: Number(formData.hours) === 0.5 ? 'var(--bg-primary)' : 'transparent',
+                                    color: Number(formData.hours) === 0.5 ? 'var(--text-primary)' : 'var(--text-muted)',
+                                    fontWeight: Number(formData.hours) === 0.5 ? 600 : 500,
+                                    fontSize: '12px',
                                     cursor: 'pointer',
-                                    textAlign: 'center',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    boxShadow: Number(formData.hours) === 0.5 ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
                                     transition: 'all 0.15s ease'
                                 }}
                             >
-                                <div style={{ fontWeight: 700, fontSize: '13px', color: Number(formData.hours) === 0.5 ? '#f97316' : 'var(--text-primary)' }}>
-                                    🌓 Yarım Gün (0.5)
-                                </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                    0.5 gün puantaj
-                                </div>
+                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#f97316' }} />
+                                Yarım (0.5)
                             </button>
 
-                            {/* ⛔ Tatil / Çalışılmadı (0 Gün) */}
+                            {/* Tatil (0) */}
                             <button
                                 type="button"
                                 onClick={() => {
@@ -2450,77 +2479,54 @@ export default function WorkDetails(props) {
                                     }));
                                 }}
                                 style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    padding: '12px 8px',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: Number(formData.hours) === 0 ? '2px solid var(--danger)' : '1px solid var(--border-color)',
-                                    background: Number(formData.hours) === 0 ? 'var(--danger-bg)' : 'var(--bg-tertiary)',
+                                    padding: '7px 0',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: 'none',
+                                    background: Number(formData.hours) === 0 ? 'var(--bg-primary)' : 'transparent',
+                                    color: Number(formData.hours) === 0 ? 'var(--danger)' : 'var(--text-muted)',
+                                    fontWeight: Number(formData.hours) === 0 ? 600 : 500,
+                                    fontSize: '12px',
                                     cursor: 'pointer',
-                                    textAlign: 'center',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    boxShadow: Number(formData.hours) === 0 ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
                                     transition: 'all 0.15s ease'
                                 }}
                             >
-                                <div style={{ fontWeight: 700, fontSize: '13px', color: Number(formData.hours) === 0 ? 'var(--danger)' : 'var(--text-primary)' }}>
-                                    ⛔ Tatil (0 Gün)
-                                </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                    0 Gün / 0 TL
-                                </div>
+                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444' }} />
+                                Tatil (0)
                             </button>
                         </div>
                     </div>
 
-                    {/* 2. Bölüm: Manuel Katsayı */}
-                    <div className="form-group mb-0">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <label className="form-label mb-0" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                                <Layers size={15} style={{ color: 'var(--accent-primary)' }} />
-                                Birim Fiyat Katsayısı (Çarpan)
-                            </label>
-                            {formData.multiplier && formData.multiplier !== '1' && (
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, multiplier: '1' }))}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '3px',
-                                        fontSize: '11px',
-                                        color: 'var(--danger)',
-                                        background: 'transparent',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        fontWeight: 600
-                                    }}
-                                >
-                                    <RotateCcw size={11} /> 1x Sıfırla
-                                </button>
+                    {/* 2. Katsayı / Çarpan (Clean Minimal Row) */}
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                                Birim Ücret Çarpanı
+                            </span>
+                            {parseFloat(formData.multiplier) > 0 && parseFloat(formData.multiplier) !== 1 && (
+                                <span style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                    {formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * parseFloat(formData.multiplier)))} / gün
+                                </span>
                             )}
                         </div>
-
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {[
-                                { id: '1', label: '1x (Standart)' },
-                                { id: '1.25', label: '1.25x' },
-                                { id: '1.5', label: '1.5x (Mesai)' },
-                                { id: '1.75', label: '1.75x' },
-                                { id: '2', label: '2x (Bayram)' },
-                                { id: '2.5', label: '2.5x' },
-                                { id: '3', label: '3x' }
-                            ].map(mult => {
-                                const isSelected = String(formData.multiplier || '1') === mult.id;
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {['1', '1.25', '1.5', '2'].map(mult => {
+                                const isSelected = String(formData.multiplier || '1') === mult;
                                 return (
                                     <button
-                                        key={mult.id}
+                                        key={mult}
                                         type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, multiplier: mult.id }))}
+                                        onClick={() => setFormData(prev => ({ ...prev, multiplier: mult }))}
                                         style={{
-                                            padding: '6px 12px',
+                                            flex: 1,
+                                            padding: '6px 0',
                                             borderRadius: 'var(--radius-sm)',
                                             fontSize: '12px',
-                                            fontWeight: isSelected ? 700 : 500,
+                                            fontWeight: isSelected ? 600 : 500,
                                             cursor: 'pointer',
                                             border: isSelected ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
                                             background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
@@ -2528,178 +2534,70 @@ export default function WorkDetails(props) {
                                             transition: 'all 0.15s ease'
                                         }}
                                     >
-                                        {mult.label}
+                                        {mult}x
                                     </button>
                                 );
                             })}
-                        </div>
-
-                        {/* Manuel Katsayı Girişi */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Özel Katsayı:</span>
-                            <div style={{ width: '90px' }}>
-                                <CustomInput
+                            <div style={{ width: '74px', flexShrink: 0 }}>
+                                <input
                                     type="number"
                                     step="0.05"
                                     min="0.1"
                                     max="10"
+                                    placeholder="Özel"
                                     value={formData.multiplier || '1'}
-                                    onChange={(val) => setFormData(prev => ({ ...prev, multiplier: val }))}
-                                    className="mb-0"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, multiplier: e.target.value }))}
+                                    className="form-input"
+                                    style={{
+                                        height: '31px',
+                                        padding: '0 6px',
+                                        fontSize: '12px',
+                                        textAlign: 'center',
+                                        borderRadius: 'var(--radius-sm)'
+                                    }}
                                 />
                             </div>
-                            {parseFloat(formData.multiplier) > 0 && parseFloat(formData.multiplier) !== 1 && (
-                                <span style={{
-                                    fontSize: '11px',
-                                    color: 'var(--accent-primary)',
-                                    fontWeight: 600,
-                                    padding: '4px 8px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    background: 'var(--accent-subtle)',
-                                    border: '1px solid rgba(20, 184, 166, 0.2)'
-                                }}>
-                                    ⚡ Etkili Birim: {formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * parseFloat(formData.multiplier)))}
-                                </span>
-                            )}
                         </div>
                     </div>
 
-                    {/* 3. Bölüm: Gün Rengi / Satır Vurgusu */}
-                    <div className="form-group mb-0">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <label className="form-label mb-0" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                                <Tag size={15} style={{ color: 'var(--accent-primary)' }} />
-                                Tablo & PDF Satır Vurgu Rengi
-                            </label>
-                            {formData.customColor && (
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, customColor: '' }))}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '3px',
-                                        fontSize: '11px',
-                                        color: 'var(--danger)',
-                                        background: 'transparent',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        fontWeight: 600
-                                    }}
-                                >
-                                    <RotateCcw size={11} /> Sıfırla
-                                </button>
-                            )}
+                    {/* 3. Satır Rengi (Minimal Circle Swatches) */}
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                                Satır Vurgu Rengi
+                            </span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                {WORK_COLOR_OPTIONS.find(c => c.id === (formData.customColor || ''))?.label || 'Standart'}
+                            </span>
                         </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {WORK_COLOR_OPTIONS.map(col => {
                                 const isSelected = (formData.customColor || '') === col.id;
                                 return (
                                     <button
                                         key={col.id}
                                         type="button"
+                                        title={col.label}
                                         onClick={() => setFormData(prev => ({ ...prev, customColor: col.id }))}
                                         style={{
+                                            width: '28px',
+                                            height: '28px',
+                                            borderRadius: '50%',
+                                            border: isSelected ? '2px solid var(--text-primary)' : '1px solid var(--border-color)',
+                                            background: col.id ? col.color : 'var(--bg-tertiary)',
+                                            cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '8px',
-                                            padding: '8px 10px',
-                                            borderRadius: 'var(--radius-sm)',
-                                            border: isSelected ? (col.id ? `2px solid ${col.color}` : '2px solid var(--accent-primary)') : '1px solid var(--border-color)',
-                                            background: isSelected ? (col.bg || 'var(--accent-subtle)') : 'var(--bg-tertiary)',
-                                            boxShadow: isSelected && col.color ? `0 0 8px ${col.color}30` : 'none',
-                                            cursor: 'pointer',
-                                            textAlign: 'left',
+                                            justifyContent: 'center',
+                                            color: col.id ? '#ffffff' : 'var(--text-muted)',
+                                            boxShadow: isSelected ? `0 0 0 2px var(--bg-primary), 0 0 0 4px ${col.id ? col.color : 'var(--text-primary)'}` : 'none',
                                             transition: 'all 0.15s ease'
                                         }}
                                     >
-                                        {col.id ? (
-                                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: col.color, flexShrink: 0, boxShadow: `0 0 4px ${col.color}` }} />
-                                        ) : (
-                                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px dashed var(--text-muted)', flexShrink: 0 }} />
-                                        )}
-                                        <div>
-                                            <div style={{ fontSize: '12px', fontWeight: isSelected ? 700 : 600, color: isSelected ? (col.id ? col.color : 'var(--accent-primary)') : 'var(--text-primary)' }}>
-                                                {col.label}
-                                            </div>
-                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{col.desc}</div>
-                                        </div>
+                                        {isSelected && <Check size={13} strokeWidth={3} />}
                                     </button>
                                 );
                             })}
-                        </div>
-                    </div>
-
-                    {/* 4. Bölüm: Canlı Sonuç Özeti Kartı */}
-                    <div style={{
-                        padding: '12px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--border-color)',
-                        background: 'var(--bg-secondary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '12px'
-                    }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                                HESAPLAMA ÖZETİ
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <span style={{
-                                    fontSize: '11px',
-                                    fontWeight: 700,
-                                    padding: '2px 8px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    background: Number(formData.hours) === 0 ? 'var(--danger-bg)' : Number(formData.hours) === 0.5 ? 'rgba(249, 115, 22, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                                    color: Number(formData.hours) === 0 ? 'var(--danger)' : Number(formData.hours) === 0.5 ? '#f97316' : '#10b981'
-                                }}>
-                                    {Number(formData.hours) === 0 ? '⛔ 0 Gün (Tatil)' : Number(formData.hours) === 0.5 ? '🌓 0.5 Gün' : '🟢 1 Gün'}
-                                </span>
-
-                                {formData.multiplier && formData.multiplier !== '1' && (
-                                    <span style={{
-                                        fontSize: '11px',
-                                        fontWeight: 700,
-                                        padding: '2px 8px',
-                                        borderRadius: 'var(--radius-sm)',
-                                        background: 'rgba(59, 130, 246, 0.15)',
-                                        color: '#3b82f6'
-                                    }}>
-                                        ⚡ {formData.multiplier}x Katsayı
-                                    </span>
-                                )}
-
-                                {formData.customColor && (
-                                    <span style={{
-                                        fontSize: '11px',
-                                        fontWeight: 600,
-                                        padding: '2px 8px',
-                                        borderRadius: 'var(--radius-sm)',
-                                        background: 'var(--bg-tertiary)',
-                                        color: 'var(--text-secondary)'
-                                    }}>
-                                        🎨 {WORK_COLOR_OPTIONS.find(c => c.id === formData.customColor)?.label || formData.customColor}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                                HESAPLANAN YEVMİYE
-                            </div>
-                            <div style={{
-                                fontSize: '16px',
-                                fontWeight: 800,
-                                color: Number(formData.hours) === 0 ? 'var(--danger)' : 'var(--accent-primary)',
-                                letterSpacing: '-0.2px'
-                            }}>
-                                {Number(formData.hours) === 0 
-                                    ? '0,00 ₺' 
-                                    : formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * (parseFloat(formData.multiplier) || 1) * (parseFloat(formData.hours) || 1)))}
-                            </div>
                         </div>
                     </div>
                 </div>
