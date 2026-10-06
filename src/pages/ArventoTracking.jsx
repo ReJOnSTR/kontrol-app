@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCompany } from '../context/CompanyContext'
 import { useAuth } from '../context/AuthContext'
-import CustomInput from '../components/CustomInput'
 import TopProgressBar from '../components/TopProgressBar'
 import DataTable from '../components/DataTable'
 import streetMapImg from '../assets/street_map.png'
@@ -306,69 +305,27 @@ export default function ArventoTracking() {
     const [localVehicles, setLocalVehicles] = useState([])
     const [mappings, setMappings] = useState([])
 
-    // User-specific Arvento Login Credentials
-    const userStorageKey = user?.id ? `arvento_user_creds_${user.id}` : 'arvento_user_creds_default'
-
-    const [userArventoCreds, setUserArventoCreds] = useState(() => {
+    // Effective Arvento Credentials from Settings or Company Integrations
+    const effectiveArventoCreds = useMemo(() => {
+        const arventoConfig = companySettings?.integrations?.arvento || settings?.arvento
+        if (arventoConfig?.username && arventoConfig?.pin1) {
+            return {
+                username: arventoConfig.username,
+                pin1: arventoConfig.pin1,
+                pin2: arventoConfig.pin2 || '',
+                enabled: arventoConfig.enabled !== false
+            }
+        }
         try {
+            const userStorageKey = user?.id ? `arvento_user_creds_${user.id}` : 'arvento_user_creds_default'
             const saved = localStorage.getItem(userStorageKey)
-            if (saved) return JSON.parse(saved)
+            if (saved) {
+                const parsed = JSON.parse(saved)
+                if (parsed?.username && parsed?.pin1) return parsed
+            }
         } catch (e) {}
         return null
-    })
-
-    const [loginForm, setLoginForm] = useState({ username: '', pin1: '', pin2: '' })
-    const [loginLoading, setLoginLoading] = useState(false)
-    const [loginError, setLoginError] = useState('')
-
-    const handleArventoUserLogin = async (e) => {
-        e.preventDefault()
-        setLoginError('')
-        if (!loginForm.username || !loginForm.pin1) {
-            setLoginError('Lütfen Kullanıcı Adı ve PIN1/Şifrenizi girin.')
-            return
-        }
-        setLoginLoading(true)
-        try {
-            const creds = {
-                username: loginForm.username.trim(),
-                pin1: loginForm.pin1.trim(),
-                pin2: loginForm.pin2 ? loginForm.pin2.trim() : '',
-                enabled: true
-            }
-            const testRes = await window.electronAPI.arventoTestConnection(creds)
-            if (testRes.success) {
-                localStorage.setItem(userStorageKey, JSON.stringify(creds))
-                setUserArventoCreds(creds)
-                if (window.showToast) window.showToast('Arvento bağlantısı başarılı.', 'success')
-            } else {
-                setLoginError(testRes.error || 'Arvento kullanıcı bilgileri doğrulanamadı.')
-            }
-        } catch (err) {
-            setLoginError('Bağlantı hatası: ' + err.message)
-        }
-        setLoginLoading(false)
-    }
-
-    const handleUseSystemCreds = () => {
-        if (settings?.arvento?.username && settings?.arvento?.pin1) {
-            const creds = {
-                username: settings.arvento.username,
-                pin1: settings.arvento.pin1,
-                pin2: settings.arvento.pin2 || '',
-                enabled: true
-            }
-            localStorage.setItem(userStorageKey, JSON.stringify(creds))
-            setUserArventoCreds(creds)
-        }
-    }
-
-    const handleArventoUserLogout = () => {
-        localStorage.removeItem(userStorageKey)
-        setUserArventoCreds(null)
-        setVehicles([])
-        setMappings([])
-    }
+    }, [companySettings, settings, user])
 
     // Historical tracking states
     const [selectedHistoryVehicles, setSelectedHistoryVehicles] = useState([])
@@ -1435,7 +1392,7 @@ export default function ArventoTracking() {
     // Load Settings & Db Vehicles
     useEffect(() => {
         loadSettingsAndVehicles()
-    }, [currentCompany, companySettings, userArventoCreds])
+    }, [currentCompany, companySettings])
 
     const loadSettingsAndVehicles = async () => {
         try {
@@ -1448,10 +1405,11 @@ export default function ArventoTracking() {
             }
             setSettings(sett)
             
-            // Check if Arvento user credentials exist
-            if (userArventoCreds && userArventoCreds.username) {
-                // Fetch initial mappings with user credentials
-                const mappingsRes = await window.electronAPI.arventoGetMappings(userArventoCreds)
+            // Check if Arvento credentials exist
+            const activeCreds = sett.arvento?.username ? sett.arvento : effectiveArventoCreds
+            if (activeCreds && activeCreds.username) {
+                // Fetch initial mappings with credentials
+                const mappingsRes = await window.electronAPI.arventoGetMappings(activeCreds)
                 if (mappingsRes.success && Array.isArray(mappingsRes.data)) {
                     setMappings(mappingsRes.data)
                 }
@@ -2242,7 +2200,7 @@ export default function ArventoTracking() {
                             plates: [plate],
                             startDate,
                             endDate
-                        }, userArventoCreds)
+                        }, effectiveArventoCreds)
                         
                         if (res.success && Array.isArray(res.data) && res.data.length > 0) {
                             const visits = analyzeAreaVisits(res.data, areaBounds)
@@ -2500,7 +2458,7 @@ export default function ArventoTracking() {
         return () => {
             if (pollingTimer.current) clearInterval(pollingTimer.current)
         }
-    }, [leafletLoaded, localVehicles])
+    }, [leafletLoaded, localVehicles, effectiveArventoCreds])
 
     const handleFitBounds = () => {
         if (!mapInstance.current) return
@@ -2546,7 +2504,7 @@ export default function ArventoTracking() {
                 plates: selectedHistoryVehicles,
                 startDate,
                 endDate
-            }, userArventoCreds)
+            }, effectiveArventoCreds)
             
             if (result.success && Array.isArray(result.data)) {
                 // Group points by plate (case and space insensitive)
@@ -2808,13 +2766,14 @@ export default function ArventoTracking() {
     }, [historyDataMap, activeTab, mapReady])
 
     const fetchStatusData = async () => {
-        if (!userArventoCreds) return
+        const creds = effectiveArventoCreds || (settings?.arvento?.username ? settings.arvento : null)
+        if (!creds && !settings?.arvento?.username) return
         setLoading(true)
         try {
             // Fetch mappings if they are not already loaded
             let currentMappings = mappings
             if (currentMappings.length === 0) {
-                const mappingsRes = await window.electronAPI.arventoGetMappings(userArventoCreds)
+                const mappingsRes = await window.electronAPI.arventoGetMappings(creds)
                 if (mappingsRes.success && Array.isArray(mappingsRes.data)) {
                     currentMappings = mappingsRes.data
                     setMappings(currentMappings)
@@ -2822,7 +2781,7 @@ export default function ArventoTracking() {
             }
 
             // Fetch live status from Arvento API
-            const result = await window.electronAPI.arventoGetStatus(userArventoCreds)
+            const result = await window.electronAPI.arventoGetStatus(creds)
             if (result.success && Array.isArray(result.data)) {
                 // Map Arvento results using local vehicle metadata
                 const mappedData = result.data.map(item => {
@@ -3015,7 +2974,7 @@ export default function ArventoTracking() {
     const fetchDailyReports = async () => {
         setLoading(true)
         try {
-            const result = await window.electronAPI.arventoGetDailyReport(dailyReportDate, userArventoCreds)
+            const result = await window.electronAPI.arventoGetDailyReport(dailyReportDate, effectiveArventoCreds)
             if (result.success) {
                 setDailyReports(result.data || [])
             }
@@ -3180,7 +3139,15 @@ export default function ArventoTracking() {
         }
     }, [combinedDailyReports])
 
-    if (settings && (!settings.arvento?.enabled || !settings.arvento?.username)) {
+    if (!settings) {
+        return (
+            <div className="tracking-page-wrapper">
+                <TopProgressBar loading={true} />
+            </div>
+        )
+    }
+
+    if (!settings.arvento?.enabled || !settings.arvento?.username) {
         return (
             <div className="tracking-page-wrapper">
                 <div className="page-header" style={{ marginBottom: 0 }}>
@@ -3227,102 +3194,6 @@ export default function ArventoTracking() {
                     >
                         Ayarlar Sayfasına Git
                     </button>
-                </div>
-            </div>
-        )
-    }
-
-    if (!userArventoCreds) {
-        return (
-            <div className="tracking-page-wrapper">
-                <TopProgressBar loading={loading} />
-                <div className="page-header">
-                    <div>
-                        <h1 className="page-title">Araç Takip (Arvento)</h1>
-                        <p style={{ marginTop: '5px', color: 'var(--text-secondary)' }}>
-                            Arvento canlı konum ve rota takibi için kendi kullanıcı hesabınızla giriş yapınız.
-                        </p>
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', padding: '20px' }}>
-                    <div className="card" style={{ maxWidth: '420px', width: '100%', padding: '36px', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }}>
-                        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                            <div style={{
-                                width: '56px',
-                                height: '56px',
-                                borderRadius: '50%',
-                                background: 'rgba(59, 130, 246, 0.1)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                margin: '0 auto 16px'
-                            }}>
-                                <Globe size={28} color="#3b82f6" />
-                            </div>
-                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
-                                Arvento Hesabınızla Giriş Yapın
-                            </h2>
-                            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px' }}>
-                                Canlı araç takibini ve geçmiş rotaları görüntülemek için kişisel Arvento kullanıcı bilgilerinizi giriniz.
-                            </p>
-                        </div>
-
-                        <form onSubmit={handleArventoUserLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <CustomInput
-                                label="Arvento Kullanıcı Adı"
-                                required
-                                value={loginForm.username}
-                                onChange={(val) => setLoginForm({...loginForm, username: val})}
-                                placeholder="Örn: sirket_kullanici"
-                                maxLength={50}
-                                autoFocus
-                            />
-                            <CustomInput
-                                label="PIN1 / Şifre"
-                                type="password"
-                                required
-                                value={loginForm.pin1}
-                                onChange={(val) => setLoginForm({...loginForm, pin1: val})}
-                                placeholder="Arvento PIN1 / Şifreniz"
-                                maxLength={50}
-                            />
-                            <CustomInput
-                                label="PIN2 (Opsiyonel)"
-                                type="password"
-                                value={loginForm.pin2}
-                                onChange={(val) => setLoginForm({...loginForm, pin2: val})}
-                                placeholder="Var ise PIN2"
-                                maxLength={50}
-                            />
-
-                            {loginError && (
-                                <div style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '12px' }}>
-                                    {loginError}
-                                </div>
-                            )}
-
-                            <button
-                                type="submit"
-                                className="btn btn-primary"
-                                disabled={loginLoading}
-                                style={{ width: '100%', justifyContent: 'center', height: '42px', marginTop: '8px' }}
-                            >
-                                {loginLoading ? <Loader2 size={16} className="animate-spin" /> : 'Giriş Yap ve Haritayı Aç'}
-                            </button>
-
-                            {settings?.arvento?.username && (
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={handleUseSystemCreds}
-                                    style={{ width: '100%', justifyContent: 'center', height: '38px', fontSize: '12px' }}
-                                >
-                                    Sistem Varsayılan Hesabı İle Giriş Yap
-                                </button>
-                            )}
-                        </form>
-                    </div>
                 </div>
             </div>
         )
