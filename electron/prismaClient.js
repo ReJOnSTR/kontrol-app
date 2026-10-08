@@ -1259,24 +1259,35 @@ async function runAutoMigrations() {
 async function healExistingOperationDocuments(prisma) {
     log.info('Starting self-healing for existing operation documents...');
 
+    // Clean up unwanted auto-created operation folders
+    const unwantedFolderNames = [
+        'Bakım Belgeleri', 
+        'Servis Belgeleri', 
+        'Muayene Belgeleri', 
+        'Sigorta & Kasko Belgeleri',
+        'Bakım Belgesi',
+        'Servis Belgesi',
+        'Muayene Belgesi',
+        'Sigorta Belgesi',
+        'Kasko Belgesi'
+    ];
+    try {
+        await prisma.document_folders.deleteMany({
+            where: { name: { in: unwantedFolderNames } }
+        });
+        await prisma.documents.updateMany({
+            where: { folder: { in: unwantedFolderNames } },
+            data: { folder: null }
+        });
+    } catch (e) {
+        log.warn('Operation folders cleanup error:', e.message);
+    }
+
     // Fetch all vehicles to help link documents correctly
     const vehicles = await prisma.vehicles.findMany({
         select: { id: true, company_id: true, plate: true }
     });
     const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
-
-    const ensureFolder = async (companyId, folderName) => {
-        if (!companyId || !folderName) return;
-        const exists = await prisma.document_folders.findFirst({
-            where: { company_id: companyId, name: folderName }
-        });
-        if (!exists) {
-            await prisma.document_folders.create({
-                data: { company_id: companyId, name: folderName, is_archived: 0 }
-            });
-            log.info(`Self-healing: Created folder "${folderName}" for company ${companyId}`);
-        }
-    };
 
     // --- Maintenances ---
     const maintenances = await prisma.maintenances.findMany({
@@ -1289,7 +1300,6 @@ async function healExistingOperationDocuments(prisma) {
             where: { related_type: 'maintenance', related_id: item.id }
         });
         if (!existing) {
-            await ensureFolder(v.company_id, 'Bakım Belgeleri');
             const ext = path.extname(item.file_path || '');
             const dateStr = item.date ? new Date(item.date).toISOString().split('T')[0] : '';
             await prisma.documents.create({
@@ -1302,7 +1312,7 @@ async function healExistingOperationDocuments(prisma) {
                     file_type: ext,
                     category: 'Bakım',
                     doc_type: 'Bakım',
-                    folder: 'Bakım Belgeleri',
+                    folder: null,
                     start_date: item.date ? new Date(item.date) : null,
                     end_date: item.next_date ? new Date(item.next_date) : null,
                     is_archived: item.is_archived || 0
@@ -1323,7 +1333,6 @@ async function healExistingOperationDocuments(prisma) {
             where: { related_type: 'service', related_id: item.id }
         });
         if (!existing) {
-            await ensureFolder(v.company_id, 'Servis Belgeleri');
             const ext = path.extname(item.file_path || '');
             const dateStr = item.date ? new Date(item.date).toISOString().split('T')[0] : '';
             await prisma.documents.create({
@@ -1336,7 +1345,7 @@ async function healExistingOperationDocuments(prisma) {
                     file_type: ext,
                     category: 'Servis',
                     doc_type: 'Servis',
-                    folder: 'Servis Belgeleri',
+                    folder: null,
                     start_date: item.date ? new Date(item.date) : null,
                     end_date: null,
                     is_archived: item.is_archived || 0
@@ -1357,7 +1366,6 @@ async function healExistingOperationDocuments(prisma) {
             where: { related_type: 'inspection', related_id: item.id }
         });
         if (!existing) {
-            await ensureFolder(v.company_id, 'Muayene Belgeleri');
             const ext = path.extname(item.file_path || '');
             const isPeriodic = item.type === 'periodic';
             const cat = isPeriodic ? 'Egzoz Muayenesi' : 'Araç Muayenesi';
@@ -1372,7 +1380,7 @@ async function healExistingOperationDocuments(prisma) {
                     file_type: ext,
                     category: cat,
                     doc_type: cat,
-                    folder: 'Muayene Belgeleri',
+                    folder: null,
                     start_date: item.inspection_date ? new Date(item.inspection_date) : null,
                     end_date: item.next_inspection ? new Date(item.next_inspection) : null,
                     is_archived: item.is_archived || 0
@@ -1393,7 +1401,6 @@ async function healExistingOperationDocuments(prisma) {
             where: { related_type: 'insurance', related_id: item.id }
         });
         if (!existing) {
-            await ensureFolder(v.company_id, 'Sigorta & Kasko Belgeleri');
             const ext = path.extname(item.file_path || '');
             const isKasko = item.type === 'kasko';
             const cat = isKasko ? 'Kasko' : 'Trafik Sigortası';
@@ -1408,7 +1415,7 @@ async function healExistingOperationDocuments(prisma) {
                     file_type: ext,
                     category: cat,
                     doc_type: cat,
-                    folder: 'Sigorta & Kasko Belgeleri',
+                    folder: null,
                     start_date: item.start_date ? new Date(item.start_date) : null,
                     end_date: item.end_date ? new Date(item.end_date) : null,
                     is_archived: item.is_archived || 0

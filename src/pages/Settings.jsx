@@ -6,6 +6,7 @@ import { useCompany } from '../context/CompanyContext'
 import CustomSelect from '../components/CustomSelect'
 import CustomInput from '../components/CustomInput'
 import Modal from '../components/Modal'
+import TableActionMenu from '../components/TableActionMenu'
 import PermissionMatrix, { ROLE_PRESETS } from '../components/PermissionMatrix'
 import { 
     Sun, Moon, Shield, Database, Palette, HardDrive, Lock, Globe, 
@@ -193,7 +194,7 @@ export default function Settings() {
             // Strict company isolation: only show users strictly belonging to active company
             const strictlyCompanyUsers = rawList.filter(u => {
                 if (u.role === 'superadmin' || u.accountType === 'superadmin') return false
-                return u.company?.id === currentCompany.id
+                return u.company?.id === currentCompany.id || u.company_id === currentCompany.id
             })
 
             setCompanyUsers(strictlyCompanyUsers)
@@ -515,20 +516,24 @@ export default function Settings() {
         setEditUserLoading(true)
         try {
             const res = await window.electronAPI?.updatePlatformUser(editingUser.id, {
-                fullName: editingUser.full_name || editingUser.fullName,
+                fullName: editingUser.fullName || editingUser.full_name,
                 email: editingUser.email,
                 role: editingUser.role,
-                isActive: editingUser.is_active
+                isActive: editingUser.is_active ?? (editingUser.isActive ? 1 : 0),
+                permissions: editingUser.permissions
             })
             if (res?.success) {
                 setEditUserModal(false)
                 setEditingUser(null)
+                if (window.showToast) window.showToast('Kullanıcı yetkileri başarıyla güncellendi.', 'success')
                 await loadCompanyUsers()
             } else {
-                alert('Güncelleme hatası: ' + (res?.error || 'Bilinmiyor'))
+                if (window.showToast) window.showToast('Güncelleme hatası: ' + (res?.error || 'Bilinmiyor'), 'error')
+                else alert('Güncelleme hatası: ' + (res?.error || 'Bilinmiyor'))
             }
         } catch (err) {
-            alert('Hata: ' + err.message)
+            if (window.showToast) window.showToast('Hata: ' + err.message, 'error')
+            else alert('Hata: ' + err.message)
         } finally {
             setEditUserLoading(false)
         }
@@ -536,15 +541,21 @@ export default function Settings() {
 
     const handleToggleUserStatus = async (userId, currentStatus) => {
         try {
-            const newStatus = (currentStatus === 1 || currentStatus === true) ? 0 : 1
+            const isCurrentlyActive = (currentStatus === 1 || currentStatus === true)
+            const newStatus = isCurrentlyActive ? 0 : 1
             const res = await window.electronAPI?.toggleUserStatus(userId, newStatus)
             if (res?.success) {
+                if (window.showToast) {
+                    window.showToast(newStatus === 1 ? 'Kullanıcı hesabı aktif edildi.' : 'Kullanıcı hesabı kilitlendi.', 'info')
+                }
                 await loadCompanyUsers()
             } else {
-                alert('Durum değiştirilemedi: ' + (res?.error || 'Bilinmiyor'))
+                if (window.showToast) window.showToast('Durum değiştirilemedi: ' + (res?.error || 'Bilinmiyor'), 'error')
+                else alert('Durum değiştirilemedi: ' + (res?.error || 'Bilinmiyor'))
             }
         } catch (err) {
-            alert('Hata: ' + err.message)
+            if (window.showToast) window.showToast('Hata: ' + err.message, 'error')
+            else alert('Hata: ' + err.message)
         }
     }
 
@@ -555,34 +566,41 @@ export default function Settings() {
         try {
             const res = await window.electronAPI?.disableMfa(targetUser.id)
             if (res?.success) {
-                alert(`"${targetUser.username}" kullanıcısının 2FA kilidi başarıyla sıfırlandı.`)
+                if (window.showToast) window.showToast(`"${targetUser.username}" kullanıcısının 2FA kilidi başarıyla sıfırlandı.`, 'success')
+                else alert(`"${targetUser.username}" kullanıcısının 2FA kilidi başarıyla sıfırlandı.`)
                 await loadCompanyUsers()
             } else {
-                alert('2FA sıfırlama hatası: ' + (res?.error || 'Bilinmiyor'))
+                if (window.showToast) window.showToast('2FA sıfırlama hatası: ' + (res?.error || 'Bilinmiyor'), 'error')
+                else alert('2FA sıfırlama hatası: ' + (res?.error || 'Bilinmiyor'))
             }
         } catch (err) {
-            alert('Hata: ' + err.message)
+            if (window.showToast) window.showToast('Hata: ' + err.message, 'error')
+            else alert('Hata: ' + err.message)
         }
     }
 
     const handleResetPasswordSubmit = async (e) => {
         e.preventDefault()
         if (!resetPasswordData.newPassword || resetPasswordData.newPassword.length < 4) {
-            alert('Şifre en az 4 karakter olmalıdır')
+            if (window.showToast) window.showToast('Şifre en az 4 karakter olmalıdır', 'warning')
+            else alert('Şifre en az 4 karakter olmalıdır')
             return
         }
         setResetPasswordLoading(true)
         try {
             const res = await window.electronAPI?.resetPlatformUserPassword(resetPasswordData.userId, resetPasswordData.newPassword)
             if (res?.success) {
-                alert('Şifre başarıyla güncellendi')
+                if (window.showToast) window.showToast('Şifre başarıyla güncellendi.', 'success')
+                else alert('Şifre başarıyla güncellendi')
                 setResetPasswordModal(false)
                 setResetPasswordData({ userId: null, username: '', newPassword: '' })
             } else {
-                alert('Şifre sıfırlama hatası: ' + (res?.error || 'Bilinmiyor'))
+                if (window.showToast) window.showToast('Şifre sıfırlama hatası: ' + (res?.error || 'Bilinmiyor'), 'error')
+                else alert('Şifre sıfırlama hatası: ' + (res?.error || 'Bilinmiyor'))
             }
         } catch (err) {
-            alert('Hata: ' + err.message)
+            if (window.showToast) window.showToast('Hata: ' + err.message, 'error')
+            else alert('Hata: ' + err.message)
         } finally {
             setResetPasswordLoading(false)
         }
@@ -590,7 +608,8 @@ export default function Settings() {
 
     const handleDeleteUser = async (userToDelete) => {
         if (userToDelete.id === user?.id) {
-            alert('Kendi oturum açtığınız hesabı silemezsiniz')
+            if (window.showToast) window.showToast('Kendi oturum açtığınız hesabı silemezsiniz', 'warning')
+            else alert('Kendi oturum açtığınız hesabı silemezsiniz')
             return
         }
         if (!window.confirm(`"${userToDelete.username}" kullanıcısını silmek istediğinize emin misiniz?`)) {
@@ -599,13 +618,16 @@ export default function Settings() {
         try {
             const res = await window.electronAPI?.deletePlatformUser(userToDelete.id)
             if (res?.success) {
+                if (window.showToast) window.showToast(`"${userToDelete.username}" kullanıcısı başarıyla silindi.`, 'success')
                 setCompanyUsers(prev => prev.filter(u => u.id !== userToDelete.id))
                 await loadCompanyUsers()
             } else {
-                alert('Silme hatası: ' + (res?.error || 'Bilinmiyor'))
+                if (window.showToast) window.showToast('Silme hatası: ' + (res?.error || 'Bilinmiyor'), 'error')
+                else alert('Silme hatası: ' + (res?.error || 'Bilinmiyor'))
             }
         } catch (err) {
-            alert('Hata: ' + err.message)
+            if (window.showToast) window.showToast('Hata: ' + err.message, 'error')
+            else alert('Hata: ' + err.message)
         }
     }
 
@@ -1257,11 +1279,14 @@ export default function Settings() {
                                             <tbody>
                                                 {companyUsers.map((u) => {
                                                     const rolePreset = ROLE_PRESETS.find(r => r.id === u.role)
-                                                    const roleLabel = rolePreset ? rolePreset.label : (u.role === 'company_admin' ? 'Şirket Yöneticisi' : (u.role || 'Özel Yetki'))
-                                                    const badgeClass = rolePreset ? rolePreset.badgeColor : (u.role === 'company_admin' ? 'badge-primary' : 'badge-neutral')
+                                                    const roleLabel = rolePreset ? rolePreset.label : (u.role === 'company_admin' ? 'Şirket Yöneticisi' : (u.role === 'admin' ? 'Yönetici' : (u.role === 'personnel' ? 'Personel' : (u.role || 'Özel Yetki'))))
+                                                    const badgeClass = rolePreset ? rolePreset.badgeColor : (u.role === 'company_admin' ? 'badge-primary' : (u.role === 'admin' ? 'badge-info' : 'badge-neutral'))
                                                     const isSelf = u.id === user?.id
-                                                    const isActive = u.is_active === 1 || u.is_active === true
+                                                    const isActive = u.is_active === 1 || u.is_active === true || u.isActive === true
                                                     const is2FA = Boolean(u.two_factor_enabled === 1 || u.two_factor_enabled === true || u.has2FA)
+                                                    const displayName = u.fullName || u.full_name || u.username
+                                                    const employeeName = u.employee?.fullName || `${u.employee?.first_name || ''} ${u.employee?.last_name || ''}`.trim() || null
+                                                    const contactPhone = u.phone || u.employee?.phone || null
 
                                                     return (
                                                         <tr key={u.id} style={{ borderTop: '1px solid var(--border-color)' }}>
@@ -1280,11 +1305,11 @@ export default function Settings() {
                                                                         fontSize: '12px',
                                                                         flexShrink: 0
                                                                     }}>
-                                                                        {(u.full_name || u.username || 'U').charAt(0).toUpperCase()}
+                                                                        {(displayName || 'U').charAt(0).toUpperCase()}
                                                                     </div>
                                                                     <div>
                                                                         <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
-                                                                            {u.full_name || u.username}
+                                                                            {displayName}
                                                                             {isSelf && <span style={{ marginLeft: '6px', fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 600 }}>(Siz)</span>}
                                                                         </div>
                                                                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>@{u.username}</div>
@@ -1292,18 +1317,18 @@ export default function Settings() {
                                                                 </div>
                                                             </td>
                                                             <td style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                                {u.employee ? (
+                                                                {employeeName ? (
                                                                     <div>
-                                                                        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{u.employee.first_name} {u.employee.last_name}</div>
-                                                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{u.employee.position || 'Personel'}</div>
+                                                                        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{employeeName}</div>
+                                                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{u.employee?.position || 'Personel'}</div>
                                                                     </div>
                                                                 ) : (
                                                                     <span style={{ color: 'var(--text-muted)' }}>—</span>
                                                                 )}
                                                             </td>
                                                             <td style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                                <div>{u.email}</div>
-                                                                {u.phone && <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{u.phone}</div>}
+                                                                <div>{u.email || '-'}</div>
+                                                                {contactPhone && <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{contactPhone}</div>}
                                                             </td>
                                                             <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                                                                 <span className={`badge ${badgeClass}`} style={{ fontSize: '11px' }}>
@@ -1325,65 +1350,78 @@ export default function Settings() {
                                                                 </span>
                                                             </td>
                                                             <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                                                                <div className="action-btns" style={{ display: 'inline-flex', gap: '6px', justifyContent: 'center' }}>
+                                                                <TableActionMenu>
                                                                     <button
-                                                                        className="action-icon-btn"
+                                                                        type="button"
                                                                         title="Yetkileri Düzenle"
                                                                         onClick={() => {
+                                                                            let parsedPerms = {};
+                                                                            if (u.permissions) {
+                                                                                if (typeof u.permissions === 'object') {
+                                                                                    parsedPerms = { ...u.permissions };
+                                                                                } else {
+                                                                                    try {
+                                                                                        parsedPerms = JSON.parse(u.permissions);
+                                                                                    } catch (e) {
+                                                                                        parsedPerms = {};
+                                                                                    }
+                                                                                }
+                                                                            }
                                                                             setEditingUser({
                                                                                 id: u.id,
                                                                                 username: u.username,
-                                                                                fullName: u.full_name || u.username,
-                                                                                email: u.email,
+                                                                                fullName: displayName,
+                                                                                full_name: displayName,
+                                                                                email: u.email || '',
                                                                                 role: u.role || 'manager',
-                                                                                is_active: u.is_active,
-                                                                                permissions: typeof u.permissions === 'string' ? JSON.parse(u.permissions || '{}') : (u.permissions || {})
+                                                                                is_active: isActive ? 1 : 0,
+                                                                                isActive: isActive,
+                                                                                permissions: parsedPerms
                                                                             })
                                                                             setEditUserModal(true)
                                                                         }}
                                                                     >
-                                                                        <Edit2 size={14} />
+                                                                        <Edit2 size={15} /> Yetkileri Düzenle
                                                                     </button>
                                                                     <button
-                                                                        className="action-icon-btn"
+                                                                        type="button"
                                                                         title="Şifre Sıfırla"
                                                                         onClick={() => {
                                                                             setResetPasswordData({ userId: u.id, username: u.username, newPassword: '' })
                                                                             setResetPasswordModal(true)
                                                                         }}
                                                                     >
-                                                                        <Key size={14} />
+                                                                        <Key size={15} /> Şifre Sıfırla
                                                                     </button>
                                                                     {is2FA && (
                                                                         <button
-                                                                            className="action-icon-btn"
+                                                                            type="button"
                                                                             title="2FA Kilidini Sıfırla"
                                                                             onClick={() => handleResetUser2FA(u)}
-                                                                            style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)' }}
                                                                         >
-                                                                            <Shield size={14} />
+                                                                            <Shield size={15} /> 2FA Kilidini Sıfırla
                                                                         </button>
                                                                     )}
                                                                     {!isSelf && (
-                                                                        <>
-                                                                            <button
-                                                                                className="action-icon-btn"
-                                                                                title={isActive ? 'Hesabı Kilitle' : 'Kilidi Aç'}
-                                                                                style={isActive ? { color: '#f59e0b' } : { color: '#10b981' }}
-                                                                                onClick={() => handleToggleUserStatus(u.id, u.is_active)}
-                                                                            >
-                                                                                {isActive ? <Lock size={14} /> : <Unlock size={14} />}
-                                                                            </button>
-                                                                            <button
-                                                                                className="action-icon-btn danger"
-                                                                                title="Kullanıcıyı Sil"
-                                                                                onClick={() => handleDeleteUser(u)}
-                                                                            >
-                                                                                <Trash2 size={14} />
-                                                                            </button>
-                                                                        </>
+                                                                        <button
+                                                                            type="button"
+                                                                            title={isActive ? 'Hesabı Kilitle' : 'Kilidi Aç'}
+                                                                            onClick={() => handleToggleUserStatus(u.id, isActive ? 1 : 0)}
+                                                                        >
+                                                                            {isActive ? <Lock size={15} /> : <Unlock size={15} />} {isActive ? 'Hesabı Kilitle' : 'Kilidi Aç'}
+                                                                        </button>
                                                                     )}
-                                                                </div>
+                                                                    {!isSelf && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="danger"
+                                                                            title="Kullanıcıyı Sil"
+                                                                            onClick={() => handleDeleteUser(u)}
+                                                                        >
+                                                                            <Trash2 size={15} /> Kullanıcıyı Sil
+                                                                        </button>
+                                                                    )}
+                                                                </TableActionMenu>
                                                             </td>
                                                         </tr>
                                                     )
@@ -2753,6 +2791,46 @@ export default function Settings() {
                     size="xl"
                 >
                     <form onSubmit={handleUpdateUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {/* User Basic Info Header */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '12px',
+                            padding: '12px 14px',
+                            background: 'var(--bg-secondary)',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)'
+                        }}>
+                            <div>
+                                <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Ad Soyad</label>
+                                <input
+                                    type="text"
+                                    className="input-field"
+                                    value={editingUser.fullName || ''}
+                                    onChange={e => setEditingUser(prev => ({ ...prev, fullName: e.target.value, full_name: e.target.value }))}
+                                    placeholder="Ad Soyad"
+                                    style={{ width: '100%', fontSize: '13px', padding: '6px 10px' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>E-Posta</label>
+                                <input
+                                    type="email"
+                                    className="input-field"
+                                    value={editingUser.email || ''}
+                                    onChange={e => setEditingUser(prev => ({ ...prev, email: e.target.value }))}
+                                    placeholder="E-Posta"
+                                    style={{ width: '100%', fontSize: '13px', padding: '6px 10px' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kullanıcı Adı</label>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', padding: '6px 0' }}>
+                                    @{editingUser.username}
+                                </div>
+                            </div>
+                        </div>
+
                         {/* 3-Level Permission Matrix (Ultra-clean 2-Column Split Layout) */}
                         <PermissionMatrix
                             selectedPreset={editingUser.role}

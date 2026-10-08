@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Phone, Mail, Building2, MapPin, Briefcase, Info, Calendar, Pencil, Banknote, Eye, CheckCircle2, Search, Filter, Archive, ArchiveRestore, FileText, Plus, Trash2, Folder, AlertCircle, ChevronRight, Printer, FileDown, Settings, ChevronDown, Save, FilePlus } from 'lucide-react'
 import DataTable from '../components/DataTable'
 import TopProgressBar from '../components/TopProgressBar'
+import { DetailSkeleton } from '../components/Skeleton'
 import { formatDate, formatCurrency, generateUniqueFileName } from '../utils/helpers'
 
 import Modal from '../components/Modal'
@@ -824,7 +825,14 @@ export default function CustomerDetail() {
         }, 100);
     };
 
-    if (loading) return <div><TopProgressBar loading={loading} /></div>
+    if (loading) {
+        return (
+            <div>
+                <TopProgressBar loading={loading} />
+                <DetailSkeleton />
+            </div>
+        )
+    }
     if (!customer) return <div className="empty-state"><h2 className="empty-state-title">Müşteri Bulunamadı</h2><Link className="btn btn-primary" to="/customers">Müşterilere Dön</Link></div>
 
     const tabs = [
@@ -1325,12 +1333,13 @@ export default function CustomerDetail() {
                             ]}
                             data={(() => {
                                 if (currentFolder === null) {
+                                    const unwantedOpFolders = ['Bakım Belgeleri', 'Servis Belgeleri', 'Muayene Belgeleri', 'Sigorta & Kasko Belgeleri', 'Bakım Belgesi', 'Servis Belgesi', 'Muayene Belgesi', 'Sigorta Belgesi', 'Kasko Belgesi'];
                                     const filteredFolders = documentFolders.filter(f => 
-                                        showArchived ? f.is_archived === 1 : f.is_archived !== 1
+                                        (showArchived ? f.is_archived === 1 : f.is_archived !== 1) && !unwantedOpFolders.includes(f.value)
                                     );
                                     const existingFolderNames = new Set(filteredFolders.map(f => f.value));
                                     const dynamicFolderNames = Array.from(new Set(documents.map(d => d.folder).filter(Boolean)))
-                                        .filter(folderName => !existingFolderNames.has(folderName));
+                                        .filter(folderName => !existingFolderNames.has(folderName) && !unwantedOpFolders.includes(folderName));
 
                                     const folderRows = [
                                         ...filteredFolders.map(f => ({

@@ -152,10 +152,25 @@ async function deleteDocumentCategory(id) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
+const UNWANTED_OPERATION_FOLDERS = [
+    'Bakım Belgeleri', 
+    'Servis Belgeleri', 
+    'Muayene Belgeleri', 
+    'Sigorta & Kasko Belgeleri',
+    'Bakım Belgesi',
+    'Servis Belgesi',
+    'Muayene Belgesi',
+    'Sigorta Belgesi',
+    'Kasko Belgesi'
+];
+
 // Document Folders
 async function getDocumentFolders(companyId, relatedType = null, relatedId = null) {
     try {
-        const where = { company_id: parseInt(companyId) };
+        const where = { 
+            company_id: parseInt(companyId),
+            name: { notIn: UNWANTED_OPERATION_FOLDERS }
+        };
         if (relatedType && relatedId) {
             where.OR = [
                 { related_type: relatedType, related_id: parseInt(relatedId) },

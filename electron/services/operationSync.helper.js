@@ -114,48 +114,36 @@ async function syncOperationDocument(relatedType, relatedId, data) {
 
     // Define classification based on relatedType
     let category = 'Diğer';
-    let folderName = 'Diğer Belgeler';
+    let folderName = null;
     let startDate = null;
     let endDate = null;
     let fileNamePrefix = '';
 
     if (relatedType === 'maintenance') {
         category = 'Bakım';
-        folderName = 'Bakım Belgeleri';
+        folderName = null;
         startDate = data.date ? new Date(data.date) : null;
         endDate = data.nextDate ? new Date(data.nextDate) : null;
         fileNamePrefix = `${plate}_Bakim_Belgesi`;
     } else if (relatedType === 'service') {
         category = 'Servis';
-        folderName = 'Servis Belgeleri';
+        folderName = null;
         startDate = data.date ? new Date(data.date) : null;
         fileNamePrefix = `${plate}_Servis_Belgesi`;
     } else if (relatedType === 'inspection') {
         const isPeriodic = data.type === 'periodic';
         category = isPeriodic ? 'Egzoz Muayenesi' : 'Araç Muayenesi';
-        folderName = 'Muayene Belgeleri';
+        folderName = null;
         startDate = (data.date || data.inspectionDate) ? new Date(data.date || data.inspectionDate) : null;
         endDate = (data.validUntil || data.nextInspection) ? new Date(data.validUntil || data.nextInspection) : null;
         fileNamePrefix = `${plate}_${isPeriodic ? 'Egzoz_Muayene_Raporu' : 'Arac_Muayene_Raporu'}`;
     } else if (relatedType === 'insurance') {
         const isKasko = data.type === 'kasko';
         category = isKasko ? 'Kasko' : 'Trafik Sigortası';
-        folderName = 'Sigorta & Kasko Belgeleri';
+        folderName = null;
         startDate = data.startDate ? new Date(data.startDate) : null;
         endDate = data.endDate ? new Date(data.endDate) : null;
         fileNamePrefix = `${plate}_${isKasko ? 'Kasko_Policesi' : 'Trafik_Sigortasi_Policesi'}`;
-    }
-
-    // Check if folder exists, if not create it
-    if (companyId && folderName) {
-        const existingFolder = await prisma.document_folders.findFirst({
-            where: { company_id: parseInt(companyId), name: folderName }
-        });
-        if (!existingFolder) {
-            await prisma.document_folders.create({
-                data: { company_id: parseInt(companyId), name: folderName, is_archived: 0 }
-            });
-        }
     }
 
     // Look for existing document linked to this operation

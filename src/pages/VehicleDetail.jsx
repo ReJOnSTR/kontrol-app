@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import TopProgressBar from '../components/TopProgressBar'
+import { DetailSkeleton } from '../components/Skeleton'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useCompany } from '../context/CompanyContext'
 import { useTabs } from '../context/TabContext'
@@ -674,6 +675,15 @@ export default function VehicleDetail() {
         }
     }
 
+
+    if (loading) {
+        return (
+            <div>
+                <TopProgressBar loading={loading} />
+                <DetailSkeleton />
+            </div>
+        )
+    }
 
     if (!vehicle) {
         return (
@@ -1466,12 +1476,13 @@ export default function VehicleDetail() {
                                 data={(() => {
                                     const filtered = documents.filter(d => showArchived ? d.is_archived === 1 : !d.is_archived);
                                     if (currentFolder === null) {
+                                        const unwantedOpFolders = ['Bakım Belgeleri', 'Servis Belgeleri', 'Muayene Belgeleri', 'Sigorta & Kasko Belgeleri', 'Bakım Belgesi', 'Servis Belgesi', 'Muayene Belgesi', 'Sigorta Belgesi', 'Kasko Belgesi'];
                                         const filteredFolders = documentFolders.filter(f => 
-                                            showArchived ? f.is_archived === 1 : f.is_archived !== 1
+                                            (showArchived ? f.is_archived === 1 : f.is_archived !== 1) && !unwantedOpFolders.includes(f.value)
                                         );
                                         const existingFolderNames = new Set(filteredFolders.map(f => f.value));
                                         const dynamicFolderNames = Array.from(new Set(filtered.map(d => d.folder).filter(Boolean)))
-                                            .filter(folderName => !existingFolderNames.has(folderName));
+                                            .filter(folderName => !existingFolderNames.has(folderName) && !unwantedOpFolders.includes(folderName));
 
                                         const folderRows = [
                                             ...filteredFolders.map(f => ({
@@ -1562,7 +1573,7 @@ export default function VehicleDetail() {
                 }
                 onClose={closeModal}
                 title={modalType === 'vehicle' ? 'Araç Düzenle' : `${editingItem ? 'Düzenle' : 'Yeni'} ${tabs.find(t => t.id === modalType)?.label || ''}`}
-                size={modalType === 'vehicle' ? 'xl' : 'lg'}
+                size="lg"
                 footer={null}
             >
                 {modalType === 'vehicle' ? (

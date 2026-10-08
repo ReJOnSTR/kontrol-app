@@ -212,29 +212,52 @@ async function getPlatformUsers() {
 
             const is2FA = Boolean(u.two_factor_enabled === 1 || u.two_factor_enabled === true || Boolean(u.two_factor_secret));
 
+            let permissionsParsed = {};
+            if (u.permissions) {
+                if (typeof u.permissions === 'object') {
+                    permissionsParsed = u.permissions;
+                } else {
+                    try {
+                        permissionsParsed = JSON.parse(u.permissions);
+                    } catch (e) {
+                        permissionsParsed = {};
+                    }
+                }
+            }
+
             return {
                 id: u.id,
                 username: u.username,
                 email: u.email,
                 fullName: u.full_name || u.username,
+                full_name: u.full_name || u.username,
                 role: u.role || 'user',
                 customRole: u.custom_role?.name || null,
+                role_id: u.role_id,
+                permissions: permissionsParsed,
+                rawPermissions: u.permissions,
                 accountType,
                 accountBadge,
                 isActive: u.is_active === 1,
+                is_active: u.is_active,
                 isPending: u.is_active === 0,
                 rawStatus: u.is_active,
                 mustChangePassword: u.must_change_password === 1,
                 two_factor_enabled: is2FA ? 1 : 0,
                 has2FA: is2FA,
+                company_id: u.company_id || (linkedCompany ? linkedCompany.id : null),
                 company: linkedCompany ? {
                     id: linkedCompany.id,
                     name: linkedCompany.name,
                     phone: linkedCompany.phone || '-'
                 } : { id: null, name: 'Sistem / Genel', phone: '-' },
+                employee_id: u.employee_id,
+                phone: u.phone || u.employee?.phone || null,
                 employee: u.employee ? {
                     id: u.employee.id,
                     fullName: `${u.employee.first_name || ''} ${u.employee.last_name || ''}`.trim(),
+                    first_name: u.employee.first_name || '',
+                    last_name: u.employee.last_name || '',
                     tcNo: u.employee.tc_no || '-',
                     phone: u.employee.phone || '-',
                     position: u.employee.position || 'Personel'
@@ -1541,7 +1564,7 @@ async function getCompanyUsers(companyId) {
         // Strict company isolation: Never return superadmins or users from other companies
         const companyUsers = allUsers.filter(u => {
             if (u.role === 'superadmin' || u.accountType === 'superadmin') return false;
-            return u.company?.id === compId;
+            return u.company?.id === compId || u.company_id === compId;
         });
 
         return { success: true, data: companyUsers };
