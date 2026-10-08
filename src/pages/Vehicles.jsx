@@ -1,5 +1,5 @@
 import TopProgressBar from '../components/TopProgressBar'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useCompany } from '../context/CompanyContext'
 import { useTabs } from '../context/TabContext'
@@ -12,12 +12,15 @@ import {
     vehicleTypes,
     vehicleStatuses,
     getVehicleTypeLabel,
-    getVehicleStatusInfo
+    getVehicleStatusInfo,
+    parseVehicleCapacity,
+    compareVehicleCapacityDesc
 } from '../utils/helpers'
 import { Plus, Pencil, Trash2, Car, Building2, AlertCircle, Archive, ArchiveRestore } from 'lucide-react'
 import VehicleForm from '../components/VehicleForm'
 import { usePersistentTab } from '../hooks/usePersistentTab'
 import { useAuth } from '../context/AuthContext'
+import { dataCache } from '../utils/dataCache'
 
 export default function Vehicles() {
     const navigate = useNavigate()
@@ -77,11 +80,22 @@ export default function Vehicles() {
     }, [currentCompany])
 
     const loadVehicles = async (isBackground = false) => {
-        if (!isBackground) setLoading(true)
+        const cacheKey = `vehicles_${currentCompany?.id}_${showArchived ? 1 : 0}`
+        const cached = dataCache.get(cacheKey)
+        if (cached && !isBackground) {
+            setVehicles(cached)
+            setLoading(false)
+            isBackground = true
+        } else if (!isBackground) {
+            setLoading(true)
+        }
+
         try {
             const result = await window.electronAPI.getVehicles(currentCompany.id, showArchived ? 1 : 0)
             if (result.success) {
-                setVehicles(result.data)
+                const sorted = (result.data || []).sort(compareVehicleCapacityDesc)
+                setVehicles(sorted)
+                dataCache.set(cacheKey, sorted)
                 
                 // Track newly seen vehicle types from the result data to persist tabs
                 if (result.data.length > 0) {
@@ -257,17 +271,36 @@ export default function Vehicles() {
     const columns = [
         { 
             key: 'plate', 
-            label: 'Plaka & Marka',
+            label: 'Plaka',
             render: (val, r) => (
                 <div>
                     <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '12px', color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.05)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                         {val}
                     </span>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {r.brand || '-'} {r.model || ''}
+                        {r.brand || '-'}
                     </div>
                 </div>
             )
+        },
+        {
+            key: 'model',
+            label: 'Model / Kapasite',
+            sortFn: (a, b) => compareVehicleCapacityDesc(a, b),
+            render: (val) => {
+                const parsed = parseVehicleCapacity(val)
+                return (
+                    <div>
+                        {parsed.type !== 'other' ? (
+                            <span style={{ fontWeight: 600, color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)' }}>
+                                {parsed.value}
+                            </span>
+                        ) : (
+                            <span>{val || '-'}</span>
+                        )}
+                    </div>
+                )
+            }
         },
         {
             key: 'type',
@@ -305,6 +338,112 @@ export default function Vehicles() {
         )
     }
 
+
+    const vehicleFilters = useMemo(() => {
+        const tonMap = new Map()
+        const metreMap = new Map()
+        const brandSet = new Set()
+        const otherModelSet = new Set()
+
+        vehicles.forEach(v => {
+            if (v.brand?.trim()) brandSet.add(v.brand.trim())
+            if (v.model?.trim()) {
+                const parsed = parseVehicleCapacity(v.model)
+                if (parsed.type === 'ton' && parsed.num !== null) {
+                    tonMap.set(parsed.num, parsed.value)
+                } else if (parsed.type === 'metre' && parsed.num !== null) {
+                    metreMap.set(parsed.num, parsed.value)
+                } else {
+                    otherModelSet.add(v.model.trim())
+                }
+            }
+        })
+
+        const tonOptions = Array.from(tonMap.entries())
+            .sort((a, b) => b[0] - a[0])
+            .map(([num, label]) => ({ value: String(num), label }))
+
+        const metreOptions = Array.from(metreMap.entries())
+            .sort((a, b) => b[0] - a[0])
+            .map(([num, label]) => ({ value: String(num), label }))
+
+        const brandOptions = Array.from(brandSet)
+            .sort((a, b) => a.localeCompare(b, 'tr'))
+            .map(b => ({ value: b, label: b }))
+
+        const otherModelOptions = Array.from(otherModelSet)
+            .sort((a, b) => a.localeCompare(b, 'tr'))
+            .map(m => ({ value: m, label: m }))
+
+        const filters = [
+            {
+                key: 'status',
+                label: 'Durum',
+                options: [
+                    { value: 'active', label: 'Aktif' },
+                    { value: 'maintenance', label: 'Bakımda' },
+                    { value: 'inactive', label: 'Pasif' }
+                ]
+            },
+            {
+                key: 'capacityType',
+                label: 'Kapasite Türü',
+                options: [
+                    { value: 'ton', label: 'Tonajlı (Ton)' },
+                    { value: 'metre', label: 'Metreli (Metre)' },
+                    { value: 'other', label: 'Standart / Binek Model' }
+                ],
+                filterFn: (row, value) => {
+                    const parsed = parseVehicleCapacity(row.model)
+                    return parsed.type === value
+                }
+            }
+        ]
+
+        if (tonOptions.length > 0) {
+            filters.push({
+                key: 'tonCapacity',
+                label: 'Tonaj (Ton)',
+                options: tonOptions,
+                filterFn: (row, value) => {
+                    const parsed = parseVehicleCapacity(row.model)
+                    return parsed.type === 'ton' && String(parsed.num) === String(value)
+                }
+            })
+        }
+
+        if (metreOptions.length > 0) {
+            filters.push({
+                key: 'metreCapacity',
+                label: 'Uzunluk (Metre)',
+                options: metreOptions,
+                filterFn: (row, value) => {
+                    const parsed = parseVehicleCapacity(row.model)
+                    return parsed.type === 'metre' && String(parsed.num) === String(value)
+                }
+            })
+        }
+
+        if (brandOptions.length > 0) {
+            filters.push({
+                key: 'brand',
+                label: 'Marka',
+                options: brandOptions,
+                filterFn: (row, value) => row.brand?.trim().toLowerCase() === value.trim().toLowerCase()
+            })
+        }
+
+        if (otherModelOptions.length > 0) {
+            filters.push({
+                key: 'otherModel',
+                label: 'Model (Binek)',
+                options: otherModelOptions,
+                filterFn: (row, value) => row.model?.trim().toLowerCase() === value.trim().toLowerCase()
+            })
+        }
+
+        return filters
+    }, [vehicles])
 
     return (
         <div>
@@ -351,26 +490,17 @@ export default function Vehicles() {
 
             <DataTable persistenceKey={`Vehicles_table_${activeTab}`}
                 columns={columns}
-                data={activeTab === 'all' ? vehicles : vehicles.filter(v => v.type === activeTab)}
+                loading={loading}
+                data={(activeTab === 'all' ? vehicles : vehicles.filter(v => v.type === activeTab)).sort(compareVehicleCapacityDesc)}
                 showSearch={true}
                 showCheckboxes={true}
                 onBulkArchive={handleBulkArchive}
                 isArchiveView={showArchived}
                 onToggleArchiveView={setShowArchived}
                 emptyMessage={showArchived ? "Arşivlenmiş araç bulunmuyor." : "Bu kategoride henüz araç bulunmuyor."}
-                searchPlaceholder="Plaka veya marka ara..."
+                searchPlaceholder="Plaka, marka, model veya kapasite ara..."
                 searchKeys={['plate', 'brand', 'model', 'year']}
-                filters={[
-                    {
-                        key: 'status',
-                        label: 'Durum',
-                        options: [
-                            { value: 'active', label: 'Aktif' },
-                            { value: 'maintenance', label: 'Bakımda' },
-                            { value: 'inactive', label: 'Pasif' }
-                        ]
-                    }
-                ]}
+                filters={vehicleFilters}
                 onRowClick={(vehicle, e) => {
                     if (e.ctrlKey || e.metaKey) {
                         openNewTab(`/vehicles/${vehicle.id}`, true, `${vehicle.plate} ${vehicle.brand} ${vehicle.model}`)
@@ -422,7 +552,7 @@ export default function Vehicles() {
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 title={editingVehicle ? 'Araç Düzenle' : 'Yeni Araç'}
-                size="xl"
+                size="lg"
                 footer={null}
             >
                 {error && (

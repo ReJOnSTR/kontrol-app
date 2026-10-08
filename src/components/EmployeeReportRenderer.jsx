@@ -3,7 +3,8 @@ import {
     formatCurrency,
     calculateRemainingLeaves,
     formatDayBalance,
-    generateReportNo
+    generateReportNo,
+    formatWorkingDuration
 } from '../utils/helpers'
 
 // Shared A4 page styles
@@ -81,6 +82,7 @@ export default function EmployeeReportRenderer({ reports, config, listConfig, da
                             {listConfig?.role && <th style={thStyle}>GÖREV / ÜNVAN</th>}
                             {listConfig?.phone && <th style={thStyle}>TELEFON</th>}
                             {listConfig?.startDate && <th style={thStyle}>BAŞLANGIÇ T.</th>}
+                            {listConfig?.workingDuration && <th style={thStyle}>ÇALIŞMA SÜRESİ</th>}
                             {listConfig?.status && <th style={thStyle}>DURUM</th>}
                             {listConfig?.salary && <th style={thStyle}>MAAŞ</th>}
                             {listConfig?.remainingLeaves && <th style={thStyle}>KALAN İZİN</th>}
@@ -90,9 +92,10 @@ export default function EmployeeReportRenderer({ reports, config, listConfig, da
                         {reports.map((report, i) => (
                             <tr key={i}>
                                 {listConfig?.name && <td style={{ ...tdStyle, fontWeight: 'bold' }}>{report.employee.first_name} {report.employee.last_name}</td>}
-                                {listConfig?.role && <td style={tdStyle}>{report.employee.role || '-'}</td>}
+                                {listConfig?.role && <td style={tdStyle}>{report.employee.position || report.employee.role || '-'}</td>}
                                 {listConfig?.phone && <td style={tdStyle}>{report.employee.phone || '-'}</td>}
                                 {listConfig?.startDate && <td style={tdStyle}>{formatDate(report.employee.start_date)}</td>}
+                                {listConfig?.workingDuration && <td style={tdStyle}>{formatWorkingDuration(report.employee.start_date, report.employee.end_date, report.employee.status)}</td>}
                                 {listConfig?.status && <td style={tdStyle}>{report.employee.status === 'active' ? 'Aktif' : 'Pasif'}</td>}
                                 {listConfig?.salary && <td style={tdStyle}>{report.employee.salary ? formatCurrency(report.employee.salary) : '-'}</td>}
                                 {listConfig?.remainingLeaves && <td style={tdStyle}>{formatDayBalance(calculateRemainingLeaves(report.employee, report.leaves))}</td>}
@@ -137,6 +140,10 @@ export default function EmployeeReportRenderer({ reports, config, listConfig, da
                 <div>
                     <div style={{ fontSize: '11px', color: '#666', marginBottom: '2px' }}>BAŞLANGIÇ</div>
                     <div style={{ fontSize: '14px' }}>{formatDate(report.employee.start_date)}</div>
+                </div>
+                <div>
+                    <div style={{ fontSize: '11px', color: '#666', marginBottom: '2px' }}>ÇALIŞMA SÜRESİ</div>
+                    <div style={{ fontSize: '14px' }}>{formatWorkingDuration(report.employee.start_date, report.employee.end_date, report.employee.status)}</div>
                 </div>
                 <div>
                     <div style={{ fontSize: '11px', color: '#666', marginBottom: '2px' }}>T.C. KİMLİK</div>

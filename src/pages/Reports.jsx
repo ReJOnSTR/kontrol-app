@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import TopProgressBar from '../components/TopProgressBar'
 import { useCompany } from '../context/CompanyContext'
 import DataTable from '../components/DataTable'
 import Modal from '../components/Modal'
 import ReportRenderer from '../components/ReportRenderer'
 import { FileText, Printer, Building2, Download, Eye, Calendar, Layers, Settings, List, Filter, FileDown, ChevronDown } from 'lucide-react'
-import { formatDate, formatCurrency, getVehicleTypeLabel, getMaintenanceTypeLabel, getInsuranceTypeLabel, vehicleTypes, generateUniqueFileName } from '../utils/helpers'
+import { formatDate, formatCurrency, getVehicleTypeLabel, getMaintenanceTypeLabel, getInsuranceTypeLabel, vehicleTypes, generateUniqueFileName, parseVehicleCapacity, compareVehicleCapacityDesc } from '../utils/helpers'
 import { useReactToPrint } from 'react-to-print'
 import { usePersistentTab } from '../hooks/usePersistentTab'
 import * as XLSX from 'xlsx'
@@ -84,7 +84,7 @@ export default function Reports() {
         }, 3000);
     }
 
-    // Handle PDF download - no extra window
+    // Handle PDF download - no extra window, preserving high ton to low ton, high metre to low metre order
     const handlePdfDownload = async () => {
         const processedReportList = getProcessedReportList()
         const printData = {
@@ -98,7 +98,6 @@ export default function Reports() {
         }
         localStorage.setItem('printData', JSON.stringify(printData))
         
-        const sanitizeFileName = (str) => (str || '').replace(/[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ_\-\s]/g, '').trim().replace(/\s+/g, '_');
         const getReportPeriodText = (range) => {
             if (range?.start) {
                 const d = new Date(range.start);
@@ -116,15 +115,40 @@ export default function Reports() {
         const companyStr = currentCompany?.name || '';
         const defaultFileName = generateUniqueFileName('Is_Raporu', [companyStr, monthStr], 'pdf');
 
-        if (window.electronAPI && window.electronAPI.saveReportPdf) {
+        const isElectronApp = typeof window !== 'undefined' && Boolean(
+            window.electronAPI?.isElectron ||
+            (window.electronAPI?.saveReportPdf && !window.electronAPI?.isMock)
+        )
+
+        if (isElectronApp && window.electronAPI?.saveReportPdf) {
             try {
-                setIsModalOpen(false)
                 const result = await window.electronAPI.saveReportPdf('/print', { defaultPath: defaultFileName })
                 if (result && !result.success && !result.canceled) {
                     alert('PDF Kaydedilirken Hata: ' + result.error)
                 }
+                if (result?.success) {
+                    setIsModalOpen(false)
+                }
             } catch (e) {
                 console.warn('PDF save failed:', e)
+            }
+        } else {
+            // Web browser mode: clean direct PDF export
+            try {
+                const previewEl = document.querySelector('.report-preview-pane') || 
+                                  document.querySelector('.report-print-container') ||
+                                  document.querySelector('.print-body');
+                if (previewEl) {
+                    const { exportElementToCleanPdf } = await import('../utils/pdfCleanExport');
+                    await exportElementToCleanPdf(previewEl, defaultFileName, false);
+                } else if (window.electronAPI?.saveReportPdf) {
+                    await window.electronAPI.saveReportPdf('#/print', { defaultPath: defaultFileName });
+                } else {
+                    handlePrint();
+                }
+            } catch (err) {
+                console.error('Web PDF Export failed:', err);
+                handlePrint();
             }
         }
     }
@@ -254,7 +278,8 @@ export default function Reports() {
         try {
             const result = await window.electronAPI.getVehicles(currentCompany.id)
             if (result.success) {
-                setVehicles(result.data)
+                const sorted = (result.data || []).sort(compareVehicleCapacityDesc)
+                setVehicles(sorted)
                 
                 // Track seen types for tabs
                 if (result.data.length > 0) {
@@ -274,24 +299,22 @@ export default function Reports() {
     }
 
     const openReportModal = async (vehiclesToReport) => {
-        // vehiclesToReport is an array of vehicle objects
-        setSelectedVehicles(vehiclesToReport)
+        // vehiclesToReport is an array of vehicle objects sorted high ton -> low ton -> high metre -> low metre
+        const sortedToReport = [...vehiclesToReport].sort(compareVehicleCapacityDesc)
+        setSelectedVehicles(sortedToReport)
         setIsModalOpen(true)
         setLoadingReport(true)
         // Reset date range on new open
         setDateRange({ start: '', end: '' })
 
         try {
-            const allReports = []
-
-            // Fetch data for each vehicle in parallel
-            await Promise.all(vehiclesToReport.map(async (vehicle) => {
+            // Fetch data for each vehicle in parallel preserving exact order
+            const allReports = await Promise.all(sortedToReport.map(async (vehicle) => {
                 let services = { data: [] }
                 try {
                     if (window.electronAPI.getServicesByVehicle) {
                         services = await window.electronAPI.getServicesByVehicle(vehicle.id)
                     }
-                    console.log(`Vehicle ${vehicle.plate} services:`, services.data)
                 } catch (e) {
                     console.warn('Services fetch failed:', e)
                 }
@@ -303,17 +326,17 @@ export default function Reports() {
                     window.electronAPI.getAssignmentsByVehicle(vehicle.id)
                 ])
 
-                allReports.push({
+                return {
                     vehicle: vehicle,
                     data: {
-                        maintenances: maintenances.data || [],
-                        inspections: (inspections.data || []).filter(i => !i.type || i.type === 'traffic'),
-                        periodicInspections: (inspections.data || []).filter(i => i.type === 'periodic'),
-                        insurances: insurances.data || [],
-                        assignments: assignments.data || [],
-                        services: services.data || []
+                        maintenances: maintenances?.data || [],
+                        inspections: (inspections?.data || []).filter(i => !i.type || i.type === 'traffic'),
+                        periodicInspections: (inspections?.data || []).filter(i => i.type === 'periodic'),
+                        insurances: insurances?.data || [],
+                        assignments: assignments?.data || [],
+                        services: services?.data || []
                     }
-                })
+                }
             }))
 
             setReportDataList(allReports)
@@ -324,7 +347,9 @@ export default function Reports() {
     }
 
     const handleBulkReport = () => {
-        const vehiclesToReport = vehicles.filter(v => selectedIds.includes(v.id))
+        const vehiclesToReport = vehicles
+            .filter(v => selectedIds.includes(v.id))
+            .sort(compareVehicleCapacityDesc)
         openReportModal(vehiclesToReport)
     }
 
@@ -363,9 +388,10 @@ export default function Reports() {
         return filtered
     }
 
-    // Process data for rendering (apply filters)
+    // Process data for rendering (apply filters and ensure capacity descending sort)
     const getProcessedReportList = () => {
-        return reportDataList.map(report => ({
+        const sortedList = [...reportDataList].sort((a, b) => compareVehicleCapacityDesc(a.vehicle, b.vehicle))
+        return sortedList.map(report => ({
             vehicle: report.vehicle,
             assignments: filterAndSort(report.data.assignments, 'start_date'),
             maintenances: filterAndSort(report.data.maintenances, 'date'),
@@ -378,13 +404,130 @@ export default function Reports() {
 
     const processedReportList = getProcessedReportList()
 
+    const vehicleFilters = useMemo(() => {
+        const tonMap = new Map()
+        const metreMap = new Map()
+        const brandSet = new Set()
+        const otherModelSet = new Set()
+
+        vehicles.forEach(v => {
+            if (v.brand?.trim()) brandSet.add(v.brand.trim())
+            if (v.model?.trim()) {
+                const parsed = parseVehicleCapacity(v.model)
+                if (parsed.type === 'ton' && parsed.num !== null) {
+                    tonMap.set(parsed.num, parsed.value)
+                } else if (parsed.type === 'metre' && parsed.num !== null) {
+                    metreMap.set(parsed.num, parsed.value)
+                } else {
+                    otherModelSet.add(v.model.trim())
+                }
+            }
+        })
+
+        // Sort ton options descending: e.g. 130 Ton -> 110 Ton -> 80 Ton -> ... -> 25 Ton
+        const tonOptions = Array.from(tonMap.entries())
+            .sort((a, b) => b[0] - a[0])
+            .map(([num, label]) => ({ value: String(num), label }))
+
+        // Sort metre options descending: e.g. 47 Metre -> 45 Metre -> ... -> 26 Metre
+        const metreOptions = Array.from(metreMap.entries())
+            .sort((a, b) => b[0] - a[0])
+            .map(([num, label]) => ({ value: String(num), label }))
+
+        const brandOptions = Array.from(brandSet)
+            .sort((a, b) => a.localeCompare(b, 'tr'))
+            .map(b => ({ value: b, label: b }))
+
+        const otherModelOptions = Array.from(otherModelSet)
+            .sort((a, b) => a.localeCompare(b, 'tr'))
+            .map(m => ({ value: m, label: m }))
+
+        const filters = []
+
+        // 1. Kapasite Türü (Ton vs Metre vs Diğer)
+        filters.push({
+            key: 'capacityType',
+            label: 'Kapasite Türü',
+            options: [
+                { value: 'ton', label: 'Tonajlı (Ton)' },
+                { value: 'metre', label: 'Metreli (Metre)' },
+                { value: 'other', label: 'Standart / Binek Model' }
+            ],
+            filterFn: (row, value) => {
+                const parsed = parseVehicleCapacity(row.model)
+                return parsed.type === value
+            }
+        })
+
+        // 2. Tonaj Filtresi
+        if (tonOptions.length > 0) {
+            filters.push({
+                key: 'tonCapacity',
+                label: 'Tonaj (Ton)',
+                options: tonOptions,
+                filterFn: (row, value) => {
+                    const parsed = parseVehicleCapacity(row.model)
+                    return parsed.type === 'ton' && String(parsed.num) === String(value)
+                }
+            })
+        }
+
+        // 3. Metre Filtresi
+        if (metreOptions.length > 0) {
+            filters.push({
+                key: 'metreCapacity',
+                label: 'Uzunluk (Metre)',
+                options: metreOptions,
+                filterFn: (row, value) => {
+                    const parsed = parseVehicleCapacity(row.model)
+                    return parsed.type === 'metre' && String(parsed.num) === String(value)
+                }
+            })
+        }
+
+        // 4. Marka Filtresi
+        if (brandOptions.length > 0) {
+            filters.push({
+                key: 'brand',
+                label: 'Marka',
+                options: brandOptions,
+                filterFn: (row, value) => row.brand?.trim().toLowerCase() === value.trim().toLowerCase()
+            })
+        }
+
+        // 5. Diğer / Binek Model Filtresi
+        if (otherModelOptions.length > 0) {
+            filters.push({
+                key: 'otherModel',
+                label: 'Model (Binek)',
+                options: otherModelOptions,
+                filterFn: (row, value) => row.model?.trim().toLowerCase() === value.trim().toLowerCase()
+            })
+        }
+
+        return filters
+    }, [vehicles])
+
     const columns = [
         { key: 'plate', label: 'Plaka' },
         { key: 'brand', label: 'Marka' },
-        { key: 'model', label: 'Model' },
+        { 
+            key: 'model', 
+            label: 'Model / Kapasite',
+            sortFn: (a, b) => compareVehicleCapacityDesc(a, b)
+        },
         { key: 'type', label: 'Tür', render: v => getVehicleTypeLabel(v) },
         { key: 'year', label: 'Yıl' }
     ]
+
+    const sortedVehicles = useMemo(() => {
+        const list = activeTab === 'all' 
+            ? [...vehicles] 
+            : activeTab === 'unassigned'
+                ? vehicles.filter(v => !v.type)
+                : vehicles.filter(v => v.type === activeTab)
+        return list.sort(compareVehicleCapacityDesc)
+    }, [vehicles, activeTab])
 
     if (!currentCompany) {
         return (
@@ -413,51 +556,72 @@ export default function Reports() {
                 )}
             </div>
 
-            {seenTypes.size > 0 && (
-                <div className="vehicle-tabs">
-                    <button
-                        className={`vehicle-tab${activeTab === 'all' ? ' active' : ''}`}
-                        onClick={() => setActiveTab('all')}
-                    >
-                        Tümü <span className="vehicle-tab-count">{vehicles.length}</span>
-                    </button>
-                    {vehicleTypes.map(type => {
-                        if (!seenTypes.has(type.value)) return null
-                        const count = vehicles.filter(v => v.type === type.value).length
-                        if (count === 0) return null
-                        
-                        return (
-                            <button 
-                                key={type.value}
-                                className={`vehicle-tab${activeTab === type.value ? ' active' : ''}`}
-                                onClick={() => setActiveTab(type.value)}
-                            >
-                                {type.label} <span className="vehicle-tab-count">{count}</span>
-                            </button>
-                        )
-                    })}
-                </div>
-            )}
+            {vehicles.length > 0 && (() => {
+                const typeSet = new Set()
+                seenTypes.forEach(t => { if (t) typeSet.add(t) })
+                vehicles.forEach(v => { if (v.type) typeSet.add(v.type) })
 
-            {(!loading || vehicles.length > 0) && (
-                <DataTable persistenceKey={`Reports_table_${activeTab}`}
-                    columns={columns}
-                    data={activeTab === 'all' ? vehicles : vehicles.filter(v => v.type === activeTab)}
-                    showSearch={true}
-                    selectable={true}
-                    onSelectionChange={setSelectedIds}
-                    actions={(vehicle) => (
+                const tabs = Array.from(typeSet)
+                    .map(t => ({
+                        value: t,
+                        label: getVehicleTypeLabel(t),
+                        count: vehicles.filter(v => v.type === t).length
+                    }))
+                    .filter(t => t.count > 0)
+
+                const unassignedCount = vehicles.filter(v => !v.type).length
+                if (unassignedCount > 0 && tabs.length > 0) {
+                    tabs.push({
+                        value: 'unassigned',
+                        label: 'Belirtilmemiş',
+                        count: unassignedCount
+                    })
+                }
+
+                if (tabs.length === 0) return null
+
+                return (
+                    <div className="vehicle-tabs">
                         <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => openReportModal([vehicle])}
-                            title="Raporu Görüntüle"
+                            className={`vehicle-tab${activeTab === 'all' ? ' active' : ''}`}
+                            onClick={() => setActiveTab('all')}
                         >
-                            <Eye size={16} />
-                            <span style={{ marginLeft: '6px' }}>Görüntüle</span>
+                            Tümü <span className="vehicle-tab-count">{vehicles.length}</span>
                         </button>
-                    )}
-                />
-            )}
+                        {tabs.map(tab => (
+                            <button 
+                                key={tab.value}
+                                className={`vehicle-tab${activeTab === tab.value ? ' active' : ''}`}
+                                onClick={() => setActiveTab(tab.value)}
+                            >
+                                {tab.label} <span className="vehicle-tab-count">{tab.count}</span>
+                            </button>
+                        ))}
+                    </div>
+                )
+            })()}
+
+            <DataTable persistenceKey={`Reports_table_${activeTab}`}
+                loading={loading}
+                columns={columns}
+                data={sortedVehicles}
+                showSearch={true}
+                searchPlaceholder="Plaka, marka, model veya kapasite ara..."
+                searchKeys={['plate', 'brand', 'model', 'year']}
+                selectable={true}
+                filters={vehicleFilters}
+                onSelectionChange={setSelectedIds}
+                actions={(vehicle) => (
+                    <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => openReportModal([vehicle])}
+                        title="Raporu Görüntüle"
+                    >
+                        <Eye size={16} />
+                        <span style={{ marginLeft: '6px' }}>Görüntüle</span>
+                    </button>
+                )}
+            />
 
             {/* Preview & Print Modal */}
             {isModalOpen && selectedVehicles.length > 0 && (

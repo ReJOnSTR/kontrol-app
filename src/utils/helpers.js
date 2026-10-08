@@ -215,6 +215,154 @@ export function getVehicleStatusInfo(status) {
     return vehicleStatuses.find(s => s.value === status) || { label: status, color: 'neutral' }
 }
 
+export function parseVehicleCapacity(model) {
+    if (!model) return { type: 'other', value: null, num: null }
+    const str = String(model).trim()
+    
+    // Check Ton (e.g., "80 Ton", "110 TON", "35 Ton")
+    const tonMatch = str.match(/(\d+(?:[.,]\d+)?)\s*(?:ton|tn)/i)
+    if (tonMatch) {
+        const num = parseFloat(tonMatch[1].replace(',', '.'))
+        return { type: 'ton', value: `${tonMatch[1]} Ton`, num }
+    }
+    
+    // Check Metre (e.g., "26 Metre", "43 Metre", "30 mt")
+    const metreMatch = str.match(/(\d+(?:[.,]\d+)?)\s*(?:metre|meter|mt|\bm\b)/i)
+    if (metreMatch) {
+        const num = parseFloat(metreMatch[1].replace(',', '.'))
+        return { type: 'metre', value: `${metreMatch[1]} Metre`, num }
+    }
+    
+    return { type: 'other', value: str, num: null }
+}
+
+export function compareVehicleCapacityDesc(a, b) {
+    if (!a && !b) return 0
+    if (!a) return 1
+    if (!b) return -1
+
+    const capA = parseVehicleCapacity(a.model)
+    const capB = parseVehicleCapacity(b.model)
+
+    // Rank: 1 = Ton, 2 = Metre, 3 = Diğer / Standart
+    const getRank = (type) => {
+        if (type === 'ton') return 1
+        if (type === 'metre') return 2
+        return 3
+    }
+
+    const rankA = getRank(capA.type)
+    const rankB = getRank(capB.type)
+
+    if (rankA !== rankB) {
+        return rankA - rankB // Tonlar en başta, sonra metreler, sonra diğer modeller
+    }
+
+    // İkisi de ton ise: yüksek tonajdan aşağıya doğru (130 Ton -> 25 Ton)
+    if (capA.type === 'ton' && capB.type === 'ton') {
+        const diff = (capB.num || 0) - (capA.num || 0)
+        if (diff !== 0) return diff
+    }
+
+    // İkisi de metre ise: yüksek metreden aşağıya doğru (47 Metre -> 26 Metre)
+    if (capA.type === 'metre' && capB.type === 'metre') {
+        const diff = (capB.num || 0) - (capA.num || 0)
+        if (diff !== 0) return diff
+    }
+
+    // Aynı kapasitedeyse veya standart modellerse marka ve plakaya göre
+    const brandDiff = (a.brand || '').localeCompare(b.brand || '', 'tr')
+    if (brandDiff !== 0) return brandDiff
+
+    return (a.plate || '').localeCompare(b.plate || '', 'tr')
+}
+
+/**
+ * Calculates working duration (tenure) between start_date and end_date/today.
+ * @param {string|Date} startDate
+ * @param {string|Date} [endDate]
+ * @param {string} [status]
+ * @returns {{ years: number, months: number, days: number, totalDays: number }}
+ */
+export function calculateWorkingDuration(startDate, endDate = null, status = 'active') {
+    if (!startDate) return { years: 0, months: 0, days: 0, totalDays: 0 }
+    const start = new Date(startDate)
+    if (isNaN(start.getTime())) return { years: 0, months: 0, days: 0, totalDays: 0 }
+
+    const isPassive = status === 'inactive' || status === 'passive'
+    const end = isPassive && endDate ? new Date(endDate) : new Date()
+    if (isNaN(end.getTime()) || end < start) return { years: 0, months: 0, days: 0, totalDays: 0 }
+
+    const totalDays = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)))
+
+    let years = end.getFullYear() - start.getFullYear()
+    let months = end.getMonth() - start.getMonth()
+    let days = end.getDate() - start.getDate()
+
+    if (days < 0) {
+        months -= 1
+        const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0)
+        days += prevMonth.getDate()
+    }
+    if (months < 0) {
+        years -= 1
+        months += 12
+    }
+
+    return {
+        years: Math.max(0, years),
+        months: Math.max(0, months),
+        days: Math.max(0, days),
+        totalDays
+    }
+}
+
+/**
+ * Formats working duration in Turkish (e.g. "2 Yıl 4 Ay", "8 Ay 15 Gün", "20 Gün")
+ */
+export function formatWorkingDuration(startDate, endDate = null, status = 'active') {
+    if (!startDate) return '-'
+    const { years, months, days, totalDays } = calculateWorkingDuration(startDate, endDate, status)
+    if (totalDays === 0 && years === 0 && months === 0 && days === 0) return '-'
+
+    const parts = []
+    if (years > 0) {
+        parts.push(`${years} Yıl`)
+    }
+    if (months > 0) {
+        parts.push(`${months} Ay`)
+    }
+    if (years === 0 && days > 0) {
+        parts.push(`${days} Gün`)
+    }
+
+    return parts.length > 0 ? parts.join(' ') : '1 Gün'
+}
+
+/**
+ * Compares two employees by tenure (working duration) descending:
+ * Longest working tenure first (earliest start date), shortest tenure last.
+ */
+export function compareEmployeeTenureDesc(empA, empB) {
+    if (!empA && !empB) return 0
+    if (!empA) return 1
+    if (!empB) return -1
+
+    const a = empA.employee || empA
+    const b = empB.employee || empB
+
+    const durA = calculateWorkingDuration(a.start_date, a.end_date, a.status)
+    const durB = calculateWorkingDuration(b.start_date, b.end_date, b.status)
+
+    if (durB.totalDays !== durA.totalDays) {
+        return durB.totalDays - durA.totalDays
+    }
+
+    const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim()
+    const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim()
+    return nameA.localeCompare(nameB, 'tr')
+}
+
 export function getMaintenanceTypeLabel(type) {
     return maintenanceTypes.find(t => t.value === type)?.label || type
 }
@@ -273,7 +421,7 @@ export function getHistoricalBaseSalary(employee, targetMonth) {
     let baseSalary = 0
     // If no history exists, fallback to standard salary field
     if (!employee.employee_salary_history || employee.employee_salary_history.length === 0) {
-        baseSalary = employee.salary || 0
+        baseSalary = employee.salary || employee.base_salary || 0
     } else {
         const targetStr = typeof targetMonth === 'string' ? targetMonth.slice(0, 7) : new Date(targetMonth).toISOString().slice(0, 7)
         const parts = targetStr.split('-')

@@ -24,7 +24,7 @@ export default function CustomInput({
     const handleChange = (e) => {
         let val = e.target.value
 
-        if (props.maxLength && typeof val === 'string' && val.length > props.maxLength && format !== 'currency') {
+        if (props.maxLength && typeof val === 'string' && val.length > props.maxLength && format !== 'currency' && format !== 'phone') {
             val = val.slice(0, props.maxLength)
         }
 
@@ -78,19 +78,28 @@ export default function CustomInput({
                 val = val.slice(0, props.maxLength)
             }
         } else if (format === 'phone') {
-            val = val.replace(/\D/g, '')
-            if (val.length > 10) val = val.slice(0, 10)
+            let digits = val.replace(/\D/g, '')
 
-            if (val.length === 0) {
+            // If user types 05XX... (11 digits), strip the leading 0 so all 10 phone digits fit
+            if (digits.startsWith('0') && digits.length > 1) {
+                digits = digits.slice(1)
+            }
+
+            // Exactly 10 phone digits (5XX XXX XX XX)
+            if (digits.length > 10) {
+                digits = digits.slice(0, 10)
+            }
+
+            if (digits.length === 0) {
                 val = ''
-            } else if (val.length <= 3) {
-                val = `(${val}`
-            } else if (val.length <= 6) {
-                val = `(${val.slice(0, 3)}) ${val.slice(3)}`
-            } else if (val.length <= 8) {
-                val = `(${val.slice(0, 3)}) ${val.slice(3, 6)} ${val.slice(6)}`
+            } else if (digits.length <= 3) {
+                val = `(${digits}`
+            } else if (digits.length <= 6) {
+                val = `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+            } else if (digits.length <= 8) {
+                val = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)} ${digits.slice(6)}`
             } else {
-                val = `(${val.slice(0, 3)}) ${val.slice(3, 6)} ${val.slice(6, 8)} ${val.slice(8)}`
+                val = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`
             }
         } else if (format === 'currency') {
             // Remove existing dots (thousands separators)

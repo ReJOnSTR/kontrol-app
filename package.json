@@ -1,6 +1,6 @@
 {
   "name": "kontrol-app",
-  "version": "1.13.143",
+  "version": "1.13.144",
   "description": "Kontrol - Filo Yönetim Sistemi",
   "author": "Halil Sak",
   "main": "electron/main.js",
@@ -8,7 +8,7 @@
     "start": "node server.js",
     "dev": "node scripts/clear-port.js && concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
-    "dev:electron": "wait-on tcp:5173 && electron .",
+    "dev:electron": "node scripts/wait-vite.js && electron .",
     "build": "npx prisma generate && vite build && electron-builder",
     "build:web": "npx prisma generate --schema=./prisma/schema.pg.prisma && vite build",
     "publish": "npx prisma generate && vite build && electron-builder --publish always",
@@ -19,7 +19,9 @@
     "backup:db": "node scripts/supabase-backup-manager.js backup-db",
     "backup:storage": "node scripts/supabase-backup-manager.js backup-storage",
     "backup:restore": "node scripts/supabase-backup-manager.js restore",
-    "rls:apply": "node scripts/apply-supabase-rls.js"
+    "rls:apply": "node scripts/apply-supabase-rls.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "engines": {
     "node": ">=22.0.0"

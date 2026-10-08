@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import TopProgressBar from '../components/TopProgressBar'
 import { useCompany } from '../context/CompanyContext'
 import DataTable from '../components/DataTable'
 import Modal from '../components/Modal'
 import EmployeeReportRenderer from '../components/EmployeeReportRenderer'
 import { FileText, Printer, Building2, Download, Eye, Calendar, Layers, Settings, List, Filter, FileDown, User, ChevronDown } from 'lucide-react'
-import { formatDate, formatCurrency, calculateRemainingLeaves, formatDayBalance, generateUniqueFileName } from '../utils/helpers'
+import { formatDate, formatCurrency, calculateRemainingLeaves, formatDayBalance, generateUniqueFileName, formatWorkingDuration, compareEmployeeTenureDesc } from '../utils/helpers'
 import { usePersistentTab } from '../hooks/usePersistentTab'
 import * as XLSX from 'xlsx'
 
@@ -24,7 +24,7 @@ export default function EmployeeReports() {
     const [loadingReport, setLoadingReport] = useState(false)
     const [reportType, setReportType] = useState('detail') // 'detail' or 'list'
     const [activeTab, setActiveTab] = usePersistentTab('EmployeeReports', 'all')
-    const [departments, setDepartments] = useState(new Set())
+    const [departmentsList, setDepartmentsList] = useState([])
 
     // Report Configuration
     const [config, setConfig] = useState({
@@ -40,6 +40,7 @@ export default function EmployeeReports() {
         role: true,
         phone: true,
         startDate: true,
+        workingDuration: true,
         status: true,
         salary: true,
         remainingLeaves: true
@@ -100,15 +101,40 @@ export default function EmployeeReports() {
         const companyStr = currentCompany?.name || '';
         const defaultFileName = generateUniqueFileName('Personel_Raporu', [companyStr], 'pdf');
 
-        if (window.electronAPI && window.electronAPI.saveReportPdf) {
+        const isElectronApp = typeof window !== 'undefined' && Boolean(
+            window.electronAPI?.isElectron ||
+            (window.electronAPI?.saveReportPdf && !window.electronAPI?.isMock)
+        )
+
+        if (isElectronApp && window.electronAPI?.saveReportPdf) {
             try {
-                setIsModalOpen(false)
                 const result = await window.electronAPI.saveReportPdf('/print', { defaultPath: defaultFileName })
                 if (result && !result.success && !result.canceled) {
                     alert('PDF Kaydedilirken Hata: ' + result.error)
                 }
+                if (result?.success) {
+                    setIsModalOpen(false)
+                }
             } catch (e) {
                 console.warn('PDF save failed:', e)
+            }
+        } else {
+            // Web browser mode: clean direct PDF export
+            try {
+                const previewEl = document.querySelector('.report-preview-pane') || 
+                                  document.querySelector('.report-print-container') ||
+                                  document.querySelector('.print-body');
+                if (previewEl) {
+                    const { exportElementToCleanPdf } = await import('../utils/pdfCleanExport');
+                    await exportElementToCleanPdf(previewEl, defaultFileName, false);
+                } else if (window.electronAPI?.saveReportPdf) {
+                    await window.electronAPI.saveReportPdf('#/print', { defaultPath: defaultFileName });
+                } else {
+                    handlePrint();
+                }
+            } catch (err) {
+                console.error('Web PDF Export failed:', err);
+                handlePrint();
             }
         }
     }
@@ -134,6 +160,7 @@ export default function EmployeeReports() {
             listCols.push({ header: 'Departman', value: r => r.employee.department || '-' })
             if (listConfig.phone) listCols.push({ header: 'Telefon', value: r => r.employee.phone || '-' })
             if (listConfig.startDate) listCols.push({ header: 'İşe Giriş', value: r => formatDate(r.employee.start_date) })
+            if (listConfig.workingDuration) listCols.push({ header: 'Çalışma Süresi', value: r => formatWorkingDuration(r.employee.start_date, r.employee.end_date, r.employee.status) })
             if (listConfig.status) listCols.push({ header: 'Durum', value: r => r.employee.status === 'active' ? 'Aktif' : 'Pasif' })
             if (listConfig.salary) listCols.push({ header: 'Maaş', value: r => r.employee.salary ? formatCurrency(r.employee.salary) : '-' })
             if (listConfig.remainingLeaves) {
@@ -179,16 +206,15 @@ export default function EmployeeReports() {
     const loadEmployees = async () => {
         setLoading(true)
         try {
-            const result = await window.electronAPI.getEmployees(currentCompany.id)
-            if (result.success) {
-                setEmployees(result.data)
-                
-                // Track departments for tabs
-                const depts = new Set()
-                result.data.forEach(e => {
-                    if (e.department) depts.add(e.department)
-                })
-                setDepartments(depts)
+            const [empRes, deptRes] = await Promise.all([
+                window.electronAPI.getEmployees(currentCompany.id),
+                window.electronAPI.getDepartments ? window.electronAPI.getDepartments(currentCompany.id) : Promise.resolve({ success: false })
+            ])
+            if (empRes && empRes.success) {
+                setEmployees(empRes.data || [])
+            }
+            if (deptRes && deptRes.success) {
+                setDepartmentsList(deptRes.data || [])
             }
         } catch (error) {
             console.error('Error loading employees:', error)
@@ -197,15 +223,14 @@ export default function EmployeeReports() {
     }
 
     const openReportModal = async (employeesToReport) => {
-        setSelectedEmployees(employeesToReport)
+        const sortedToReport = [...employeesToReport].sort(compareEmployeeTenureDesc)
+        setSelectedEmployees(sortedToReport)
         setIsModalOpen(true)
         setLoadingReport(true)
         setDateRange({ start: '', end: '' })
 
         try {
-            const allReports = []
-
-            await Promise.all(employeesToReport.map(async (employee) => {
+            const allReports = await Promise.all(sortedToReport.map(async (employee) => {
                 const [employeeResult, leaves, salaries, assignments, documents] = await Promise.all([
                     window.electronAPI.getEmployeeById(employee.id),
                     window.electronAPI.getLeaves(employee.id),
@@ -214,15 +239,15 @@ export default function EmployeeReports() {
                     window.electronAPI.getEmployeeDocuments(employee.id)
                 ])
 
-                allReports.push({
-                    employee: employeeResult.success ? employeeResult.data : employee,
+                return {
+                    employee: employeeResult?.success ? employeeResult.data : employee,
                     data: {
-                        leaves: leaves.data || [],
-                        salaries: salaries.data || [],
-                        assignments: assignments.data || [],
-                        documents: documents.data || []
+                        leaves: leaves?.data || [],
+                        salaries: salaries?.data || [],
+                        assignments: assignments?.data || [],
+                        documents: documents?.data || []
                     }
-                })
+                }
             }))
 
             setReportDataList(allReports)
@@ -233,7 +258,9 @@ export default function EmployeeReports() {
     }
 
     const handleBulkReport = () => {
-        const toReport = employees.filter(e => selectedIds.includes(e.id))
+        const toReport = employees
+            .filter(e => selectedIds.includes(e.id))
+            .sort(compareEmployeeTenureDesc)
         openReportModal(toReport)
     }
 
@@ -260,7 +287,8 @@ export default function EmployeeReports() {
     }
 
     const getProcessedReportList = () => {
-        return reportDataList.map(report => ({
+        const sortedList = [...reportDataList].sort((a, b) => compareEmployeeTenureDesc(a.employee, b.employee))
+        return sortedList.map(report => ({
             employee: report.employee,
             leaves: filterAndSort(report.data.leaves, 'start_date'),
             salaries: filterAndSort(report.data.salaries, 'payment_date'),
@@ -271,16 +299,86 @@ export default function EmployeeReports() {
 
     const processedReportList = getProcessedReportList()
 
+    const employeeTabs = useMemo(() => {
+        const deptNames = new Set()
+        // Collect defined company departments
+        departmentsList.forEach(d => {
+            if (d.name && d.status !== 'passive') deptNames.add(d.name.trim())
+        })
+        // Also collect any departments assigned on employees
+        employees.forEach(e => {
+            if (e.department?.trim()) deptNames.add(e.department.trim())
+        })
+
+        // If no departments defined or assigned, collect positions
+        if (deptNames.size === 0) {
+            employees.forEach(e => {
+                if (e.position?.trim()) deptNames.add(e.position.trim())
+            })
+        }
+
+        const tabs = Array.from(deptNames).map(name => ({
+            value: name,
+            label: name,
+            count: employees.filter(e => e.department === name || (!e.department && e.position === name)).length
+        }))
+
+        // Check for unassigned employees
+        const unassignedCount = employees.filter(e => !e.department && !e.position).length
+        if (unassignedCount > 0 && tabs.length > 0) {
+            tabs.push({
+                value: 'unassigned',
+                label: 'Belirtilmemiş',
+                count: unassignedCount
+            })
+        }
+
+        return tabs
+    }, [departmentsList, employees])
+
+    const sortedEmployees = useMemo(() => {
+        const list = activeTab === 'all' 
+            ? [...employees]
+            : activeTab === 'unassigned'
+                ? employees.filter(e => !e.department && !e.position)
+                : employees.filter(e => e.department === activeTab || (!e.department && e.position === activeTab))
+        return list.sort(compareEmployeeTenureDesc)
+    }, [employees, activeTab])
+
     const columns = [
         { 
             key: 'name', 
             label: 'Ad Soyad',
             render: (_, row) => <span style={{ fontWeight: 600 }}>{row.first_name} {row.last_name}</span>
         },
-        { key: 'role', label: 'Görev' },
-        { key: 'department', label: 'Departman' },
-        { key: 'phone', label: 'Telefon' },
-        { key: 'start_date', label: 'İşe Giriş', render: v => formatDate(v) }
+        { 
+            key: 'position', 
+            label: 'Görev / Pozisyon',
+            render: (_, row) => row.position || row.role || '-'
+        },
+        { 
+            key: 'department', 
+            label: 'Departman',
+            render: (_, row) => row.department || '-'
+        },
+        { key: 'phone', label: 'Telefon', render: v => v || '-' },
+        { 
+            key: 'start_date', 
+            label: 'İşe Giriş / Süre', 
+            sortFn: (a, b) => compareEmployeeTenureDesc(a, b),
+            render: (v, row) => (
+                <div>
+                    <div style={{ fontWeight: 500, fontSize: '12px', color: 'var(--text-primary)' }}>
+                        {formatWorkingDuration(row.start_date, row.end_date, row.status)}
+                    </div>
+                    {v && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            {formatDate(v)}
+                        </div>
+                    )}
+                </div>
+            )
+        }
     ]
 
     if (!currentCompany) {
@@ -310,28 +408,43 @@ export default function EmployeeReports() {
                 )}
             </div>
 
-            <div className="vehicle-tabs">
-                <button
-                    className={`vehicle-tab${activeTab === 'all' ? ' active' : ''}`}
-                    onClick={() => setActiveTab('all')}
-                >
-                    Tümü <span className="vehicle-tab-count">{employees.length}</span>
-                </button>
-                {Array.from(departments).map(dept => (
-                    <button 
-                        key={dept}
-                        className={`vehicle-tab${activeTab === dept ? ' active' : ''}`}
-                        onClick={() => setActiveTab(dept)}
+            {employeeTabs.length > 0 && (
+                <div className="vehicle-tabs">
+                    <button
+                        className={`vehicle-tab${activeTab === 'all' ? ' active' : ''}`}
+                        onClick={() => setActiveTab('all')}
                     >
-                        {dept} <span className="vehicle-tab-count">{employees.filter(e => e.department === dept).length}</span>
+                        Tümü <span className="vehicle-tab-count">{employees.length}</span>
                     </button>
-                ))}
-            </div>
+                    {employeeTabs.map(tab => (
+                        <button 
+                            key={tab.value}
+                            className={`vehicle-tab${activeTab === tab.value ? ' active' : ''}`}
+                            onClick={() => setActiveTab(tab.value)}
+                        >
+                            {tab.label} <span className="vehicle-tab-count">{tab.count}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
 
             <DataTable persistenceKey={`EmployeeReports_table_${activeTab}`}
+                loading={loading}
                 columns={columns}
-                data={activeTab === 'all' ? employees : employees.filter(e => e.department === activeTab)}
+                data={sortedEmployees}
                 showSearch={true}
+                searchPlaceholder="Ad, soyad, telefon veya görev ara..."
+                searchKeys={['first_name', 'last_name', 'position', 'department', 'phone']}
+                filters={[
+                    {
+                        key: 'status',
+                        label: 'Durum',
+                        options: [
+                            { value: 'active', label: 'Aktif' },
+                            { value: 'inactive', label: 'Pasif' }
+                        ]
+                    }
+                ]}
                 selectable={true}
                 onSelectionChange={setSelectedIds}
                 actions={(employee) => (
@@ -453,6 +566,7 @@ export default function EmployeeReports() {
                                                     { key: 'role', label: 'Görev' },
                                                     { key: 'phone', label: 'Telefon' },
                                                     { key: 'startDate', label: 'Başlangıç T.' },
+                                                    { key: 'workingDuration', label: 'Çalışma Süresi' },
                                                     { key: 'status', label: 'Durum' },
                                                     { key: 'salary', label: 'Maaş' },
                                                     { key: 'remainingLeaves', label: 'Kalan İzin' }

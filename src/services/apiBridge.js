@@ -160,12 +160,53 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
             }
 
 
-            // Web saveAsPdf / saveReportPdf (opens report preview & print in new tab)
+            // Web saveAsPdf / saveReportPdf (seamless in-page export without opening new windows or tabs)
             if (prop === 'saveReportPdf') {
                 return async (route, options) => {
-                    const url = route || '/print';
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                    return { success: true, isWeb: true, filePath: 'Rapor ekranı açıldı' };
+                    const el = document.querySelector('.report-print-container') ||
+                               document.querySelector('.pdf-pages-container') || 
+                               document.querySelector('.print-body');
+                    if (el) {
+                        try {
+                            const { exportElementToCleanPdf } = await import('../utils/pdfCleanExport');
+                            const fileName = options?.defaultPath || 'Rapor.pdf';
+                            const isLandscape = Boolean(options?.landscape);
+                            await exportElementToCleanPdf(el, fileName, isLandscape);
+                            return { success: true, isWeb: true, filePath: 'İndirildi' };
+                        } catch (err) {
+                            console.warn('In-page PDF export notice:', err);
+                        }
+                    }
+
+                    // Hidden iframe fallback: NEVER open a new tab/window in browser
+                    return new Promise((resolve) => {
+                        try {
+                            const iframe = document.createElement('iframe');
+                            iframe.style.position = 'fixed';
+                            iframe.style.top = '-99999px';
+                            iframe.style.left = '-99999px';
+                            iframe.style.width = '1200px';
+                            iframe.style.height = '900px';
+                            iframe.style.opacity = '0';
+                            iframe.style.pointerEvents = 'none';
+
+                            const rawRoute = route || '/print';
+                            const cleanHash = rawRoute.startsWith('#') ? rawRoute : `#${rawRoute.startsWith('/') ? '' : '/'}${rawRoute}`;
+                            const separator = cleanHash.includes('?') ? '&' : '?';
+                            iframe.src = `${cleanHash}${separator}autoDownload=1`;
+
+                            document.body.appendChild(iframe);
+
+                            setTimeout(() => {
+                                if (iframe.parentNode) {
+                                    iframe.parentNode.removeChild(iframe);
+                                }
+                                resolve({ success: true, isWeb: true, filePath: 'İndirildi' });
+                            }, 5000);
+                        } catch (e) {
+                            resolve({ success: false, error: e.message });
+                        }
+                    });
                 };
             }
 

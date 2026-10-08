@@ -8,11 +8,12 @@ import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
 import EmployeeForm from '../components/forms/EmployeeForm'
 import BulkDocumentGeneratorModal from '../components/BulkDocumentGeneratorModal'
-import { formatCurrency, getEmployeeStatusInfo } from '../utils/helpers'
+import { formatCurrency, getEmployeeStatusInfo, formatDate, formatWorkingDuration, compareEmployeeTenureDesc } from '../utils/helpers'
 import { employeeService } from '../services'
 import { Plus, Pencil, Trash2, Users, Building2, AlertCircle, Calendar, FileText, UserCheck, Archive, ArchiveRestore } from 'lucide-react'
 import CreatePersonnelUserModal from '../components/personnel/CreatePersonnelUserModal'
 import { useAuth } from '../context/AuthContext'
+import { dataCache } from '../utils/dataCache'
 
 const statusOptions = [
     { value: 'active', label: 'Aktif' },
@@ -73,7 +74,17 @@ export default function Employees() {
     }, [currentCompany])
 
     const loadEmployees = async (isBackground = false) => {
-        if (!isBackground) setLoading(true)
+        const cacheKey = `employees_${currentCompany?.id}_${showArchived ? 1 : 0}`
+        const cached = dataCache.get(cacheKey)
+        if (cached && !isBackground) {
+            setEmployees(cached.employees)
+            if (cached.departments) setDepartments(cached.departments)
+            setLoading(false)
+            isBackground = true
+        } else if (!isBackground) {
+            setLoading(true)
+        }
+
         try {
             const [empRes, deptRes] = await Promise.all([
                 employeeService.getAll(currentCompany.id, showArchived ? 1 : 0),
@@ -86,10 +97,13 @@ export default function Employees() {
                     full_name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim()
                 }))
                 setEmployees(formattedData)
-            }
-
-            if (deptRes.success) {
-                setDepartments(deptRes.data || [])
+                if (deptRes.success) {
+                    setDepartments(deptRes.data || [])
+                }
+                dataCache.set(cacheKey, {
+                    employees: formattedData,
+                    departments: deptRes.data || []
+                })
             }
         } catch (err) {
             console.error('Failed to load employees:', err)
@@ -226,6 +240,23 @@ export default function Employees() {
             key: 'phone', 
             label: 'Telefon',
             render: (val) => val ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{val}</span> : '-'
+        },
+        {
+            key: 'start_date',
+            label: 'İşe Giriş / Çalışma Süresi',
+            sortFn: (a, b) => compareEmployeeTenureDesc(a, b),
+            render: (_, row) => (
+                <div>
+                    <div style={{ fontWeight: 500, fontSize: '12px', color: 'var(--text-primary)' }}>
+                        {formatWorkingDuration(row.start_date, row.end_date, row.status)}
+                    </div>
+                    {row.start_date && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            {formatDate(row.start_date)}
+                        </div>
+                    )}
+                </div>
+            )
         },
         {
             key: 'salary',
@@ -368,6 +399,7 @@ export default function Employees() {
                 initialSort={{ key: 'full_name', direction: 'asc' }}
                 storageKey="employees_table_cols"
                 columns={columns}
+                loading={loading}
                 data={employees}
                 showSearch={true}
                 showCheckboxes={true}
@@ -453,7 +485,7 @@ export default function Employees() {
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 title={editingEmployee ? 'Personel Düzenle' : 'Yeni Personel'}
-                size="xl"
+                size="lg"
                 footer={null}
             >
                 {error && (

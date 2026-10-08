@@ -4,11 +4,13 @@ import * as XLSX from 'xlsx'
 import CustomSelect from './CustomSelect'
 import CustomDatePicker from './CustomDatePicker'
 import TableActionMenu from './TableActionMenu'
+import './Skeleton.css'
 
 export default function DataTable({
     columns,
     data,
     actions,
+    loading = false,
     emptyMessage = 'Kayıt bulunamadı',
     showRowNumbers = false,
     showCheckboxes = true,
@@ -466,7 +468,14 @@ export default function DataTable({
     const sortedData = useMemo(() => {
         if (!filteredData || !sortConfig.key) return filteredData || []
 
+        const colDef = columns?.find(c => c.key === sortConfig.key)
+
         return [...filteredData].sort((a, b) => {
+            if (colDef && typeof colDef.sortFn === 'function') {
+                const res = colDef.sortFn(a, b)
+                return sortConfig.direction === 'asc' ? res : -res
+            }
+
             const aVal = a[sortConfig.key]
             const bVal = b[sortConfig.key]
 
@@ -716,7 +725,10 @@ export default function DataTable({
     return (
         <div className="table-wrapper">
             {/* Toolbar */}
-            <div className="table-toolbar">
+            <div 
+                className="table-toolbar"
+                style={loading ? { opacity: 0.65, pointerEvents: 'none', transition: 'opacity 0.2s ease' } : { transition: 'opacity 0.2s ease' }}
+            >
                 <div className="toolbar-left">
                     {onToggleArchiveView && (
                         <div className="view-toggle" style={{
@@ -1133,7 +1145,40 @@ export default function DataTable({
                         </tr>
                     </thead>
                     <tbody>
-                        {paginatedData.length === 0 ? (
+                        {loading ? (
+                            Array.from({ length: 6 }).map((_, r) => (
+                                <tr key={`skeleton-${r}`} className="skeleton-row" style={{ pointerEvents: 'none' }}>
+                                    {showCheckboxes && (
+                                        <td className="td-checkbox">
+                                            <div className="skeleton-pulse" style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'var(--bg-tertiary)' }} />
+                                        </td>
+                                    )}
+                                    {showRowNumbers && (
+                                        <td className="td-row-number">
+                                            <div className="skeleton-pulse" style={{ width: '20px', height: '14px', borderRadius: '4px', background: 'var(--bg-tertiary)' }} />
+                                        </td>
+                                    )}
+                                    {visibleColumnsList.map((col, c) => (
+                                        <td key={col.key || c}>
+                                            <div 
+                                                className="skeleton-pulse" 
+                                                style={{ 
+                                                    width: c === 0 ? '75%' : `${45 + ((r + c) % 4) * 15}%`, 
+                                                    height: '15px', 
+                                                    borderRadius: '4px', 
+                                                    background: 'var(--bg-tertiary)' 
+                                                }} 
+                                            />
+                                        </td>
+                                    ))}
+                                    {(actions || onRowClick) && (
+                                        <td className="td-actions">
+                                            <div className="skeleton-pulse" style={{ width: '64px', height: '24px', borderRadius: '6px', background: 'var(--bg-tertiary)' }} />
+                                        </td>
+                                    )}
+                                </tr>
+                            ))
+                        ) : paginatedData.length === 0 ? (
                             <tr>
                                 <td
                                     colSpan={visibleColumnsList.length + ((actions || onRowClick) ? 1 : 0) + (showRowNumbers ? 1 : 0) + (showCheckboxes ? 1 : 0)}
@@ -1210,7 +1255,7 @@ export default function DataTable({
 
             {/* Footer */}
             {
-                sortedData.length > 0 && (
+                !loading && sortedData.length > 0 && (
                     <div className="table-footer">
                         <div className="footer-left">
                             <CustomSelect
