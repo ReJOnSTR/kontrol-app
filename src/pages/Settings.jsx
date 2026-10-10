@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
@@ -14,7 +14,7 @@ import {
     Wrench, FileSearch, ClipboardCheck, Layout, Cog, Eye, EyeOff, Clock, CheckCircle,
     UserPlus, Key, Unlock, Trash2, Edit2, ShieldAlert, Check, X, Building2, Sparkles,
     Mail, Send, CheckCircle2, AlertCircle, Filter, Calendar, FileText,
-    Car, Briefcase, UtensilsCrossed, Share2, Copy, MessageSquare, ExternalLink
+    Car, Briefcase, UtensilsCrossed, Share2, Copy, MessageSquare, ExternalLink, Save
 } from 'lucide-react'
 import { 
     HrModuleContent, 
@@ -126,17 +126,28 @@ export default function Settings() {
         }
     }, [userPreferences])
 
+    const arventoLoadedCompanyIdRef = useRef(null)
+
     useEffect(() => {
-        if (companySettings?.integrations?.arvento) {
-            setSettings(prev => ({
-                ...prev,
-                arvento: {
-                    ...prev.arvento,
-                    ...companySettings.integrations.arvento
-                }
-            }))
+        if (companySettings && (!arventoLoadedCompanyIdRef.current || arventoLoadedCompanyIdRef.current !== (currentCompany?.id || 'default'))) {
+            arventoLoadedCompanyIdRef.current = currentCompany?.id || 'default'
+            if (companySettings.integrations?.arvento) {
+                setSettings(prev => ({
+                    ...prev,
+                    arvento: {
+                        enabled: false,
+                        username: '',
+                        pin1: '',
+                        pin2: '',
+                        language: 'tr',
+                        interval: 3,
+                        ...prev.arvento,
+                        ...companySettings.integrations.arvento
+                    }
+                }))
+            }
         }
-    }, [companySettings])
+    }, [companySettings, currentCompany?.id])
 
     const [testingConnection, setTestingConnection] = useState(false)
     const [connectionTestResult, setConnectionTestResult] = useState(null)
@@ -670,16 +681,21 @@ export default function Settings() {
         setTestingConnection(true)
         setConnectionTestResult(null)
         try {
+            if (!window.electronAPI?.arventoTestConnection) {
+                setConnectionTestResult({ success: false, message: 'Arvento bağlantı testi masaüstü uygulamasında (Electron) desteklenmektedir.' })
+                return
+            }
             const result = await window.electronAPI.arventoTestConnection(settings.arvento)
             if (result.success) {
-                setConnectionTestResult({ success: true, message: 'Bağlantı başarılı!' })
+                setConnectionTestResult({ success: true, message: 'Bağlantı başarılı! Kimlik bilgileri doğrulandı.' })
             } else {
                 setConnectionTestResult({ success: false, message: `Bağlantı başarısız: ${result.error || 'Geçersiz kimlik bilgileri'}` })
             }
         } catch (error) {
             setConnectionTestResult({ success: false, message: `Hata: ${error.message}` })
+        } finally {
+            setTestingConnection(false)
         }
-        setTestingConnection(false)
     }
 
     const hashPassword = async (str) => {
@@ -852,10 +868,27 @@ export default function Settings() {
         await window.electronAPI.saveSettings(newSettings)
     }
 
-    const handleArventoChange = async (key, value) => {
+    const [savingArvento, setSavingArvento] = useState(false)
+
+    // Sadece local state güncellenir - her tuş vuruşunda sunucuya istek atılmaz
+    const handleArventoFieldChange = (key, value) => {
+        setSettings(prev => ({
+            ...prev,
+            arvento: {
+                ...prev.arvento,
+                [key]: value
+            }
+        }))
+        if (connectionTestResult) {
+            setConnectionTestResult(null)
+        }
+    }
+
+    // Açma / kapama switch toggle
+    const handleArventoToggle = async (enabled) => {
         const newArvento = {
             ...settings.arvento,
-            [key]: value
+            enabled
         }
         const newSettings = {
             ...settings,
@@ -863,13 +896,53 @@ export default function Settings() {
             userId: user?.id
         }
         setSettings(newSettings)
-        if (window.electronAPI?.saveSettings) {
-            await window.electronAPI.saveSettings(newSettings)
-        }
-        if (updateCompanySettings) {
-            await updateCompanySettings({ integrations: { arvento: newArvento } })
+        try {
+            if (window.electronAPI?.saveSettings) {
+                await window.electronAPI.saveSettings(newSettings)
+            }
+            if (updateCompanySettings) {
+                await updateCompanySettings({ integrations: { arvento: newArvento } })
+            }
+            if (window.showToast) {
+                window.showToast(enabled ? 'Arvento entegrasyonu etkinleştirildi.' : 'Arvento entegrasyonu devre dışı bırakıldı.', 'info')
+            }
+        } catch (err) {
+            console.error('Error toggling arvento:', err)
+            if (window.showToast) {
+                window.showToast('Durum güncellenirken hata oluştu: ' + err.message, 'error')
+            }
         }
     }
+
+    // Ayarları manuel / butonla kaydetme
+    const saveArventoSettings = async () => {
+        setSavingArvento(true)
+        try {
+            const newSettings = {
+                ...settings,
+                userId: user?.id
+            }
+            if (window.electronAPI?.saveSettings) {
+                await window.electronAPI.saveSettings(newSettings)
+            }
+            if (updateCompanySettings) {
+                await updateCompanySettings({ integrations: { arvento: settings.arvento } })
+            }
+            if (window.showToast) {
+                window.showToast('Arvento entegrasyon ayarları başarıyla kaydedildi.', 'success')
+            }
+        } catch (err) {
+            console.error('Error saving arvento settings:', err)
+            if (window.showToast) {
+                window.showToast('Ayarlar kaydedilirken hata oluştu: ' + err.message, 'error')
+            }
+        } finally {
+            setSavingArvento(false)
+        }
+    }
+
+    // Geriye dönük uyumluluk için alias
+    const handleArventoChange = handleArventoFieldChange
 
     const handleBackupPathSelect = async () => {
         const result = await window.electronAPI.selectFolder()
@@ -2322,7 +2395,7 @@ export default function Settings() {
                                             <input 
                                                 type="checkbox" 
                                                 checked={settings.arvento?.enabled || false} 
-                                                onChange={(e) => handleArventoChange('enabled', e.target.checked)} 
+                                                onChange={(e) => handleArventoToggle(e.target.checked)} 
                                             />
                                             <span className="toggle-slider"></span>
                                         </label>
@@ -2331,32 +2404,33 @@ export default function Settings() {
                                     <div style={{ 
                                         marginTop: '12px', 
                                         background: 'rgba(0, 0, 0, 0.02)', 
-                                        padding: '16px 20px', 
+                                        padding: '20px', 
                                         borderRadius: '16px',
                                         border: '1px solid var(--border-color)',
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        gap: '12px',
-                                        opacity: settings.arvento?.enabled ? 1 : 0.5,
+                                        gap: '16px',
+                                        opacity: settings.arvento?.enabled ? 1 : 0.6,
                                         pointerEvents: settings.arvento?.enabled ? 'auto' : 'none',
                                         transition: 'all 0.3s ease',
                                         userSelect: settings.arvento?.enabled ? 'auto' : 'none'
                                     }}>
                                         {/* Row 1: Username, Language, Interval */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', alignItems: 'end' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', alignItems: 'end' }}>
                                             <CustomInput
                                                 label="Kullanıcı Adı"
                                                 value={settings.arvento?.username || ''}
-                                                onChange={(val) => handleArventoChange('username', val)}
+                                                onChange={(val) => handleArventoFieldChange('username', val)}
                                                 required
                                                 disabled={!settings.arvento?.enabled}
                                                 maxLength={50}
+                                                placeholder="Arvento kullanıcı adınız"
                                             />
 
                                             <CustomInput
                                                 label="Dil Kodu"
                                                 value={settings.arvento?.language || 'tr'}
-                                                onChange={(val) => handleArventoChange('language', val)}
+                                                onChange={(val) => handleArventoFieldChange('language', val)}
                                                 placeholder="Örn: tr, en"
                                                 disabled={!settings.arvento?.enabled}
                                                 maxLength={10}
@@ -2372,60 +2446,96 @@ export default function Settings() {
                                                     { value: 10, label: '10 Dakika' }
                                                 ]}
                                                 value={settings.arvento?.interval || 3}
-                                                onChange={(val) => handleArventoChange('interval', parseInt(val))}
+                                                onChange={(val) => handleArventoFieldChange('interval', parseInt(val))}
                                                 required
                                                 disabled={!settings.arvento?.enabled}
                                             />
                                         </div>
 
-                                        {/* Row 2: PIN 1, PIN 2, Test Button */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', alignItems: 'end' }}>
+                                        {/* Row 2: PIN 1, PIN 2 */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', alignItems: 'end' }}>
                                             <CustomInput
                                                 type="password"
-                                                label="PIN 1"
+                                                label="PIN 1 (Şifre)"
                                                 value={settings.arvento?.pin1 || ''}
-                                                onChange={(val) => handleArventoChange('pin1', val)}
+                                                onChange={(val) => handleArventoFieldChange('pin1', val)}
                                                 required
                                                 disabled={!settings.arvento?.enabled}
                                                 maxLength={50}
+                                                placeholder="Arvento PIN 1 şifreniz"
                                             />
 
                                             <CustomInput
                                                 type="password"
-                                                label="PIN 2"
+                                                label="PIN 2 (İkinci Şifre / Güvenlik Kodu)"
                                                 value={settings.arvento?.pin2 || ''}
-                                                onChange={(val) => handleArventoChange('pin2', val)}
-                                                required
+                                                onChange={(val) => handleArventoFieldChange('pin2', val)}
                                                 disabled={!settings.arvento?.enabled}
                                                 maxLength={50}
+                                                placeholder="Arvento PIN 2 şifreniz (varsa)"
                                             />
+                                        </div>
 
-                                            <div style={{ width: '100%', marginBottom: '16px' }}>
+                                        {/* Row 3: Action Buttons & Test Status Message */}
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'space-between', 
+                                            flexWrap: 'wrap', 
+                                            gap: '12px',
+                                            paddingTop: '8px',
+                                            borderTop: '1px solid var(--border-color)'
+                                        }}>
+                                            <div style={{ minHeight: '24px', display: 'flex', alignItems: 'center' }}>
+                                                {connectionTestResult && (
+                                                    <div style={{ 
+                                                        fontSize: '13px', 
+                                                        fontWeight: 500, 
+                                                        color: connectionTestResult.success ? 'var(--success)' : 'var(--danger)',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        animation: 'fadeIn 0.2s ease'
+                                                    }}>
+                                                        {connectionTestResult.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                                                        <span>{connectionTestResult.message}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
                                                 <button 
+                                                    type="button"
                                                     className="btn btn-secondary" 
                                                     onClick={testArventoConnection}
                                                     disabled={testingConnection || !settings.arvento?.username || !settings.arvento?.pin1 || !settings.arvento?.enabled}
-                                                    style={{ height: '36px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    style={{ height: '38px', padding: '0 16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                                                 >
-                                                    {testingConnection ? 'Test Ediliyor...' : 'Bağlantıyı Test Et'}
+                                                    {testingConnection && <RefreshCw size={14} className="spin" />}
+                                                    <span>{testingConnection ? 'Test Ediliyor...' : 'Bağlantıyı Test Et'}</span>
+                                                </button>
+
+                                                <button 
+                                                    type="button"
+                                                    className="btn btn-primary" 
+                                                    onClick={saveArventoSettings}
+                                                    disabled={savingArvento || !settings.arvento?.enabled}
+                                                    style={{ height: '38px', padding: '0 18px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                                >
+                                                    {savingArvento ? (
+                                                        <>
+                                                            <RefreshCw size={14} className="spin" />
+                                                            <span>Kaydediliyor...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Save size={15} />
+                                                            <span>Ayarları Kaydet</span>
+                                                        </>
+                                                    )}
                                                 </button>
                                             </div>
                                         </div>
-
-                                        {/* Row 3: Test Status Message */}
-                                        {connectionTestResult && (
-                                            <div style={{ 
-                                                marginTop: '-4px', 
-                                                fontSize: '12px', 
-                                                fontWeight: 500, 
-                                                color: connectionTestResult.success ? 'var(--success)' : 'var(--danger)',
-                                                display: 'flex',
-                                                justifyContent: 'flex-start',
-                                                animation: 'fadeIn 0.2s ease'
-                                            }}>
-                                                {connectionTestResult.message}
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             </div>

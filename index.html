@@ -7,20 +7,455 @@
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com https://cdn.jsdelivr.net; worker-src 'self' blob:; object-src 'self' blob: data:; frame-src 'self' blob: data:; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://unpkg.com https://*.arcgisonline.com https://*.google.com https://*.googleapis.com https://*.kontrol-app.com https://supabase.kontrol-app.com https://*.supabase.co; connect-src 'self' blob: data: ws://localhost:* http://localhost:* ws://127.0.0.1:* http://127.0.0.1:* ws://* wss://* https://*.kontrol-app.com https://supabase.kontrol-app.com https://*.supabase.co https://*.sslip.io https://nominatim.openstreetmap.org https://router.project-osrm.org https://photon.komoot.io;">
   <title>Kontrol - Filo Yönetim Sistemi</title>
+
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('aractakip_theme') || localStorage.getItem('theme');
+        if (!t) {
+          t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
+  <style>
+    /* Exact 1:1 Project Theme Tokens from src/index.css */
+    :root,
+    html[data-theme="dark"],
+    body[data-theme="dark"] {
+      --bg-primary: #0f0f11;
+      --bg-secondary: #141416;
+      --bg-tertiary: #1d1d20;
+      --bg-elevated: #232326;
+      --bg-card: rgba(24, 24, 27, 0.4);
+
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+
+      --accent-primary: #14b8a6;
+      --accent-secondary: #2dd4bf;
+      --accent-glow: rgba(20, 184, 166, 0.35);
+
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-light: rgba(255, 255, 255, 0.16);
+
+      --btn-bg: #1d1d20;
+      --btn-hover: #232326;
+      --btn-border: rgba(255, 255, 255, 0.1);
+      --btn-text: #fafafa;
+
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+
+      color-scheme: dark;
+    }
+
+    html[data-theme="light"],
+    body[data-theme="light"] {
+      --bg-primary: #edf2f7;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #e2e8f0;
+      --bg-elevated: #ffffff;
+      --bg-card: #ffffff;
+
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+
+      --accent-primary: #2563eb;
+      --accent-secondary: #1d4ed8;
+      --accent-glow: rgba(37, 99, 235, 0.2);
+
+      --border-color: #cbd5e1;
+      --border-light: #94a3b8;
+
+      --btn-bg: #ffffff;
+      --btn-hover: #f8fafc;
+      --btn-border: #cbd5e1;
+      --btn-text: #0f172a;
+
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+      --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+
+      color-scheme: light;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body,
+    #root {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Full-screen Shimmering Canvas */
+    #shimmer-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      z-index: 0;
+      pointer-events: auto;
+    }
+
+    /* Floating Center Overlay (Pure full-screen, NO card/box container) */
+    .shimmer-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 10;
+      pointer-events: none;
+      padding: 24px;
+    }
+
+    /* Clear High-Contrast Status Text with Subtle Glow */
+    .shimmer-status {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      color: var(--text-primary);
+      text-align: center;
+      transition: color 0.35s ease;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Refresh Button - Styled Exactly like Project .btn */
+    .shimmer-reload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 22px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      color: var(--btn-text);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+      outline: none;
+      pointer-events: auto;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .shimmer-reload-btn:hover {
+      background: var(--btn-hover);
+      border-color: var(--border-light);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .shimmer-reload-btn:active {
+      transform: scale(0.97);
+    }
+
+    .shimmer-reload-btn svg {
+      transition: transform 0.35s ease;
+    }
+
+    .shimmer-reload-btn:hover svg {
+      transform: rotate(45deg);
+    }
+  </style>
 </head>
 
 <body>
   <div id="root">
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;width:100vw;background:#0f0f11;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,sans-serif;user-select:none;">
-      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#14b8a6,#0d9488);display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(20,184,166,0.35);">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+    <!-- Full-screen Canvas with Organic Aurora Dots & Depth Mask -->
+    <canvas id="shimmer-canvas"></canvas>
+
+    <!-- Floating Clean Overlay (No Box, Calm Status & Button) -->
+    <div class="shimmer-overlay">
+      <!-- Connection Status Text -->
+      <div id="splash-status" class="shimmer-status">Sunucuya bağlanıyor...</div>
+
+      <!-- Theme-Native Yenile Button -->
+      <button class="shimmer-reload-btn" onclick="window.location.reload()" title="Bağlantıyı Yenile">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+          <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+          <path d="M16 21h5v-5" />
         </svg>
-      </div>
-      <div style="margin-top:14px;font-size:14px;font-weight:600;letter-spacing:0.5px;color:#f4f4f5;">Kontrol</div>
-      <div style="margin-top:6px;font-size:11px;color:#71717a;">Sistem başlatılıyor...</div>
+        <span>Yenile</span>
+      </button>
     </div>
   </div>
+
+  <script>
+    // Smooth status progression
+    setTimeout(function () {
+      var s = document.getElementById('splash-status');
+      if (s) {
+        s.textContent = 'Sunucu bağlantısı bekleniyor...';
+        s.style.color = 'var(--accent-primary)';
+      }
+    }, 4500);
+
+    // World-class Shimmering Dots: Organic Silk Flow, Depth Mask, Synapse Links & Magnetic Pull
+    (function () {
+      var canvas = document.getElementById('shimmer-canvas');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      var width = 0;
+      var height = 0;
+      var centerX = 0;
+      var centerY = 0;
+      var gridCols = 0;
+      var gridRows = 0;
+      var dots = [];
+      var mouse = { x: -1000, y: -1000, active: false };
+      var animationFrameId = null;
+
+      // Color Theme Palette: Base, Accent Peak
+      function getThemePalette() {
+        var isDark = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dark';
+        if (isDark) {
+          return {
+            bg: '#0f0f11',
+            // Teal base #14b8a6 -> Vibrant Cyan peak #2dd4bf
+            baseR: 20, baseG: 184, baseB: 166,
+            peakR: 45, peakG: 212, peakB: 191,
+            baseAlpha: 0.13,
+            waveMaxAlpha: 0.72
+          };
+        } else {
+          return {
+            bg: '#edf2f7',
+            // Blue base #2563eb -> Sky Blue peak #60a5fa
+            baseR: 37, baseG: 99, baseB: 235,
+            peakR: 96, peakG: 165, peakB: 250,
+            baseAlpha: 0.15,
+            waveMaxAlpha: 0.75
+          };
+        }
+      }
+
+      var spacing = 28;
+      var baseRadius = 1.35;
+
+      function resize() {
+        var dpr = window.devicePixelRatio || 1;
+        width = window.innerWidth;
+        height = window.innerHeight;
+        centerX = width / 2;
+        centerY = height / 2;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.scale(dpr, dpr);
+
+        initDots();
+      }
+
+      function initDots() {
+        dots = [];
+        gridCols = Math.ceil(width / spacing) + 1;
+        gridRows = Math.ceil(height / spacing) + 1;
+
+        var startX = (width - (gridCols - 1) * spacing) / 2;
+        var startY = (height - (gridRows - 1) * spacing) / 2;
+
+        for (var col = 0; col < gridCols; col++) {
+          for (var row = 0; row < gridRows; row++) {
+            var x = startX + col * spacing;
+            var y = startY + row * spacing;
+
+            // Normalized distance from center for radial depth vignette mask
+            var normX = (x - centerX) / (width * 0.52);
+            var normY = (y - centerY) / (height * 0.52);
+            var distSq = normX * normX + normY * normY;
+            // Vignette factor: 1.0 at center, smoothly fading towards screen edges
+            var vignette = Math.max(0.18, 1 - distSq * 0.65);
+
+            dots.push({
+              col: col,
+              row: row,
+              x: x,
+              y: y,
+              vignette: vignette,
+              basePhase: Math.random() * Math.PI * 2,
+              speed: 0.001 + Math.random() * 0.0014,
+              renderX: x,
+              renderY: y,
+              crest: 0
+            });
+          }
+        }
+      }
+
+      window.addEventListener('resize', resize);
+      window.addEventListener('mousemove', function (e) {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        mouse.active = true;
+      });
+      window.addEventListener('mouseleave', function () {
+        mouse.active = false;
+        mouse.x = -1000;
+        mouse.y = -1000;
+      });
+
+      var startTime = performance.now();
+
+      function render(now) {
+        var elapsed = now - startTime;
+        var palette = getThemePalette();
+
+        // 1:1 Canvas Background Fill
+        ctx.fillStyle = palette.bg;
+        ctx.fillRect(0, 0, width, height);
+
+        var hoverRadius = 140;
+
+        // Pass 1: Compute positions, wave crests and render dots
+        for (var i = 0; i < dots.length; i++) {
+          var dot = dots[i];
+
+          // 1. Organic Silk Flow Wave (Left-to-Right with smooth 2D wave harmonics)
+          var waveVal = Math.sin(dot.x * 0.0036 + Math.sin(dot.y * 0.0042) * 1.3 - elapsed * 0.00085);
+          var crest = Math.pow(Math.max(0, waveVal), 2.2);
+          dot.crest = crest;
+
+          // 2. Magnetic cursor drift physics (gentle 2.5px spring pull towards mouse)
+          var rx = dot.x;
+          var ry = dot.y;
+          var mouseBoost = 0;
+
+          if (mouse.active) {
+            var mdx = mouse.x - dot.x;
+            var mdy = mouse.y - dot.y;
+            var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+
+            if (mdist < hoverRadius && mdist > 1) {
+              var mFactor = 1 - mdist / hoverRadius;
+              mouseBoost = mFactor * mFactor;
+              var pull = mouseBoost * 3.2; // max 3.2px subtle magnetic pull
+              rx += (mdx / mdist) * pull;
+              ry += (mdy / mdist) * pull;
+            }
+          }
+
+          dot.renderX = rx;
+          dot.renderY = ry;
+
+          // 3. Subtle ambient twinkle
+          var twinkle = Math.sin(elapsed * dot.speed + dot.basePhase) * 0.035;
+
+          // 4. Color interpolation with organic wave crest
+          var activeCrest = Math.max(crest, mouseBoost * 0.85);
+          var r = Math.round(palette.baseR + (palette.peakR - palette.baseR) * activeCrest);
+          var g = Math.round(palette.baseG + (palette.peakG - palette.baseG) * activeCrest);
+          var b = Math.round(palette.baseB + (palette.peakB - palette.baseB) * activeCrest);
+
+          // 5. Alpha calculation with radial depth vignette mask
+          var rawAlpha = palette.baseAlpha + twinkle + crest * (palette.waveMaxAlpha - palette.baseAlpha) + mouseBoost * 0.55;
+          var alpha = Math.min(1, rawAlpha * dot.vignette);
+
+          var radius = (baseRadius + activeCrest * 0.85 + mouseBoost * 0.9) * Math.min(1.1, dot.vignette * 1.05);
+
+          ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + alpha.toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.arc(rx, ry, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Pass 2: Subtle synapse micro-connections between neighboring dots during active wave crest
+        ctx.lineWidth = 0.55;
+        for (var c = 0; c < gridCols - 1; c++) {
+          for (var row = 0; row < gridRows - 1; row++) {
+            var currIndex = c * gridRows + row;
+            var rightIndex = (c + 1) * gridRows + row;
+            var downIndex = c * gridRows + (row + 1);
+
+            var currDot = dots[currIndex];
+            var rightDot = dots[rightIndex];
+            var downDot = dots[downIndex];
+
+            // Right connection
+            if (rightDot) {
+              var crestAvg = (currDot.crest + rightDot.crest) * 0.5;
+              if (crestAvg > 0.45) {
+                var lineAlpha = (crestAvg - 0.45) * 0.32 * currDot.vignette;
+                if (lineAlpha > 0.01) {
+                  ctx.strokeStyle = 'rgba(' + palette.peakR + ',' + palette.peakG + ',' + palette.peakB + ',' + lineAlpha.toFixed(3) + ')';
+                  ctx.beginPath();
+                  ctx.moveTo(currDot.renderX, currDot.renderY);
+                  ctx.lineTo(rightDot.renderX, rightDot.renderY);
+                  ctx.stroke();
+                }
+              }
+            }
+
+            // Down connection
+            if (downDot) {
+              var crestAvgY = (currDot.crest + downDot.crest) * 0.5;
+              if (crestAvgY > 0.45) {
+                var lineAlphaY = (crestAvgY - 0.45) * 0.28 * currDot.vignette;
+                if (lineAlphaY > 0.01) {
+                  ctx.strokeStyle = 'rgba(' + palette.peakR + ',' + palette.peakG + ',' + palette.peakB + ',' + lineAlphaY.toFixed(3) + ')';
+                  ctx.beginPath();
+                  ctx.moveTo(currDot.renderX, currDot.renderY);
+                  ctx.lineTo(downDot.renderX, downDot.renderY);
+                  ctx.stroke();
+                }
+              }
+            }
+          }
+        }
+
+        animationFrameId = requestAnimationFrame(render);
+      }
+
+      resize();
+      animationFrameId = requestAnimationFrame(render);
+
+      // Clean up when root is unmounted/replaced by React
+      var observer = new MutationObserver(function () {
+        if (!document.getElementById('shimmer-canvas')) {
+          if (animationFrameId) cancelAnimationFrame(animationFrameId);
+          window.removeEventListener('resize', resize);
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.getElementById('root'), { childList: true });
+    })();
+  </script>
+
   <script type="module" src="/src/main.jsx"></script>
 </body>
 

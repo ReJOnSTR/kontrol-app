@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { useEffect } from 'react'
 
 import { useCompany } from '../context/CompanyContext'
+import { prefetchRoute } from '../utils/routePrefetcher'
 
 function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
     if (isSuperAdmin) return true
@@ -45,7 +46,7 @@ function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
 export default function Sidebar({ collapsed, onToggle }) {
     const { openNewTab } = useTabs()
     const { user, isAdmin, hasPermission } = useAuth()
-    const { isImpersonating, isModuleEnabled } = useCompany()
+    const { isImpersonating, isModuleEnabled, isIntegrationEnabled } = useCompany()
     const location = useLocation()
 
     const isSuperAdmin = user?.role === 'superadmin'
@@ -59,7 +60,11 @@ export default function Sidebar({ collapsed, onToggle }) {
     const activeMenus = isModuleAllowed ? (moduleMenus[activeModule] || []) : []
 
     const filteredMenus = activeMenus.map(group => {
-        const items = group.items.filter(item => canAccessPath(item.path, hasPermission, isAdmin, isSuperAdmin))
+        const items = group.items.filter(item => {
+            if (item.integration && !isIntegrationEnabled(item.integration)) return false
+            if (item.path === '/arvento-tracking' && !isIntegrationEnabled('arvento')) return false
+            return canAccessPath(item.path, hasPermission, isAdmin, isSuperAdmin)
+        })
         return { ...group, items }
     }).filter(group => group.items.length > 0)
 
@@ -101,6 +106,8 @@ export default function Sidebar({ collapsed, onToggle }) {
                                     return `nav-item ${isCurrent || (isActive && !item.path.includes('?') && location.pathname === item.path) ? 'active' : ''}`
                                 }}
                                 title={collapsed ? item.label : ''}
+                                onMouseEnter={() => prefetchRoute(item.path)}
+                                onFocus={() => prefetchRoute(item.path)}
                                 onAuxClick={(e) => e.preventDefault()}
                                 onClick={(e) => {
                                     if (e.ctrlKey || e.metaKey) {

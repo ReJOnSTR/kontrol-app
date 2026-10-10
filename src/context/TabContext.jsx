@@ -24,8 +24,6 @@ const TabContext = createContext(defaultTabContext)
 
 export function TabProvider({ children }) {
     // Tabs: [{ id: '1', path: '/vehicles', label: 'Araçlar', icon: Icon }]
-    const [tabs, setTabs] = useState([])
-    const [activeTabId, setActiveTabId] = useState(null)
     const location = useLocation()
     const navigate = useNavigate()
 
@@ -34,22 +32,66 @@ export function TabProvider({ children }) {
     // Flag to prevent recording navigations triggered by our own back/forward/tab-switch
     const internalNavRef = useRef(false)
 
-    // Initialize first tab or sync on load
-    useEffect(() => {
-        if (tabs.length === 0) {
-            const initialPath = location.pathname + location.search
-            const routeInfo = getRouteInfo(location.pathname)
-            const newTab = {
-                id: crypto.randomUUID(),
-                path: initialPath,
-                label: routeInfo.label,
-                icon: routeInfo.icon
+    // Synchronous initial state from sessionStorage or current location so tabs are NEVER empty on mount!
+    const [tabs, setTabs] = useState(() => {
+        const currentFullPath = (location?.pathname || window.location.pathname) + (location?.search || window.location.search)
+        const currentRouteInfo = getRouteInfo(location?.pathname || window.location.pathname)
+        try {
+            const saved = sessionStorage.getItem('kontrol_open_tabs')
+            if (saved) {
+                const parsed = JSON.parse(saved)
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return parsed.map(t => {
+                        const info = getRouteInfo(t.path || '/')
+                        return {
+                            ...t,
+                            label: t.label || info.label,
+                            icon: info.icon
+                        }
+                    })
+                }
             }
-            setTabs([newTab])
-            setActiveTabId(newTab.id)
-            tabHistoryRef.current[newTab.id] = { entries: [initialPath], index: 0 }
+        } catch (_) {}
+
+        const defaultId = 'tab-' + Math.random().toString(36).substring(2, 9)
+        return [{
+            id: defaultId,
+            path: currentFullPath || '/portal',
+            label: currentRouteInfo.label,
+            icon: currentRouteInfo.icon
+        }]
+    })
+
+    const [activeTabId, setActiveTabId] = useState(() => {
+        try {
+            const savedActive = sessionStorage.getItem('kontrol_active_tab_id')
+            if (savedActive) return savedActive
+        } catch (_) {}
+        return tabs?.[0]?.id || null
+    })
+
+    // Keep history ref in sync with existing tabs and ensure activeTabId is valid
+    useEffect(() => {
+        tabs.forEach(tab => {
+            if (!tabHistoryRef.current[tab.id]) {
+                tabHistoryRef.current[tab.id] = { entries: [tab.path], index: 0 }
+            }
+        })
+        if (!activeTabId && tabs.length > 0) {
+            setActiveTabId(tabs[0].id)
         }
-    }, []) // Run once on mount
+    }, [tabs, activeTabId])
+
+    // Save tabs to sessionStorage
+    useEffect(() => {
+        try {
+            if (tabs.length > 0) {
+                const toSave = tabs.map(t => ({ id: t.id, path: t.path, label: t.label }))
+                sessionStorage.setItem('kontrol_open_tabs', JSON.stringify(toSave))
+                if (activeTabId) sessionStorage.setItem('kontrol_active_tab_id', activeTabId)
+            }
+        } catch (_) {}
+    }, [tabs, activeTabId])
 
     // Update active tab when location changes
     useEffect(() => {
@@ -146,28 +188,30 @@ export function TabProvider({ children }) {
         setTabs(prev => {
             const newTabs = prev.filter(t => t.id !== tabId)
 
+            if (newTabs.length === 0) {
+                const routeInfo = getRouteInfo('/portal')
+                const homeTab = {
+                    id: crypto.randomUUID(),
+                    path: '/portal',
+                    label: routeInfo.label,
+                    icon: routeInfo.icon
+                }
+                tabHistoryRef.current[homeTab.id] = { entries: ['/portal'], index: 0 }
+                internalNavRef.current = true
+                setActiveTabId(homeTab.id)
+                navigate('/portal')
+                return [homeTab]
+            }
+
             if (activeTabId === tabId) {
                 const closeIndex = prev.findIndex(t => t.id === tabId)
-                const nextTab = newTabs[closeIndex - 1] || newTabs[closeIndex]
+                const nextTab = newTabs[closeIndex - 1] || newTabs[closeIndex] || newTabs[0]
 
                 if (nextTab) {
                     internalNavRef.current = true
                     setActiveTabId(nextTab.id)
                     navigate(nextTab.path)
                     return newTabs
-                } else {
-                    const routeInfo = getRouteInfo('/portal')
-                    const homeTab = {
-                        id: crypto.randomUUID(),
-                        path: '/portal',
-                        label: routeInfo.label,
-                        icon: routeInfo.icon
-                    }
-                    tabHistoryRef.current[homeTab.id] = { entries: ['/portal'], index: 0 }
-                    internalNavRef.current = true
-                    setActiveTabId(homeTab.id)
-                    navigate('/portal')
-                    return [homeTab]
                 }
             }
 
@@ -204,39 +248,48 @@ export function TabProvider({ children }) {
         navigate('/portal')
     }, [navigate])
 
-    // Per-tab back/forward
+    // Per-tab back/forward with fallback
     const canGoBack = useCallback(() => {
-        if (!activeTabId) return false
-        const hist = tabHistoryRef.current[activeTabId]
-        return hist ? hist.index > 0 : false
+        if (activeTabId && tabHistoryRef.current[activeTabId]?.index > 0) {
+            return true
+        }
+        return Boolean(window.history?.state?.idx > 0)
     }, [activeTabId])
 
     const canGoForward = useCallback(() => {
-        if (!activeTabId) return false
-        const hist = tabHistoryRef.current[activeTabId]
-        return hist ? hist.index < hist.entries.length - 1 : false
+        if (activeTabId && tabHistoryRef.current[activeTabId]) {
+            const hist = tabHistoryRef.current[activeTabId]
+            return hist.index < hist.entries.length - 1
+        }
+        return false
     }, [activeTabId])
 
     const goBack = useCallback(() => {
-        if (!activeTabId) return
-        const hist = tabHistoryRef.current[activeTabId]
-        if (hist && hist.index > 0) {
+        if (activeTabId && tabHistoryRef.current[activeTabId]?.index > 0) {
+            const hist = tabHistoryRef.current[activeTabId]
             hist.index--
             const path = hist.entries[hist.index]
             internalNavRef.current = true
             navigate(path)
+            return
+        }
+        if (window.history?.state?.idx > 0) {
+            navigate(-1)
         }
     }, [activeTabId, navigate])
 
     const goForward = useCallback(() => {
-        if (!activeTabId) return
-        const hist = tabHistoryRef.current[activeTabId]
-        if (hist && hist.index < hist.entries.length - 1) {
-            hist.index++
-            const path = hist.entries[hist.index]
-            internalNavRef.current = true
-            navigate(path)
+        if (activeTabId && tabHistoryRef.current[activeTabId]) {
+            const hist = tabHistoryRef.current[activeTabId]
+            if (hist.index < hist.entries.length - 1) {
+                hist.index++
+                const path = hist.entries[hist.index]
+                internalNavRef.current = true
+                navigate(path)
+                return
+            }
         }
+        navigate(1)
     }, [activeTabId, navigate])
 
     const replaceTab = useCallback((oldPathOrId, newPath, customLabel = null) => {

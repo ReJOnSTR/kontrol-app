@@ -1,12 +1,47 @@
+import { useEffect } from 'react'
 import { X } from 'lucide-react'
 
-export default function Modal({ isOpen, onClose, title, children, size = 'default', footer, bodyStyle, bodyClassName, overlayStyle, modalStyle }) {
+export default function Modal({
+    isOpen,
+    onClose,
+    title,
+    children,
+    size = 'default',
+    placement,
+    footer,
+    bodyStyle,
+    bodyClassName,
+    overlayStyle,
+    modalStyle
+}) {
+    useEffect(() => {
+        if (!isOpen) return
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                onClose?.()
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isOpen, onClose])
+
     if (!isOpen) return null
 
+    const isSm = size === 'sm' || size === 'small'
+    const isCenter = placement === 'center' || (isSm && placement !== 'drawer')
+    const overlayClass = `modal-overlay ${isCenter ? 'modal-overlay-center' : 'modal-overlay-drawer'}`
+    const sizeClass = isSm ? 'modal-sm'
+        : (size === 'md' || size === 'medium') ? 'modal-md'
+        : (size === 'lg' || size === 'large') ? 'modal-lg'
+        : size === 'xl' ? 'modal-xl'
+        : (size === 'fullscreen' || size === 'full') ? 'modal-fullscreen'
+        : 'modal-default'
+    const modalClass = `modal ${isCenter ? 'modal-center' : 'modal-drawer'} ${sizeClass}`
+
     return (
-        <div className="modal-overlay" style={overlayStyle} onClick={onClose}>
+        <div className={overlayClass} style={overlayStyle} onClick={onClose}>
             <div
-                className={`modal ${size === 'lg' ? 'modal-lg' : size === 'xl' ? 'modal-xl' : size === 'sm' ? 'modal-sm' : (size === 'fullscreen' || size === 'full') ? 'modal-fullscreen' : ''}`}
+                className={modalClass}
                 style={modalStyle}
                 onClick={(e) => e.stopPropagation()}
             >
@@ -33,3 +68,4 @@ export default function Modal({ isOpen, onClose, title, children, size = 'defaul
         </div>
     )
 }
+

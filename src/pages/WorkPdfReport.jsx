@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { formatDate, formatCurrency, generateReportNo, generateUniqueFileName } from '../utils/helpers';
 import { calculateWorkStats } from '../utils/workCalculations';
+import { exportElementToCleanPdf } from '../utils/pdfCleanExport';
 import './WorkPdfReport.css';
 
 export default function WorkPdfReport({ 
@@ -346,7 +347,7 @@ export default function WorkPdfReport({
         return pageList.length > 0 ? pageList : [{ groups: groups, isFirst: true, isLast: true, pageIndex: 0 }];
     })();
 
-    const handleSavePdf = () => {
+    const handleSavePdf = async () => {
         if (savingPdf) return;
         setSavingPdf(true);
 
@@ -354,18 +355,58 @@ export default function WorkPdfReport({
         const titleStr = work.title || work.work_no || 'Is_Raporu';
         const defaultFileName = generateUniqueFileName('Puantaj', [companyStr, titleStr], 'pdf');
 
-        setTimeout(async () => {
-            const res = await window.electronAPI.saveReportPdf('/print', { 
-                defaultPath: defaultFileName, 
-                landscape: orientationProp === 'landscape' 
-            });
-            setSavingPdf(false);
-            if (res && res.success) {
-                // PDF successfully saved
-            } else if (res && !res.canceled) {
-                alert('PDF Kaydedilirken Hata: ' + res.error);
+        const isElectronApp = typeof window !== 'undefined' && Boolean(
+            window.process?.versions?.electron ||
+            (navigator.userAgent && navigator.userAgent.toLowerCase().includes('electron'))
+        );
+
+        if (isElectronApp && window.electronAPI?.saveReportPdf) {
+            // Electron Desktop: Sync data to localStorage and use native printToPDF
+            try {
+                localStorage.setItem('printData', JSON.stringify({
+                    isWorkReport: true,
+                    work: work,
+                    showPrices: showPricesProp,
+                    showGrandTotal: showGrandTotalProp,
+                    showKdv: showKdvProp,
+                    kdvRate: kdvRateProp,
+                    pazarMultiplier: pazarMultiplierProp,
+                    mesaiMultiplier: mesaiMultiplierProp,
+                    pageBreakMode: pageBreakModeProp,
+                    rowsPerPage: rowsPerPageProp,
+                    manualBreakIds: manualBreakIdsProp,
+                    customScale: customScaleProp,
+                    orientation: orientationProp,
+                    tableDensity: tableDensityProp,
+                    showWorkTitle: showWorkTitleProp
+                }));
+            } catch (e) {}
+
+            setTimeout(async () => {
+                const res = await window.electronAPI.saveReportPdf('/print', { 
+                    defaultPath: defaultFileName, 
+                    landscape: orientationProp === 'landscape' 
+                });
+                setSavingPdf(false);
+                if (res && res.success) {
+                    // PDF successfully saved
+                } else if (res && !res.canceled) {
+                    alert('PDF Kaydedilirken Hata: ' + res.error);
+                }
+            }, 100);
+        } else {
+            // Web Browser: Direct clean client-side PDF download without popups or distortion
+            try {
+                const el = document.querySelector('.pdf-pages-container') || document.querySelector('.pdf-viewer-layout');
+                if (!el) throw new Error('Rapor içeriği bulunamadı');
+                await exportElementToCleanPdf(el, defaultFileName, orientationProp === 'landscape');
+            } catch (err) {
+                console.error('Web PDF generation error:', err);
+                window.print();
+            } finally {
+                setSavingPdf(false);
             }
-        }, 100);
+        }
     };
 
     const reportNumber = generateReportNo('PUAN', work.work_no || work.id);

@@ -1,7 +1,33 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { settingsService } from '../services/settings'
 
-const ThemeContext = createContext(null)
+const defaultThemeContext = {
+    theme: typeof window !== 'undefined' ? (localStorage.getItem('aractakip_theme') || localStorage.getItem('theme') || 'dark') : 'dark',
+    setTheme: (t) => {
+        if (typeof document !== 'undefined') {
+            document.documentElement.setAttribute('data-theme', t)
+            localStorage.setItem('aractakip_theme', t)
+            localStorage.setItem('theme', t)
+        }
+    },
+    toggleTheme: () => {
+        if (typeof document !== 'undefined') {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark'
+            const next = current === 'dark' ? 'light' : 'dark'
+            document.documentElement.setAttribute('data-theme', next)
+            localStorage.setItem('aractakip_theme', next)
+            localStorage.setItem('theme', next)
+            try {
+                const storedUser = JSON.parse(localStorage.getItem('aractakip_user') || 'null')
+                if (storedUser?.id && settingsService.saveUserPreferences) {
+                    settingsService.saveUserPreferences(storedUser.id, { theme: next }).catch(() => {})
+                }
+            } catch (_) {}
+        }
+    }
+}
+
+const ThemeContext = createContext(defaultThemeContext)
 
 export function ThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
@@ -48,8 +74,5 @@ export function ThemeProvider({ children }) {
 
 export function useTheme() {
     const context = useContext(ThemeContext)
-    if (!context) {
-        throw new Error('useTheme must be used within ThemeProvider')
-    }
-    return context
+    return context || defaultThemeContext
 }

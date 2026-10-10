@@ -3,6 +3,7 @@ import { authService } from '../services'
 import { supabase } from '../services/supabase'
 import { settingsService } from '../services/settings'
 import { ROLE_PRESETS } from '../components/PermissionMatrix'
+import { dataCache } from '../utils/dataCache'
 
 const defaultAuthValue = {
     user: null,
@@ -298,6 +299,7 @@ export function AuthProvider({ children }) {
     }
 
     const logout = () => {
+        dataCache.clear()
         setUser(null)
         localStorage.removeItem('aractakip_user')
         localStorage.removeItem('aractakip_company')

@@ -14,6 +14,7 @@ import { usePersistentTab } from '../hooks/usePersistentTab'
 import DocumentPreviewModal from '../components/DocumentPreviewModal'
 import AssignmentForm from '../components/forms/AssignmentForm'
 import BatchOperationModal from '../components/BatchOperationModal'
+import { dataCache } from '../utils/dataCache'
 
 export default function Assignments() {
     const { currentCompany } = useCompany()
@@ -72,21 +73,44 @@ export default function Assignments() {
     }, [currentCompany])
 
     const loadData = async (isBackground = false) => {
-        if (!isBackground) setLoading(true)
+        const cacheKey = `assignments_${currentCompany?.id}_${showArchived ? 1 : 0}`
+        const cached = dataCache.get(cacheKey)
+        if (cached && !isBackground) {
+            setAssignments(cached.assignments)
+            setVehicles(cached.vehicles)
+            if (cached.documents) setDocuments(cached.documents)
+            setLoading(false)
+            isBackground = true
+        } else if (!isBackground) {
+            setLoading(true)
+        }
+
         try {
-            const [assignResult, vehiclesResult, documentsResult] = await Promise.all([
+            const [assignResult, vehiclesResult] = await Promise.all([
                 window.electronAPI.getAllAssignments(currentCompany.id, showArchived ? 1 : 0),
-                window.electronAPI.getVehicles(currentCompany.id),
-                window.electronAPI.getAllDocuments(currentCompany.id)
+                window.electronAPI.getVehicles(currentCompany.id)
             ])
 
             if (assignResult.success) setAssignments(assignResult.data)
             if (vehiclesResult.success) setVehicles(vehiclesResult.data)
-            if (documentsResult.success) setDocuments(documentsResult.data)
+
+            if (!isBackground) setLoading(false)
+
+            if (assignResult.success && vehiclesResult.success) {
+                dataCache.set(cacheKey, {
+                    assignments: assignResult.data,
+                    vehicles: vehiclesResult.data
+                })
+            }
+
+            // Fetch documents asynchronously in the background
+            window.electronAPI?.getAllDocuments?.(currentCompany.id).then(documentsResult => {
+                if (documentsResult?.success) setDocuments(documentsResult.data)
+            }).catch(() => {})
         } catch (error) {
             console.error('Failed to load data:', error)
+            if (!isBackground) setLoading(false)
         }
-        if (!isBackground) setLoading(false)
     }
 
     const resetForm = () => {
@@ -442,6 +466,7 @@ export default function Assignments() {
             })()}
 
             <DataTable
+                loading={loading}
                 columns={columns}
                 data={activeTab === 'all' ? assignments : assignments.filter(a => { const v = vehicles.find(vv => vv.id === a.vehicle_id); return v && v.type === activeTab; })}
                 persistenceKey={`assignments_table_${activeTab}`}

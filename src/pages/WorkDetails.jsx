@@ -12,6 +12,9 @@ import { calculateWorkStats } from '../utils/workCalculations'
 import { workItemSchema } from '../schemas/workSchema'
 import WorkPdfReport from './WorkPdfReport'
 import { exportWorkToExcel } from '../utils/excelExport'
+import { DetailSkeleton } from '../components/Skeleton'
+import { isElectron } from '../components/TitleBar'
+import { exportElementToCleanPdf } from '../utils/pdfCleanExport'
 
 const WORK_COLOR_OPTIONS = [
     { id: '', label: 'Standart', desc: 'Varsayılan temiz satır', color: 'var(--border-color)', bg: 'var(--bg-tertiary)' },
@@ -1146,6 +1149,24 @@ export default function WorkDetails(props) {
             isPdfSave: true
         }))
 
+        if (!isElectron) {
+            // Web environment: directly export the currently rendered report to clean PDF without opening new windows
+            setGeneratingPdf(true);
+            try {
+                const el = document.querySelector('.pdf-pages-container') || document.querySelector('.pdf-viewer-layout');
+                if (el) {
+                    await exportElementToCleanPdf(el, defaultFileName, orientation === 'landscape');
+                    return;
+                }
+            } catch (err) {
+                console.error('Web PDF Export Error:', err);
+                alert('PDF İndirilirken Hata: ' + err.message);
+                return;
+            } finally {
+                setGeneratingPdf(false);
+            }
+        }
+
         setGeneratingPdf(true)
         try {
             const res = await window.electronAPI.saveReportPdf('/print', { defaultPath: defaultFileName, landscape: orientation === 'landscape' })
@@ -1261,7 +1282,7 @@ export default function WorkDetails(props) {
         return { ...calc, dateRangeText, isHourly }
     }, [filteredItems, work, pazarMultiplier, mesaiMultiplier])
 
-    if (loading) return <div className="p-8 text-center">Yükleniyor...</div>
+    if (loading) return <DetailSkeleton />
     if (!work) return <div className="p-8 text-center">İş bulunamadı.</div>
 
     return (

@@ -49,7 +49,7 @@ export default function MobileHeader() {
     const [showUserMenu, setShowUserMenu] = useState(false)
     
     const { user, logout, isAdmin, hasPermission } = useAuth()
-    const { companies, currentCompany, selectCompany, isImpersonating, isModuleEnabled } = useCompany()
+    const { companies, currentCompany, selectCompany, isImpersonating, isModuleEnabled, isIntegrationEnabled } = useCompany()
     const { openNewTab } = useTabs()
     const location = useLocation()
     const navigate = useNavigate()
@@ -83,7 +83,11 @@ export default function MobileHeader() {
     const activeMenus = isModuleAllowed ? (moduleMenus[activeModule] || []) : []
 
     const filteredMenus = activeMenus.map(group => {
-        const items = group.items.filter(item => canAccessPath(item.path, hasPermission, isAdmin, isSuperAdmin))
+        const items = group.items.filter(item => {
+            if (item.integration && !isIntegrationEnabled(item.integration)) return false
+            if (item.path === '/arvento-tracking' && !isIntegrationEnabled('arvento')) return false
+            return canAccessPath(item.path, hasPermission, isAdmin, isSuperAdmin)
+        })
         return { ...group, items }
     }).filter(group => group.items.length > 0)
 

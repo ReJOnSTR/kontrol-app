@@ -1095,6 +1095,7 @@ export default function Overtimes() {
             {/* Data Table */}
             {viewMode === 'entries' ? (
                 <DataTable 
+                    loading={loading}
                     persistenceKey="overtimes_table_v2"
                     columns={columns}
                     data={overtimeData}
@@ -1120,6 +1121,7 @@ export default function Overtimes() {
                 />
             ) : (
                 <DataTable 
+                    loading={loading}
                     persistenceKey="overtimes_summary_table"
                     columns={summaryColumns}
                     data={summaryData}

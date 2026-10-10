@@ -22,6 +22,7 @@ import {
 import { Plus, Pencil, Trash2, Wrench, Building2, Eye, Archive, ArchiveRestore } from 'lucide-react'
 import DocumentPreviewModal from '../components/DocumentPreviewModal'
 import BatchOperationModal from '../components/BatchOperationModal'
+import { dataCache } from '../utils/dataCache'
 
 export default function Maintenance() {
     const { currentCompany } = useCompany()
@@ -81,21 +82,44 @@ export default function Maintenance() {
     }, [currentCompany])
 
     const loadData = async (isBackground = false) => {
-        if (!isBackground) setLoading(true)
+        const cacheKey = `maintenance_${currentCompany?.id}_${showArchived ? 1 : 0}`
+        const cached = dataCache.get(cacheKey)
+        if (cached && !isBackground) {
+            setMaintenances(cached.maintenances)
+            setVehicles(cached.vehicles)
+            if (cached.documents) setDocuments(cached.documents)
+            setLoading(false)
+            isBackground = true
+        } else if (!isBackground) {
+            setLoading(true)
+        }
+
         try {
-            const [maintResult, vehiclesResult, documentsResult] = await Promise.all([
+            const [maintResult, vehiclesResult] = await Promise.all([
                 window.electronAPI.getAllMaintenances(currentCompany.id, showArchived ? 1 : 0),
-                window.electronAPI.getVehicles(currentCompany.id),
-                window.electronAPI.getAllDocuments(currentCompany.id)
+                window.electronAPI.getVehicles(currentCompany.id)
             ])
 
             if (maintResult.success) setMaintenances(maintResult.data)
             if (vehiclesResult.success) setVehicles(vehiclesResult.data)
-            if (documentsResult.success) setDocuments(documentsResult.data)
+
+            if (!isBackground) setLoading(false)
+
+            if (maintResult.success && vehiclesResult.success) {
+                dataCache.set(cacheKey, {
+                    maintenances: maintResult.data,
+                    vehicles: vehiclesResult.data
+                })
+            }
+
+            // Fetch documents asynchronously in the background so it never blocks page transition
+            window.electronAPI?.getAllDocuments?.(currentCompany.id).then(documentsResult => {
+                if (documentsResult?.success) setDocuments(documentsResult.data)
+            }).catch(() => {})
         } catch (error) {
             console.error('Failed to load data:', error)
+            if (!isBackground) setLoading(false)
         }
-        if (!isBackground) setLoading(false)
     }
 
     const resetForm = () => {
@@ -490,6 +514,7 @@ export default function Maintenance() {
             })()}
 
             <DataTable
+                loading={loading}
                 columns={columns}
                 data={activeTab === 'all' ? maintenances : maintenances.filter(m => { const v = vehicles.find(vv => vv.id === m.vehicle_id); return v && v.type === activeTab; })}
                 persistenceKey={`maintenance_table_${activeTab}`}

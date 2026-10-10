@@ -9,6 +9,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import WorkForm from '../components/forms/WorkForm'
 import { Plus, CheckCircle, Clock, AlertCircle, Calendar, Pencil, Trash2, MapPin, Truck, User, ArrowRight, Archive, ArchiveRestore } from 'lucide-react'
 import { formatDate, formatCurrency, getWorkStatusLabel, getWorkStatusColor } from '../utils/helpers'
+import { dataCache } from '../utils/dataCache'
 
 export default function Works() {
     const { user, isAdmin, hasPermission } = useAuth()
@@ -63,7 +64,17 @@ export default function Works() {
     }, [currentCompany])
 
     const loadData = async (isBackground = false) => {
-        if (!isBackground) setLoading(true)
+        const cacheKey = `works_${currentCompany?.id}_${showArchived ? 1 : 0}`
+        const cached = dataCache.get(cacheKey)
+        if (cached && !isBackground) {
+            setWorks(cached.works)
+            if (cached.customers) setCustomers(cached.customers)
+            setLoading(false)
+            isBackground = true
+        } else if (!isBackground) {
+            setLoading(true)
+        }
+
         try {
             const [worksRes, customersRes] = await Promise.all([
                 window.electronAPI.getWorks(currentCompany.id, showArchived ? 1 : 0),
@@ -71,6 +82,13 @@ export default function Works() {
             ])
             if (worksRes.success) setWorks(worksRes.data)
             if (customersRes.success) setCustomers(customersRes.data)
+
+            if (worksRes.success && customersRes.success) {
+                dataCache.set(cacheKey, {
+                    works: worksRes.data,
+                    customers: customersRes.data
+                })
+            }
         } catch (error) {
             console.error('Veri yüklenirken hata:', error)
         }
@@ -334,6 +352,7 @@ export default function Works() {
             </div>
 
             <DataTable persistenceKey="Works_table_0"
+                loading={loading}
                 key="works-table"
                 columns={columns}
                 data={works}

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
 import { companyService, dashboardService } from '../services'
 import { settingsService } from '../services/settings'
+import { dataCache } from '../utils/dataCache'
 
 const defaultCompanyValue = {
     companies: [],
@@ -16,6 +17,7 @@ const defaultCompanyValue = {
     updateCompanySettings: async () => {},
     refreshCompanySettings: () => {},
     isModuleEnabled: () => true,
+    isIntegrationEnabled: () => false,
     upcomingEvents: [],
     loadUpcomingEvents: () => {},
     isImpersonating: false,
@@ -203,6 +205,7 @@ export function CompanyProvider({ children }) {
     }
 
     const selectCompany = (company) => {
+        dataCache.clear()
         setCurrentCompany(company)
         if (!isImpersonating) {
             localStorage.setItem('aractakip_company', company.id)
@@ -280,6 +283,11 @@ export function CompanyProvider({ children }) {
         return true;
     }
 
+    const isIntegrationEnabled = (integrationKey) => {
+        if (!integrationKey) return false;
+        return companySettings?.integrations?.[integrationKey]?.enabled === true;
+    }
+
     return (
         <CompanyContext.Provider value={{
             companies,
@@ -294,6 +302,7 @@ export function CompanyProvider({ children }) {
             updateCompanySettings,
             refreshCompanySettings: () => currentCompany && loadCompanySettings(currentCompany.id),
             isModuleEnabled,
+            isIntegrationEnabled,
             upcomingEvents,
             loadUpcomingEvents,
             isImpersonating,

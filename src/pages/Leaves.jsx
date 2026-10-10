@@ -765,6 +765,7 @@ export default function Leaves() {
 
             {/* Main Table */}
             <DataTable
+                loading={loading}
                 columns={columns}
                 data={leaves}
                 persistenceKey="leaves_table"

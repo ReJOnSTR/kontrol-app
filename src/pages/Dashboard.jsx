@@ -22,6 +22,7 @@ import { DashboardSkeleton } from '../components/Skeleton'
 import Modal from '../components/Modal'
 import { Settings, Save, GripVertical } from 'lucide-react'
 import { ScrollableList } from '../components/DashboardComponents'
+import { dataCache } from '../utils/dataCache'
 
 
 
@@ -218,7 +219,17 @@ export default function Dashboard() {
 
 
     const loadDashboardData = async (isBackground = false) => {
-        if (!isBackground) setLoading(true)
+        const cacheKey = `dashboard_${currentCompany?.id}`
+        const cached = dataCache.get(cacheKey)
+        if (cached && !isBackground) {
+            setStats(cached.stats)
+            setRecent(cached.recent)
+            setLoading(false)
+            isBackground = true
+        } else if (!isBackground) {
+            setLoading(true)
+        }
+
         try {
             const [statsResult, recentResult] = await Promise.all([
                 window.electronAPI.getDashboardStats(currentCompany.id),
@@ -227,6 +238,9 @@ export default function Dashboard() {
 
             if (statsResult.success) setStats(statsResult.data)
             if (recentResult.success) setRecent(recentResult.data)
+            if (statsResult.success && recentResult.success) {
+                dataCache.set(cacheKey, { stats: statsResult.data, recent: recentResult.data })
+            }
         } catch (error) {
             console.error('Dashboard data error:', error)
         }

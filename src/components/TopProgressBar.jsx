@@ -3,14 +3,19 @@ import { useEffect, useState } from 'react'
 const style = `
 .top-progress-bar {
     position: fixed;
-    top: 38px;
+    top: 40px;
     left: var(--sidebar-width);
     right: 0;
-    height: 2px;
+    height: 2.5px;
     z-index: 9998;
     pointer-events: none;
     transition: opacity 0.2s ease;
 }
+
+body.is-electron .top-progress-bar {
+    top: 78px;
+}
+
 .sidebar-collapsed .top-progress-bar {
     left: var(--sidebar-collapsed-width);
 }

@@ -61,12 +61,13 @@ export function calculateEmployeeMonthlyPayroll(employee, salaries = [], overtim
         const dStr = typeof o.date === 'string' ? o.date : new Date(o.date).toISOString()
         if (!dStr.startsWith(targetMonth)) return false
         if (o.notes && o.notes.includes('[İZİN OLARAK KULLANILDI]')) return false
+        if (o.is_converted_to_leave) return false
         return true
     })
 
     // 3. Base Historical Salary & Overtime Targets
     const baseSalaryTarget = getHistoricalBaseSalary(employee, targetMonth) || 0
-    const totalOtTarget = monthlyOvertimes.reduce((sum, o) => sum + (o.amount || 0), 0)
+    const totalOtTarget = monthlyOvertimes.reduce((sum, o) => sum + (o.amount ?? o.total_amount ?? 0), 0)
 
     // 4. Incoming Carryover from previous month
     const incomingCarryover = monthlySalaries

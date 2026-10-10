@@ -37,6 +37,7 @@ import {
     Area
 } from 'recharts'
 import Modal from '../components/Modal'
+import { DashboardSkeleton } from '../components/Skeleton'
 
 export default function PersonelDashboard() {
     const { currentCompany } = useCompany()
@@ -278,12 +279,16 @@ export default function PersonelDashboard() {
         <div className="page-container fade-in" style={{ paddingBottom: '40px' }}>
             <TopProgressBar loading={loading} />
 
-            <div className="page-header" style={{ marginBottom: '25px' }}>
-                <div>
-                    <h1 className="page-title">Personel Paneli</h1>
-                    <p style={{ marginTop: '5px', color: 'var(--text-secondary)' }}>İnsan kaynakları genel bakış ve yönetimi.</p>
-                </div>
-            </div>
+            {loading ? (
+                <DashboardSkeleton />
+            ) : (
+                <>
+                    <div className="page-header" style={{ marginBottom: '25px' }}>
+                        <div>
+                            <h1 className="page-title">Personel Paneli</h1>
+                            <p style={{ marginTop: '5px', color: 'var(--text-secondary)' }}>İnsan kaynakları genel bakış ve yönetimi.</p>
+                        </div>
+                    </div>
 
             {/* Quick Actions Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px' }}>
@@ -619,6 +624,8 @@ export default function PersonelDashboard() {
                     </div>
                 </div>
             </div>
+            </>
+            )}
 
             {/* Customization Modal */}
             <Modal

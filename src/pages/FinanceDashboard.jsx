@@ -6,6 +6,7 @@ import Modal from '../components/Modal'
 import { Wallet, Banknote, FileSignature, ArrowDownRight, PlusCircle, PenTool, GripVertical, Settings, Save, FileText, TrendingUp, TrendingDown, Clock, AlertTriangle } from 'lucide-react'
 import { formatCurrency } from '../utils/helpers'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { DashboardSkeleton } from '../components/Skeleton'
 
 export default function FinanceDashboard() {
     const { currentCompany } = useCompany()
@@ -247,12 +248,16 @@ export default function FinanceDashboard() {
         <div className="page-container fade-in" style={{ paddingBottom: '40px' }}>
             <TopProgressBar loading={loading} />
 
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Finans Dashboard</h1>
-                    <p className="page-subtitle">Şirket genel finansal durumunu, gelir/gider akışını ve kasa bakiyelerini görüntüleyin.</p>
-                </div>
-            </div>
+            {loading ? (
+                <DashboardSkeleton />
+            ) : (
+                <>
+                    <div className="page-header">
+                        <div>
+                            <h1 className="page-title">Finans Dashboard</h1>
+                            <p className="page-subtitle">Şirket genel finansal durumunu, gelir/gider akışını ve kasa bakiyelerini görüntüleyin.</p>
+                        </div>
+                    </div>
 
             {/* Quick Actions Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px' }}>
@@ -500,6 +505,8 @@ export default function FinanceDashboard() {
                     )}
                 </div>
             </div>
+            </>
+            )}
 
             {/* Customization Modal */}
             <Modal

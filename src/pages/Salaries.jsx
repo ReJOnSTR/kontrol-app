@@ -692,12 +692,13 @@ export default function Salaries() {
                 </div>
             </div>
 
-            {payrollData.length === 0 ? (
+            {payrollData.length === 0 && !loading ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                     <p>Bu ay için personel kaydı bulunamadı.</p>
                 </div>
             ) : (
                 <DataTable
+                    loading={loading}
                     persistenceKey="salaries_table"
                     columns={[
                         { 

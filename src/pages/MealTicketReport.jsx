@@ -3,6 +3,7 @@ import { useCompany } from '../context/CompanyContext'
 import TopProgressBar from '../components/TopProgressBar'
 import { FileText, Users, TrendingUp, ChevronLeft, ChevronRight, Printer, UtensilsCrossed } from 'lucide-react'
 import DataTable from '../components/DataTable'
+import { TableSkeleton } from '../components/Skeleton'
 
 export default function MealTicketReport() {
     const { currentCompany } = useCompany()
@@ -241,7 +242,16 @@ export default function MealTicketReport() {
                 </button>
             </div>
 
-            {report && (
+            {loading && !report ? (
+                <div style={{ marginTop: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="skeleton" style={{ height: '80px', borderRadius: '10px' }} />
+                        ))}
+                    </div>
+                    <TableSkeleton rows={6} cols={5} />
+                </div>
+            ) : report && (
                 <>
                     {/* Summary Cards */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>

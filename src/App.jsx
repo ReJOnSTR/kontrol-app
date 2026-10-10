@@ -6,7 +6,7 @@ import { TabProvider } from './context/TabContext' // Import TabProvider
 
 import { useNotification } from './hooks/useNotification'
 import ErrorBoundary from './components/ErrorBoundary'
-import TitleBar from './components/TitleBar'
+import TitleBar, { isElectron } from './components/TitleBar'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import TabBar from './components/TabBar' // Import TabBar
@@ -15,6 +15,12 @@ import TopProgressBar from './components/TopProgressBar'
 import CommandPalette from './components/CommandPalette'
 import LockScreen from './components/LockScreen'
 import { useIdle } from './hooks/useIdle'
+import { PageSkeleton } from './components/Skeleton'
+import BroadcastBanner from './components/BroadcastBanner'
+import ImpersonationBanner from './components/ImpersonationBanner'
+import MobileHeader from './components/MobileHeader'
+import { useDataListener } from './hooks/useDataListener'
+import { initIdlePrefetch } from './utils/routePrefetcher'
 
 // Resilient lazy import helper that automatically reloads the page once if a stale chunk 404s after a new deployment
 const lazyWithRetry = (componentImport) =>
@@ -82,39 +88,9 @@ const PersonnelDashboardPortal = lazyWithRetry(() => import('./components/person
 const ApprovalCenter = lazyWithRetry(() => import('./components/personnel/ApprovalCenter'))
 const PlatformAdmin = lazyWithRetry(() => import('./pages/PlatformAdmin'))
 
-// Suspense fallback with sleek loading indicator
+// Suspense fallback with sleek skeleton loading indicator
 function PageLoader() {
-    return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100vh',
-            width: '100vw',
-            background: 'var(--bg-primary, #0f0f11)',
-            color: 'var(--text-secondary, #a1a1aa)',
-            userSelect: 'none'
-        }}>
-            <div style={{
-                width: 36,
-                height: 36,
-                border: '3px solid rgba(20, 184, 166, 0.2)',
-                borderTopColor: '#14b8a6',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite'
-            }} />
-            <div style={{ marginTop: 14, fontSize: 13, color: '#71717a', fontWeight: 500, letterSpacing: '0.2px' }}>
-                Yükleniyor...
-            </div>
-            <style>{`
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-            `}</style>
-        </div>
-    )
+    return <PageSkeleton />
 }
 
 function ProtectedRoute({ children }) {
@@ -147,9 +123,9 @@ function SuperAdminRoute({ children }) {
     return children
 }
 
-function PermissionRoute({ module, action = 'can_read', children }) {
+function PermissionRoute({ module, action = 'can_read', integration, children }) {
     const { hasPermission, isAdmin, isPersonnel, loading } = useAuth()
-    const { isModuleEnabled, isImpersonating } = useCompany()
+    const { isModuleEnabled, isIntegrationEnabled, isImpersonating } = useCompany()
     const { user } = useAuth()
     const isSuperAdmin = user?.role === 'superadmin'
 
@@ -173,6 +149,13 @@ function PermissionRoute({ module, action = 'can_read', children }) {
         }
     }
 
+    // Check Company Integration Entitlements
+    if (integration && !(isSuperAdmin && !isImpersonating)) {
+        if (isIntegrationEnabled && !isIntegrationEnabled(integration)) {
+            return <Navigate to="/vehicles" replace />
+        }
+    }
+
     if (isAdmin) return children
 
     if (!hasPermission(module, action)) {
@@ -180,10 +163,6 @@ function PermissionRoute({ module, action = 'can_read', children }) {
     }
     return children
 }
-
-import BroadcastBanner from './components/BroadcastBanner'
-import ImpersonationBanner from './components/ImpersonationBanner'
-import MobileHeader from './components/MobileHeader'
 
 function MainLayout() {
     const { user } = useAuth()
@@ -230,10 +209,13 @@ function MainLayoutWrapper() {
     )
 }
 
-import { useDataListener } from './hooks/useDataListener'
-
 function AppRoutes() {
     useDataListener() // Global real-time data listener
+
+    useEffect(() => {
+        initIdlePrefetch()
+    }, [])
+
     const { user } = useAuth()
     const location = useLocation()
     const isPrintRoute = location.pathname === '/print' || location.pathname === '/print-document' || location.pathname.startsWith('/work-report')
@@ -256,7 +238,7 @@ function AppRoutes() {
 
     return (
         <>
-            {!isPrintRoute && <TitleBar />}
+            {!isPrintRoute && isElectron && <TitleBar />}
             <Suspense fallback={<PageLoader />}>
                 <Routes>
                     <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
@@ -291,7 +273,7 @@ function AppRoutes() {
                         <Route path="/companies" element={<AdminRoute><Companies /></AdminRoute>} />
                         <Route path="/vehicles" element={<PermissionRoute module="vehicles"><Vehicles /></PermissionRoute>} />
                         <Route path="/vehicles/:id" element={<PermissionRoute module="vehicles"><VehicleDetail /></PermissionRoute>} />
-                        <Route path="/arvento-tracking" element={<PermissionRoute module="vehicles"><ArventoTracking /></PermissionRoute>} />
+                        <Route path="/arvento-tracking" element={<PermissionRoute module="vehicles" integration="arvento"><ArventoTracking /></PermissionRoute>} />
                         <Route path="/maintenance" element={<PermissionRoute module="vehicles"><Maintenance /></PermissionRoute>} />
                         <Route path="/inspections" element={<PermissionRoute module="vehicles"><Inspections /></PermissionRoute>} />
                         <Route path="/periodic-inspections" element={<PermissionRoute module="vehicles"><PeriodicInspections /></PermissionRoute>} />
@@ -419,6 +401,16 @@ function App() {
             sessionStorage.setItem('aractakip_session_active', 'true')
         }
     }, [lockSettings.enabled, isPrintRoute])
+
+    useEffect(() => {
+        if (!isElectron) {
+            document.body.classList.add('is-web')
+            document.body.classList.remove('is-electron')
+        } else {
+            document.body.classList.add('is-electron')
+            document.body.classList.remove('is-web')
+        }
+    }, [])
 
     const { user } = useAuth()
 

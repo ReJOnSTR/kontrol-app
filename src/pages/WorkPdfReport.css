@@ -18,6 +18,34 @@
     width: 100%;
 }
 
+/* Clean Web PDF Exporting Mode */
+.is-pdf-exporting,
+.is-pdf-exporting .pdf-viewer-layout {
+    background-color: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.is-pdf-exporting .pdf-pages-container {
+    gap: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background-color: #ffffff !important;
+}
+
+.is-pdf-exporting .pdf-page-header-badge,
+.is-pdf-exporting .pdf-actions-bar,
+.is-pdf-exporting .web-print-toolbar,
+.is-pdf-exporting .pdf-btn {
+    display: none !important;
+}
+
+.is-pdf-exporting .pdf-report-container {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+}
+
 /* Standard A4 Report Container */
 .pdf-report-container {
     width: 210mm;

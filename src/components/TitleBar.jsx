@@ -1,7 +1,17 @@
 
 import React from 'react'
 
+export const isElectron = typeof window !== 'undefined' && Boolean(
+    window.process?.versions?.electron ||
+    (navigator.userAgent && navigator.userAgent.toLowerCase().includes('electron'))
+)
+
 export default function TitleBar() {
+    // Web tarayıcısında (Chrome, Safari vb.) boş 'Kontrol' çubuğunu gizle
+    if (!isElectron) {
+        return null
+    }
+
     return (
         <div 
             className="desktop-title-bar"

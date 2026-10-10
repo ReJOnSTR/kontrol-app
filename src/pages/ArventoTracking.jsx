@@ -305,25 +305,25 @@ export default function ArventoTracking() {
     const [localVehicles, setLocalVehicles] = useState([])
     const [mappings, setMappings] = useState([])
 
-    // Effective Arvento Credentials from Settings or Company Integrations
+    // Effective Arvento Credentials from Company Integrations or Settings
     const effectiveArventoCreds = useMemo(() => {
-        const arventoConfig = companySettings?.integrations?.arvento || settings?.arvento
-        if (arventoConfig?.username && arventoConfig?.pin1) {
+        // Company settings is the primary source of truth
+        const companyArvento = companySettings?.integrations?.arvento
+        if (companySettings) {
+            if (!companyArvento || companyArvento.enabled !== true) {
+                return null
+            }
+        }
+        
+        const arventoConfig = companyArvento || settings?.arvento
+        if (arventoConfig?.enabled === true && arventoConfig?.username && arventoConfig?.pin1) {
             return {
                 username: arventoConfig.username,
                 pin1: arventoConfig.pin1,
                 pin2: arventoConfig.pin2 || '',
-                enabled: arventoConfig.enabled !== false
+                enabled: true
             }
         }
-        try {
-            const userStorageKey = user?.id ? `arvento_user_creds_${user.id}` : 'arvento_user_creds_default'
-            const saved = localStorage.getItem(userStorageKey)
-            if (saved) {
-                const parsed = JSON.parse(saved)
-                if (parsed?.username && parsed?.pin1) return parsed
-            }
-        } catch (e) {}
         return null
     }, [companySettings, settings, user])
 
@@ -1412,17 +1412,15 @@ export default function ArventoTracking() {
     const loadSettingsAndVehicles = async () => {
         try {
             const sett = (await window.electronAPI.getSettings()) || {}
-            if (companySettings?.integrations?.arvento) {
-                sett.arvento = {
-                    ...sett.arvento,
-                    ...companySettings.integrations.arvento
-                }
+            if (companySettings?.integrations) {
+                sett.arvento = companySettings.integrations.arvento || { enabled: false }
             }
             setSettings(sett)
             
-            // Check if Arvento credentials exist
-            const activeCreds = sett.arvento?.username ? sett.arvento : effectiveArventoCreds
-            if (activeCreds && activeCreds.username) {
+            // Check if Arvento is active and credentials exist
+            const isArventoActive = sett.arvento?.enabled === true
+            const activeCreds = isArventoActive && sett.arvento?.username ? sett.arvento : effectiveArventoCreds
+            if (isArventoActive && activeCreds && activeCreds.username) {
                 // Fetch initial mappings with credentials
                 const mappingsRes = await window.electronAPI.arventoGetMappings(activeCreds)
                 if (mappingsRes.success && Array.isArray(mappingsRes.data)) {
@@ -2484,6 +2482,7 @@ export default function ArventoTracking() {
     // Load Status Data (Real API polling only)
     useEffect(() => {
         if (!leafletLoaded) return
+        if (!effectiveArventoCreds || !effectiveArventoCreds.enabled) return
         
         fetchStatusData()
 
@@ -2801,8 +2800,9 @@ export default function ArventoTracking() {
     }, [historyDataMap, activeTab, mapReady])
 
     const fetchStatusData = async () => {
-        const creds = effectiveArventoCreds || (settings?.arvento?.username ? settings.arvento : null)
-        if (!creds && !settings?.arvento?.username) return
+        const isArventoActive = companySettings?.integrations?.arvento ? companySettings.integrations.arvento.enabled === true : settings?.arvento?.enabled === true
+        const creds = effectiveArventoCreds || (isArventoActive && settings?.arvento?.username ? settings.arvento : null)
+        if (!isArventoActive || !creds || !creds.username) return
         setLoading(true)
         try {
             // Fetch mappings if they are not already loaded
@@ -3174,7 +3174,14 @@ export default function ArventoTracking() {
         }
     }, [combinedDailyReports])
 
-    if (settings && (!settings.arvento?.enabled || !settings.arvento?.username)) {
+    const isArventoActive = Boolean(
+        companySettings?.integrations?.arvento 
+            ? companySettings.integrations.arvento.enabled === true 
+            : settings?.arvento?.enabled === true
+    )
+    const hasArventoUser = Boolean(effectiveArventoCreds?.username || (isArventoActive && settings?.arvento?.username))
+
+    if (!isArventoActive || !hasArventoUser) {
         return (
             <div className="tracking-page-wrapper">
                 <div className="page-header" style={{ marginBottom: 0 }}>

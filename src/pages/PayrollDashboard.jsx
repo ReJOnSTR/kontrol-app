@@ -577,6 +577,7 @@ export default function PayrollDashboard() {
 
             {/* Data Table */}
             <DataTable 
+                loading={loading}
                 persistenceKey="Payroll_table_v2"
                 storageKey="payroll_table_cols"
                 columns={columns}

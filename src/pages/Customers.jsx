@@ -283,6 +283,7 @@ export default function Customers() {
 
             <DataTable persistenceKey="Customers_table_0"
                 columns={columns}
+                loading={loading}
                 data={customers}
                 emptyMessage="Henüz müşteri kaydı bulunamadı"
                 showSearch={true}

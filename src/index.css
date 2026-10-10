@@ -150,10 +150,30 @@ body {
 
 .app-layout {
   display: flex;
-  height: calc(100vh - 30px);
-  margin-top: 30px;
+  height: 100vh;
+  margin-top: 0;
   background-color: var(--bg-primary);
   color: var(--text-primary);
+}
+
+/* Electron masaüstü modu: TitleBar (38px) için üst boşluk */
+body.is-electron .app-layout {
+  height: calc(100vh - 38px);
+  margin-top: 38px;
+}
+
+body.is-electron .sidebar {
+  top: 38px;
+}
+
+body:not(.is-electron) .desktop-title-bar,
+body.is-web .desktop-title-bar {
+  display: none !important;
+}
+
+body:not(.is-electron) .sidebar,
+body.is-web .sidebar {
+  top: 0 !important;
 }
 
 /* Custom Title Bar Dragging */
@@ -282,15 +302,15 @@ textarea,
     overflow: hidden !important;
   }
 
-  .desktop-title-bar {
+  body:not(.is-electron) .desktop-title-bar {
     display: none !important;
   }
 
-  .sidebar {
+  body:not(.is-electron) .sidebar {
     display: none !important;
   }
 
-  .tab-bar {
+  body:not(.is-electron) .tab-bar {
     display: none !important;
   }
 
@@ -324,7 +344,7 @@ textarea,
   }
 
   /* ── MOBILE HEADER (TOP BAR) ── */
-  .mobile-header-wrapper {
+  body:not(.is-electron) .mobile-header-wrapper {
     display: block !important;
     position: sticky;
     top: 0;
@@ -1660,7 +1680,7 @@ textarea,
 .sidebar {
   position: fixed;
   left: 0;
-  top: 38px;
+  top: 0;
   bottom: 0;
   width: var(--sidebar-width);
   background: var(--bg-secondary);
@@ -1688,6 +1708,7 @@ textarea,
   padding-right: 18px;
   border-bottom: 1px solid var(--border-color);
   height: 40px;
+  box-sizing: border-box;
   position: relative;
   white-space: nowrap;
   /* No padding transition = No logo movement */
@@ -3970,17 +3991,117 @@ textarea,
    MODAL
    ============================================ */
 
+:root {
+  --top-bar-offset: 40px;
+}
+
+body.is-electron {
+  --top-bar-offset: 78px;
+}
+
+body:not(:has(.tab-bar)) {
+  --top-bar-offset: 0px;
+}
+
+body.is-electron:not(:has(.tab-bar)) {
+  --top-bar-offset: 38px;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end; /* Sağ tarafa yaslar (Floating Slide-over Panel) */
   z-index: 1000;
-  padding: 20px;
-  animation: fadeIn 0.15s var(--ease-out);
+  padding: 24px;
+  animation: fadeIn 0.18s var(--ease-out);
+  transition: background 0.2s ease;
+}
+
+/* Modal / Çekmece açıkken sekmeler barını bulanıklaştır, ancak en üstteki "Kontrol" başlık çubuğunu net ve görünür tut */
+body:has(.modal-overlay) .tab-bar {
+  filter: blur(5px);
+  pointer-events: none;
+  transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+body:has(.modal-overlay) .desktop-title-bar {
+  filter: none !important;
+  opacity: 1 !important;
+  z-index: 10001 !important;
+}
+
+/* Masaüstü ve Electron: Sağdan açılan çekmeceler için üst bar hesaplaması */
+@media (min-width: 769px) {
+  /* Web: Tüm ekranı kaplar, sekmeler barını örterek üste kadar uzanır */
+  body:not(.is-electron) .modal-overlay.modal-overlay-drawer,
+  body:not(.is-electron) .modal-overlay:not(.modal-overlay-center):not(:has(.modal-center)):not(:has(.modal-sm)) {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100vh;
+    padding: 10px 16px 12px 16px;
+    align-items: stretch;
+    justify-content: flex-end;
+    box-sizing: border-box;
+  }
+
+  /* Electron: En üstteki 38px 'Kontrol' çubuğunun altından başlar, sekmeler barını kaplar ve aşağıya kadar ferahça uzanır */
+  body.is-electron .modal-overlay.modal-overlay-drawer,
+  body.is-electron .modal-overlay:not(.modal-overlay-center):not(:has(.modal-center)):not(:has(.modal-sm)) {
+    top: 38px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(100vh - 38px);
+    padding: 10px 16px 12px 16px;
+    align-items: stretch;
+    justify-content: flex-end;
+    box-sizing: border-box;
+  }
+
+  .modal-overlay.modal-overlay-drawer .modal,
+  .modal-overlay:not(.modal-overlay-center):not(:has(.modal-center)):not(:has(.modal-sm)) .modal {
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+  }
+
+  /* Merkez açılan onay/uyarı modalleri (Confirm / Alert) */
+  body:not(.is-electron) .modal-overlay.modal-overlay-center,
+  body:not(.is-electron) .modal-overlay:has(.modal-center),
+  body:not(.is-electron) .modal-overlay:has(.modal-sm) {
+    top: 0;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+
+  body.is-electron .modal-overlay.modal-overlay-center,
+  body.is-electron .modal-overlay:has(.modal-center),
+  body.is-electron .modal-overlay:has(.modal-sm) {
+    top: 38px;
+    height: calc(100vh - 38px);
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+}
+
+.modal-overlay.modal-overlay-center,
+.modal-overlay:has(.modal-center),
+.modal-overlay:has(.modal-sm) {
+  justify-content: center;
+  align-items: center;
 }
 
 @keyframes fadeIn {
@@ -3996,13 +4117,36 @@ textarea,
 .modal {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
+  border-radius: 20px;
   width: 100%;
-  max-width: 600px;
-  max-height: 85vh;
+  max-width: 880px; /* Sıkışık olmayan, ferah ve geniş form düzeni (Görseldeki gibi) */
+  height: calc(100vh - 48px);
+  max-height: calc(100vh - 48px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: drawerSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -18px 0 50px rgba(0, 0, 0, 0.4), 0 20px 45px rgba(0, 0, 0, 0.25), 0 0 1px rgba(255, 255, 255, 0.08);
+  transform: translateX(0);
+}
+
+@keyframes drawerSlideIn {
+  from {
+    opacity: 0.2;
+    transform: translateX(40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.modal-center,
+.modal.modal-sm {
+  height: auto;
+  max-height: 85vh;
+  border-radius: 18px;
   animation: modalIn 0.2s var(--ease-out);
   box-shadow: var(--shadow-lg);
 }
@@ -4019,23 +4163,92 @@ textarea,
   }
 }
 
-.modal-sm {
+/* =========================================================
+   DİNAMİK MODAL & ÇEKMECE BOYUTLARI (ADAPTIVE SIZE SCALE)
+   Duruma ve içeriğe göre dengeli, boşluk bırakmayan genişlikler
+   ========================================================= */
+
+/* 1. Sağdan Açılan Çekmeceler (Drawers) */
+.modal-drawer.modal-sm {
+  max-width: 460px;
+}
+
+.modal-drawer.modal-md,
+.modal-drawer.modal-default,
+.modal-drawer:not(.modal-sm):not(.modal-lg):not(.modal-xl):not(.modal-fullscreen) {
+  max-width: 590px;
+}
+
+.modal-drawer.modal-lg {
+  max-width: 760px;
+}
+
+.modal-drawer.modal-xl {
+  max-width: 960px;
+}
+
+.modal-drawer.modal-fullscreen {
+  max-width: calc(100vw - 36px);
+  width: calc(100vw - 36px);
+}
+
+/* 2. Ortada Açılan Dialoglar (Center Modals) */
+.modal-center.modal-sm {
   max-width: 440px;
 }
 
-.modal-lg {
-  max-width: 600px;
+.modal-center.modal-md,
+.modal-center.modal-default,
+.modal-center:not(.modal-sm):not(.modal-lg):not(.modal-xl):not(.modal-fullscreen) {
+  max-width: 580px;
 }
 
-.modal-xl {
-  max-width: 1100px;
+.modal-center.modal-lg {
+  max-width: 780px;
 }
 
+.modal-center.modal-xl {
+  max-width: 980px;
+}
+
+.modal-center.modal-fullscreen {
+  max-width: calc(100vw - 64px);
+  width: calc(100vw - 64px);
+}
+
+/* 3. Genel Yedek Sınıflar */
+.modal-sm { max-width: 460px; }
+.modal-md, .modal-default { max-width: 590px; }
+.modal-lg { max-width: 760px; }
+.modal-xl { max-width: 960px; }
 .modal-fullscreen {
-  max-width: calc(100vw - 140px);
-  max-height: calc(100vh - 100px);
-  width: calc(100vw - 140px);
-  height: calc(100vh - 100px);
+  max-width: calc(100vw - 36px);
+  width: calc(100vw - 36px);
+  height: calc(100vh - 48px);
+  max-height: calc(100vh - 48px);
+}
+
+/* 4. Çekmece İçi Akıllı Form Grid & Düzenleme */
+.modal-drawer .modal-body .form-row,
+.modal-drawer .modal-body .form-grid-2,
+.modal-drawer .modal-body .grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.modal-drawer.modal-sm .modal-body .form-row,
+.modal-drawer.modal-sm .modal-body .form-grid-2,
+.modal-drawer.modal-sm .modal-body .grid-2 {
+  grid-template-columns: 1fr;
+}
+
+.modal-drawer .modal-body .form-group {
+  margin-bottom: 14px;
+}
+
+.modal-drawer .modal-body .form-group:last-child {
+  margin-bottom: 0;
 }
 
 .modal-drag-indicator {
@@ -4046,8 +4259,10 @@ textarea,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 18px 28px;
   border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  background: var(--bg-secondary);
 }
 
 .modal-header-content {
@@ -4058,30 +4273,36 @@ textarea,
 }
 
 .modal-title {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .modal-close {
   background: transparent;
-  border: none;
-  padding: 5px;
-  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  padding: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: all var(--transition-fast);
 }
 
 .modal-close:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
+  border-color: var(--border-color);
 }
 
 .modal-body {
-  padding: 18px 20px;
+  padding: 24px 28px;
   overflow-y: auto;
+  flex: 1;
 }
 
 .modal-fullscreen .modal-body {
@@ -4092,10 +4313,87 @@ textarea,
 
 .modal-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 12px 20px;
+  gap: 14px;
+  padding: 16px 28px;
   border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+}
+
+/* =========================================================
+   DRAWER STICKY ACTION FOOTER (ONAY / İPTAL BUTONLARI)
+   Sağdan açılan pencerelerde form onay butonlarını her zaman
+   en altta sabitler, kaydırmaya gerek kalmadan görünür kılar.
+   ========================================================= */
+@media (min-width: 769px) {
+  .modal-drawer .modal-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-drawer .modal-body form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .modal-drawer .modal-body form > [style*="justify-content: flex-end"],
+  .modal-drawer .modal-body form > [style*="justifyContent: 'flex-end'"],
+  .modal-drawer .modal-body form > [style*="justify-content:flex-end"],
+  .modal-drawer .modal-body form > [style*="justifyContent: \"flex-end\""],
+  .modal-drawer .modal-body form > .form-actions,
+  .modal-drawer .modal-body .form-actions,
+  .modal-drawer .modal-body form > div:last-child:has(button[type="submit"]),
+  .modal-drawer .modal-body form > div:last-child:has(.btn-primary) {
+    position: sticky;
+    bottom: -24px;
+    left: 0;
+    right: 0;
+    margin-top: auto !important;
+    margin-left: -28px !important;
+    margin-right: -28px !important;
+    margin-bottom: -24px !important;
+    padding: 16px 28px !important;
+    background: var(--bg-secondary) !important;
+    border-top: 1px solid var(--border-color) !important;
+    z-index: 30 !important;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25) !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 12px !important;
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 12px;
+    justify-content: center;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-width: 100%;
+    height: auto;
+    max-height: 94vh;
+    border-radius: 20px 20px 14px 14px;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
 }
 
 /* ============================================
@@ -5315,13 +5613,13 @@ textarea,
 .tab-bar {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  padding: 4px 0 0 0;
+  padding: 0;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  height: 48px;
-  min-height: 48px;
-  max-height: 48px;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
   overflow: visible;
   /* Must be visible for dropdowns to escape, but children will restrict Y */
   position: relative;

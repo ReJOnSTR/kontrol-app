@@ -53,7 +53,7 @@ export const moduleMenus = {
             title: 'Araç Yönetimi',
             items: [
                 { path: '/vehicles', icon: Car, label: 'Araçlar' },
-                { path: '/arvento-tracking', icon: Globe, label: 'Araç Takip (Arvento)' }
+                { path: '/arvento-tracking', icon: Globe, label: 'Araç Takip (Arvento)', integration: 'arvento' }
             ]
         },
         {

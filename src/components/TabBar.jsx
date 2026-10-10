@@ -96,8 +96,15 @@ export default function TabBar() {
         })
     )
 
+    const safeTabs = (Array.isArray(tabs) && tabs.length > 0) ? tabs : [{
+        id: 'default-active-tab',
+        path: location.pathname + location.search,
+        label: 'Ana Sayfa',
+        icon: null
+    }]
+
     const [activeId, setActiveId] = useState(null)
-    const activeTab = tabs.find(t => t.id === activeId)
+    const activeTab = safeTabs.find(t => t.id === activeId)
 
     const handleDragStart = (event) => {
         setActiveId(event.active.id)
@@ -106,9 +113,11 @@ export default function TabBar() {
     const handleDragEnd = (event) => {
         const { active, over } = event
         if (over && active.id !== over.id) {
-            const oldIndex = tabs.findIndex((t) => t.id === active.id)
-            const newIndex = tabs.findIndex((t) => t.id === over.id)
-            updateTabsOrder(arrayMove(tabs, oldIndex, newIndex))
+            const oldIndex = safeTabs.findIndex((t) => t.id === active.id)
+            const newIndex = safeTabs.findIndex((t) => t.id === over.id)
+            if (oldIndex !== -1 && newIndex !== -1) {
+                updateTabsOrder(arrayMove(safeTabs, oldIndex, newIndex))
+            }
         }
         setActiveId(null)
     }
@@ -117,8 +126,6 @@ export default function TabBar() {
         selectCompany(company)
         setShowCompanyDropdown(false)
     }
-
-    if (!tabs || tabs.length === 0) return null
 
     const restrictToHorizontalAxis = ({ transform }) => {
         return {
@@ -133,7 +140,7 @@ export default function TabBar() {
     return (
         <div className="tab-bar">
             {/* Navigation Buttons (Fixed) */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', height: '100%', marginBottom: '-1px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', height: '100%', flexShrink: 0 }}>
                 <button
                     className="tab-nav-btn"
                     onClick={() => backEnabled && goBack()}
@@ -168,14 +175,14 @@ export default function TabBar() {
                         className="tab-scroll-container"
                     >
                         <SortableContext
-                            items={tabs.map(t => t.id)}
+                            items={safeTabs.map(t => t.id)}
                             strategy={horizontalListSortingStrategy}
                         >
-                            {tabs.map(tab => (
+                            {safeTabs.map(tab => (
                                 <SortableTab
                                     key={tab.id}
                                     tab={tab}
-                                    isActive={tab.id === activeTabId}
+                                    isActive={tab.id === activeTabId || safeTabs.length === 1}
                                     activateTab={activateTab}
                                     closeTab={closeTab}
                                 />

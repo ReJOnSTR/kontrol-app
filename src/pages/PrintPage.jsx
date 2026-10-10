@@ -4,6 +4,7 @@ import EmployeeReportRenderer from '../components/EmployeeReportRenderer'
 import WorkPdfReport from './WorkPdfReport'
 import { formatCurrency } from '../utils/helpers'
 import html2pdf from 'html2pdf.js'
+import { exportElementToCleanPdf } from '../utils/pdfCleanExport'
 
 export default function PrintPage() {
     const [data, setData] = useState(null)
@@ -72,23 +73,35 @@ export default function PrintPage() {
         }
     }, [])
 
-    const downloadPdfDirectly = () => {
+    const downloadPdfDirectly = async () => {
         const el = document.querySelector('.print-body') || document.body;
         const isLandscape = data?.orientation === 'landscape';
         const docTitle = document.title || 'Rapor';
         const filename = `${docTitle.replace(/[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ_\-\s]/g, '').trim().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
 
-        const opt = {
-            margin: isLandscape ? [5, 5, 5, 5] : [8, 8, 8, 8],
-            filename: filename,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: isLandscape ? 'landscape' : 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-
-        html2pdf().set(opt).from(el).save();
+        try {
+            await exportElementToCleanPdf(el, filename, isLandscape);
+        } catch (err) {
+            console.error('PDF Export Error:', err);
+            window.print();
+        }
     };
+
+    // Auto-trigger PDF download if opened with autoDownload flag from web
+    useEffect(() => {
+        if (!data) return;
+        const searchParams = new URLSearchParams(window.location.search);
+        const hashQuery = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+        const hashParams = new URLSearchParams(hashQuery);
+        const shouldAutoDownload = searchParams.get('autoDownload') === '1' || hashParams.get('autoDownload') === '1';
+
+        if (shouldAutoDownload) {
+            const timer = setTimeout(() => {
+                downloadPdfDirectly();
+            }, 700);
+            return () => clearTimeout(timer);
+        }
+    }, [data]);
 
     if (!data) return <div style={{ padding: '20px' }}>Yükleniyor veya veri bulunamadı...</div>
 
