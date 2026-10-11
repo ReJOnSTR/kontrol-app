@@ -62,6 +62,7 @@ model companies {
   roles                  roles[]
   audit_logs             audit_logs[]
   requests               requests[]
+  user_company_access    user_company_access[]
 
   @@index([user_id], map: "idx_companies_user")
 }
@@ -202,6 +203,7 @@ model employees {
   devir_tarihi            DateTime?
   iban                    String?
   off_days                String?                   @default("0")
+  allow_login             Int?                      @default(0)
   user                    users?
   requests                requests[]
   employee_assignments    employee_assignments[]
@@ -425,28 +427,31 @@ model transactions {
 }
 
 model users {
-  id                      Int                 @id @default(autoincrement())
-  username                String              @unique(map: "sqlite_autoindex_users_1")
-  email                   String              @unique(map: "sqlite_autoindex_users_2")
+  id                      Int                   @id @default(autoincrement())
+  username                String                @unique(map: "sqlite_autoindex_users_1")
+  email                   String                @unique(map: "sqlite_autoindex_users_2")
   full_name               String?
   password_hash           String
-  created_at              DateTime?           @default(now())
-  role                    String?             @default("user")
+  created_at              DateTime?             @default(now())
+  role                    String?               @default("user")
   role_id                 Int?
-  employee_id             Int?                @unique(map: "sqlite_autoindex_users_3")
+  employee_id             Int?                  @unique(map: "sqlite_autoindex_users_3")
   permissions             String?
-  must_change_password    Int?                @default(0)
-  is_active               Int?                @default(1)
+  must_change_password    Int?                  @default(0)
+  is_active               Int?                  @default(1)
   two_factor_secret       String?
-  two_factor_enabled      Int?                @default(0)
+  two_factor_enabled      Int?                  @default(0)
   two_factor_backup_codes String?
   recovery_otp            String?
   recovery_otp_expires_at DateTime?
+  status                  String?               @default("active")
   companies               companies[]
-  employee                employees?          @relation(fields: [employee_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  custom_role             roles?              @relation(fields: [role_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  created_requests        requests[]          @relation("RequestCreator")
-  approval_actions        request_approvals[] @relation("ApprovalActor")
+  employee                employees?            @relation(fields: [employee_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  custom_role             roles?                @relation(fields: [role_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  created_requests        requests[]            @relation("RequestCreator")
+  approval_actions        request_approvals[]   @relation("ApprovalActor")
+  user_company_access     user_company_access[]
+  user_permissions        user_permissions[]
 }
 
 model vehicles {
@@ -731,4 +736,66 @@ model revoked_sessions {
   expires_at DateTime?
 
   @@index([expires_at], map: "idx_revoked_sessions_expires")
+}
+
+model company_notification_settings {
+  company_id    Int       @id
+  settings_json String
+  updated_at    DateTime? @default(now())
+}
+
+model user_notification_settings {
+  user_id       Int       @id
+  settings_json String
+  updated_at    DateTime? @default(now())
+}
+
+model email_settings {
+  id           Int       @id @default(autoincrement())
+  smtp_host    String?
+  smtp_port    Int?      @default(587)
+  smtp_secure  Boolean?  @default(false)
+  smtp_user    String?
+  smtp_pass    String?
+  sender_name  String?   @default("⚡ Kontrol Güvenlik Ekibi")
+  sender_email String?   @default("noreply@kontrol-app.com")
+  updated_at   DateTime? @default(now())
+}
+
+model email_templates {
+  id           Int       @id @default(autoincrement())
+  type         String    @unique
+  name         String
+  subject      String
+  html_content String
+  description  String?
+  updated_at   DateTime? @default(now())
+  created_at   DateTime? @default(now())
+  sender_name  String?   @default("Kontrol")
+}
+
+model user_company_access {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  company_id Int
+  created_at DateTime? @default(now())
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  companies  companies @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_user_company_access_user")
+  @@index([company_id], map: "idx_user_company_access_company")
+}
+
+model user_permissions {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  vehicles   String?   @default("crud")
+  employees  String?   @default("crud")
+  finance    String?   @default("crud")
+  works      String?   @default("crud")
+  settings   String?   @default("none")
+  created_at DateTime? @default(now())
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_user_permissions_user")
 }

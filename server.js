@@ -2,7 +2,17 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+
+// Global unhandled error & crash safety
+process.on('uncaughtException', (err) => {
+    console.error('❌ [FATAL] Uncaught Exception:', err?.stack || err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('⚠️ [WARNING] Unhandled Promise Rejection:', reason);
+});
 
 // Load environment variables if available
 try {
@@ -28,7 +38,17 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = process.env.JWT_SECRET || 'kontrol-app-production-secret-key-98765';
+
+// Hardened Secret Key Resolution
+let SECRET_KEY = process.env.JWT_SECRET;
+if (!SECRET_KEY) {
+    if (process.env.NODE_ENV === 'production') {
+        console.warn('⚠️ [SECURITY WARNING] JWT_SECRET is not set in environment! Generating secure random ephemeral key for this process.');
+        SECRET_KEY = crypto.randomBytes(32).toString('hex');
+    } else {
+        SECRET_KEY = 'kontrol-app-production-secret-key-98765';
+    }
+}
 
 // Security Headers (configured to allow PDF previews & embedded assets)
 app.use(helmet({
@@ -115,6 +135,11 @@ app.post('/api/admin/backup', async (req, res) => {
 
 // Download Backup File Endpoint
 app.get('/api/admin/backup/download/:fileName', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader && req.query.key !== SECRET_KEY) {
+        return res.status(401).json({ success: false, error: 'Yetkisiz erişim' });
+    }
+
     const { fileName } = req.params;
     const safeName = path.basename(fileName);
     const backupDir = process.env.BACKUP_DIR || path.join(__dirname, 'backups');
@@ -727,17 +752,41 @@ const TABLES = [
     'recurring_transactions', 'salaries', 'services', 'transactions', 'users', 'vehicles', 'works', 'work_items'
 ];
 
-app.get('/api/tables', (req, res) => {
+// Verification middleware for developer / sensitive admin endpoints
+const requireAdminOrKey = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, SECRET_KEY);
+            if (decoded && (decoded.role === 'admin' || decoded.role === 'superadmin' || decoded.role === 'company_admin')) {
+                return next();
+            }
+        } catch (e) {}
+    }
+    if (req.query.key && req.query.key === SECRET_KEY) {
+        return next();
+    }
+    return res.status(401).json({ success: false, error: 'Yetkisiz erişim (Yetkili anahtarı veya yetkili rolü gereklidir)' });
+};
+
+app.get('/api/tables', requireAdminOrKey, (req, res) => {
     res.json({ success: true, tables: TABLES });
 });
 
-app.get('/api/data/:table', async (req, res) => {
+app.get('/api/data/:table', requireAdminOrKey, async (req, res) => {
     const { table } = req.params;
     if (!TABLES.includes(table)) return res.status(400).json({ error: 'Invalid table' });
 
     try {
         const prisma = getPrismaClient();
-        const data = await prisma[table].findMany({ take: 500 });
+        let data = await prisma[table].findMany({ take: 500 });
+        if (table === 'users' && Array.isArray(data)) {
+            data = data.map(u => {
+                const { password_hash, password, ...safeUser } = u;
+                return safeUser;
+            });
+        }
         res.json({ success: true, data });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -746,6 +795,12 @@ app.get('/api/data/:table', async (req, res) => {
 
 // Dedicated REST Endpoint for 24/7 Automated Notifications (Runs on Server)
 app.all(['/api/cron/notifications', '/api/cron/daily-summary'], async (req, res) => {
+    // Cron security verification in production
+    const authHeader = req.headers.authorization;
+    const cronKey = req.headers['x-cron-key'] || req.query.key;
+    if (process.env.NODE_ENV === 'production' && !authHeader && cronKey !== SECRET_KEY) {
+        return res.status(401).json({ success: false, error: 'Yetkisiz cron çağrısı' });
+    }
     try {
         const force = req.query.force === 'true' || req.body?.force === true;
         const prisma = getPrismaClient();
@@ -765,6 +820,18 @@ app.all(['/api/cron/notifications', '/api/cron/daily-summary'], async (req, res)
         console.error('[Cron API Error]:', err);
         res.status(500).json({ success: false, error: err.message });
     }
+});
+
+// Global Express Error Middleware
+app.use((err, req, res, next) => {
+    console.error('🔥 [Unhandled Express Error]:', err?.stack || err);
+    if (res.headersSent) return next(err);
+    res.status(500).json({
+        success: false,
+        error: process.env.NODE_ENV === 'production'
+            ? 'Bir sunucu hatası meydana geldi.'
+            : (err?.message || 'Bilinmeyen sunucu hatası')
+    });
 });
 
 // Single Page Application (SPA) Fallback

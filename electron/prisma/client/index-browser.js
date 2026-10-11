@@ -272,7 +272,8 @@ exports.Prisma.EmployeesScalarFieldEnum = {
   devir_maas_bakiyesi: 'devir_maas_bakiyesi',
   devir_tarihi: 'devir_tarihi',
   iban: 'iban',
-  off_days: 'off_days'
+  off_days: 'off_days',
+  allow_login: 'allow_login'
 };
 
 exports.Prisma.InspectionsScalarFieldEnum = {
@@ -459,7 +460,8 @@ exports.Prisma.UsersScalarFieldEnum = {
   two_factor_enabled: 'two_factor_enabled',
   two_factor_backup_codes: 'two_factor_backup_codes',
   recovery_otp: 'recovery_otp',
-  recovery_otp_expires_at: 'recovery_otp_expires_at'
+  recovery_otp_expires_at: 'recovery_otp_expires_at',
+  status: 'status'
 };
 
 exports.Prisma.VehiclesScalarFieldEnum = {
@@ -675,6 +677,60 @@ exports.Prisma.Revoked_sessionsScalarFieldEnum = {
   expires_at: 'expires_at'
 };
 
+exports.Prisma.Company_notification_settingsScalarFieldEnum = {
+  company_id: 'company_id',
+  settings_json: 'settings_json',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.User_notification_settingsScalarFieldEnum = {
+  user_id: 'user_id',
+  settings_json: 'settings_json',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Email_settingsScalarFieldEnum = {
+  id: 'id',
+  smtp_host: 'smtp_host',
+  smtp_port: 'smtp_port',
+  smtp_secure: 'smtp_secure',
+  smtp_user: 'smtp_user',
+  smtp_pass: 'smtp_pass',
+  sender_name: 'sender_name',
+  sender_email: 'sender_email',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Email_templatesScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  name: 'name',
+  subject: 'subject',
+  html_content: 'html_content',
+  description: 'description',
+  updated_at: 'updated_at',
+  created_at: 'created_at',
+  sender_name: 'sender_name'
+};
+
+exports.Prisma.User_company_accessScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  company_id: 'company_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.User_permissionsScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  vehicles: 'vehicles',
+  employees: 'employees',
+  finance: 'finance',
+  works: 'works',
+  settings: 'settings',
+  created_at: 'created_at'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -733,7 +789,13 @@ exports.Prisma.ModelName = {
   audit_logs: 'audit_logs',
   company_settings: 'company_settings',
   user_preferences: 'user_preferences',
-  revoked_sessions: 'revoked_sessions'
+  revoked_sessions: 'revoked_sessions',
+  company_notification_settings: 'company_notification_settings',
+  user_notification_settings: 'user_notification_settings',
+  email_settings: 'email_settings',
+  email_templates: 'email_templates',
+  user_company_access: 'user_company_access',
+  user_permissions: 'user_permissions'
 };
 
 /**

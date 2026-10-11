@@ -28,19 +28,24 @@ async function getVehicles(companyId, isArchived = 0) {
                 notes: true,
                 is_archived: true,
                 created_at: true,
-                maintenances: true,
-                inspections: true,
-                insurances: true,
-                services: true
+                _count: {
+                    select: {
+                        maintenances: true,
+                        inspections: true,
+                        insurances: true,
+                        services: true
+                    }
+                }
             },
             orderBy: { created_at: 'desc' }
         });
 
         const formatted = vehicles.map(v => ({
             ...v,
-            maintenances_count: v.maintenances.length,
-            inspections_count: v.inspections.length,
-            services_count: v.services.length
+            maintenances_count: v._count?.maintenances || 0,
+            inspections_count: v._count?.inspections || 0,
+            insurances_count: v._count?.insurances || 0,
+            services_count: v._count?.services || 0
         }));
 
         return { success: true, data: formatted };

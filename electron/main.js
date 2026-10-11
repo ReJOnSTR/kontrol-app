@@ -20,8 +20,8 @@ const { syncFileToCloud, startStartupBackfill } = require('./services/documentSy
 app.setName('Kontrol')
 
 // ── CHROMIUM & V8 LOW-RAM & GPU ACCELERATION SWITCHES ──
-// Limits V8 heap to prevent memory bloat and forces aggressive garbage collection
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=384');
+// Limits V8 heap to healthy 1GB to prevent Stop-The-World garbage collection pauses
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=1024');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
@@ -110,9 +110,13 @@ function createWindow() {
 
     // Set Dock Icon for macOS (Dev Mode)
     if (process.platform === 'darwin') {
-        const iconPath = path.join(__dirname, '../resources/icon-mac.png')
-        if (fs.existsSync(iconPath)) {
-            app.dock.setIcon(iconPath)
+        try {
+            const iconPath = path.join(__dirname, '../resources/icon-mac.png')
+            if (fs.existsSync(iconPath)) {
+                app.dock.setIcon(iconPath)
+            }
+        } catch (err) {
+            log.warn('Could not set dock icon:', err?.message)
         }
     }
 
@@ -185,7 +189,7 @@ function createWindow() {
             log.warn(`Dev server loading failed: [${errorCode}] ${errorDescription} at ${validatedURL}, retrying in 1s...`)
             setTimeout(() => {
                 if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.loadURL(devUrl)
+                    mainWindow.loadURL(validatedURL && validatedURL.startsWith('http') ? validatedURL : devUrl)
                 }
             }, 1000)
         })
@@ -369,10 +373,11 @@ app.whenReady().then(async () => {
         if (db.initializeDatabase) db.initializeDatabase()
         log.info('Database initialized')
 
+        // Start API server immediately so frontend never receives ECONNREFUSED on port 9999
+        startAdminServer(getPrismaClient(), notifyDbUpdate)
+
         // Run schema migrations (add missing columns to older DBs)
         await runAutoMigrations()
-
-        startAdminServer(getPrismaClient(), notifyDbUpdate)
 
 
         // Background purge of audit logs older than 180 days
@@ -1594,11 +1599,16 @@ function setupAutoBackup(settings) {
 }
 
 let arventoPollingInterval = null
+let arventoStartupTimeout = null
 
 function setupArventoPolling(settings) {
     if (arventoPollingInterval) {
         clearInterval(arventoPollingInterval)
         arventoPollingInterval = null
+    }
+    if (arventoStartupTimeout) {
+        clearTimeout(arventoStartupTimeout)
+        arventoStartupTimeout = null
     }
 
     if (!settings.arvento || !settings.arvento.enabled) {
@@ -1607,24 +1617,27 @@ function setupArventoPolling(settings) {
     }
 
     const intervalMinutes = parseInt(settings.arvento.interval || 3)
-    log.info(`Setting up Arvento background polling (every ${intervalMinutes} minutes)`)
-    // Run once immediately
-    db.getArventoVehicleStatus().catch(err => {
-        log.error('Arvento background polling immediate run error:', err.message)
-    })
+    log.info(`Setting up Arvento background polling (every ${intervalMinutes} minutes, initial run delayed by 20s)`)
 
-    // Check and fetch every X minutes
-    arventoPollingInterval = setInterval(async () => {
-        try {
-            const currentSettings = loadSettings()
-            if (currentSettings && currentSettings.arvento && currentSettings.arvento.enabled) {
-                log.info('Arvento background polling run...')
-                await db.getArventoVehicleStatus()
+    // Delay initial run by 20 seconds so it doesn't block or compete with app launch & dashboard queries
+    arventoStartupTimeout = setTimeout(() => {
+        db.getArventoVehicleStatus().catch(err => {
+            log.error('Arvento background polling initial run error:', err.message)
+        })
+
+        // Check and fetch every X minutes
+        arventoPollingInterval = setInterval(async () => {
+            try {
+                const currentSettings = loadSettings()
+                if (currentSettings && currentSettings.arvento && currentSettings.arvento.enabled) {
+                    log.info('Arvento background polling run...')
+                    await db.getArventoVehicleStatus()
+                }
+            } catch (err) {
+                log.error('Arvento background polling error:', err.message)
             }
-        } catch (err) {
-            log.error('Arvento background polling error:', err.message)
-        }
-    }, intervalMinutes * 60 * 1000)
+        }, intervalMinutes * 60 * 1000)
+    }, 20000)
 }
 
 ipcMain.handle('settings:get', () => {
@@ -2908,8 +2921,8 @@ ipcMain.handle('companySettings:get', async (event, companyId) => {
 });
 ipcMain.handle('companySettings:save', async (event, data) => {
     const res = await systemSettingsService.saveCompanyDbSettings(data?.companyId, data?.settings);
-    if (res.success && data?.settings?.integrations?.arvento) {
-        setupArventoPolling({ arvento: data.settings.integrations.arvento });
+    if (res.success) {
+        setupArventoPolling({ arvento: data?.settings?.integrations?.arvento || { enabled: false } });
     }
     return res;
 });

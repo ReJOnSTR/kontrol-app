@@ -223,6 +223,36 @@ export type user_preferences = $Result.DefaultSelection<Prisma.$user_preferences
  * 
  */
 export type revoked_sessions = $Result.DefaultSelection<Prisma.$revoked_sessionsPayload>
+/**
+ * Model company_notification_settings
+ * 
+ */
+export type company_notification_settings = $Result.DefaultSelection<Prisma.$company_notification_settingsPayload>
+/**
+ * Model user_notification_settings
+ * 
+ */
+export type user_notification_settings = $Result.DefaultSelection<Prisma.$user_notification_settingsPayload>
+/**
+ * Model email_settings
+ * 
+ */
+export type email_settings = $Result.DefaultSelection<Prisma.$email_settingsPayload>
+/**
+ * Model email_templates
+ * 
+ */
+export type email_templates = $Result.DefaultSelection<Prisma.$email_templatesPayload>
+/**
+ * Model user_company_access
+ * 
+ */
+export type user_company_access = $Result.DefaultSelection<Prisma.$user_company_accessPayload>
+/**
+ * Model user_permissions
+ * 
+ */
+export type user_permissions = $Result.DefaultSelection<Prisma.$user_permissionsPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -764,6 +794,66 @@ export class PrismaClient<
     * ```
     */
   get revoked_sessions(): Prisma.revoked_sessionsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.company_notification_settings`: Exposes CRUD operations for the **company_notification_settings** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Company_notification_settings
+    * const company_notification_settings = await prisma.company_notification_settings.findMany()
+    * ```
+    */
+  get company_notification_settings(): Prisma.company_notification_settingsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.user_notification_settings`: Exposes CRUD operations for the **user_notification_settings** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more User_notification_settings
+    * const user_notification_settings = await prisma.user_notification_settings.findMany()
+    * ```
+    */
+  get user_notification_settings(): Prisma.user_notification_settingsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.email_settings`: Exposes CRUD operations for the **email_settings** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Email_settings
+    * const email_settings = await prisma.email_settings.findMany()
+    * ```
+    */
+  get email_settings(): Prisma.email_settingsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.email_templates`: Exposes CRUD operations for the **email_templates** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Email_templates
+    * const email_templates = await prisma.email_templates.findMany()
+    * ```
+    */
+  get email_templates(): Prisma.email_templatesDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.user_company_access`: Exposes CRUD operations for the **user_company_access** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more User_company_accesses
+    * const user_company_accesses = await prisma.user_company_access.findMany()
+    * ```
+    */
+  get user_company_access(): Prisma.user_company_accessDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.user_permissions`: Exposes CRUD operations for the **user_permissions** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more User_permissions
+    * const user_permissions = await prisma.user_permissions.findMany()
+    * ```
+    */
+  get user_permissions(): Prisma.user_permissionsDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -1252,7 +1342,13 @@ export namespace Prisma {
     audit_logs: 'audit_logs',
     company_settings: 'company_settings',
     user_preferences: 'user_preferences',
-    revoked_sessions: 'revoked_sessions'
+    revoked_sessions: 'revoked_sessions',
+    company_notification_settings: 'company_notification_settings',
+    user_notification_settings: 'user_notification_settings',
+    email_settings: 'email_settings',
+    email_templates: 'email_templates',
+    user_company_access: 'user_company_access',
+    user_permissions: 'user_permissions'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1268,7 +1364,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "assignments" | "companies" | "customers" | "documents" | "employee_assignments" | "employee_attendance" | "employee_documents" | "employee_movements" | "employee_salary_history" | "employees" | "inspections" | "insurances" | "leaves" | "maintenances" | "meal_settings" | "meal_tickets" | "meal_price_history" | "overtimes" | "recurring_transactions" | "salaries" | "schema_migrations" | "services" | "transactions" | "users" | "vehicles" | "work_items" | "works" | "departments" | "leave_types" | "document_categories" | "document_folders" | "vehicle_types" | "public_holidays" | "roles" | "permissions" | "requests" | "request_approvals" | "system_announcements" | "audit_logs" | "company_settings" | "user_preferences" | "revoked_sessions"
+      modelProps: "assignments" | "companies" | "customers" | "documents" | "employee_assignments" | "employee_attendance" | "employee_documents" | "employee_movements" | "employee_salary_history" | "employees" | "inspections" | "insurances" | "leaves" | "maintenances" | "meal_settings" | "meal_tickets" | "meal_price_history" | "overtimes" | "recurring_transactions" | "salaries" | "schema_migrations" | "services" | "transactions" | "users" | "vehicles" | "work_items" | "works" | "departments" | "leave_types" | "document_categories" | "document_folders" | "vehicle_types" | "public_holidays" | "roles" | "permissions" | "requests" | "request_approvals" | "system_announcements" | "audit_logs" | "company_settings" | "user_preferences" | "revoked_sessions" | "company_notification_settings" | "user_notification_settings" | "email_settings" | "email_templates" | "user_company_access" | "user_permissions"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4380,6 +4476,450 @@ export namespace Prisma {
           }
         }
       }
+      company_notification_settings: {
+        payload: Prisma.$company_notification_settingsPayload<ExtArgs>
+        fields: Prisma.company_notification_settingsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.company_notification_settingsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.company_notification_settingsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload>
+          }
+          findFirst: {
+            args: Prisma.company_notification_settingsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.company_notification_settingsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload>
+          }
+          findMany: {
+            args: Prisma.company_notification_settingsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload>[]
+          }
+          create: {
+            args: Prisma.company_notification_settingsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload>
+          }
+          createMany: {
+            args: Prisma.company_notification_settingsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.company_notification_settingsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload>[]
+          }
+          delete: {
+            args: Prisma.company_notification_settingsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload>
+          }
+          update: {
+            args: Prisma.company_notification_settingsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload>
+          }
+          deleteMany: {
+            args: Prisma.company_notification_settingsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.company_notification_settingsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.company_notification_settingsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload>[]
+          }
+          upsert: {
+            args: Prisma.company_notification_settingsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_notification_settingsPayload>
+          }
+          aggregate: {
+            args: Prisma.Company_notification_settingsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCompany_notification_settings>
+          }
+          groupBy: {
+            args: Prisma.company_notification_settingsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Company_notification_settingsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.company_notification_settingsCountArgs<ExtArgs>
+            result: $Utils.Optional<Company_notification_settingsCountAggregateOutputType> | number
+          }
+        }
+      }
+      user_notification_settings: {
+        payload: Prisma.$user_notification_settingsPayload<ExtArgs>
+        fields: Prisma.user_notification_settingsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.user_notification_settingsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.user_notification_settingsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload>
+          }
+          findFirst: {
+            args: Prisma.user_notification_settingsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.user_notification_settingsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload>
+          }
+          findMany: {
+            args: Prisma.user_notification_settingsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload>[]
+          }
+          create: {
+            args: Prisma.user_notification_settingsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload>
+          }
+          createMany: {
+            args: Prisma.user_notification_settingsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.user_notification_settingsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload>[]
+          }
+          delete: {
+            args: Prisma.user_notification_settingsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload>
+          }
+          update: {
+            args: Prisma.user_notification_settingsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload>
+          }
+          deleteMany: {
+            args: Prisma.user_notification_settingsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.user_notification_settingsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.user_notification_settingsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload>[]
+          }
+          upsert: {
+            args: Prisma.user_notification_settingsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_settingsPayload>
+          }
+          aggregate: {
+            args: Prisma.User_notification_settingsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUser_notification_settings>
+          }
+          groupBy: {
+            args: Prisma.user_notification_settingsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<User_notification_settingsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.user_notification_settingsCountArgs<ExtArgs>
+            result: $Utils.Optional<User_notification_settingsCountAggregateOutputType> | number
+          }
+        }
+      }
+      email_settings: {
+        payload: Prisma.$email_settingsPayload<ExtArgs>
+        fields: Prisma.email_settingsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.email_settingsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.email_settingsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload>
+          }
+          findFirst: {
+            args: Prisma.email_settingsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.email_settingsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload>
+          }
+          findMany: {
+            args: Prisma.email_settingsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload>[]
+          }
+          create: {
+            args: Prisma.email_settingsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload>
+          }
+          createMany: {
+            args: Prisma.email_settingsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.email_settingsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload>[]
+          }
+          delete: {
+            args: Prisma.email_settingsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload>
+          }
+          update: {
+            args: Prisma.email_settingsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload>
+          }
+          deleteMany: {
+            args: Prisma.email_settingsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.email_settingsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.email_settingsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload>[]
+          }
+          upsert: {
+            args: Prisma.email_settingsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_settingsPayload>
+          }
+          aggregate: {
+            args: Prisma.Email_settingsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateEmail_settings>
+          }
+          groupBy: {
+            args: Prisma.email_settingsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Email_settingsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.email_settingsCountArgs<ExtArgs>
+            result: $Utils.Optional<Email_settingsCountAggregateOutputType> | number
+          }
+        }
+      }
+      email_templates: {
+        payload: Prisma.$email_templatesPayload<ExtArgs>
+        fields: Prisma.email_templatesFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.email_templatesFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.email_templatesFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload>
+          }
+          findFirst: {
+            args: Prisma.email_templatesFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.email_templatesFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload>
+          }
+          findMany: {
+            args: Prisma.email_templatesFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload>[]
+          }
+          create: {
+            args: Prisma.email_templatesCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload>
+          }
+          createMany: {
+            args: Prisma.email_templatesCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.email_templatesCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload>[]
+          }
+          delete: {
+            args: Prisma.email_templatesDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload>
+          }
+          update: {
+            args: Prisma.email_templatesUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload>
+          }
+          deleteMany: {
+            args: Prisma.email_templatesDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.email_templatesUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.email_templatesUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload>[]
+          }
+          upsert: {
+            args: Prisma.email_templatesUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$email_templatesPayload>
+          }
+          aggregate: {
+            args: Prisma.Email_templatesAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateEmail_templates>
+          }
+          groupBy: {
+            args: Prisma.email_templatesGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Email_templatesGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.email_templatesCountArgs<ExtArgs>
+            result: $Utils.Optional<Email_templatesCountAggregateOutputType> | number
+          }
+        }
+      }
+      user_company_access: {
+        payload: Prisma.$user_company_accessPayload<ExtArgs>
+        fields: Prisma.user_company_accessFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.user_company_accessFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.user_company_accessFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload>
+          }
+          findFirst: {
+            args: Prisma.user_company_accessFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.user_company_accessFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload>
+          }
+          findMany: {
+            args: Prisma.user_company_accessFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload>[]
+          }
+          create: {
+            args: Prisma.user_company_accessCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload>
+          }
+          createMany: {
+            args: Prisma.user_company_accessCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.user_company_accessCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload>[]
+          }
+          delete: {
+            args: Prisma.user_company_accessDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload>
+          }
+          update: {
+            args: Prisma.user_company_accessUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload>
+          }
+          deleteMany: {
+            args: Prisma.user_company_accessDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.user_company_accessUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.user_company_accessUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload>[]
+          }
+          upsert: {
+            args: Prisma.user_company_accessUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_company_accessPayload>
+          }
+          aggregate: {
+            args: Prisma.User_company_accessAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUser_company_access>
+          }
+          groupBy: {
+            args: Prisma.user_company_accessGroupByArgs<ExtArgs>
+            result: $Utils.Optional<User_company_accessGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.user_company_accessCountArgs<ExtArgs>
+            result: $Utils.Optional<User_company_accessCountAggregateOutputType> | number
+          }
+        }
+      }
+      user_permissions: {
+        payload: Prisma.$user_permissionsPayload<ExtArgs>
+        fields: Prisma.user_permissionsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.user_permissionsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.user_permissionsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload>
+          }
+          findFirst: {
+            args: Prisma.user_permissionsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.user_permissionsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload>
+          }
+          findMany: {
+            args: Prisma.user_permissionsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload>[]
+          }
+          create: {
+            args: Prisma.user_permissionsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload>
+          }
+          createMany: {
+            args: Prisma.user_permissionsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.user_permissionsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload>[]
+          }
+          delete: {
+            args: Prisma.user_permissionsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload>
+          }
+          update: {
+            args: Prisma.user_permissionsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload>
+          }
+          deleteMany: {
+            args: Prisma.user_permissionsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.user_permissionsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.user_permissionsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload>[]
+          }
+          upsert: {
+            args: Prisma.user_permissionsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_permissionsPayload>
+          }
+          aggregate: {
+            args: Prisma.User_permissionsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUser_permissions>
+          }
+          groupBy: {
+            args: Prisma.user_permissionsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<User_permissionsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.user_permissionsCountArgs<ExtArgs>
+            result: $Utils.Optional<User_permissionsCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -4545,6 +5085,12 @@ export namespace Prisma {
     company_settings?: company_settingsOmit
     user_preferences?: user_preferencesOmit
     revoked_sessions?: revoked_sessionsOmit
+    company_notification_settings?: company_notification_settingsOmit
+    user_notification_settings?: user_notification_settingsOmit
+    email_settings?: email_settingsOmit
+    email_templates?: email_templatesOmit
+    user_company_access?: user_company_accessOmit
+    user_permissions?: user_permissionsOmit
   }
 
   /* Types for Logging */
@@ -4642,6 +5188,7 @@ export namespace Prisma {
     roles: number
     audit_logs: number
     requests: number
+    user_company_access: number
   }
 
   export type CompaniesCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4662,6 +5209,7 @@ export namespace Prisma {
     roles?: boolean | CompaniesCountOutputTypeCountRolesArgs
     audit_logs?: boolean | CompaniesCountOutputTypeCountAudit_logsArgs
     requests?: boolean | CompaniesCountOutputTypeCountRequestsArgs
+    user_company_access?: boolean | CompaniesCountOutputTypeCountUser_company_accessArgs
   }
 
   // Custom InputTypes
@@ -4792,6 +5340,13 @@ export namespace Prisma {
    */
   export type CompaniesCountOutputTypeCountRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: requestsWhereInput
+  }
+
+  /**
+   * CompaniesCountOutputType without action
+   */
+  export type CompaniesCountOutputTypeCountUser_company_accessArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: user_company_accessWhereInput
   }
 
 
@@ -4955,12 +5510,16 @@ export namespace Prisma {
     companies: number
     created_requests: number
     approval_actions: number
+    user_company_access: number
+    user_permissions: number
   }
 
   export type UsersCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     companies?: boolean | UsersCountOutputTypeCountCompaniesArgs
     created_requests?: boolean | UsersCountOutputTypeCountCreated_requestsArgs
     approval_actions?: boolean | UsersCountOutputTypeCountApproval_actionsArgs
+    user_company_access?: boolean | UsersCountOutputTypeCountUser_company_accessArgs
+    user_permissions?: boolean | UsersCountOutputTypeCountUser_permissionsArgs
   }
 
   // Custom InputTypes
@@ -4993,6 +5552,20 @@ export namespace Prisma {
    */
   export type UsersCountOutputTypeCountApproval_actionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: request_approvalsWhereInput
+  }
+
+  /**
+   * UsersCountOutputType without action
+   */
+  export type UsersCountOutputTypeCountUser_company_accessArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: user_company_accessWhereInput
+  }
+
+  /**
+   * UsersCountOutputType without action
+   */
+  export type UsersCountOutputTypeCountUser_permissionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: user_permissionsWhereInput
   }
 
 
@@ -6743,6 +7316,7 @@ export namespace Prisma {
     roles?: boolean | companies$rolesArgs<ExtArgs>
     audit_logs?: boolean | companies$audit_logsArgs<ExtArgs>
     requests?: boolean | companies$requestsArgs<ExtArgs>
+    user_company_access?: boolean | companies$user_company_accessArgs<ExtArgs>
     _count?: boolean | CompaniesCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["companies"]>
 
@@ -6832,6 +7406,7 @@ export namespace Prisma {
     roles?: boolean | companies$rolesArgs<ExtArgs>
     audit_logs?: boolean | companies$audit_logsArgs<ExtArgs>
     requests?: boolean | companies$requestsArgs<ExtArgs>
+    user_company_access?: boolean | companies$user_company_accessArgs<ExtArgs>
     _count?: boolean | CompaniesCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type companiesIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6863,6 +7438,7 @@ export namespace Prisma {
       roles: Prisma.$rolesPayload<ExtArgs>[]
       audit_logs: Prisma.$audit_logsPayload<ExtArgs>[]
       requests: Prisma.$requestsPayload<ExtArgs>[]
+      user_company_access: Prisma.$user_company_accessPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
@@ -7296,6 +7872,7 @@ export namespace Prisma {
     roles<T extends companies$rolesArgs<ExtArgs> = {}>(args?: Subset<T, companies$rolesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     audit_logs<T extends companies$audit_logsArgs<ExtArgs> = {}>(args?: Subset<T, companies$audit_logsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$audit_logsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     requests<T extends companies$requestsArgs<ExtArgs> = {}>(args?: Subset<T, companies$requestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$requestsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    user_company_access<T extends companies$user_company_accessArgs<ExtArgs> = {}>(args?: Subset<T, companies$user_company_accessArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -8187,6 +8764,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: RequestsScalarFieldEnum | RequestsScalarFieldEnum[]
+  }
+
+  /**
+   * companies.user_company_access
+   */
+  export type companies$user_company_accessArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    where?: user_company_accessWhereInput
+    orderBy?: user_company_accessOrderByWithRelationInput | user_company_accessOrderByWithRelationInput[]
+    cursor?: user_company_accessWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: User_company_accessScalarFieldEnum | User_company_accessScalarFieldEnum[]
   }
 
   /**
@@ -16488,6 +17089,7 @@ export namespace Prisma {
     past_used_leaves: number | null
     devir_izin_bakiyesi: number | null
     devir_maas_bakiyesi: number | null
+    allow_login: number | null
   }
 
   export type EmployeesSumAggregateOutputType = {
@@ -16498,6 +17100,7 @@ export namespace Prisma {
     past_used_leaves: number | null
     devir_izin_bakiyesi: number | null
     devir_maas_bakiyesi: number | null
+    allow_login: number | null
   }
 
   export type EmployeesMinAggregateOutputType = {
@@ -16526,6 +17129,7 @@ export namespace Prisma {
     devir_tarihi: Date | null
     iban: string | null
     off_days: string | null
+    allow_login: number | null
   }
 
   export type EmployeesMaxAggregateOutputType = {
@@ -16554,6 +17158,7 @@ export namespace Prisma {
     devir_tarihi: Date | null
     iban: string | null
     off_days: string | null
+    allow_login: number | null
   }
 
   export type EmployeesCountAggregateOutputType = {
@@ -16582,6 +17187,7 @@ export namespace Prisma {
     devir_tarihi: number
     iban: number
     off_days: number
+    allow_login: number
     _all: number
   }
 
@@ -16594,6 +17200,7 @@ export namespace Prisma {
     past_used_leaves?: true
     devir_izin_bakiyesi?: true
     devir_maas_bakiyesi?: true
+    allow_login?: true
   }
 
   export type EmployeesSumAggregateInputType = {
@@ -16604,6 +17211,7 @@ export namespace Prisma {
     past_used_leaves?: true
     devir_izin_bakiyesi?: true
     devir_maas_bakiyesi?: true
+    allow_login?: true
   }
 
   export type EmployeesMinAggregateInputType = {
@@ -16632,6 +17240,7 @@ export namespace Prisma {
     devir_tarihi?: true
     iban?: true
     off_days?: true
+    allow_login?: true
   }
 
   export type EmployeesMaxAggregateInputType = {
@@ -16660,6 +17269,7 @@ export namespace Prisma {
     devir_tarihi?: true
     iban?: true
     off_days?: true
+    allow_login?: true
   }
 
   export type EmployeesCountAggregateInputType = {
@@ -16688,6 +17298,7 @@ export namespace Prisma {
     devir_tarihi?: true
     iban?: true
     off_days?: true
+    allow_login?: true
     _all?: true
   }
 
@@ -16803,6 +17414,7 @@ export namespace Prisma {
     devir_tarihi: Date | null
     iban: string | null
     off_days: string | null
+    allow_login: number | null
     _count: EmployeesCountAggregateOutputType | null
     _avg: EmployeesAvgAggregateOutputType | null
     _sum: EmployeesSumAggregateOutputType | null
@@ -16850,6 +17462,7 @@ export namespace Prisma {
     devir_tarihi?: boolean
     iban?: boolean
     off_days?: boolean
+    allow_login?: boolean
     user?: boolean | employees$userArgs<ExtArgs>
     requests?: boolean | employees$requestsArgs<ExtArgs>
     employee_assignments?: boolean | employees$employee_assignmentsArgs<ExtArgs>
@@ -16892,6 +17505,7 @@ export namespace Prisma {
     devir_tarihi?: boolean
     iban?: boolean
     off_days?: boolean
+    allow_login?: boolean
     companies?: boolean | companiesDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["employees"]>
 
@@ -16921,6 +17535,7 @@ export namespace Prisma {
     devir_tarihi?: boolean
     iban?: boolean
     off_days?: boolean
+    allow_login?: boolean
     companies?: boolean | companiesDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["employees"]>
 
@@ -16950,9 +17565,10 @@ export namespace Prisma {
     devir_tarihi?: boolean
     iban?: boolean
     off_days?: boolean
+    allow_login?: boolean
   }
 
-  export type employeesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "company_id" | "first_name" | "last_name" | "tc_no" | "phone" | "email" | "position" | "department" | "start_date" | "end_date" | "salary" | "status" | "notes" | "image" | "signature_path" | "is_archived" | "created_at" | "past_used_leaves" | "birth_date" | "devir_izin_bakiyesi" | "devir_maas_bakiyesi" | "devir_tarihi" | "iban" | "off_days", ExtArgs["result"]["employees"]>
+  export type employeesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "company_id" | "first_name" | "last_name" | "tc_no" | "phone" | "email" | "position" | "department" | "start_date" | "end_date" | "salary" | "status" | "notes" | "image" | "signature_path" | "is_archived" | "created_at" | "past_used_leaves" | "birth_date" | "devir_izin_bakiyesi" | "devir_maas_bakiyesi" | "devir_tarihi" | "iban" | "off_days" | "allow_login", ExtArgs["result"]["employees"]>
   export type employeesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | employees$userArgs<ExtArgs>
     requests?: boolean | employees$requestsArgs<ExtArgs>
@@ -17019,6 +17635,7 @@ export namespace Prisma {
       devir_tarihi: Date | null
       iban: string | null
       off_days: string | null
+      allow_login: number | null
     }, ExtArgs["result"]["employees"]>
     composites: {}
   }
@@ -17480,6 +18097,7 @@ export namespace Prisma {
     readonly devir_tarihi: FieldRef<"employees", 'DateTime'>
     readonly iban: FieldRef<"employees", 'String'>
     readonly off_days: FieldRef<"employees", 'String'>
+    readonly allow_login: FieldRef<"employees", 'Int'>
   }
     
 
@@ -33431,6 +34049,7 @@ export namespace Prisma {
     two_factor_backup_codes: string | null
     recovery_otp: string | null
     recovery_otp_expires_at: Date | null
+    status: string | null
   }
 
   export type UsersMaxAggregateOutputType = {
@@ -33451,6 +34070,7 @@ export namespace Prisma {
     two_factor_backup_codes: string | null
     recovery_otp: string | null
     recovery_otp_expires_at: Date | null
+    status: string | null
   }
 
   export type UsersCountAggregateOutputType = {
@@ -33471,6 +34091,7 @@ export namespace Prisma {
     two_factor_backup_codes: number
     recovery_otp: number
     recovery_otp_expires_at: number
+    status: number
     _all: number
   }
 
@@ -33511,6 +34132,7 @@ export namespace Prisma {
     two_factor_backup_codes?: true
     recovery_otp?: true
     recovery_otp_expires_at?: true
+    status?: true
   }
 
   export type UsersMaxAggregateInputType = {
@@ -33531,6 +34153,7 @@ export namespace Prisma {
     two_factor_backup_codes?: true
     recovery_otp?: true
     recovery_otp_expires_at?: true
+    status?: true
   }
 
   export type UsersCountAggregateInputType = {
@@ -33551,6 +34174,7 @@ export namespace Prisma {
     two_factor_backup_codes?: true
     recovery_otp?: true
     recovery_otp_expires_at?: true
+    status?: true
     _all?: true
   }
 
@@ -33658,6 +34282,7 @@ export namespace Prisma {
     two_factor_backup_codes: string | null
     recovery_otp: string | null
     recovery_otp_expires_at: Date | null
+    status: string | null
     _count: UsersCountAggregateOutputType | null
     _avg: UsersAvgAggregateOutputType | null
     _sum: UsersSumAggregateOutputType | null
@@ -33697,11 +34322,14 @@ export namespace Prisma {
     two_factor_backup_codes?: boolean
     recovery_otp?: boolean
     recovery_otp_expires_at?: boolean
+    status?: boolean
     companies?: boolean | users$companiesArgs<ExtArgs>
     employee?: boolean | users$employeeArgs<ExtArgs>
     custom_role?: boolean | users$custom_roleArgs<ExtArgs>
     created_requests?: boolean | users$created_requestsArgs<ExtArgs>
     approval_actions?: boolean | users$approval_actionsArgs<ExtArgs>
+    user_company_access?: boolean | users$user_company_accessArgs<ExtArgs>
+    user_permissions?: boolean | users$user_permissionsArgs<ExtArgs>
     _count?: boolean | UsersCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["users"]>
 
@@ -33723,6 +34351,7 @@ export namespace Prisma {
     two_factor_backup_codes?: boolean
     recovery_otp?: boolean
     recovery_otp_expires_at?: boolean
+    status?: boolean
     employee?: boolean | users$employeeArgs<ExtArgs>
     custom_role?: boolean | users$custom_roleArgs<ExtArgs>
   }, ExtArgs["result"]["users"]>
@@ -33745,6 +34374,7 @@ export namespace Prisma {
     two_factor_backup_codes?: boolean
     recovery_otp?: boolean
     recovery_otp_expires_at?: boolean
+    status?: boolean
     employee?: boolean | users$employeeArgs<ExtArgs>
     custom_role?: boolean | users$custom_roleArgs<ExtArgs>
   }, ExtArgs["result"]["users"]>
@@ -33767,15 +34397,18 @@ export namespace Prisma {
     two_factor_backup_codes?: boolean
     recovery_otp?: boolean
     recovery_otp_expires_at?: boolean
+    status?: boolean
   }
 
-  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "email" | "full_name" | "password_hash" | "created_at" | "role" | "role_id" | "employee_id" | "permissions" | "must_change_password" | "is_active" | "two_factor_secret" | "two_factor_enabled" | "two_factor_backup_codes" | "recovery_otp" | "recovery_otp_expires_at", ExtArgs["result"]["users"]>
+  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "email" | "full_name" | "password_hash" | "created_at" | "role" | "role_id" | "employee_id" | "permissions" | "must_change_password" | "is_active" | "two_factor_secret" | "two_factor_enabled" | "two_factor_backup_codes" | "recovery_otp" | "recovery_otp_expires_at" | "status", ExtArgs["result"]["users"]>
   export type usersInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     companies?: boolean | users$companiesArgs<ExtArgs>
     employee?: boolean | users$employeeArgs<ExtArgs>
     custom_role?: boolean | users$custom_roleArgs<ExtArgs>
     created_requests?: boolean | users$created_requestsArgs<ExtArgs>
     approval_actions?: boolean | users$approval_actionsArgs<ExtArgs>
+    user_company_access?: boolean | users$user_company_accessArgs<ExtArgs>
+    user_permissions?: boolean | users$user_permissionsArgs<ExtArgs>
     _count?: boolean | UsersCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type usersIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -33795,6 +34428,8 @@ export namespace Prisma {
       custom_role: Prisma.$rolesPayload<ExtArgs> | null
       created_requests: Prisma.$requestsPayload<ExtArgs>[]
       approval_actions: Prisma.$request_approvalsPayload<ExtArgs>[]
+      user_company_access: Prisma.$user_company_accessPayload<ExtArgs>[]
+      user_permissions: Prisma.$user_permissionsPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
@@ -33814,6 +34449,7 @@ export namespace Prisma {
       two_factor_backup_codes: string | null
       recovery_otp: string | null
       recovery_otp_expires_at: Date | null
+      status: string | null
     }, ExtArgs["result"]["users"]>
     composites: {}
   }
@@ -34213,6 +34849,8 @@ export namespace Prisma {
     custom_role<T extends users$custom_roleArgs<ExtArgs> = {}>(args?: Subset<T, users$custom_roleArgs<ExtArgs>>): Prisma__rolesClient<$Result.GetResult<Prisma.$rolesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     created_requests<T extends users$created_requestsArgs<ExtArgs> = {}>(args?: Subset<T, users$created_requestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$requestsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     approval_actions<T extends users$approval_actionsArgs<ExtArgs> = {}>(args?: Subset<T, users$approval_actionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$request_approvalsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    user_company_access<T extends users$user_company_accessArgs<ExtArgs> = {}>(args?: Subset<T, users$user_company_accessArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    user_permissions<T extends users$user_permissionsArgs<ExtArgs> = {}>(args?: Subset<T, users$user_permissionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -34259,6 +34897,7 @@ export namespace Prisma {
     readonly two_factor_backup_codes: FieldRef<"users", 'String'>
     readonly recovery_otp: FieldRef<"users", 'String'>
     readonly recovery_otp_expires_at: FieldRef<"users", 'DateTime'>
+    readonly status: FieldRef<"users", 'String'>
   }
     
 
@@ -34767,6 +35406,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: Request_approvalsScalarFieldEnum | Request_approvalsScalarFieldEnum[]
+  }
+
+  /**
+   * users.user_company_access
+   */
+  export type users$user_company_accessArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    where?: user_company_accessWhereInput
+    orderBy?: user_company_accessOrderByWithRelationInput | user_company_accessOrderByWithRelationInput[]
+    cursor?: user_company_accessWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: User_company_accessScalarFieldEnum | User_company_accessScalarFieldEnum[]
+  }
+
+  /**
+   * users.user_permissions
+   */
+  export type users$user_permissionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+    where?: user_permissionsWhereInput
+    orderBy?: user_permissionsOrderByWithRelationInput | user_permissionsOrderByWithRelationInput[]
+    cursor?: user_permissionsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: User_permissionsScalarFieldEnum | User_permissionsScalarFieldEnum[]
   }
 
   /**
@@ -55909,6 +56596,6438 @@ export namespace Prisma {
 
 
   /**
+   * Model company_notification_settings
+   */
+
+  export type AggregateCompany_notification_settings = {
+    _count: Company_notification_settingsCountAggregateOutputType | null
+    _avg: Company_notification_settingsAvgAggregateOutputType | null
+    _sum: Company_notification_settingsSumAggregateOutputType | null
+    _min: Company_notification_settingsMinAggregateOutputType | null
+    _max: Company_notification_settingsMaxAggregateOutputType | null
+  }
+
+  export type Company_notification_settingsAvgAggregateOutputType = {
+    company_id: number | null
+  }
+
+  export type Company_notification_settingsSumAggregateOutputType = {
+    company_id: number | null
+  }
+
+  export type Company_notification_settingsMinAggregateOutputType = {
+    company_id: number | null
+    settings_json: string | null
+    updated_at: Date | null
+  }
+
+  export type Company_notification_settingsMaxAggregateOutputType = {
+    company_id: number | null
+    settings_json: string | null
+    updated_at: Date | null
+  }
+
+  export type Company_notification_settingsCountAggregateOutputType = {
+    company_id: number
+    settings_json: number
+    updated_at: number
+    _all: number
+  }
+
+
+  export type Company_notification_settingsAvgAggregateInputType = {
+    company_id?: true
+  }
+
+  export type Company_notification_settingsSumAggregateInputType = {
+    company_id?: true
+  }
+
+  export type Company_notification_settingsMinAggregateInputType = {
+    company_id?: true
+    settings_json?: true
+    updated_at?: true
+  }
+
+  export type Company_notification_settingsMaxAggregateInputType = {
+    company_id?: true
+    settings_json?: true
+    updated_at?: true
+  }
+
+  export type Company_notification_settingsCountAggregateInputType = {
+    company_id?: true
+    settings_json?: true
+    updated_at?: true
+    _all?: true
+  }
+
+  export type Company_notification_settingsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which company_notification_settings to aggregate.
+     */
+    where?: company_notification_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of company_notification_settings to fetch.
+     */
+    orderBy?: company_notification_settingsOrderByWithRelationInput | company_notification_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: company_notification_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` company_notification_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` company_notification_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned company_notification_settings
+    **/
+    _count?: true | Company_notification_settingsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Company_notification_settingsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Company_notification_settingsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Company_notification_settingsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Company_notification_settingsMaxAggregateInputType
+  }
+
+  export type GetCompany_notification_settingsAggregateType<T extends Company_notification_settingsAggregateArgs> = {
+        [P in keyof T & keyof AggregateCompany_notification_settings]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCompany_notification_settings[P]>
+      : GetScalarType<T[P], AggregateCompany_notification_settings[P]>
+  }
+
+
+
+
+  export type company_notification_settingsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: company_notification_settingsWhereInput
+    orderBy?: company_notification_settingsOrderByWithAggregationInput | company_notification_settingsOrderByWithAggregationInput[]
+    by: Company_notification_settingsScalarFieldEnum[] | Company_notification_settingsScalarFieldEnum
+    having?: company_notification_settingsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Company_notification_settingsCountAggregateInputType | true
+    _avg?: Company_notification_settingsAvgAggregateInputType
+    _sum?: Company_notification_settingsSumAggregateInputType
+    _min?: Company_notification_settingsMinAggregateInputType
+    _max?: Company_notification_settingsMaxAggregateInputType
+  }
+
+  export type Company_notification_settingsGroupByOutputType = {
+    company_id: number
+    settings_json: string
+    updated_at: Date | null
+    _count: Company_notification_settingsCountAggregateOutputType | null
+    _avg: Company_notification_settingsAvgAggregateOutputType | null
+    _sum: Company_notification_settingsSumAggregateOutputType | null
+    _min: Company_notification_settingsMinAggregateOutputType | null
+    _max: Company_notification_settingsMaxAggregateOutputType | null
+  }
+
+  type GetCompany_notification_settingsGroupByPayload<T extends company_notification_settingsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Company_notification_settingsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Company_notification_settingsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Company_notification_settingsGroupByOutputType[P]>
+            : GetScalarType<T[P], Company_notification_settingsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type company_notification_settingsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    company_id?: boolean
+    settings_json?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["company_notification_settings"]>
+
+  export type company_notification_settingsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    company_id?: boolean
+    settings_json?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["company_notification_settings"]>
+
+  export type company_notification_settingsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    company_id?: boolean
+    settings_json?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["company_notification_settings"]>
+
+  export type company_notification_settingsSelectScalar = {
+    company_id?: boolean
+    settings_json?: boolean
+    updated_at?: boolean
+  }
+
+  export type company_notification_settingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"company_id" | "settings_json" | "updated_at", ExtArgs["result"]["company_notification_settings"]>
+
+  export type $company_notification_settingsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "company_notification_settings"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      company_id: number
+      settings_json: string
+      updated_at: Date | null
+    }, ExtArgs["result"]["company_notification_settings"]>
+    composites: {}
+  }
+
+  type company_notification_settingsGetPayload<S extends boolean | null | undefined | company_notification_settingsDefaultArgs> = $Result.GetResult<Prisma.$company_notification_settingsPayload, S>
+
+  type company_notification_settingsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<company_notification_settingsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Company_notification_settingsCountAggregateInputType | true
+    }
+
+  export interface company_notification_settingsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['company_notification_settings'], meta: { name: 'company_notification_settings' } }
+    /**
+     * Find zero or one Company_notification_settings that matches the filter.
+     * @param {company_notification_settingsFindUniqueArgs} args - Arguments to find a Company_notification_settings
+     * @example
+     * // Get one Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends company_notification_settingsFindUniqueArgs>(args: SelectSubset<T, company_notification_settingsFindUniqueArgs<ExtArgs>>): Prisma__company_notification_settingsClient<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Company_notification_settings that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {company_notification_settingsFindUniqueOrThrowArgs} args - Arguments to find a Company_notification_settings
+     * @example
+     * // Get one Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends company_notification_settingsFindUniqueOrThrowArgs>(args: SelectSubset<T, company_notification_settingsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__company_notification_settingsClient<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Company_notification_settings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_notification_settingsFindFirstArgs} args - Arguments to find a Company_notification_settings
+     * @example
+     * // Get one Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends company_notification_settingsFindFirstArgs>(args?: SelectSubset<T, company_notification_settingsFindFirstArgs<ExtArgs>>): Prisma__company_notification_settingsClient<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Company_notification_settings that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_notification_settingsFindFirstOrThrowArgs} args - Arguments to find a Company_notification_settings
+     * @example
+     * // Get one Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends company_notification_settingsFindFirstOrThrowArgs>(args?: SelectSubset<T, company_notification_settingsFindFirstOrThrowArgs<ExtArgs>>): Prisma__company_notification_settingsClient<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Company_notification_settings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_notification_settingsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.findMany()
+     * 
+     * // Get first 10 Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.findMany({ take: 10 })
+     * 
+     * // Only select the `company_id`
+     * const company_notification_settingsWithCompany_idOnly = await prisma.company_notification_settings.findMany({ select: { company_id: true } })
+     * 
+     */
+    findMany<T extends company_notification_settingsFindManyArgs>(args?: SelectSubset<T, company_notification_settingsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Company_notification_settings.
+     * @param {company_notification_settingsCreateArgs} args - Arguments to create a Company_notification_settings.
+     * @example
+     * // Create one Company_notification_settings
+     * const Company_notification_settings = await prisma.company_notification_settings.create({
+     *   data: {
+     *     // ... data to create a Company_notification_settings
+     *   }
+     * })
+     * 
+     */
+    create<T extends company_notification_settingsCreateArgs>(args: SelectSubset<T, company_notification_settingsCreateArgs<ExtArgs>>): Prisma__company_notification_settingsClient<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Company_notification_settings.
+     * @param {company_notification_settingsCreateManyArgs} args - Arguments to create many Company_notification_settings.
+     * @example
+     * // Create many Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends company_notification_settingsCreateManyArgs>(args?: SelectSubset<T, company_notification_settingsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Company_notification_settings and returns the data saved in the database.
+     * @param {company_notification_settingsCreateManyAndReturnArgs} args - Arguments to create many Company_notification_settings.
+     * @example
+     * // Create many Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Company_notification_settings and only return the `company_id`
+     * const company_notification_settingsWithCompany_idOnly = await prisma.company_notification_settings.createManyAndReturn({
+     *   select: { company_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends company_notification_settingsCreateManyAndReturnArgs>(args?: SelectSubset<T, company_notification_settingsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Company_notification_settings.
+     * @param {company_notification_settingsDeleteArgs} args - Arguments to delete one Company_notification_settings.
+     * @example
+     * // Delete one Company_notification_settings
+     * const Company_notification_settings = await prisma.company_notification_settings.delete({
+     *   where: {
+     *     // ... filter to delete one Company_notification_settings
+     *   }
+     * })
+     * 
+     */
+    delete<T extends company_notification_settingsDeleteArgs>(args: SelectSubset<T, company_notification_settingsDeleteArgs<ExtArgs>>): Prisma__company_notification_settingsClient<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Company_notification_settings.
+     * @param {company_notification_settingsUpdateArgs} args - Arguments to update one Company_notification_settings.
+     * @example
+     * // Update one Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends company_notification_settingsUpdateArgs>(args: SelectSubset<T, company_notification_settingsUpdateArgs<ExtArgs>>): Prisma__company_notification_settingsClient<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Company_notification_settings.
+     * @param {company_notification_settingsDeleteManyArgs} args - Arguments to filter Company_notification_settings to delete.
+     * @example
+     * // Delete a few Company_notification_settings
+     * const { count } = await prisma.company_notification_settings.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends company_notification_settingsDeleteManyArgs>(args?: SelectSubset<T, company_notification_settingsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Company_notification_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_notification_settingsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends company_notification_settingsUpdateManyArgs>(args: SelectSubset<T, company_notification_settingsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Company_notification_settings and returns the data updated in the database.
+     * @param {company_notification_settingsUpdateManyAndReturnArgs} args - Arguments to update many Company_notification_settings.
+     * @example
+     * // Update many Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Company_notification_settings and only return the `company_id`
+     * const company_notification_settingsWithCompany_idOnly = await prisma.company_notification_settings.updateManyAndReturn({
+     *   select: { company_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends company_notification_settingsUpdateManyAndReturnArgs>(args: SelectSubset<T, company_notification_settingsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Company_notification_settings.
+     * @param {company_notification_settingsUpsertArgs} args - Arguments to update or create a Company_notification_settings.
+     * @example
+     * // Update or create a Company_notification_settings
+     * const company_notification_settings = await prisma.company_notification_settings.upsert({
+     *   create: {
+     *     // ... data to create a Company_notification_settings
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Company_notification_settings we want to update
+     *   }
+     * })
+     */
+    upsert<T extends company_notification_settingsUpsertArgs>(args: SelectSubset<T, company_notification_settingsUpsertArgs<ExtArgs>>): Prisma__company_notification_settingsClient<$Result.GetResult<Prisma.$company_notification_settingsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Company_notification_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_notification_settingsCountArgs} args - Arguments to filter Company_notification_settings to count.
+     * @example
+     * // Count the number of Company_notification_settings
+     * const count = await prisma.company_notification_settings.count({
+     *   where: {
+     *     // ... the filter for the Company_notification_settings we want to count
+     *   }
+     * })
+    **/
+    count<T extends company_notification_settingsCountArgs>(
+      args?: Subset<T, company_notification_settingsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Company_notification_settingsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Company_notification_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Company_notification_settingsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Company_notification_settingsAggregateArgs>(args: Subset<T, Company_notification_settingsAggregateArgs>): Prisma.PrismaPromise<GetCompany_notification_settingsAggregateType<T>>
+
+    /**
+     * Group by Company_notification_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_notification_settingsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends company_notification_settingsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: company_notification_settingsGroupByArgs['orderBy'] }
+        : { orderBy?: company_notification_settingsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, company_notification_settingsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCompany_notification_settingsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the company_notification_settings model
+   */
+  readonly fields: company_notification_settingsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for company_notification_settings.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__company_notification_settingsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the company_notification_settings model
+   */
+  interface company_notification_settingsFieldRefs {
+    readonly company_id: FieldRef<"company_notification_settings", 'Int'>
+    readonly settings_json: FieldRef<"company_notification_settings", 'String'>
+    readonly updated_at: FieldRef<"company_notification_settings", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * company_notification_settings findUnique
+   */
+  export type company_notification_settingsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which company_notification_settings to fetch.
+     */
+    where: company_notification_settingsWhereUniqueInput
+  }
+
+  /**
+   * company_notification_settings findUniqueOrThrow
+   */
+  export type company_notification_settingsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which company_notification_settings to fetch.
+     */
+    where: company_notification_settingsWhereUniqueInput
+  }
+
+  /**
+   * company_notification_settings findFirst
+   */
+  export type company_notification_settingsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which company_notification_settings to fetch.
+     */
+    where?: company_notification_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of company_notification_settings to fetch.
+     */
+    orderBy?: company_notification_settingsOrderByWithRelationInput | company_notification_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for company_notification_settings.
+     */
+    cursor?: company_notification_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` company_notification_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` company_notification_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of company_notification_settings.
+     */
+    distinct?: Company_notification_settingsScalarFieldEnum | Company_notification_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * company_notification_settings findFirstOrThrow
+   */
+  export type company_notification_settingsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which company_notification_settings to fetch.
+     */
+    where?: company_notification_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of company_notification_settings to fetch.
+     */
+    orderBy?: company_notification_settingsOrderByWithRelationInput | company_notification_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for company_notification_settings.
+     */
+    cursor?: company_notification_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` company_notification_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` company_notification_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of company_notification_settings.
+     */
+    distinct?: Company_notification_settingsScalarFieldEnum | Company_notification_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * company_notification_settings findMany
+   */
+  export type company_notification_settingsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which company_notification_settings to fetch.
+     */
+    where?: company_notification_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of company_notification_settings to fetch.
+     */
+    orderBy?: company_notification_settingsOrderByWithRelationInput | company_notification_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing company_notification_settings.
+     */
+    cursor?: company_notification_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` company_notification_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` company_notification_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of company_notification_settings.
+     */
+    distinct?: Company_notification_settingsScalarFieldEnum | Company_notification_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * company_notification_settings create
+   */
+  export type company_notification_settingsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * The data needed to create a company_notification_settings.
+     */
+    data: XOR<company_notification_settingsCreateInput, company_notification_settingsUncheckedCreateInput>
+  }
+
+  /**
+   * company_notification_settings createMany
+   */
+  export type company_notification_settingsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many company_notification_settings.
+     */
+    data: company_notification_settingsCreateManyInput | company_notification_settingsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * company_notification_settings createManyAndReturn
+   */
+  export type company_notification_settingsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * The data used to create many company_notification_settings.
+     */
+    data: company_notification_settingsCreateManyInput | company_notification_settingsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * company_notification_settings update
+   */
+  export type company_notification_settingsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * The data needed to update a company_notification_settings.
+     */
+    data: XOR<company_notification_settingsUpdateInput, company_notification_settingsUncheckedUpdateInput>
+    /**
+     * Choose, which company_notification_settings to update.
+     */
+    where: company_notification_settingsWhereUniqueInput
+  }
+
+  /**
+   * company_notification_settings updateMany
+   */
+  export type company_notification_settingsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update company_notification_settings.
+     */
+    data: XOR<company_notification_settingsUpdateManyMutationInput, company_notification_settingsUncheckedUpdateManyInput>
+    /**
+     * Filter which company_notification_settings to update
+     */
+    where?: company_notification_settingsWhereInput
+    /**
+     * Limit how many company_notification_settings to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * company_notification_settings updateManyAndReturn
+   */
+  export type company_notification_settingsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * The data used to update company_notification_settings.
+     */
+    data: XOR<company_notification_settingsUpdateManyMutationInput, company_notification_settingsUncheckedUpdateManyInput>
+    /**
+     * Filter which company_notification_settings to update
+     */
+    where?: company_notification_settingsWhereInput
+    /**
+     * Limit how many company_notification_settings to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * company_notification_settings upsert
+   */
+  export type company_notification_settingsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * The filter to search for the company_notification_settings to update in case it exists.
+     */
+    where: company_notification_settingsWhereUniqueInput
+    /**
+     * In case the company_notification_settings found by the `where` argument doesn't exist, create a new company_notification_settings with this data.
+     */
+    create: XOR<company_notification_settingsCreateInput, company_notification_settingsUncheckedCreateInput>
+    /**
+     * In case the company_notification_settings was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<company_notification_settingsUpdateInput, company_notification_settingsUncheckedUpdateInput>
+  }
+
+  /**
+   * company_notification_settings delete
+   */
+  export type company_notification_settingsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter which company_notification_settings to delete.
+     */
+    where: company_notification_settingsWhereUniqueInput
+  }
+
+  /**
+   * company_notification_settings deleteMany
+   */
+  export type company_notification_settingsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which company_notification_settings to delete
+     */
+    where?: company_notification_settingsWhereInput
+    /**
+     * Limit how many company_notification_settings to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * company_notification_settings without action
+   */
+  export type company_notification_settingsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_notification_settings
+     */
+    select?: company_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the company_notification_settings
+     */
+    omit?: company_notification_settingsOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model user_notification_settings
+   */
+
+  export type AggregateUser_notification_settings = {
+    _count: User_notification_settingsCountAggregateOutputType | null
+    _avg: User_notification_settingsAvgAggregateOutputType | null
+    _sum: User_notification_settingsSumAggregateOutputType | null
+    _min: User_notification_settingsMinAggregateOutputType | null
+    _max: User_notification_settingsMaxAggregateOutputType | null
+  }
+
+  export type User_notification_settingsAvgAggregateOutputType = {
+    user_id: number | null
+  }
+
+  export type User_notification_settingsSumAggregateOutputType = {
+    user_id: number | null
+  }
+
+  export type User_notification_settingsMinAggregateOutputType = {
+    user_id: number | null
+    settings_json: string | null
+    updated_at: Date | null
+  }
+
+  export type User_notification_settingsMaxAggregateOutputType = {
+    user_id: number | null
+    settings_json: string | null
+    updated_at: Date | null
+  }
+
+  export type User_notification_settingsCountAggregateOutputType = {
+    user_id: number
+    settings_json: number
+    updated_at: number
+    _all: number
+  }
+
+
+  export type User_notification_settingsAvgAggregateInputType = {
+    user_id?: true
+  }
+
+  export type User_notification_settingsSumAggregateInputType = {
+    user_id?: true
+  }
+
+  export type User_notification_settingsMinAggregateInputType = {
+    user_id?: true
+    settings_json?: true
+    updated_at?: true
+  }
+
+  export type User_notification_settingsMaxAggregateInputType = {
+    user_id?: true
+    settings_json?: true
+    updated_at?: true
+  }
+
+  export type User_notification_settingsCountAggregateInputType = {
+    user_id?: true
+    settings_json?: true
+    updated_at?: true
+    _all?: true
+  }
+
+  export type User_notification_settingsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which user_notification_settings to aggregate.
+     */
+    where?: user_notification_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_notification_settings to fetch.
+     */
+    orderBy?: user_notification_settingsOrderByWithRelationInput | user_notification_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: user_notification_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_notification_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_notification_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned user_notification_settings
+    **/
+    _count?: true | User_notification_settingsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: User_notification_settingsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: User_notification_settingsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: User_notification_settingsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: User_notification_settingsMaxAggregateInputType
+  }
+
+  export type GetUser_notification_settingsAggregateType<T extends User_notification_settingsAggregateArgs> = {
+        [P in keyof T & keyof AggregateUser_notification_settings]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUser_notification_settings[P]>
+      : GetScalarType<T[P], AggregateUser_notification_settings[P]>
+  }
+
+
+
+
+  export type user_notification_settingsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: user_notification_settingsWhereInput
+    orderBy?: user_notification_settingsOrderByWithAggregationInput | user_notification_settingsOrderByWithAggregationInput[]
+    by: User_notification_settingsScalarFieldEnum[] | User_notification_settingsScalarFieldEnum
+    having?: user_notification_settingsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: User_notification_settingsCountAggregateInputType | true
+    _avg?: User_notification_settingsAvgAggregateInputType
+    _sum?: User_notification_settingsSumAggregateInputType
+    _min?: User_notification_settingsMinAggregateInputType
+    _max?: User_notification_settingsMaxAggregateInputType
+  }
+
+  export type User_notification_settingsGroupByOutputType = {
+    user_id: number
+    settings_json: string
+    updated_at: Date | null
+    _count: User_notification_settingsCountAggregateOutputType | null
+    _avg: User_notification_settingsAvgAggregateOutputType | null
+    _sum: User_notification_settingsSumAggregateOutputType | null
+    _min: User_notification_settingsMinAggregateOutputType | null
+    _max: User_notification_settingsMaxAggregateOutputType | null
+  }
+
+  type GetUser_notification_settingsGroupByPayload<T extends user_notification_settingsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<User_notification_settingsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof User_notification_settingsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], User_notification_settingsGroupByOutputType[P]>
+            : GetScalarType<T[P], User_notification_settingsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type user_notification_settingsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    user_id?: boolean
+    settings_json?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["user_notification_settings"]>
+
+  export type user_notification_settingsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    user_id?: boolean
+    settings_json?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["user_notification_settings"]>
+
+  export type user_notification_settingsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    user_id?: boolean
+    settings_json?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["user_notification_settings"]>
+
+  export type user_notification_settingsSelectScalar = {
+    user_id?: boolean
+    settings_json?: boolean
+    updated_at?: boolean
+  }
+
+  export type user_notification_settingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"user_id" | "settings_json" | "updated_at", ExtArgs["result"]["user_notification_settings"]>
+
+  export type $user_notification_settingsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "user_notification_settings"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      user_id: number
+      settings_json: string
+      updated_at: Date | null
+    }, ExtArgs["result"]["user_notification_settings"]>
+    composites: {}
+  }
+
+  type user_notification_settingsGetPayload<S extends boolean | null | undefined | user_notification_settingsDefaultArgs> = $Result.GetResult<Prisma.$user_notification_settingsPayload, S>
+
+  type user_notification_settingsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<user_notification_settingsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: User_notification_settingsCountAggregateInputType | true
+    }
+
+  export interface user_notification_settingsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['user_notification_settings'], meta: { name: 'user_notification_settings' } }
+    /**
+     * Find zero or one User_notification_settings that matches the filter.
+     * @param {user_notification_settingsFindUniqueArgs} args - Arguments to find a User_notification_settings
+     * @example
+     * // Get one User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends user_notification_settingsFindUniqueArgs>(args: SelectSubset<T, user_notification_settingsFindUniqueArgs<ExtArgs>>): Prisma__user_notification_settingsClient<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one User_notification_settings that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {user_notification_settingsFindUniqueOrThrowArgs} args - Arguments to find a User_notification_settings
+     * @example
+     * // Get one User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends user_notification_settingsFindUniqueOrThrowArgs>(args: SelectSubset<T, user_notification_settingsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__user_notification_settingsClient<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first User_notification_settings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_settingsFindFirstArgs} args - Arguments to find a User_notification_settings
+     * @example
+     * // Get one User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends user_notification_settingsFindFirstArgs>(args?: SelectSubset<T, user_notification_settingsFindFirstArgs<ExtArgs>>): Prisma__user_notification_settingsClient<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first User_notification_settings that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_settingsFindFirstOrThrowArgs} args - Arguments to find a User_notification_settings
+     * @example
+     * // Get one User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends user_notification_settingsFindFirstOrThrowArgs>(args?: SelectSubset<T, user_notification_settingsFindFirstOrThrowArgs<ExtArgs>>): Prisma__user_notification_settingsClient<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more User_notification_settings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_settingsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.findMany()
+     * 
+     * // Get first 10 User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.findMany({ take: 10 })
+     * 
+     * // Only select the `user_id`
+     * const user_notification_settingsWithUser_idOnly = await prisma.user_notification_settings.findMany({ select: { user_id: true } })
+     * 
+     */
+    findMany<T extends user_notification_settingsFindManyArgs>(args?: SelectSubset<T, user_notification_settingsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a User_notification_settings.
+     * @param {user_notification_settingsCreateArgs} args - Arguments to create a User_notification_settings.
+     * @example
+     * // Create one User_notification_settings
+     * const User_notification_settings = await prisma.user_notification_settings.create({
+     *   data: {
+     *     // ... data to create a User_notification_settings
+     *   }
+     * })
+     * 
+     */
+    create<T extends user_notification_settingsCreateArgs>(args: SelectSubset<T, user_notification_settingsCreateArgs<ExtArgs>>): Prisma__user_notification_settingsClient<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many User_notification_settings.
+     * @param {user_notification_settingsCreateManyArgs} args - Arguments to create many User_notification_settings.
+     * @example
+     * // Create many User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends user_notification_settingsCreateManyArgs>(args?: SelectSubset<T, user_notification_settingsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many User_notification_settings and returns the data saved in the database.
+     * @param {user_notification_settingsCreateManyAndReturnArgs} args - Arguments to create many User_notification_settings.
+     * @example
+     * // Create many User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many User_notification_settings and only return the `user_id`
+     * const user_notification_settingsWithUser_idOnly = await prisma.user_notification_settings.createManyAndReturn({
+     *   select: { user_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends user_notification_settingsCreateManyAndReturnArgs>(args?: SelectSubset<T, user_notification_settingsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a User_notification_settings.
+     * @param {user_notification_settingsDeleteArgs} args - Arguments to delete one User_notification_settings.
+     * @example
+     * // Delete one User_notification_settings
+     * const User_notification_settings = await prisma.user_notification_settings.delete({
+     *   where: {
+     *     // ... filter to delete one User_notification_settings
+     *   }
+     * })
+     * 
+     */
+    delete<T extends user_notification_settingsDeleteArgs>(args: SelectSubset<T, user_notification_settingsDeleteArgs<ExtArgs>>): Prisma__user_notification_settingsClient<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one User_notification_settings.
+     * @param {user_notification_settingsUpdateArgs} args - Arguments to update one User_notification_settings.
+     * @example
+     * // Update one User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends user_notification_settingsUpdateArgs>(args: SelectSubset<T, user_notification_settingsUpdateArgs<ExtArgs>>): Prisma__user_notification_settingsClient<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more User_notification_settings.
+     * @param {user_notification_settingsDeleteManyArgs} args - Arguments to filter User_notification_settings to delete.
+     * @example
+     * // Delete a few User_notification_settings
+     * const { count } = await prisma.user_notification_settings.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends user_notification_settingsDeleteManyArgs>(args?: SelectSubset<T, user_notification_settingsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more User_notification_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_settingsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends user_notification_settingsUpdateManyArgs>(args: SelectSubset<T, user_notification_settingsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more User_notification_settings and returns the data updated in the database.
+     * @param {user_notification_settingsUpdateManyAndReturnArgs} args - Arguments to update many User_notification_settings.
+     * @example
+     * // Update many User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more User_notification_settings and only return the `user_id`
+     * const user_notification_settingsWithUser_idOnly = await prisma.user_notification_settings.updateManyAndReturn({
+     *   select: { user_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends user_notification_settingsUpdateManyAndReturnArgs>(args: SelectSubset<T, user_notification_settingsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one User_notification_settings.
+     * @param {user_notification_settingsUpsertArgs} args - Arguments to update or create a User_notification_settings.
+     * @example
+     * // Update or create a User_notification_settings
+     * const user_notification_settings = await prisma.user_notification_settings.upsert({
+     *   create: {
+     *     // ... data to create a User_notification_settings
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the User_notification_settings we want to update
+     *   }
+     * })
+     */
+    upsert<T extends user_notification_settingsUpsertArgs>(args: SelectSubset<T, user_notification_settingsUpsertArgs<ExtArgs>>): Prisma__user_notification_settingsClient<$Result.GetResult<Prisma.$user_notification_settingsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of User_notification_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_settingsCountArgs} args - Arguments to filter User_notification_settings to count.
+     * @example
+     * // Count the number of User_notification_settings
+     * const count = await prisma.user_notification_settings.count({
+     *   where: {
+     *     // ... the filter for the User_notification_settings we want to count
+     *   }
+     * })
+    **/
+    count<T extends user_notification_settingsCountArgs>(
+      args?: Subset<T, user_notification_settingsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], User_notification_settingsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a User_notification_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {User_notification_settingsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends User_notification_settingsAggregateArgs>(args: Subset<T, User_notification_settingsAggregateArgs>): Prisma.PrismaPromise<GetUser_notification_settingsAggregateType<T>>
+
+    /**
+     * Group by User_notification_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_settingsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends user_notification_settingsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: user_notification_settingsGroupByArgs['orderBy'] }
+        : { orderBy?: user_notification_settingsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, user_notification_settingsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUser_notification_settingsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the user_notification_settings model
+   */
+  readonly fields: user_notification_settingsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for user_notification_settings.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__user_notification_settingsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the user_notification_settings model
+   */
+  interface user_notification_settingsFieldRefs {
+    readonly user_id: FieldRef<"user_notification_settings", 'Int'>
+    readonly settings_json: FieldRef<"user_notification_settings", 'String'>
+    readonly updated_at: FieldRef<"user_notification_settings", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * user_notification_settings findUnique
+   */
+  export type user_notification_settingsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which user_notification_settings to fetch.
+     */
+    where: user_notification_settingsWhereUniqueInput
+  }
+
+  /**
+   * user_notification_settings findUniqueOrThrow
+   */
+  export type user_notification_settingsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which user_notification_settings to fetch.
+     */
+    where: user_notification_settingsWhereUniqueInput
+  }
+
+  /**
+   * user_notification_settings findFirst
+   */
+  export type user_notification_settingsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which user_notification_settings to fetch.
+     */
+    where?: user_notification_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_notification_settings to fetch.
+     */
+    orderBy?: user_notification_settingsOrderByWithRelationInput | user_notification_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for user_notification_settings.
+     */
+    cursor?: user_notification_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_notification_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_notification_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_notification_settings.
+     */
+    distinct?: User_notification_settingsScalarFieldEnum | User_notification_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * user_notification_settings findFirstOrThrow
+   */
+  export type user_notification_settingsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which user_notification_settings to fetch.
+     */
+    where?: user_notification_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_notification_settings to fetch.
+     */
+    orderBy?: user_notification_settingsOrderByWithRelationInput | user_notification_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for user_notification_settings.
+     */
+    cursor?: user_notification_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_notification_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_notification_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_notification_settings.
+     */
+    distinct?: User_notification_settingsScalarFieldEnum | User_notification_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * user_notification_settings findMany
+   */
+  export type user_notification_settingsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which user_notification_settings to fetch.
+     */
+    where?: user_notification_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_notification_settings to fetch.
+     */
+    orderBy?: user_notification_settingsOrderByWithRelationInput | user_notification_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing user_notification_settings.
+     */
+    cursor?: user_notification_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_notification_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_notification_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_notification_settings.
+     */
+    distinct?: User_notification_settingsScalarFieldEnum | User_notification_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * user_notification_settings create
+   */
+  export type user_notification_settingsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * The data needed to create a user_notification_settings.
+     */
+    data: XOR<user_notification_settingsCreateInput, user_notification_settingsUncheckedCreateInput>
+  }
+
+  /**
+   * user_notification_settings createMany
+   */
+  export type user_notification_settingsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many user_notification_settings.
+     */
+    data: user_notification_settingsCreateManyInput | user_notification_settingsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * user_notification_settings createManyAndReturn
+   */
+  export type user_notification_settingsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * The data used to create many user_notification_settings.
+     */
+    data: user_notification_settingsCreateManyInput | user_notification_settingsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * user_notification_settings update
+   */
+  export type user_notification_settingsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * The data needed to update a user_notification_settings.
+     */
+    data: XOR<user_notification_settingsUpdateInput, user_notification_settingsUncheckedUpdateInput>
+    /**
+     * Choose, which user_notification_settings to update.
+     */
+    where: user_notification_settingsWhereUniqueInput
+  }
+
+  /**
+   * user_notification_settings updateMany
+   */
+  export type user_notification_settingsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update user_notification_settings.
+     */
+    data: XOR<user_notification_settingsUpdateManyMutationInput, user_notification_settingsUncheckedUpdateManyInput>
+    /**
+     * Filter which user_notification_settings to update
+     */
+    where?: user_notification_settingsWhereInput
+    /**
+     * Limit how many user_notification_settings to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_notification_settings updateManyAndReturn
+   */
+  export type user_notification_settingsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * The data used to update user_notification_settings.
+     */
+    data: XOR<user_notification_settingsUpdateManyMutationInput, user_notification_settingsUncheckedUpdateManyInput>
+    /**
+     * Filter which user_notification_settings to update
+     */
+    where?: user_notification_settingsWhereInput
+    /**
+     * Limit how many user_notification_settings to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_notification_settings upsert
+   */
+  export type user_notification_settingsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * The filter to search for the user_notification_settings to update in case it exists.
+     */
+    where: user_notification_settingsWhereUniqueInput
+    /**
+     * In case the user_notification_settings found by the `where` argument doesn't exist, create a new user_notification_settings with this data.
+     */
+    create: XOR<user_notification_settingsCreateInput, user_notification_settingsUncheckedCreateInput>
+    /**
+     * In case the user_notification_settings was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<user_notification_settingsUpdateInput, user_notification_settingsUncheckedUpdateInput>
+  }
+
+  /**
+   * user_notification_settings delete
+   */
+  export type user_notification_settingsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+    /**
+     * Filter which user_notification_settings to delete.
+     */
+    where: user_notification_settingsWhereUniqueInput
+  }
+
+  /**
+   * user_notification_settings deleteMany
+   */
+  export type user_notification_settingsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which user_notification_settings to delete
+     */
+    where?: user_notification_settingsWhereInput
+    /**
+     * Limit how many user_notification_settings to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_notification_settings without action
+   */
+  export type user_notification_settingsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_settings
+     */
+    select?: user_notification_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_settings
+     */
+    omit?: user_notification_settingsOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model email_settings
+   */
+
+  export type AggregateEmail_settings = {
+    _count: Email_settingsCountAggregateOutputType | null
+    _avg: Email_settingsAvgAggregateOutputType | null
+    _sum: Email_settingsSumAggregateOutputType | null
+    _min: Email_settingsMinAggregateOutputType | null
+    _max: Email_settingsMaxAggregateOutputType | null
+  }
+
+  export type Email_settingsAvgAggregateOutputType = {
+    id: number | null
+    smtp_port: number | null
+  }
+
+  export type Email_settingsSumAggregateOutputType = {
+    id: number | null
+    smtp_port: number | null
+  }
+
+  export type Email_settingsMinAggregateOutputType = {
+    id: number | null
+    smtp_host: string | null
+    smtp_port: number | null
+    smtp_secure: boolean | null
+    smtp_user: string | null
+    smtp_pass: string | null
+    sender_name: string | null
+    sender_email: string | null
+    updated_at: Date | null
+  }
+
+  export type Email_settingsMaxAggregateOutputType = {
+    id: number | null
+    smtp_host: string | null
+    smtp_port: number | null
+    smtp_secure: boolean | null
+    smtp_user: string | null
+    smtp_pass: string | null
+    sender_name: string | null
+    sender_email: string | null
+    updated_at: Date | null
+  }
+
+  export type Email_settingsCountAggregateOutputType = {
+    id: number
+    smtp_host: number
+    smtp_port: number
+    smtp_secure: number
+    smtp_user: number
+    smtp_pass: number
+    sender_name: number
+    sender_email: number
+    updated_at: number
+    _all: number
+  }
+
+
+  export type Email_settingsAvgAggregateInputType = {
+    id?: true
+    smtp_port?: true
+  }
+
+  export type Email_settingsSumAggregateInputType = {
+    id?: true
+    smtp_port?: true
+  }
+
+  export type Email_settingsMinAggregateInputType = {
+    id?: true
+    smtp_host?: true
+    smtp_port?: true
+    smtp_secure?: true
+    smtp_user?: true
+    smtp_pass?: true
+    sender_name?: true
+    sender_email?: true
+    updated_at?: true
+  }
+
+  export type Email_settingsMaxAggregateInputType = {
+    id?: true
+    smtp_host?: true
+    smtp_port?: true
+    smtp_secure?: true
+    smtp_user?: true
+    smtp_pass?: true
+    sender_name?: true
+    sender_email?: true
+    updated_at?: true
+  }
+
+  export type Email_settingsCountAggregateInputType = {
+    id?: true
+    smtp_host?: true
+    smtp_port?: true
+    smtp_secure?: true
+    smtp_user?: true
+    smtp_pass?: true
+    sender_name?: true
+    sender_email?: true
+    updated_at?: true
+    _all?: true
+  }
+
+  export type Email_settingsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which email_settings to aggregate.
+     */
+    where?: email_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of email_settings to fetch.
+     */
+    orderBy?: email_settingsOrderByWithRelationInput | email_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: email_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` email_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` email_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned email_settings
+    **/
+    _count?: true | Email_settingsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Email_settingsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Email_settingsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Email_settingsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Email_settingsMaxAggregateInputType
+  }
+
+  export type GetEmail_settingsAggregateType<T extends Email_settingsAggregateArgs> = {
+        [P in keyof T & keyof AggregateEmail_settings]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateEmail_settings[P]>
+      : GetScalarType<T[P], AggregateEmail_settings[P]>
+  }
+
+
+
+
+  export type email_settingsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: email_settingsWhereInput
+    orderBy?: email_settingsOrderByWithAggregationInput | email_settingsOrderByWithAggregationInput[]
+    by: Email_settingsScalarFieldEnum[] | Email_settingsScalarFieldEnum
+    having?: email_settingsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Email_settingsCountAggregateInputType | true
+    _avg?: Email_settingsAvgAggregateInputType
+    _sum?: Email_settingsSumAggregateInputType
+    _min?: Email_settingsMinAggregateInputType
+    _max?: Email_settingsMaxAggregateInputType
+  }
+
+  export type Email_settingsGroupByOutputType = {
+    id: number
+    smtp_host: string | null
+    smtp_port: number | null
+    smtp_secure: boolean | null
+    smtp_user: string | null
+    smtp_pass: string | null
+    sender_name: string | null
+    sender_email: string | null
+    updated_at: Date | null
+    _count: Email_settingsCountAggregateOutputType | null
+    _avg: Email_settingsAvgAggregateOutputType | null
+    _sum: Email_settingsSumAggregateOutputType | null
+    _min: Email_settingsMinAggregateOutputType | null
+    _max: Email_settingsMaxAggregateOutputType | null
+  }
+
+  type GetEmail_settingsGroupByPayload<T extends email_settingsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Email_settingsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Email_settingsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Email_settingsGroupByOutputType[P]>
+            : GetScalarType<T[P], Email_settingsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type email_settingsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    smtp_host?: boolean
+    smtp_port?: boolean
+    smtp_secure?: boolean
+    smtp_user?: boolean
+    smtp_pass?: boolean
+    sender_name?: boolean
+    sender_email?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["email_settings"]>
+
+  export type email_settingsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    smtp_host?: boolean
+    smtp_port?: boolean
+    smtp_secure?: boolean
+    smtp_user?: boolean
+    smtp_pass?: boolean
+    sender_name?: boolean
+    sender_email?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["email_settings"]>
+
+  export type email_settingsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    smtp_host?: boolean
+    smtp_port?: boolean
+    smtp_secure?: boolean
+    smtp_user?: boolean
+    smtp_pass?: boolean
+    sender_name?: boolean
+    sender_email?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["email_settings"]>
+
+  export type email_settingsSelectScalar = {
+    id?: boolean
+    smtp_host?: boolean
+    smtp_port?: boolean
+    smtp_secure?: boolean
+    smtp_user?: boolean
+    smtp_pass?: boolean
+    sender_name?: boolean
+    sender_email?: boolean
+    updated_at?: boolean
+  }
+
+  export type email_settingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "smtp_host" | "smtp_port" | "smtp_secure" | "smtp_user" | "smtp_pass" | "sender_name" | "sender_email" | "updated_at", ExtArgs["result"]["email_settings"]>
+
+  export type $email_settingsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "email_settings"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      smtp_host: string | null
+      smtp_port: number | null
+      smtp_secure: boolean | null
+      smtp_user: string | null
+      smtp_pass: string | null
+      sender_name: string | null
+      sender_email: string | null
+      updated_at: Date | null
+    }, ExtArgs["result"]["email_settings"]>
+    composites: {}
+  }
+
+  type email_settingsGetPayload<S extends boolean | null | undefined | email_settingsDefaultArgs> = $Result.GetResult<Prisma.$email_settingsPayload, S>
+
+  type email_settingsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<email_settingsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Email_settingsCountAggregateInputType | true
+    }
+
+  export interface email_settingsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['email_settings'], meta: { name: 'email_settings' } }
+    /**
+     * Find zero or one Email_settings that matches the filter.
+     * @param {email_settingsFindUniqueArgs} args - Arguments to find a Email_settings
+     * @example
+     * // Get one Email_settings
+     * const email_settings = await prisma.email_settings.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends email_settingsFindUniqueArgs>(args: SelectSubset<T, email_settingsFindUniqueArgs<ExtArgs>>): Prisma__email_settingsClient<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Email_settings that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {email_settingsFindUniqueOrThrowArgs} args - Arguments to find a Email_settings
+     * @example
+     * // Get one Email_settings
+     * const email_settings = await prisma.email_settings.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends email_settingsFindUniqueOrThrowArgs>(args: SelectSubset<T, email_settingsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__email_settingsClient<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Email_settings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_settingsFindFirstArgs} args - Arguments to find a Email_settings
+     * @example
+     * // Get one Email_settings
+     * const email_settings = await prisma.email_settings.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends email_settingsFindFirstArgs>(args?: SelectSubset<T, email_settingsFindFirstArgs<ExtArgs>>): Prisma__email_settingsClient<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Email_settings that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_settingsFindFirstOrThrowArgs} args - Arguments to find a Email_settings
+     * @example
+     * // Get one Email_settings
+     * const email_settings = await prisma.email_settings.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends email_settingsFindFirstOrThrowArgs>(args?: SelectSubset<T, email_settingsFindFirstOrThrowArgs<ExtArgs>>): Prisma__email_settingsClient<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Email_settings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_settingsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Email_settings
+     * const email_settings = await prisma.email_settings.findMany()
+     * 
+     * // Get first 10 Email_settings
+     * const email_settings = await prisma.email_settings.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const email_settingsWithIdOnly = await prisma.email_settings.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends email_settingsFindManyArgs>(args?: SelectSubset<T, email_settingsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Email_settings.
+     * @param {email_settingsCreateArgs} args - Arguments to create a Email_settings.
+     * @example
+     * // Create one Email_settings
+     * const Email_settings = await prisma.email_settings.create({
+     *   data: {
+     *     // ... data to create a Email_settings
+     *   }
+     * })
+     * 
+     */
+    create<T extends email_settingsCreateArgs>(args: SelectSubset<T, email_settingsCreateArgs<ExtArgs>>): Prisma__email_settingsClient<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Email_settings.
+     * @param {email_settingsCreateManyArgs} args - Arguments to create many Email_settings.
+     * @example
+     * // Create many Email_settings
+     * const email_settings = await prisma.email_settings.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends email_settingsCreateManyArgs>(args?: SelectSubset<T, email_settingsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Email_settings and returns the data saved in the database.
+     * @param {email_settingsCreateManyAndReturnArgs} args - Arguments to create many Email_settings.
+     * @example
+     * // Create many Email_settings
+     * const email_settings = await prisma.email_settings.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Email_settings and only return the `id`
+     * const email_settingsWithIdOnly = await prisma.email_settings.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends email_settingsCreateManyAndReturnArgs>(args?: SelectSubset<T, email_settingsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Email_settings.
+     * @param {email_settingsDeleteArgs} args - Arguments to delete one Email_settings.
+     * @example
+     * // Delete one Email_settings
+     * const Email_settings = await prisma.email_settings.delete({
+     *   where: {
+     *     // ... filter to delete one Email_settings
+     *   }
+     * })
+     * 
+     */
+    delete<T extends email_settingsDeleteArgs>(args: SelectSubset<T, email_settingsDeleteArgs<ExtArgs>>): Prisma__email_settingsClient<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Email_settings.
+     * @param {email_settingsUpdateArgs} args - Arguments to update one Email_settings.
+     * @example
+     * // Update one Email_settings
+     * const email_settings = await prisma.email_settings.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends email_settingsUpdateArgs>(args: SelectSubset<T, email_settingsUpdateArgs<ExtArgs>>): Prisma__email_settingsClient<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Email_settings.
+     * @param {email_settingsDeleteManyArgs} args - Arguments to filter Email_settings to delete.
+     * @example
+     * // Delete a few Email_settings
+     * const { count } = await prisma.email_settings.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends email_settingsDeleteManyArgs>(args?: SelectSubset<T, email_settingsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Email_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_settingsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Email_settings
+     * const email_settings = await prisma.email_settings.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends email_settingsUpdateManyArgs>(args: SelectSubset<T, email_settingsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Email_settings and returns the data updated in the database.
+     * @param {email_settingsUpdateManyAndReturnArgs} args - Arguments to update many Email_settings.
+     * @example
+     * // Update many Email_settings
+     * const email_settings = await prisma.email_settings.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Email_settings and only return the `id`
+     * const email_settingsWithIdOnly = await prisma.email_settings.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends email_settingsUpdateManyAndReturnArgs>(args: SelectSubset<T, email_settingsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Email_settings.
+     * @param {email_settingsUpsertArgs} args - Arguments to update or create a Email_settings.
+     * @example
+     * // Update or create a Email_settings
+     * const email_settings = await prisma.email_settings.upsert({
+     *   create: {
+     *     // ... data to create a Email_settings
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Email_settings we want to update
+     *   }
+     * })
+     */
+    upsert<T extends email_settingsUpsertArgs>(args: SelectSubset<T, email_settingsUpsertArgs<ExtArgs>>): Prisma__email_settingsClient<$Result.GetResult<Prisma.$email_settingsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Email_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_settingsCountArgs} args - Arguments to filter Email_settings to count.
+     * @example
+     * // Count the number of Email_settings
+     * const count = await prisma.email_settings.count({
+     *   where: {
+     *     // ... the filter for the Email_settings we want to count
+     *   }
+     * })
+    **/
+    count<T extends email_settingsCountArgs>(
+      args?: Subset<T, email_settingsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Email_settingsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Email_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Email_settingsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Email_settingsAggregateArgs>(args: Subset<T, Email_settingsAggregateArgs>): Prisma.PrismaPromise<GetEmail_settingsAggregateType<T>>
+
+    /**
+     * Group by Email_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_settingsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends email_settingsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: email_settingsGroupByArgs['orderBy'] }
+        : { orderBy?: email_settingsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, email_settingsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetEmail_settingsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the email_settings model
+   */
+  readonly fields: email_settingsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for email_settings.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__email_settingsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the email_settings model
+   */
+  interface email_settingsFieldRefs {
+    readonly id: FieldRef<"email_settings", 'Int'>
+    readonly smtp_host: FieldRef<"email_settings", 'String'>
+    readonly smtp_port: FieldRef<"email_settings", 'Int'>
+    readonly smtp_secure: FieldRef<"email_settings", 'Boolean'>
+    readonly smtp_user: FieldRef<"email_settings", 'String'>
+    readonly smtp_pass: FieldRef<"email_settings", 'String'>
+    readonly sender_name: FieldRef<"email_settings", 'String'>
+    readonly sender_email: FieldRef<"email_settings", 'String'>
+    readonly updated_at: FieldRef<"email_settings", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * email_settings findUnique
+   */
+  export type email_settingsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which email_settings to fetch.
+     */
+    where: email_settingsWhereUniqueInput
+  }
+
+  /**
+   * email_settings findUniqueOrThrow
+   */
+  export type email_settingsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which email_settings to fetch.
+     */
+    where: email_settingsWhereUniqueInput
+  }
+
+  /**
+   * email_settings findFirst
+   */
+  export type email_settingsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which email_settings to fetch.
+     */
+    where?: email_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of email_settings to fetch.
+     */
+    orderBy?: email_settingsOrderByWithRelationInput | email_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for email_settings.
+     */
+    cursor?: email_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` email_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` email_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of email_settings.
+     */
+    distinct?: Email_settingsScalarFieldEnum | Email_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * email_settings findFirstOrThrow
+   */
+  export type email_settingsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which email_settings to fetch.
+     */
+    where?: email_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of email_settings to fetch.
+     */
+    orderBy?: email_settingsOrderByWithRelationInput | email_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for email_settings.
+     */
+    cursor?: email_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` email_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` email_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of email_settings.
+     */
+    distinct?: Email_settingsScalarFieldEnum | Email_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * email_settings findMany
+   */
+  export type email_settingsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * Filter, which email_settings to fetch.
+     */
+    where?: email_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of email_settings to fetch.
+     */
+    orderBy?: email_settingsOrderByWithRelationInput | email_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing email_settings.
+     */
+    cursor?: email_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` email_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` email_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of email_settings.
+     */
+    distinct?: Email_settingsScalarFieldEnum | Email_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * email_settings create
+   */
+  export type email_settingsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * The data needed to create a email_settings.
+     */
+    data?: XOR<email_settingsCreateInput, email_settingsUncheckedCreateInput>
+  }
+
+  /**
+   * email_settings createMany
+   */
+  export type email_settingsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many email_settings.
+     */
+    data: email_settingsCreateManyInput | email_settingsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * email_settings createManyAndReturn
+   */
+  export type email_settingsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * The data used to create many email_settings.
+     */
+    data: email_settingsCreateManyInput | email_settingsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * email_settings update
+   */
+  export type email_settingsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * The data needed to update a email_settings.
+     */
+    data: XOR<email_settingsUpdateInput, email_settingsUncheckedUpdateInput>
+    /**
+     * Choose, which email_settings to update.
+     */
+    where: email_settingsWhereUniqueInput
+  }
+
+  /**
+   * email_settings updateMany
+   */
+  export type email_settingsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update email_settings.
+     */
+    data: XOR<email_settingsUpdateManyMutationInput, email_settingsUncheckedUpdateManyInput>
+    /**
+     * Filter which email_settings to update
+     */
+    where?: email_settingsWhereInput
+    /**
+     * Limit how many email_settings to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * email_settings updateManyAndReturn
+   */
+  export type email_settingsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * The data used to update email_settings.
+     */
+    data: XOR<email_settingsUpdateManyMutationInput, email_settingsUncheckedUpdateManyInput>
+    /**
+     * Filter which email_settings to update
+     */
+    where?: email_settingsWhereInput
+    /**
+     * Limit how many email_settings to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * email_settings upsert
+   */
+  export type email_settingsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * The filter to search for the email_settings to update in case it exists.
+     */
+    where: email_settingsWhereUniqueInput
+    /**
+     * In case the email_settings found by the `where` argument doesn't exist, create a new email_settings with this data.
+     */
+    create: XOR<email_settingsCreateInput, email_settingsUncheckedCreateInput>
+    /**
+     * In case the email_settings was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<email_settingsUpdateInput, email_settingsUncheckedUpdateInput>
+  }
+
+  /**
+   * email_settings delete
+   */
+  export type email_settingsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+    /**
+     * Filter which email_settings to delete.
+     */
+    where: email_settingsWhereUniqueInput
+  }
+
+  /**
+   * email_settings deleteMany
+   */
+  export type email_settingsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which email_settings to delete
+     */
+    where?: email_settingsWhereInput
+    /**
+     * Limit how many email_settings to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * email_settings without action
+   */
+  export type email_settingsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_settings
+     */
+    select?: email_settingsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_settings
+     */
+    omit?: email_settingsOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model email_templates
+   */
+
+  export type AggregateEmail_templates = {
+    _count: Email_templatesCountAggregateOutputType | null
+    _avg: Email_templatesAvgAggregateOutputType | null
+    _sum: Email_templatesSumAggregateOutputType | null
+    _min: Email_templatesMinAggregateOutputType | null
+    _max: Email_templatesMaxAggregateOutputType | null
+  }
+
+  export type Email_templatesAvgAggregateOutputType = {
+    id: number | null
+  }
+
+  export type Email_templatesSumAggregateOutputType = {
+    id: number | null
+  }
+
+  export type Email_templatesMinAggregateOutputType = {
+    id: number | null
+    type: string | null
+    name: string | null
+    subject: string | null
+    html_content: string | null
+    description: string | null
+    updated_at: Date | null
+    created_at: Date | null
+    sender_name: string | null
+  }
+
+  export type Email_templatesMaxAggregateOutputType = {
+    id: number | null
+    type: string | null
+    name: string | null
+    subject: string | null
+    html_content: string | null
+    description: string | null
+    updated_at: Date | null
+    created_at: Date | null
+    sender_name: string | null
+  }
+
+  export type Email_templatesCountAggregateOutputType = {
+    id: number
+    type: number
+    name: number
+    subject: number
+    html_content: number
+    description: number
+    updated_at: number
+    created_at: number
+    sender_name: number
+    _all: number
+  }
+
+
+  export type Email_templatesAvgAggregateInputType = {
+    id?: true
+  }
+
+  export type Email_templatesSumAggregateInputType = {
+    id?: true
+  }
+
+  export type Email_templatesMinAggregateInputType = {
+    id?: true
+    type?: true
+    name?: true
+    subject?: true
+    html_content?: true
+    description?: true
+    updated_at?: true
+    created_at?: true
+    sender_name?: true
+  }
+
+  export type Email_templatesMaxAggregateInputType = {
+    id?: true
+    type?: true
+    name?: true
+    subject?: true
+    html_content?: true
+    description?: true
+    updated_at?: true
+    created_at?: true
+    sender_name?: true
+  }
+
+  export type Email_templatesCountAggregateInputType = {
+    id?: true
+    type?: true
+    name?: true
+    subject?: true
+    html_content?: true
+    description?: true
+    updated_at?: true
+    created_at?: true
+    sender_name?: true
+    _all?: true
+  }
+
+  export type Email_templatesAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which email_templates to aggregate.
+     */
+    where?: email_templatesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of email_templates to fetch.
+     */
+    orderBy?: email_templatesOrderByWithRelationInput | email_templatesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: email_templatesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` email_templates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` email_templates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned email_templates
+    **/
+    _count?: true | Email_templatesCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Email_templatesAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Email_templatesSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Email_templatesMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Email_templatesMaxAggregateInputType
+  }
+
+  export type GetEmail_templatesAggregateType<T extends Email_templatesAggregateArgs> = {
+        [P in keyof T & keyof AggregateEmail_templates]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateEmail_templates[P]>
+      : GetScalarType<T[P], AggregateEmail_templates[P]>
+  }
+
+
+
+
+  export type email_templatesGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: email_templatesWhereInput
+    orderBy?: email_templatesOrderByWithAggregationInput | email_templatesOrderByWithAggregationInput[]
+    by: Email_templatesScalarFieldEnum[] | Email_templatesScalarFieldEnum
+    having?: email_templatesScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Email_templatesCountAggregateInputType | true
+    _avg?: Email_templatesAvgAggregateInputType
+    _sum?: Email_templatesSumAggregateInputType
+    _min?: Email_templatesMinAggregateInputType
+    _max?: Email_templatesMaxAggregateInputType
+  }
+
+  export type Email_templatesGroupByOutputType = {
+    id: number
+    type: string
+    name: string
+    subject: string
+    html_content: string
+    description: string | null
+    updated_at: Date | null
+    created_at: Date | null
+    sender_name: string | null
+    _count: Email_templatesCountAggregateOutputType | null
+    _avg: Email_templatesAvgAggregateOutputType | null
+    _sum: Email_templatesSumAggregateOutputType | null
+    _min: Email_templatesMinAggregateOutputType | null
+    _max: Email_templatesMaxAggregateOutputType | null
+  }
+
+  type GetEmail_templatesGroupByPayload<T extends email_templatesGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Email_templatesGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Email_templatesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Email_templatesGroupByOutputType[P]>
+            : GetScalarType<T[P], Email_templatesGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type email_templatesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    type?: boolean
+    name?: boolean
+    subject?: boolean
+    html_content?: boolean
+    description?: boolean
+    updated_at?: boolean
+    created_at?: boolean
+    sender_name?: boolean
+  }, ExtArgs["result"]["email_templates"]>
+
+  export type email_templatesSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    type?: boolean
+    name?: boolean
+    subject?: boolean
+    html_content?: boolean
+    description?: boolean
+    updated_at?: boolean
+    created_at?: boolean
+    sender_name?: boolean
+  }, ExtArgs["result"]["email_templates"]>
+
+  export type email_templatesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    type?: boolean
+    name?: boolean
+    subject?: boolean
+    html_content?: boolean
+    description?: boolean
+    updated_at?: boolean
+    created_at?: boolean
+    sender_name?: boolean
+  }, ExtArgs["result"]["email_templates"]>
+
+  export type email_templatesSelectScalar = {
+    id?: boolean
+    type?: boolean
+    name?: boolean
+    subject?: boolean
+    html_content?: boolean
+    description?: boolean
+    updated_at?: boolean
+    created_at?: boolean
+    sender_name?: boolean
+  }
+
+  export type email_templatesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "type" | "name" | "subject" | "html_content" | "description" | "updated_at" | "created_at" | "sender_name", ExtArgs["result"]["email_templates"]>
+
+  export type $email_templatesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "email_templates"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      type: string
+      name: string
+      subject: string
+      html_content: string
+      description: string | null
+      updated_at: Date | null
+      created_at: Date | null
+      sender_name: string | null
+    }, ExtArgs["result"]["email_templates"]>
+    composites: {}
+  }
+
+  type email_templatesGetPayload<S extends boolean | null | undefined | email_templatesDefaultArgs> = $Result.GetResult<Prisma.$email_templatesPayload, S>
+
+  type email_templatesCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<email_templatesFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Email_templatesCountAggregateInputType | true
+    }
+
+  export interface email_templatesDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['email_templates'], meta: { name: 'email_templates' } }
+    /**
+     * Find zero or one Email_templates that matches the filter.
+     * @param {email_templatesFindUniqueArgs} args - Arguments to find a Email_templates
+     * @example
+     * // Get one Email_templates
+     * const email_templates = await prisma.email_templates.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends email_templatesFindUniqueArgs>(args: SelectSubset<T, email_templatesFindUniqueArgs<ExtArgs>>): Prisma__email_templatesClient<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Email_templates that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {email_templatesFindUniqueOrThrowArgs} args - Arguments to find a Email_templates
+     * @example
+     * // Get one Email_templates
+     * const email_templates = await prisma.email_templates.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends email_templatesFindUniqueOrThrowArgs>(args: SelectSubset<T, email_templatesFindUniqueOrThrowArgs<ExtArgs>>): Prisma__email_templatesClient<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Email_templates that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_templatesFindFirstArgs} args - Arguments to find a Email_templates
+     * @example
+     * // Get one Email_templates
+     * const email_templates = await prisma.email_templates.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends email_templatesFindFirstArgs>(args?: SelectSubset<T, email_templatesFindFirstArgs<ExtArgs>>): Prisma__email_templatesClient<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Email_templates that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_templatesFindFirstOrThrowArgs} args - Arguments to find a Email_templates
+     * @example
+     * // Get one Email_templates
+     * const email_templates = await prisma.email_templates.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends email_templatesFindFirstOrThrowArgs>(args?: SelectSubset<T, email_templatesFindFirstOrThrowArgs<ExtArgs>>): Prisma__email_templatesClient<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Email_templates that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_templatesFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Email_templates
+     * const email_templates = await prisma.email_templates.findMany()
+     * 
+     * // Get first 10 Email_templates
+     * const email_templates = await prisma.email_templates.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const email_templatesWithIdOnly = await prisma.email_templates.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends email_templatesFindManyArgs>(args?: SelectSubset<T, email_templatesFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Email_templates.
+     * @param {email_templatesCreateArgs} args - Arguments to create a Email_templates.
+     * @example
+     * // Create one Email_templates
+     * const Email_templates = await prisma.email_templates.create({
+     *   data: {
+     *     // ... data to create a Email_templates
+     *   }
+     * })
+     * 
+     */
+    create<T extends email_templatesCreateArgs>(args: SelectSubset<T, email_templatesCreateArgs<ExtArgs>>): Prisma__email_templatesClient<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Email_templates.
+     * @param {email_templatesCreateManyArgs} args - Arguments to create many Email_templates.
+     * @example
+     * // Create many Email_templates
+     * const email_templates = await prisma.email_templates.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends email_templatesCreateManyArgs>(args?: SelectSubset<T, email_templatesCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Email_templates and returns the data saved in the database.
+     * @param {email_templatesCreateManyAndReturnArgs} args - Arguments to create many Email_templates.
+     * @example
+     * // Create many Email_templates
+     * const email_templates = await prisma.email_templates.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Email_templates and only return the `id`
+     * const email_templatesWithIdOnly = await prisma.email_templates.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends email_templatesCreateManyAndReturnArgs>(args?: SelectSubset<T, email_templatesCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Email_templates.
+     * @param {email_templatesDeleteArgs} args - Arguments to delete one Email_templates.
+     * @example
+     * // Delete one Email_templates
+     * const Email_templates = await prisma.email_templates.delete({
+     *   where: {
+     *     // ... filter to delete one Email_templates
+     *   }
+     * })
+     * 
+     */
+    delete<T extends email_templatesDeleteArgs>(args: SelectSubset<T, email_templatesDeleteArgs<ExtArgs>>): Prisma__email_templatesClient<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Email_templates.
+     * @param {email_templatesUpdateArgs} args - Arguments to update one Email_templates.
+     * @example
+     * // Update one Email_templates
+     * const email_templates = await prisma.email_templates.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends email_templatesUpdateArgs>(args: SelectSubset<T, email_templatesUpdateArgs<ExtArgs>>): Prisma__email_templatesClient<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Email_templates.
+     * @param {email_templatesDeleteManyArgs} args - Arguments to filter Email_templates to delete.
+     * @example
+     * // Delete a few Email_templates
+     * const { count } = await prisma.email_templates.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends email_templatesDeleteManyArgs>(args?: SelectSubset<T, email_templatesDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Email_templates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_templatesUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Email_templates
+     * const email_templates = await prisma.email_templates.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends email_templatesUpdateManyArgs>(args: SelectSubset<T, email_templatesUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Email_templates and returns the data updated in the database.
+     * @param {email_templatesUpdateManyAndReturnArgs} args - Arguments to update many Email_templates.
+     * @example
+     * // Update many Email_templates
+     * const email_templates = await prisma.email_templates.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Email_templates and only return the `id`
+     * const email_templatesWithIdOnly = await prisma.email_templates.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends email_templatesUpdateManyAndReturnArgs>(args: SelectSubset<T, email_templatesUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Email_templates.
+     * @param {email_templatesUpsertArgs} args - Arguments to update or create a Email_templates.
+     * @example
+     * // Update or create a Email_templates
+     * const email_templates = await prisma.email_templates.upsert({
+     *   create: {
+     *     // ... data to create a Email_templates
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Email_templates we want to update
+     *   }
+     * })
+     */
+    upsert<T extends email_templatesUpsertArgs>(args: SelectSubset<T, email_templatesUpsertArgs<ExtArgs>>): Prisma__email_templatesClient<$Result.GetResult<Prisma.$email_templatesPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Email_templates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_templatesCountArgs} args - Arguments to filter Email_templates to count.
+     * @example
+     * // Count the number of Email_templates
+     * const count = await prisma.email_templates.count({
+     *   where: {
+     *     // ... the filter for the Email_templates we want to count
+     *   }
+     * })
+    **/
+    count<T extends email_templatesCountArgs>(
+      args?: Subset<T, email_templatesCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Email_templatesCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Email_templates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Email_templatesAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Email_templatesAggregateArgs>(args: Subset<T, Email_templatesAggregateArgs>): Prisma.PrismaPromise<GetEmail_templatesAggregateType<T>>
+
+    /**
+     * Group by Email_templates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {email_templatesGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends email_templatesGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: email_templatesGroupByArgs['orderBy'] }
+        : { orderBy?: email_templatesGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, email_templatesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetEmail_templatesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the email_templates model
+   */
+  readonly fields: email_templatesFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for email_templates.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__email_templatesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the email_templates model
+   */
+  interface email_templatesFieldRefs {
+    readonly id: FieldRef<"email_templates", 'Int'>
+    readonly type: FieldRef<"email_templates", 'String'>
+    readonly name: FieldRef<"email_templates", 'String'>
+    readonly subject: FieldRef<"email_templates", 'String'>
+    readonly html_content: FieldRef<"email_templates", 'String'>
+    readonly description: FieldRef<"email_templates", 'String'>
+    readonly updated_at: FieldRef<"email_templates", 'DateTime'>
+    readonly created_at: FieldRef<"email_templates", 'DateTime'>
+    readonly sender_name: FieldRef<"email_templates", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * email_templates findUnique
+   */
+  export type email_templatesFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * Filter, which email_templates to fetch.
+     */
+    where: email_templatesWhereUniqueInput
+  }
+
+  /**
+   * email_templates findUniqueOrThrow
+   */
+  export type email_templatesFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * Filter, which email_templates to fetch.
+     */
+    where: email_templatesWhereUniqueInput
+  }
+
+  /**
+   * email_templates findFirst
+   */
+  export type email_templatesFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * Filter, which email_templates to fetch.
+     */
+    where?: email_templatesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of email_templates to fetch.
+     */
+    orderBy?: email_templatesOrderByWithRelationInput | email_templatesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for email_templates.
+     */
+    cursor?: email_templatesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` email_templates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` email_templates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of email_templates.
+     */
+    distinct?: Email_templatesScalarFieldEnum | Email_templatesScalarFieldEnum[]
+  }
+
+  /**
+   * email_templates findFirstOrThrow
+   */
+  export type email_templatesFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * Filter, which email_templates to fetch.
+     */
+    where?: email_templatesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of email_templates to fetch.
+     */
+    orderBy?: email_templatesOrderByWithRelationInput | email_templatesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for email_templates.
+     */
+    cursor?: email_templatesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` email_templates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` email_templates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of email_templates.
+     */
+    distinct?: Email_templatesScalarFieldEnum | Email_templatesScalarFieldEnum[]
+  }
+
+  /**
+   * email_templates findMany
+   */
+  export type email_templatesFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * Filter, which email_templates to fetch.
+     */
+    where?: email_templatesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of email_templates to fetch.
+     */
+    orderBy?: email_templatesOrderByWithRelationInput | email_templatesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing email_templates.
+     */
+    cursor?: email_templatesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` email_templates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` email_templates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of email_templates.
+     */
+    distinct?: Email_templatesScalarFieldEnum | Email_templatesScalarFieldEnum[]
+  }
+
+  /**
+   * email_templates create
+   */
+  export type email_templatesCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * The data needed to create a email_templates.
+     */
+    data: XOR<email_templatesCreateInput, email_templatesUncheckedCreateInput>
+  }
+
+  /**
+   * email_templates createMany
+   */
+  export type email_templatesCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many email_templates.
+     */
+    data: email_templatesCreateManyInput | email_templatesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * email_templates createManyAndReturn
+   */
+  export type email_templatesCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * The data used to create many email_templates.
+     */
+    data: email_templatesCreateManyInput | email_templatesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * email_templates update
+   */
+  export type email_templatesUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * The data needed to update a email_templates.
+     */
+    data: XOR<email_templatesUpdateInput, email_templatesUncheckedUpdateInput>
+    /**
+     * Choose, which email_templates to update.
+     */
+    where: email_templatesWhereUniqueInput
+  }
+
+  /**
+   * email_templates updateMany
+   */
+  export type email_templatesUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update email_templates.
+     */
+    data: XOR<email_templatesUpdateManyMutationInput, email_templatesUncheckedUpdateManyInput>
+    /**
+     * Filter which email_templates to update
+     */
+    where?: email_templatesWhereInput
+    /**
+     * Limit how many email_templates to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * email_templates updateManyAndReturn
+   */
+  export type email_templatesUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * The data used to update email_templates.
+     */
+    data: XOR<email_templatesUpdateManyMutationInput, email_templatesUncheckedUpdateManyInput>
+    /**
+     * Filter which email_templates to update
+     */
+    where?: email_templatesWhereInput
+    /**
+     * Limit how many email_templates to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * email_templates upsert
+   */
+  export type email_templatesUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * The filter to search for the email_templates to update in case it exists.
+     */
+    where: email_templatesWhereUniqueInput
+    /**
+     * In case the email_templates found by the `where` argument doesn't exist, create a new email_templates with this data.
+     */
+    create: XOR<email_templatesCreateInput, email_templatesUncheckedCreateInput>
+    /**
+     * In case the email_templates was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<email_templatesUpdateInput, email_templatesUncheckedUpdateInput>
+  }
+
+  /**
+   * email_templates delete
+   */
+  export type email_templatesDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+    /**
+     * Filter which email_templates to delete.
+     */
+    where: email_templatesWhereUniqueInput
+  }
+
+  /**
+   * email_templates deleteMany
+   */
+  export type email_templatesDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which email_templates to delete
+     */
+    where?: email_templatesWhereInput
+    /**
+     * Limit how many email_templates to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * email_templates without action
+   */
+  export type email_templatesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the email_templates
+     */
+    select?: email_templatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the email_templates
+     */
+    omit?: email_templatesOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model user_company_access
+   */
+
+  export type AggregateUser_company_access = {
+    _count: User_company_accessCountAggregateOutputType | null
+    _avg: User_company_accessAvgAggregateOutputType | null
+    _sum: User_company_accessSumAggregateOutputType | null
+    _min: User_company_accessMinAggregateOutputType | null
+    _max: User_company_accessMaxAggregateOutputType | null
+  }
+
+  export type User_company_accessAvgAggregateOutputType = {
+    id: number | null
+    user_id: number | null
+    company_id: number | null
+  }
+
+  export type User_company_accessSumAggregateOutputType = {
+    id: number | null
+    user_id: number | null
+    company_id: number | null
+  }
+
+  export type User_company_accessMinAggregateOutputType = {
+    id: number | null
+    user_id: number | null
+    company_id: number | null
+    created_at: Date | null
+  }
+
+  export type User_company_accessMaxAggregateOutputType = {
+    id: number | null
+    user_id: number | null
+    company_id: number | null
+    created_at: Date | null
+  }
+
+  export type User_company_accessCountAggregateOutputType = {
+    id: number
+    user_id: number
+    company_id: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type User_company_accessAvgAggregateInputType = {
+    id?: true
+    user_id?: true
+    company_id?: true
+  }
+
+  export type User_company_accessSumAggregateInputType = {
+    id?: true
+    user_id?: true
+    company_id?: true
+  }
+
+  export type User_company_accessMinAggregateInputType = {
+    id?: true
+    user_id?: true
+    company_id?: true
+    created_at?: true
+  }
+
+  export type User_company_accessMaxAggregateInputType = {
+    id?: true
+    user_id?: true
+    company_id?: true
+    created_at?: true
+  }
+
+  export type User_company_accessCountAggregateInputType = {
+    id?: true
+    user_id?: true
+    company_id?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type User_company_accessAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which user_company_access to aggregate.
+     */
+    where?: user_company_accessWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_company_accesses to fetch.
+     */
+    orderBy?: user_company_accessOrderByWithRelationInput | user_company_accessOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: user_company_accessWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_company_accesses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_company_accesses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned user_company_accesses
+    **/
+    _count?: true | User_company_accessCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: User_company_accessAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: User_company_accessSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: User_company_accessMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: User_company_accessMaxAggregateInputType
+  }
+
+  export type GetUser_company_accessAggregateType<T extends User_company_accessAggregateArgs> = {
+        [P in keyof T & keyof AggregateUser_company_access]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUser_company_access[P]>
+      : GetScalarType<T[P], AggregateUser_company_access[P]>
+  }
+
+
+
+
+  export type user_company_accessGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: user_company_accessWhereInput
+    orderBy?: user_company_accessOrderByWithAggregationInput | user_company_accessOrderByWithAggregationInput[]
+    by: User_company_accessScalarFieldEnum[] | User_company_accessScalarFieldEnum
+    having?: user_company_accessScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: User_company_accessCountAggregateInputType | true
+    _avg?: User_company_accessAvgAggregateInputType
+    _sum?: User_company_accessSumAggregateInputType
+    _min?: User_company_accessMinAggregateInputType
+    _max?: User_company_accessMaxAggregateInputType
+  }
+
+  export type User_company_accessGroupByOutputType = {
+    id: number
+    user_id: number
+    company_id: number
+    created_at: Date | null
+    _count: User_company_accessCountAggregateOutputType | null
+    _avg: User_company_accessAvgAggregateOutputType | null
+    _sum: User_company_accessSumAggregateOutputType | null
+    _min: User_company_accessMinAggregateOutputType | null
+    _max: User_company_accessMaxAggregateOutputType | null
+  }
+
+  type GetUser_company_accessGroupByPayload<T extends user_company_accessGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<User_company_accessGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof User_company_accessGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], User_company_accessGroupByOutputType[P]>
+            : GetScalarType<T[P], User_company_accessGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type user_company_accessSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    company_id?: boolean
+    created_at?: boolean
+    users?: boolean | usersDefaultArgs<ExtArgs>
+    companies?: boolean | companiesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["user_company_access"]>
+
+  export type user_company_accessSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    company_id?: boolean
+    created_at?: boolean
+    users?: boolean | usersDefaultArgs<ExtArgs>
+    companies?: boolean | companiesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["user_company_access"]>
+
+  export type user_company_accessSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    company_id?: boolean
+    created_at?: boolean
+    users?: boolean | usersDefaultArgs<ExtArgs>
+    companies?: boolean | companiesDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["user_company_access"]>
+
+  export type user_company_accessSelectScalar = {
+    id?: boolean
+    user_id?: boolean
+    company_id?: boolean
+    created_at?: boolean
+  }
+
+  export type user_company_accessOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "user_id" | "company_id" | "created_at", ExtArgs["result"]["user_company_access"]>
+  export type user_company_accessInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | usersDefaultArgs<ExtArgs>
+    companies?: boolean | companiesDefaultArgs<ExtArgs>
+  }
+  export type user_company_accessIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | usersDefaultArgs<ExtArgs>
+    companies?: boolean | companiesDefaultArgs<ExtArgs>
+  }
+  export type user_company_accessIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | usersDefaultArgs<ExtArgs>
+    companies?: boolean | companiesDefaultArgs<ExtArgs>
+  }
+
+  export type $user_company_accessPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "user_company_access"
+    objects: {
+      users: Prisma.$usersPayload<ExtArgs>
+      companies: Prisma.$companiesPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      user_id: number
+      company_id: number
+      created_at: Date | null
+    }, ExtArgs["result"]["user_company_access"]>
+    composites: {}
+  }
+
+  type user_company_accessGetPayload<S extends boolean | null | undefined | user_company_accessDefaultArgs> = $Result.GetResult<Prisma.$user_company_accessPayload, S>
+
+  type user_company_accessCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<user_company_accessFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: User_company_accessCountAggregateInputType | true
+    }
+
+  export interface user_company_accessDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['user_company_access'], meta: { name: 'user_company_access' } }
+    /**
+     * Find zero or one User_company_access that matches the filter.
+     * @param {user_company_accessFindUniqueArgs} args - Arguments to find a User_company_access
+     * @example
+     * // Get one User_company_access
+     * const user_company_access = await prisma.user_company_access.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends user_company_accessFindUniqueArgs>(args: SelectSubset<T, user_company_accessFindUniqueArgs<ExtArgs>>): Prisma__user_company_accessClient<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one User_company_access that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {user_company_accessFindUniqueOrThrowArgs} args - Arguments to find a User_company_access
+     * @example
+     * // Get one User_company_access
+     * const user_company_access = await prisma.user_company_access.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends user_company_accessFindUniqueOrThrowArgs>(args: SelectSubset<T, user_company_accessFindUniqueOrThrowArgs<ExtArgs>>): Prisma__user_company_accessClient<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first User_company_access that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_company_accessFindFirstArgs} args - Arguments to find a User_company_access
+     * @example
+     * // Get one User_company_access
+     * const user_company_access = await prisma.user_company_access.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends user_company_accessFindFirstArgs>(args?: SelectSubset<T, user_company_accessFindFirstArgs<ExtArgs>>): Prisma__user_company_accessClient<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first User_company_access that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_company_accessFindFirstOrThrowArgs} args - Arguments to find a User_company_access
+     * @example
+     * // Get one User_company_access
+     * const user_company_access = await prisma.user_company_access.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends user_company_accessFindFirstOrThrowArgs>(args?: SelectSubset<T, user_company_accessFindFirstOrThrowArgs<ExtArgs>>): Prisma__user_company_accessClient<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more User_company_accesses that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_company_accessFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all User_company_accesses
+     * const user_company_accesses = await prisma.user_company_access.findMany()
+     * 
+     * // Get first 10 User_company_accesses
+     * const user_company_accesses = await prisma.user_company_access.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const user_company_accessWithIdOnly = await prisma.user_company_access.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends user_company_accessFindManyArgs>(args?: SelectSubset<T, user_company_accessFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a User_company_access.
+     * @param {user_company_accessCreateArgs} args - Arguments to create a User_company_access.
+     * @example
+     * // Create one User_company_access
+     * const User_company_access = await prisma.user_company_access.create({
+     *   data: {
+     *     // ... data to create a User_company_access
+     *   }
+     * })
+     * 
+     */
+    create<T extends user_company_accessCreateArgs>(args: SelectSubset<T, user_company_accessCreateArgs<ExtArgs>>): Prisma__user_company_accessClient<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many User_company_accesses.
+     * @param {user_company_accessCreateManyArgs} args - Arguments to create many User_company_accesses.
+     * @example
+     * // Create many User_company_accesses
+     * const user_company_access = await prisma.user_company_access.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends user_company_accessCreateManyArgs>(args?: SelectSubset<T, user_company_accessCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many User_company_accesses and returns the data saved in the database.
+     * @param {user_company_accessCreateManyAndReturnArgs} args - Arguments to create many User_company_accesses.
+     * @example
+     * // Create many User_company_accesses
+     * const user_company_access = await prisma.user_company_access.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many User_company_accesses and only return the `id`
+     * const user_company_accessWithIdOnly = await prisma.user_company_access.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends user_company_accessCreateManyAndReturnArgs>(args?: SelectSubset<T, user_company_accessCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a User_company_access.
+     * @param {user_company_accessDeleteArgs} args - Arguments to delete one User_company_access.
+     * @example
+     * // Delete one User_company_access
+     * const User_company_access = await prisma.user_company_access.delete({
+     *   where: {
+     *     // ... filter to delete one User_company_access
+     *   }
+     * })
+     * 
+     */
+    delete<T extends user_company_accessDeleteArgs>(args: SelectSubset<T, user_company_accessDeleteArgs<ExtArgs>>): Prisma__user_company_accessClient<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one User_company_access.
+     * @param {user_company_accessUpdateArgs} args - Arguments to update one User_company_access.
+     * @example
+     * // Update one User_company_access
+     * const user_company_access = await prisma.user_company_access.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends user_company_accessUpdateArgs>(args: SelectSubset<T, user_company_accessUpdateArgs<ExtArgs>>): Prisma__user_company_accessClient<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more User_company_accesses.
+     * @param {user_company_accessDeleteManyArgs} args - Arguments to filter User_company_accesses to delete.
+     * @example
+     * // Delete a few User_company_accesses
+     * const { count } = await prisma.user_company_access.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends user_company_accessDeleteManyArgs>(args?: SelectSubset<T, user_company_accessDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more User_company_accesses.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_company_accessUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many User_company_accesses
+     * const user_company_access = await prisma.user_company_access.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends user_company_accessUpdateManyArgs>(args: SelectSubset<T, user_company_accessUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more User_company_accesses and returns the data updated in the database.
+     * @param {user_company_accessUpdateManyAndReturnArgs} args - Arguments to update many User_company_accesses.
+     * @example
+     * // Update many User_company_accesses
+     * const user_company_access = await prisma.user_company_access.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more User_company_accesses and only return the `id`
+     * const user_company_accessWithIdOnly = await prisma.user_company_access.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends user_company_accessUpdateManyAndReturnArgs>(args: SelectSubset<T, user_company_accessUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one User_company_access.
+     * @param {user_company_accessUpsertArgs} args - Arguments to update or create a User_company_access.
+     * @example
+     * // Update or create a User_company_access
+     * const user_company_access = await prisma.user_company_access.upsert({
+     *   create: {
+     *     // ... data to create a User_company_access
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the User_company_access we want to update
+     *   }
+     * })
+     */
+    upsert<T extends user_company_accessUpsertArgs>(args: SelectSubset<T, user_company_accessUpsertArgs<ExtArgs>>): Prisma__user_company_accessClient<$Result.GetResult<Prisma.$user_company_accessPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of User_company_accesses.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_company_accessCountArgs} args - Arguments to filter User_company_accesses to count.
+     * @example
+     * // Count the number of User_company_accesses
+     * const count = await prisma.user_company_access.count({
+     *   where: {
+     *     // ... the filter for the User_company_accesses we want to count
+     *   }
+     * })
+    **/
+    count<T extends user_company_accessCountArgs>(
+      args?: Subset<T, user_company_accessCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], User_company_accessCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a User_company_access.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {User_company_accessAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends User_company_accessAggregateArgs>(args: Subset<T, User_company_accessAggregateArgs>): Prisma.PrismaPromise<GetUser_company_accessAggregateType<T>>
+
+    /**
+     * Group by User_company_access.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_company_accessGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends user_company_accessGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: user_company_accessGroupByArgs['orderBy'] }
+        : { orderBy?: user_company_accessGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, user_company_accessGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUser_company_accessGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the user_company_access model
+   */
+  readonly fields: user_company_accessFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for user_company_access.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__user_company_accessClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    users<T extends usersDefaultArgs<ExtArgs> = {}>(args?: Subset<T, usersDefaultArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    companies<T extends companiesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, companiesDefaultArgs<ExtArgs>>): Prisma__companiesClient<$Result.GetResult<Prisma.$companiesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the user_company_access model
+   */
+  interface user_company_accessFieldRefs {
+    readonly id: FieldRef<"user_company_access", 'Int'>
+    readonly user_id: FieldRef<"user_company_access", 'Int'>
+    readonly company_id: FieldRef<"user_company_access", 'Int'>
+    readonly created_at: FieldRef<"user_company_access", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * user_company_access findUnique
+   */
+  export type user_company_accessFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    /**
+     * Filter, which user_company_access to fetch.
+     */
+    where: user_company_accessWhereUniqueInput
+  }
+
+  /**
+   * user_company_access findUniqueOrThrow
+   */
+  export type user_company_accessFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    /**
+     * Filter, which user_company_access to fetch.
+     */
+    where: user_company_accessWhereUniqueInput
+  }
+
+  /**
+   * user_company_access findFirst
+   */
+  export type user_company_accessFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    /**
+     * Filter, which user_company_access to fetch.
+     */
+    where?: user_company_accessWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_company_accesses to fetch.
+     */
+    orderBy?: user_company_accessOrderByWithRelationInput | user_company_accessOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for user_company_accesses.
+     */
+    cursor?: user_company_accessWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_company_accesses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_company_accesses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_company_accesses.
+     */
+    distinct?: User_company_accessScalarFieldEnum | User_company_accessScalarFieldEnum[]
+  }
+
+  /**
+   * user_company_access findFirstOrThrow
+   */
+  export type user_company_accessFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    /**
+     * Filter, which user_company_access to fetch.
+     */
+    where?: user_company_accessWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_company_accesses to fetch.
+     */
+    orderBy?: user_company_accessOrderByWithRelationInput | user_company_accessOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for user_company_accesses.
+     */
+    cursor?: user_company_accessWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_company_accesses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_company_accesses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_company_accesses.
+     */
+    distinct?: User_company_accessScalarFieldEnum | User_company_accessScalarFieldEnum[]
+  }
+
+  /**
+   * user_company_access findMany
+   */
+  export type user_company_accessFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    /**
+     * Filter, which user_company_accesses to fetch.
+     */
+    where?: user_company_accessWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_company_accesses to fetch.
+     */
+    orderBy?: user_company_accessOrderByWithRelationInput | user_company_accessOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing user_company_accesses.
+     */
+    cursor?: user_company_accessWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_company_accesses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_company_accesses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_company_accesses.
+     */
+    distinct?: User_company_accessScalarFieldEnum | User_company_accessScalarFieldEnum[]
+  }
+
+  /**
+   * user_company_access create
+   */
+  export type user_company_accessCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    /**
+     * The data needed to create a user_company_access.
+     */
+    data: XOR<user_company_accessCreateInput, user_company_accessUncheckedCreateInput>
+  }
+
+  /**
+   * user_company_access createMany
+   */
+  export type user_company_accessCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many user_company_accesses.
+     */
+    data: user_company_accessCreateManyInput | user_company_accessCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * user_company_access createManyAndReturn
+   */
+  export type user_company_accessCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * The data used to create many user_company_accesses.
+     */
+    data: user_company_accessCreateManyInput | user_company_accessCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * user_company_access update
+   */
+  export type user_company_accessUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    /**
+     * The data needed to update a user_company_access.
+     */
+    data: XOR<user_company_accessUpdateInput, user_company_accessUncheckedUpdateInput>
+    /**
+     * Choose, which user_company_access to update.
+     */
+    where: user_company_accessWhereUniqueInput
+  }
+
+  /**
+   * user_company_access updateMany
+   */
+  export type user_company_accessUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update user_company_accesses.
+     */
+    data: XOR<user_company_accessUpdateManyMutationInput, user_company_accessUncheckedUpdateManyInput>
+    /**
+     * Filter which user_company_accesses to update
+     */
+    where?: user_company_accessWhereInput
+    /**
+     * Limit how many user_company_accesses to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_company_access updateManyAndReturn
+   */
+  export type user_company_accessUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * The data used to update user_company_accesses.
+     */
+    data: XOR<user_company_accessUpdateManyMutationInput, user_company_accessUncheckedUpdateManyInput>
+    /**
+     * Filter which user_company_accesses to update
+     */
+    where?: user_company_accessWhereInput
+    /**
+     * Limit how many user_company_accesses to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * user_company_access upsert
+   */
+  export type user_company_accessUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    /**
+     * The filter to search for the user_company_access to update in case it exists.
+     */
+    where: user_company_accessWhereUniqueInput
+    /**
+     * In case the user_company_access found by the `where` argument doesn't exist, create a new user_company_access with this data.
+     */
+    create: XOR<user_company_accessCreateInput, user_company_accessUncheckedCreateInput>
+    /**
+     * In case the user_company_access was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<user_company_accessUpdateInput, user_company_accessUncheckedUpdateInput>
+  }
+
+  /**
+   * user_company_access delete
+   */
+  export type user_company_accessDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+    /**
+     * Filter which user_company_access to delete.
+     */
+    where: user_company_accessWhereUniqueInput
+  }
+
+  /**
+   * user_company_access deleteMany
+   */
+  export type user_company_accessDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which user_company_accesses to delete
+     */
+    where?: user_company_accessWhereInput
+    /**
+     * Limit how many user_company_accesses to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_company_access without action
+   */
+  export type user_company_accessDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_company_access
+     */
+    select?: user_company_accessSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_company_access
+     */
+    omit?: user_company_accessOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_company_accessInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model user_permissions
+   */
+
+  export type AggregateUser_permissions = {
+    _count: User_permissionsCountAggregateOutputType | null
+    _avg: User_permissionsAvgAggregateOutputType | null
+    _sum: User_permissionsSumAggregateOutputType | null
+    _min: User_permissionsMinAggregateOutputType | null
+    _max: User_permissionsMaxAggregateOutputType | null
+  }
+
+  export type User_permissionsAvgAggregateOutputType = {
+    id: number | null
+    user_id: number | null
+  }
+
+  export type User_permissionsSumAggregateOutputType = {
+    id: number | null
+    user_id: number | null
+  }
+
+  export type User_permissionsMinAggregateOutputType = {
+    id: number | null
+    user_id: number | null
+    vehicles: string | null
+    employees: string | null
+    finance: string | null
+    works: string | null
+    settings: string | null
+    created_at: Date | null
+  }
+
+  export type User_permissionsMaxAggregateOutputType = {
+    id: number | null
+    user_id: number | null
+    vehicles: string | null
+    employees: string | null
+    finance: string | null
+    works: string | null
+    settings: string | null
+    created_at: Date | null
+  }
+
+  export type User_permissionsCountAggregateOutputType = {
+    id: number
+    user_id: number
+    vehicles: number
+    employees: number
+    finance: number
+    works: number
+    settings: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type User_permissionsAvgAggregateInputType = {
+    id?: true
+    user_id?: true
+  }
+
+  export type User_permissionsSumAggregateInputType = {
+    id?: true
+    user_id?: true
+  }
+
+  export type User_permissionsMinAggregateInputType = {
+    id?: true
+    user_id?: true
+    vehicles?: true
+    employees?: true
+    finance?: true
+    works?: true
+    settings?: true
+    created_at?: true
+  }
+
+  export type User_permissionsMaxAggregateInputType = {
+    id?: true
+    user_id?: true
+    vehicles?: true
+    employees?: true
+    finance?: true
+    works?: true
+    settings?: true
+    created_at?: true
+  }
+
+  export type User_permissionsCountAggregateInputType = {
+    id?: true
+    user_id?: true
+    vehicles?: true
+    employees?: true
+    finance?: true
+    works?: true
+    settings?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type User_permissionsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which user_permissions to aggregate.
+     */
+    where?: user_permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_permissions to fetch.
+     */
+    orderBy?: user_permissionsOrderByWithRelationInput | user_permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: user_permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_permissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned user_permissions
+    **/
+    _count?: true | User_permissionsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: User_permissionsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: User_permissionsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: User_permissionsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: User_permissionsMaxAggregateInputType
+  }
+
+  export type GetUser_permissionsAggregateType<T extends User_permissionsAggregateArgs> = {
+        [P in keyof T & keyof AggregateUser_permissions]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUser_permissions[P]>
+      : GetScalarType<T[P], AggregateUser_permissions[P]>
+  }
+
+
+
+
+  export type user_permissionsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: user_permissionsWhereInput
+    orderBy?: user_permissionsOrderByWithAggregationInput | user_permissionsOrderByWithAggregationInput[]
+    by: User_permissionsScalarFieldEnum[] | User_permissionsScalarFieldEnum
+    having?: user_permissionsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: User_permissionsCountAggregateInputType | true
+    _avg?: User_permissionsAvgAggregateInputType
+    _sum?: User_permissionsSumAggregateInputType
+    _min?: User_permissionsMinAggregateInputType
+    _max?: User_permissionsMaxAggregateInputType
+  }
+
+  export type User_permissionsGroupByOutputType = {
+    id: number
+    user_id: number
+    vehicles: string | null
+    employees: string | null
+    finance: string | null
+    works: string | null
+    settings: string | null
+    created_at: Date | null
+    _count: User_permissionsCountAggregateOutputType | null
+    _avg: User_permissionsAvgAggregateOutputType | null
+    _sum: User_permissionsSumAggregateOutputType | null
+    _min: User_permissionsMinAggregateOutputType | null
+    _max: User_permissionsMaxAggregateOutputType | null
+  }
+
+  type GetUser_permissionsGroupByPayload<T extends user_permissionsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<User_permissionsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof User_permissionsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], User_permissionsGroupByOutputType[P]>
+            : GetScalarType<T[P], User_permissionsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type user_permissionsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    vehicles?: boolean
+    employees?: boolean
+    finance?: boolean
+    works?: boolean
+    settings?: boolean
+    created_at?: boolean
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["user_permissions"]>
+
+  export type user_permissionsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    vehicles?: boolean
+    employees?: boolean
+    finance?: boolean
+    works?: boolean
+    settings?: boolean
+    created_at?: boolean
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["user_permissions"]>
+
+  export type user_permissionsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    user_id?: boolean
+    vehicles?: boolean
+    employees?: boolean
+    finance?: boolean
+    works?: boolean
+    settings?: boolean
+    created_at?: boolean
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["user_permissions"]>
+
+  export type user_permissionsSelectScalar = {
+    id?: boolean
+    user_id?: boolean
+    vehicles?: boolean
+    employees?: boolean
+    finance?: boolean
+    works?: boolean
+    settings?: boolean
+    created_at?: boolean
+  }
+
+  export type user_permissionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "user_id" | "vehicles" | "employees" | "finance" | "works" | "settings" | "created_at", ExtArgs["result"]["user_permissions"]>
+  export type user_permissionsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }
+  export type user_permissionsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }
+  export type user_permissionsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | usersDefaultArgs<ExtArgs>
+  }
+
+  export type $user_permissionsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "user_permissions"
+    objects: {
+      users: Prisma.$usersPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      user_id: number
+      vehicles: string | null
+      employees: string | null
+      finance: string | null
+      works: string | null
+      settings: string | null
+      created_at: Date | null
+    }, ExtArgs["result"]["user_permissions"]>
+    composites: {}
+  }
+
+  type user_permissionsGetPayload<S extends boolean | null | undefined | user_permissionsDefaultArgs> = $Result.GetResult<Prisma.$user_permissionsPayload, S>
+
+  type user_permissionsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<user_permissionsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: User_permissionsCountAggregateInputType | true
+    }
+
+  export interface user_permissionsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['user_permissions'], meta: { name: 'user_permissions' } }
+    /**
+     * Find zero or one User_permissions that matches the filter.
+     * @param {user_permissionsFindUniqueArgs} args - Arguments to find a User_permissions
+     * @example
+     * // Get one User_permissions
+     * const user_permissions = await prisma.user_permissions.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends user_permissionsFindUniqueArgs>(args: SelectSubset<T, user_permissionsFindUniqueArgs<ExtArgs>>): Prisma__user_permissionsClient<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one User_permissions that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {user_permissionsFindUniqueOrThrowArgs} args - Arguments to find a User_permissions
+     * @example
+     * // Get one User_permissions
+     * const user_permissions = await prisma.user_permissions.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends user_permissionsFindUniqueOrThrowArgs>(args: SelectSubset<T, user_permissionsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__user_permissionsClient<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first User_permissions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_permissionsFindFirstArgs} args - Arguments to find a User_permissions
+     * @example
+     * // Get one User_permissions
+     * const user_permissions = await prisma.user_permissions.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends user_permissionsFindFirstArgs>(args?: SelectSubset<T, user_permissionsFindFirstArgs<ExtArgs>>): Prisma__user_permissionsClient<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first User_permissions that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_permissionsFindFirstOrThrowArgs} args - Arguments to find a User_permissions
+     * @example
+     * // Get one User_permissions
+     * const user_permissions = await prisma.user_permissions.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends user_permissionsFindFirstOrThrowArgs>(args?: SelectSubset<T, user_permissionsFindFirstOrThrowArgs<ExtArgs>>): Prisma__user_permissionsClient<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more User_permissions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_permissionsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all User_permissions
+     * const user_permissions = await prisma.user_permissions.findMany()
+     * 
+     * // Get first 10 User_permissions
+     * const user_permissions = await prisma.user_permissions.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const user_permissionsWithIdOnly = await prisma.user_permissions.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends user_permissionsFindManyArgs>(args?: SelectSubset<T, user_permissionsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a User_permissions.
+     * @param {user_permissionsCreateArgs} args - Arguments to create a User_permissions.
+     * @example
+     * // Create one User_permissions
+     * const User_permissions = await prisma.user_permissions.create({
+     *   data: {
+     *     // ... data to create a User_permissions
+     *   }
+     * })
+     * 
+     */
+    create<T extends user_permissionsCreateArgs>(args: SelectSubset<T, user_permissionsCreateArgs<ExtArgs>>): Prisma__user_permissionsClient<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many User_permissions.
+     * @param {user_permissionsCreateManyArgs} args - Arguments to create many User_permissions.
+     * @example
+     * // Create many User_permissions
+     * const user_permissions = await prisma.user_permissions.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends user_permissionsCreateManyArgs>(args?: SelectSubset<T, user_permissionsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many User_permissions and returns the data saved in the database.
+     * @param {user_permissionsCreateManyAndReturnArgs} args - Arguments to create many User_permissions.
+     * @example
+     * // Create many User_permissions
+     * const user_permissions = await prisma.user_permissions.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many User_permissions and only return the `id`
+     * const user_permissionsWithIdOnly = await prisma.user_permissions.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends user_permissionsCreateManyAndReturnArgs>(args?: SelectSubset<T, user_permissionsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a User_permissions.
+     * @param {user_permissionsDeleteArgs} args - Arguments to delete one User_permissions.
+     * @example
+     * // Delete one User_permissions
+     * const User_permissions = await prisma.user_permissions.delete({
+     *   where: {
+     *     // ... filter to delete one User_permissions
+     *   }
+     * })
+     * 
+     */
+    delete<T extends user_permissionsDeleteArgs>(args: SelectSubset<T, user_permissionsDeleteArgs<ExtArgs>>): Prisma__user_permissionsClient<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one User_permissions.
+     * @param {user_permissionsUpdateArgs} args - Arguments to update one User_permissions.
+     * @example
+     * // Update one User_permissions
+     * const user_permissions = await prisma.user_permissions.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends user_permissionsUpdateArgs>(args: SelectSubset<T, user_permissionsUpdateArgs<ExtArgs>>): Prisma__user_permissionsClient<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more User_permissions.
+     * @param {user_permissionsDeleteManyArgs} args - Arguments to filter User_permissions to delete.
+     * @example
+     * // Delete a few User_permissions
+     * const { count } = await prisma.user_permissions.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends user_permissionsDeleteManyArgs>(args?: SelectSubset<T, user_permissionsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more User_permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_permissionsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many User_permissions
+     * const user_permissions = await prisma.user_permissions.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends user_permissionsUpdateManyArgs>(args: SelectSubset<T, user_permissionsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more User_permissions and returns the data updated in the database.
+     * @param {user_permissionsUpdateManyAndReturnArgs} args - Arguments to update many User_permissions.
+     * @example
+     * // Update many User_permissions
+     * const user_permissions = await prisma.user_permissions.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more User_permissions and only return the `id`
+     * const user_permissionsWithIdOnly = await prisma.user_permissions.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends user_permissionsUpdateManyAndReturnArgs>(args: SelectSubset<T, user_permissionsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one User_permissions.
+     * @param {user_permissionsUpsertArgs} args - Arguments to update or create a User_permissions.
+     * @example
+     * // Update or create a User_permissions
+     * const user_permissions = await prisma.user_permissions.upsert({
+     *   create: {
+     *     // ... data to create a User_permissions
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the User_permissions we want to update
+     *   }
+     * })
+     */
+    upsert<T extends user_permissionsUpsertArgs>(args: SelectSubset<T, user_permissionsUpsertArgs<ExtArgs>>): Prisma__user_permissionsClient<$Result.GetResult<Prisma.$user_permissionsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of User_permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_permissionsCountArgs} args - Arguments to filter User_permissions to count.
+     * @example
+     * // Count the number of User_permissions
+     * const count = await prisma.user_permissions.count({
+     *   where: {
+     *     // ... the filter for the User_permissions we want to count
+     *   }
+     * })
+    **/
+    count<T extends user_permissionsCountArgs>(
+      args?: Subset<T, user_permissionsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], User_permissionsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a User_permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {User_permissionsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends User_permissionsAggregateArgs>(args: Subset<T, User_permissionsAggregateArgs>): Prisma.PrismaPromise<GetUser_permissionsAggregateType<T>>
+
+    /**
+     * Group by User_permissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_permissionsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends user_permissionsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: user_permissionsGroupByArgs['orderBy'] }
+        : { orderBy?: user_permissionsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, user_permissionsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUser_permissionsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the user_permissions model
+   */
+  readonly fields: user_permissionsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for user_permissions.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__user_permissionsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    users<T extends usersDefaultArgs<ExtArgs> = {}>(args?: Subset<T, usersDefaultArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the user_permissions model
+   */
+  interface user_permissionsFieldRefs {
+    readonly id: FieldRef<"user_permissions", 'Int'>
+    readonly user_id: FieldRef<"user_permissions", 'Int'>
+    readonly vehicles: FieldRef<"user_permissions", 'String'>
+    readonly employees: FieldRef<"user_permissions", 'String'>
+    readonly finance: FieldRef<"user_permissions", 'String'>
+    readonly works: FieldRef<"user_permissions", 'String'>
+    readonly settings: FieldRef<"user_permissions", 'String'>
+    readonly created_at: FieldRef<"user_permissions", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * user_permissions findUnique
+   */
+  export type user_permissionsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which user_permissions to fetch.
+     */
+    where: user_permissionsWhereUniqueInput
+  }
+
+  /**
+   * user_permissions findUniqueOrThrow
+   */
+  export type user_permissionsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which user_permissions to fetch.
+     */
+    where: user_permissionsWhereUniqueInput
+  }
+
+  /**
+   * user_permissions findFirst
+   */
+  export type user_permissionsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which user_permissions to fetch.
+     */
+    where?: user_permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_permissions to fetch.
+     */
+    orderBy?: user_permissionsOrderByWithRelationInput | user_permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for user_permissions.
+     */
+    cursor?: user_permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_permissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_permissions.
+     */
+    distinct?: User_permissionsScalarFieldEnum | User_permissionsScalarFieldEnum[]
+  }
+
+  /**
+   * user_permissions findFirstOrThrow
+   */
+  export type user_permissionsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which user_permissions to fetch.
+     */
+    where?: user_permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_permissions to fetch.
+     */
+    orderBy?: user_permissionsOrderByWithRelationInput | user_permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for user_permissions.
+     */
+    cursor?: user_permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_permissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_permissions.
+     */
+    distinct?: User_permissionsScalarFieldEnum | User_permissionsScalarFieldEnum[]
+  }
+
+  /**
+   * user_permissions findMany
+   */
+  export type user_permissionsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter, which user_permissions to fetch.
+     */
+    where?: user_permissionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_permissions to fetch.
+     */
+    orderBy?: user_permissionsOrderByWithRelationInput | user_permissionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing user_permissions.
+     */
+    cursor?: user_permissionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_permissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_permissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_permissions.
+     */
+    distinct?: User_permissionsScalarFieldEnum | User_permissionsScalarFieldEnum[]
+  }
+
+  /**
+   * user_permissions create
+   */
+  export type user_permissionsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a user_permissions.
+     */
+    data: XOR<user_permissionsCreateInput, user_permissionsUncheckedCreateInput>
+  }
+
+  /**
+   * user_permissions createMany
+   */
+  export type user_permissionsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many user_permissions.
+     */
+    data: user_permissionsCreateManyInput | user_permissionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * user_permissions createManyAndReturn
+   */
+  export type user_permissionsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * The data used to create many user_permissions.
+     */
+    data: user_permissionsCreateManyInput | user_permissionsCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * user_permissions update
+   */
+  export type user_permissionsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a user_permissions.
+     */
+    data: XOR<user_permissionsUpdateInput, user_permissionsUncheckedUpdateInput>
+    /**
+     * Choose, which user_permissions to update.
+     */
+    where: user_permissionsWhereUniqueInput
+  }
+
+  /**
+   * user_permissions updateMany
+   */
+  export type user_permissionsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update user_permissions.
+     */
+    data: XOR<user_permissionsUpdateManyMutationInput, user_permissionsUncheckedUpdateManyInput>
+    /**
+     * Filter which user_permissions to update
+     */
+    where?: user_permissionsWhereInput
+    /**
+     * Limit how many user_permissions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_permissions updateManyAndReturn
+   */
+  export type user_permissionsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * The data used to update user_permissions.
+     */
+    data: XOR<user_permissionsUpdateManyMutationInput, user_permissionsUncheckedUpdateManyInput>
+    /**
+     * Filter which user_permissions to update
+     */
+    where?: user_permissionsWhereInput
+    /**
+     * Limit how many user_permissions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * user_permissions upsert
+   */
+  export type user_permissionsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the user_permissions to update in case it exists.
+     */
+    where: user_permissionsWhereUniqueInput
+    /**
+     * In case the user_permissions found by the `where` argument doesn't exist, create a new user_permissions with this data.
+     */
+    create: XOR<user_permissionsCreateInput, user_permissionsUncheckedCreateInput>
+    /**
+     * In case the user_permissions was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<user_permissionsUpdateInput, user_permissionsUncheckedUpdateInput>
+  }
+
+  /**
+   * user_permissions delete
+   */
+  export type user_permissionsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+    /**
+     * Filter which user_permissions to delete.
+     */
+    where: user_permissionsWhereUniqueInput
+  }
+
+  /**
+   * user_permissions deleteMany
+   */
+  export type user_permissionsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which user_permissions to delete
+     */
+    where?: user_permissionsWhereInput
+    /**
+     * Limit how many user_permissions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_permissions without action
+   */
+  export type user_permissionsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_permissions
+     */
+    select?: user_permissionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_permissions
+     */
+    omit?: user_permissionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: user_permissionsInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -56101,7 +63220,8 @@ export namespace Prisma {
     devir_maas_bakiyesi: 'devir_maas_bakiyesi',
     devir_tarihi: 'devir_tarihi',
     iban: 'iban',
-    off_days: 'off_days'
+    off_days: 'off_days',
+    allow_login: 'allow_login'
   };
 
   export type EmployeesScalarFieldEnum = (typeof EmployeesScalarFieldEnum)[keyof typeof EmployeesScalarFieldEnum]
@@ -56330,7 +63450,8 @@ export namespace Prisma {
     two_factor_enabled: 'two_factor_enabled',
     two_factor_backup_codes: 'two_factor_backup_codes',
     recovery_otp: 'recovery_otp',
-    recovery_otp_expires_at: 'recovery_otp_expires_at'
+    recovery_otp_expires_at: 'recovery_otp_expires_at',
+    status: 'status'
   };
 
   export type UsersScalarFieldEnum = (typeof UsersScalarFieldEnum)[keyof typeof UsersScalarFieldEnum]
@@ -56603,6 +63724,78 @@ export namespace Prisma {
   export type Revoked_sessionsScalarFieldEnum = (typeof Revoked_sessionsScalarFieldEnum)[keyof typeof Revoked_sessionsScalarFieldEnum]
 
 
+  export const Company_notification_settingsScalarFieldEnum: {
+    company_id: 'company_id',
+    settings_json: 'settings_json',
+    updated_at: 'updated_at'
+  };
+
+  export type Company_notification_settingsScalarFieldEnum = (typeof Company_notification_settingsScalarFieldEnum)[keyof typeof Company_notification_settingsScalarFieldEnum]
+
+
+  export const User_notification_settingsScalarFieldEnum: {
+    user_id: 'user_id',
+    settings_json: 'settings_json',
+    updated_at: 'updated_at'
+  };
+
+  export type User_notification_settingsScalarFieldEnum = (typeof User_notification_settingsScalarFieldEnum)[keyof typeof User_notification_settingsScalarFieldEnum]
+
+
+  export const Email_settingsScalarFieldEnum: {
+    id: 'id',
+    smtp_host: 'smtp_host',
+    smtp_port: 'smtp_port',
+    smtp_secure: 'smtp_secure',
+    smtp_user: 'smtp_user',
+    smtp_pass: 'smtp_pass',
+    sender_name: 'sender_name',
+    sender_email: 'sender_email',
+    updated_at: 'updated_at'
+  };
+
+  export type Email_settingsScalarFieldEnum = (typeof Email_settingsScalarFieldEnum)[keyof typeof Email_settingsScalarFieldEnum]
+
+
+  export const Email_templatesScalarFieldEnum: {
+    id: 'id',
+    type: 'type',
+    name: 'name',
+    subject: 'subject',
+    html_content: 'html_content',
+    description: 'description',
+    updated_at: 'updated_at',
+    created_at: 'created_at',
+    sender_name: 'sender_name'
+  };
+
+  export type Email_templatesScalarFieldEnum = (typeof Email_templatesScalarFieldEnum)[keyof typeof Email_templatesScalarFieldEnum]
+
+
+  export const User_company_accessScalarFieldEnum: {
+    id: 'id',
+    user_id: 'user_id',
+    company_id: 'company_id',
+    created_at: 'created_at'
+  };
+
+  export type User_company_accessScalarFieldEnum = (typeof User_company_accessScalarFieldEnum)[keyof typeof User_company_accessScalarFieldEnum]
+
+
+  export const User_permissionsScalarFieldEnum: {
+    id: 'id',
+    user_id: 'user_id',
+    vehicles: 'vehicles',
+    employees: 'employees',
+    finance: 'finance',
+    works: 'works',
+    settings: 'settings',
+    created_at: 'created_at'
+  };
+
+  export type User_permissionsScalarFieldEnum = (typeof User_permissionsScalarFieldEnum)[keyof typeof User_permissionsScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -56826,6 +64019,7 @@ export namespace Prisma {
     roles?: RolesListRelationFilter
     audit_logs?: Audit_logsListRelationFilter
     requests?: RequestsListRelationFilter
+    user_company_access?: User_company_accessListRelationFilter
   }
 
   export type companiesOrderByWithRelationInput = {
@@ -56866,6 +64060,7 @@ export namespace Prisma {
     roles?: rolesOrderByRelationAggregateInput
     audit_logs?: audit_logsOrderByRelationAggregateInput
     requests?: requestsOrderByRelationAggregateInput
+    user_company_access?: user_company_accessOrderByRelationAggregateInput
   }
 
   export type companiesWhereUniqueInput = Prisma.AtLeast<{
@@ -56909,6 +64104,7 @@ export namespace Prisma {
     roles?: RolesListRelationFilter
     audit_logs?: Audit_logsListRelationFilter
     requests?: RequestsListRelationFilter
+    user_company_access?: User_company_accessListRelationFilter
   }, "id">
 
   export type companiesOrderByWithAggregationInput = {
@@ -57573,6 +64769,7 @@ export namespace Prisma {
     devir_tarihi?: DateTimeNullableFilter<"employees"> | Date | string | null
     iban?: StringNullableFilter<"employees"> | string | null
     off_days?: StringNullableFilter<"employees"> | string | null
+    allow_login?: IntNullableFilter<"employees"> | number | null
     user?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
     requests?: RequestsListRelationFilter
     employee_assignments?: Employee_assignmentsListRelationFilter
@@ -57614,6 +64811,7 @@ export namespace Prisma {
     devir_tarihi?: SortOrderInput | SortOrder
     iban?: SortOrderInput | SortOrder
     off_days?: SortOrderInput | SortOrder
+    allow_login?: SortOrderInput | SortOrder
     user?: usersOrderByWithRelationInput
     requests?: requestsOrderByRelationAggregateInput
     employee_assignments?: employee_assignmentsOrderByRelationAggregateInput
@@ -57658,6 +64856,7 @@ export namespace Prisma {
     devir_tarihi?: DateTimeNullableFilter<"employees"> | Date | string | null
     iban?: StringNullableFilter<"employees"> | string | null
     off_days?: StringNullableFilter<"employees"> | string | null
+    allow_login?: IntNullableFilter<"employees"> | number | null
     user?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
     requests?: RequestsListRelationFilter
     employee_assignments?: Employee_assignmentsListRelationFilter
@@ -57699,6 +64898,7 @@ export namespace Prisma {
     devir_tarihi?: SortOrderInput | SortOrder
     iban?: SortOrderInput | SortOrder
     off_days?: SortOrderInput | SortOrder
+    allow_login?: SortOrderInput | SortOrder
     _count?: employeesCountOrderByAggregateInput
     _avg?: employeesAvgOrderByAggregateInput
     _max?: employeesMaxOrderByAggregateInput
@@ -57735,6 +64935,7 @@ export namespace Prisma {
     devir_tarihi?: DateTimeNullableWithAggregatesFilter<"employees"> | Date | string | null
     iban?: StringNullableWithAggregatesFilter<"employees"> | string | null
     off_days?: StringNullableWithAggregatesFilter<"employees"> | string | null
+    allow_login?: IntNullableWithAggregatesFilter<"employees"> | number | null
   }
 
   export type inspectionsWhereInput = {
@@ -58811,11 +66012,14 @@ export namespace Prisma {
     two_factor_backup_codes?: StringNullableFilter<"users"> | string | null
     recovery_otp?: StringNullableFilter<"users"> | string | null
     recovery_otp_expires_at?: DateTimeNullableFilter<"users"> | Date | string | null
+    status?: StringNullableFilter<"users"> | string | null
     companies?: CompaniesListRelationFilter
     employee?: XOR<EmployeesNullableScalarRelationFilter, employeesWhereInput> | null
     custom_role?: XOR<RolesNullableScalarRelationFilter, rolesWhereInput> | null
     created_requests?: RequestsListRelationFilter
     approval_actions?: Request_approvalsListRelationFilter
+    user_company_access?: User_company_accessListRelationFilter
+    user_permissions?: User_permissionsListRelationFilter
   }
 
   export type usersOrderByWithRelationInput = {
@@ -58836,11 +66040,14 @@ export namespace Prisma {
     two_factor_backup_codes?: SortOrderInput | SortOrder
     recovery_otp?: SortOrderInput | SortOrder
     recovery_otp_expires_at?: SortOrderInput | SortOrder
+    status?: SortOrderInput | SortOrder
     companies?: companiesOrderByRelationAggregateInput
     employee?: employeesOrderByWithRelationInput
     custom_role?: rolesOrderByWithRelationInput
     created_requests?: requestsOrderByRelationAggregateInput
     approval_actions?: request_approvalsOrderByRelationAggregateInput
+    user_company_access?: user_company_accessOrderByRelationAggregateInput
+    user_permissions?: user_permissionsOrderByRelationAggregateInput
   }
 
   export type usersWhereUniqueInput = Prisma.AtLeast<{
@@ -58864,11 +66071,14 @@ export namespace Prisma {
     two_factor_backup_codes?: StringNullableFilter<"users"> | string | null
     recovery_otp?: StringNullableFilter<"users"> | string | null
     recovery_otp_expires_at?: DateTimeNullableFilter<"users"> | Date | string | null
+    status?: StringNullableFilter<"users"> | string | null
     companies?: CompaniesListRelationFilter
     employee?: XOR<EmployeesNullableScalarRelationFilter, employeesWhereInput> | null
     custom_role?: XOR<RolesNullableScalarRelationFilter, rolesWhereInput> | null
     created_requests?: RequestsListRelationFilter
     approval_actions?: Request_approvalsListRelationFilter
+    user_company_access?: User_company_accessListRelationFilter
+    user_permissions?: User_permissionsListRelationFilter
   }, "id" | "username" | "email" | "employee_id">
 
   export type usersOrderByWithAggregationInput = {
@@ -58889,6 +66099,7 @@ export namespace Prisma {
     two_factor_backup_codes?: SortOrderInput | SortOrder
     recovery_otp?: SortOrderInput | SortOrder
     recovery_otp_expires_at?: SortOrderInput | SortOrder
+    status?: SortOrderInput | SortOrder
     _count?: usersCountOrderByAggregateInput
     _avg?: usersAvgOrderByAggregateInput
     _max?: usersMaxOrderByAggregateInput
@@ -58917,6 +66128,7 @@ export namespace Prisma {
     two_factor_backup_codes?: StringNullableWithAggregatesFilter<"users"> | string | null
     recovery_otp?: StringNullableWithAggregatesFilter<"users"> | string | null
     recovery_otp_expires_at?: DateTimeNullableWithAggregatesFilter<"users"> | Date | string | null
+    status?: StringNullableWithAggregatesFilter<"users"> | string | null
   }
 
   export type vehiclesWhereInput = {
@@ -60338,6 +67550,369 @@ export namespace Prisma {
     expires_at?: DateTimeNullableWithAggregatesFilter<"revoked_sessions"> | Date | string | null
   }
 
+  export type company_notification_settingsWhereInput = {
+    AND?: company_notification_settingsWhereInput | company_notification_settingsWhereInput[]
+    OR?: company_notification_settingsWhereInput[]
+    NOT?: company_notification_settingsWhereInput | company_notification_settingsWhereInput[]
+    company_id?: IntFilter<"company_notification_settings"> | number
+    settings_json?: StringFilter<"company_notification_settings"> | string
+    updated_at?: DateTimeNullableFilter<"company_notification_settings"> | Date | string | null
+  }
+
+  export type company_notification_settingsOrderByWithRelationInput = {
+    company_id?: SortOrder
+    settings_json?: SortOrder
+    updated_at?: SortOrderInput | SortOrder
+  }
+
+  export type company_notification_settingsWhereUniqueInput = Prisma.AtLeast<{
+    company_id?: number
+    AND?: company_notification_settingsWhereInput | company_notification_settingsWhereInput[]
+    OR?: company_notification_settingsWhereInput[]
+    NOT?: company_notification_settingsWhereInput | company_notification_settingsWhereInput[]
+    settings_json?: StringFilter<"company_notification_settings"> | string
+    updated_at?: DateTimeNullableFilter<"company_notification_settings"> | Date | string | null
+  }, "company_id">
+
+  export type company_notification_settingsOrderByWithAggregationInput = {
+    company_id?: SortOrder
+    settings_json?: SortOrder
+    updated_at?: SortOrderInput | SortOrder
+    _count?: company_notification_settingsCountOrderByAggregateInput
+    _avg?: company_notification_settingsAvgOrderByAggregateInput
+    _max?: company_notification_settingsMaxOrderByAggregateInput
+    _min?: company_notification_settingsMinOrderByAggregateInput
+    _sum?: company_notification_settingsSumOrderByAggregateInput
+  }
+
+  export type company_notification_settingsScalarWhereWithAggregatesInput = {
+    AND?: company_notification_settingsScalarWhereWithAggregatesInput | company_notification_settingsScalarWhereWithAggregatesInput[]
+    OR?: company_notification_settingsScalarWhereWithAggregatesInput[]
+    NOT?: company_notification_settingsScalarWhereWithAggregatesInput | company_notification_settingsScalarWhereWithAggregatesInput[]
+    company_id?: IntWithAggregatesFilter<"company_notification_settings"> | number
+    settings_json?: StringWithAggregatesFilter<"company_notification_settings"> | string
+    updated_at?: DateTimeNullableWithAggregatesFilter<"company_notification_settings"> | Date | string | null
+  }
+
+  export type user_notification_settingsWhereInput = {
+    AND?: user_notification_settingsWhereInput | user_notification_settingsWhereInput[]
+    OR?: user_notification_settingsWhereInput[]
+    NOT?: user_notification_settingsWhereInput | user_notification_settingsWhereInput[]
+    user_id?: IntFilter<"user_notification_settings"> | number
+    settings_json?: StringFilter<"user_notification_settings"> | string
+    updated_at?: DateTimeNullableFilter<"user_notification_settings"> | Date | string | null
+  }
+
+  export type user_notification_settingsOrderByWithRelationInput = {
+    user_id?: SortOrder
+    settings_json?: SortOrder
+    updated_at?: SortOrderInput | SortOrder
+  }
+
+  export type user_notification_settingsWhereUniqueInput = Prisma.AtLeast<{
+    user_id?: number
+    AND?: user_notification_settingsWhereInput | user_notification_settingsWhereInput[]
+    OR?: user_notification_settingsWhereInput[]
+    NOT?: user_notification_settingsWhereInput | user_notification_settingsWhereInput[]
+    settings_json?: StringFilter<"user_notification_settings"> | string
+    updated_at?: DateTimeNullableFilter<"user_notification_settings"> | Date | string | null
+  }, "user_id">
+
+  export type user_notification_settingsOrderByWithAggregationInput = {
+    user_id?: SortOrder
+    settings_json?: SortOrder
+    updated_at?: SortOrderInput | SortOrder
+    _count?: user_notification_settingsCountOrderByAggregateInput
+    _avg?: user_notification_settingsAvgOrderByAggregateInput
+    _max?: user_notification_settingsMaxOrderByAggregateInput
+    _min?: user_notification_settingsMinOrderByAggregateInput
+    _sum?: user_notification_settingsSumOrderByAggregateInput
+  }
+
+  export type user_notification_settingsScalarWhereWithAggregatesInput = {
+    AND?: user_notification_settingsScalarWhereWithAggregatesInput | user_notification_settingsScalarWhereWithAggregatesInput[]
+    OR?: user_notification_settingsScalarWhereWithAggregatesInput[]
+    NOT?: user_notification_settingsScalarWhereWithAggregatesInput | user_notification_settingsScalarWhereWithAggregatesInput[]
+    user_id?: IntWithAggregatesFilter<"user_notification_settings"> | number
+    settings_json?: StringWithAggregatesFilter<"user_notification_settings"> | string
+    updated_at?: DateTimeNullableWithAggregatesFilter<"user_notification_settings"> | Date | string | null
+  }
+
+  export type email_settingsWhereInput = {
+    AND?: email_settingsWhereInput | email_settingsWhereInput[]
+    OR?: email_settingsWhereInput[]
+    NOT?: email_settingsWhereInput | email_settingsWhereInput[]
+    id?: IntFilter<"email_settings"> | number
+    smtp_host?: StringNullableFilter<"email_settings"> | string | null
+    smtp_port?: IntNullableFilter<"email_settings"> | number | null
+    smtp_secure?: BoolNullableFilter<"email_settings"> | boolean | null
+    smtp_user?: StringNullableFilter<"email_settings"> | string | null
+    smtp_pass?: StringNullableFilter<"email_settings"> | string | null
+    sender_name?: StringNullableFilter<"email_settings"> | string | null
+    sender_email?: StringNullableFilter<"email_settings"> | string | null
+    updated_at?: DateTimeNullableFilter<"email_settings"> | Date | string | null
+  }
+
+  export type email_settingsOrderByWithRelationInput = {
+    id?: SortOrder
+    smtp_host?: SortOrderInput | SortOrder
+    smtp_port?: SortOrderInput | SortOrder
+    smtp_secure?: SortOrderInput | SortOrder
+    smtp_user?: SortOrderInput | SortOrder
+    smtp_pass?: SortOrderInput | SortOrder
+    sender_name?: SortOrderInput | SortOrder
+    sender_email?: SortOrderInput | SortOrder
+    updated_at?: SortOrderInput | SortOrder
+  }
+
+  export type email_settingsWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: email_settingsWhereInput | email_settingsWhereInput[]
+    OR?: email_settingsWhereInput[]
+    NOT?: email_settingsWhereInput | email_settingsWhereInput[]
+    smtp_host?: StringNullableFilter<"email_settings"> | string | null
+    smtp_port?: IntNullableFilter<"email_settings"> | number | null
+    smtp_secure?: BoolNullableFilter<"email_settings"> | boolean | null
+    smtp_user?: StringNullableFilter<"email_settings"> | string | null
+    smtp_pass?: StringNullableFilter<"email_settings"> | string | null
+    sender_name?: StringNullableFilter<"email_settings"> | string | null
+    sender_email?: StringNullableFilter<"email_settings"> | string | null
+    updated_at?: DateTimeNullableFilter<"email_settings"> | Date | string | null
+  }, "id">
+
+  export type email_settingsOrderByWithAggregationInput = {
+    id?: SortOrder
+    smtp_host?: SortOrderInput | SortOrder
+    smtp_port?: SortOrderInput | SortOrder
+    smtp_secure?: SortOrderInput | SortOrder
+    smtp_user?: SortOrderInput | SortOrder
+    smtp_pass?: SortOrderInput | SortOrder
+    sender_name?: SortOrderInput | SortOrder
+    sender_email?: SortOrderInput | SortOrder
+    updated_at?: SortOrderInput | SortOrder
+    _count?: email_settingsCountOrderByAggregateInput
+    _avg?: email_settingsAvgOrderByAggregateInput
+    _max?: email_settingsMaxOrderByAggregateInput
+    _min?: email_settingsMinOrderByAggregateInput
+    _sum?: email_settingsSumOrderByAggregateInput
+  }
+
+  export type email_settingsScalarWhereWithAggregatesInput = {
+    AND?: email_settingsScalarWhereWithAggregatesInput | email_settingsScalarWhereWithAggregatesInput[]
+    OR?: email_settingsScalarWhereWithAggregatesInput[]
+    NOT?: email_settingsScalarWhereWithAggregatesInput | email_settingsScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"email_settings"> | number
+    smtp_host?: StringNullableWithAggregatesFilter<"email_settings"> | string | null
+    smtp_port?: IntNullableWithAggregatesFilter<"email_settings"> | number | null
+    smtp_secure?: BoolNullableWithAggregatesFilter<"email_settings"> | boolean | null
+    smtp_user?: StringNullableWithAggregatesFilter<"email_settings"> | string | null
+    smtp_pass?: StringNullableWithAggregatesFilter<"email_settings"> | string | null
+    sender_name?: StringNullableWithAggregatesFilter<"email_settings"> | string | null
+    sender_email?: StringNullableWithAggregatesFilter<"email_settings"> | string | null
+    updated_at?: DateTimeNullableWithAggregatesFilter<"email_settings"> | Date | string | null
+  }
+
+  export type email_templatesWhereInput = {
+    AND?: email_templatesWhereInput | email_templatesWhereInput[]
+    OR?: email_templatesWhereInput[]
+    NOT?: email_templatesWhereInput | email_templatesWhereInput[]
+    id?: IntFilter<"email_templates"> | number
+    type?: StringFilter<"email_templates"> | string
+    name?: StringFilter<"email_templates"> | string
+    subject?: StringFilter<"email_templates"> | string
+    html_content?: StringFilter<"email_templates"> | string
+    description?: StringNullableFilter<"email_templates"> | string | null
+    updated_at?: DateTimeNullableFilter<"email_templates"> | Date | string | null
+    created_at?: DateTimeNullableFilter<"email_templates"> | Date | string | null
+    sender_name?: StringNullableFilter<"email_templates"> | string | null
+  }
+
+  export type email_templatesOrderByWithRelationInput = {
+    id?: SortOrder
+    type?: SortOrder
+    name?: SortOrder
+    subject?: SortOrder
+    html_content?: SortOrder
+    description?: SortOrderInput | SortOrder
+    updated_at?: SortOrderInput | SortOrder
+    created_at?: SortOrderInput | SortOrder
+    sender_name?: SortOrderInput | SortOrder
+  }
+
+  export type email_templatesWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    type?: string
+    AND?: email_templatesWhereInput | email_templatesWhereInput[]
+    OR?: email_templatesWhereInput[]
+    NOT?: email_templatesWhereInput | email_templatesWhereInput[]
+    name?: StringFilter<"email_templates"> | string
+    subject?: StringFilter<"email_templates"> | string
+    html_content?: StringFilter<"email_templates"> | string
+    description?: StringNullableFilter<"email_templates"> | string | null
+    updated_at?: DateTimeNullableFilter<"email_templates"> | Date | string | null
+    created_at?: DateTimeNullableFilter<"email_templates"> | Date | string | null
+    sender_name?: StringNullableFilter<"email_templates"> | string | null
+  }, "id" | "type">
+
+  export type email_templatesOrderByWithAggregationInput = {
+    id?: SortOrder
+    type?: SortOrder
+    name?: SortOrder
+    subject?: SortOrder
+    html_content?: SortOrder
+    description?: SortOrderInput | SortOrder
+    updated_at?: SortOrderInput | SortOrder
+    created_at?: SortOrderInput | SortOrder
+    sender_name?: SortOrderInput | SortOrder
+    _count?: email_templatesCountOrderByAggregateInput
+    _avg?: email_templatesAvgOrderByAggregateInput
+    _max?: email_templatesMaxOrderByAggregateInput
+    _min?: email_templatesMinOrderByAggregateInput
+    _sum?: email_templatesSumOrderByAggregateInput
+  }
+
+  export type email_templatesScalarWhereWithAggregatesInput = {
+    AND?: email_templatesScalarWhereWithAggregatesInput | email_templatesScalarWhereWithAggregatesInput[]
+    OR?: email_templatesScalarWhereWithAggregatesInput[]
+    NOT?: email_templatesScalarWhereWithAggregatesInput | email_templatesScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"email_templates"> | number
+    type?: StringWithAggregatesFilter<"email_templates"> | string
+    name?: StringWithAggregatesFilter<"email_templates"> | string
+    subject?: StringWithAggregatesFilter<"email_templates"> | string
+    html_content?: StringWithAggregatesFilter<"email_templates"> | string
+    description?: StringNullableWithAggregatesFilter<"email_templates"> | string | null
+    updated_at?: DateTimeNullableWithAggregatesFilter<"email_templates"> | Date | string | null
+    created_at?: DateTimeNullableWithAggregatesFilter<"email_templates"> | Date | string | null
+    sender_name?: StringNullableWithAggregatesFilter<"email_templates"> | string | null
+  }
+
+  export type user_company_accessWhereInput = {
+    AND?: user_company_accessWhereInput | user_company_accessWhereInput[]
+    OR?: user_company_accessWhereInput[]
+    NOT?: user_company_accessWhereInput | user_company_accessWhereInput[]
+    id?: IntFilter<"user_company_access"> | number
+    user_id?: IntFilter<"user_company_access"> | number
+    company_id?: IntFilter<"user_company_access"> | number
+    created_at?: DateTimeNullableFilter<"user_company_access"> | Date | string | null
+    users?: XOR<UsersScalarRelationFilter, usersWhereInput>
+    companies?: XOR<CompaniesScalarRelationFilter, companiesWhereInput>
+  }
+
+  export type user_company_accessOrderByWithRelationInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    company_id?: SortOrder
+    created_at?: SortOrderInput | SortOrder
+    users?: usersOrderByWithRelationInput
+    companies?: companiesOrderByWithRelationInput
+  }
+
+  export type user_company_accessWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: user_company_accessWhereInput | user_company_accessWhereInput[]
+    OR?: user_company_accessWhereInput[]
+    NOT?: user_company_accessWhereInput | user_company_accessWhereInput[]
+    user_id?: IntFilter<"user_company_access"> | number
+    company_id?: IntFilter<"user_company_access"> | number
+    created_at?: DateTimeNullableFilter<"user_company_access"> | Date | string | null
+    users?: XOR<UsersScalarRelationFilter, usersWhereInput>
+    companies?: XOR<CompaniesScalarRelationFilter, companiesWhereInput>
+  }, "id">
+
+  export type user_company_accessOrderByWithAggregationInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    company_id?: SortOrder
+    created_at?: SortOrderInput | SortOrder
+    _count?: user_company_accessCountOrderByAggregateInput
+    _avg?: user_company_accessAvgOrderByAggregateInput
+    _max?: user_company_accessMaxOrderByAggregateInput
+    _min?: user_company_accessMinOrderByAggregateInput
+    _sum?: user_company_accessSumOrderByAggregateInput
+  }
+
+  export type user_company_accessScalarWhereWithAggregatesInput = {
+    AND?: user_company_accessScalarWhereWithAggregatesInput | user_company_accessScalarWhereWithAggregatesInput[]
+    OR?: user_company_accessScalarWhereWithAggregatesInput[]
+    NOT?: user_company_accessScalarWhereWithAggregatesInput | user_company_accessScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"user_company_access"> | number
+    user_id?: IntWithAggregatesFilter<"user_company_access"> | number
+    company_id?: IntWithAggregatesFilter<"user_company_access"> | number
+    created_at?: DateTimeNullableWithAggregatesFilter<"user_company_access"> | Date | string | null
+  }
+
+  export type user_permissionsWhereInput = {
+    AND?: user_permissionsWhereInput | user_permissionsWhereInput[]
+    OR?: user_permissionsWhereInput[]
+    NOT?: user_permissionsWhereInput | user_permissionsWhereInput[]
+    id?: IntFilter<"user_permissions"> | number
+    user_id?: IntFilter<"user_permissions"> | number
+    vehicles?: StringNullableFilter<"user_permissions"> | string | null
+    employees?: StringNullableFilter<"user_permissions"> | string | null
+    finance?: StringNullableFilter<"user_permissions"> | string | null
+    works?: StringNullableFilter<"user_permissions"> | string | null
+    settings?: StringNullableFilter<"user_permissions"> | string | null
+    created_at?: DateTimeNullableFilter<"user_permissions"> | Date | string | null
+    users?: XOR<UsersScalarRelationFilter, usersWhereInput>
+  }
+
+  export type user_permissionsOrderByWithRelationInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    vehicles?: SortOrderInput | SortOrder
+    employees?: SortOrderInput | SortOrder
+    finance?: SortOrderInput | SortOrder
+    works?: SortOrderInput | SortOrder
+    settings?: SortOrderInput | SortOrder
+    created_at?: SortOrderInput | SortOrder
+    users?: usersOrderByWithRelationInput
+  }
+
+  export type user_permissionsWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: user_permissionsWhereInput | user_permissionsWhereInput[]
+    OR?: user_permissionsWhereInput[]
+    NOT?: user_permissionsWhereInput | user_permissionsWhereInput[]
+    user_id?: IntFilter<"user_permissions"> | number
+    vehicles?: StringNullableFilter<"user_permissions"> | string | null
+    employees?: StringNullableFilter<"user_permissions"> | string | null
+    finance?: StringNullableFilter<"user_permissions"> | string | null
+    works?: StringNullableFilter<"user_permissions"> | string | null
+    settings?: StringNullableFilter<"user_permissions"> | string | null
+    created_at?: DateTimeNullableFilter<"user_permissions"> | Date | string | null
+    users?: XOR<UsersScalarRelationFilter, usersWhereInput>
+  }, "id">
+
+  export type user_permissionsOrderByWithAggregationInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    vehicles?: SortOrderInput | SortOrder
+    employees?: SortOrderInput | SortOrder
+    finance?: SortOrderInput | SortOrder
+    works?: SortOrderInput | SortOrder
+    settings?: SortOrderInput | SortOrder
+    created_at?: SortOrderInput | SortOrder
+    _count?: user_permissionsCountOrderByAggregateInput
+    _avg?: user_permissionsAvgOrderByAggregateInput
+    _max?: user_permissionsMaxOrderByAggregateInput
+    _min?: user_permissionsMinOrderByAggregateInput
+    _sum?: user_permissionsSumOrderByAggregateInput
+  }
+
+  export type user_permissionsScalarWhereWithAggregatesInput = {
+    AND?: user_permissionsScalarWhereWithAggregatesInput | user_permissionsScalarWhereWithAggregatesInput[]
+    OR?: user_permissionsScalarWhereWithAggregatesInput[]
+    NOT?: user_permissionsScalarWhereWithAggregatesInput | user_permissionsScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"user_permissions"> | number
+    user_id?: IntWithAggregatesFilter<"user_permissions"> | number
+    vehicles?: StringNullableWithAggregatesFilter<"user_permissions"> | string | null
+    employees?: StringNullableWithAggregatesFilter<"user_permissions"> | string | null
+    finance?: StringNullableWithAggregatesFilter<"user_permissions"> | string | null
+    works?: StringNullableWithAggregatesFilter<"user_permissions"> | string | null
+    settings?: StringNullableWithAggregatesFilter<"user_permissions"> | string | null
+    created_at?: DateTimeNullableWithAggregatesFilter<"user_permissions"> | Date | string | null
+  }
+
   export type assignmentsCreateInput = {
     item_name: string
     quantity?: number | null
@@ -60468,6 +68043,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateInput = {
@@ -60507,6 +68083,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUpdateInput = {
@@ -60545,6 +68122,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateInput = {
@@ -60584,6 +68162,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesCreateManyInput = {
@@ -61291,6 +68870,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -61332,6 +68912,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -61370,6 +68951,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -61411,6 +68993,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -61451,6 +69034,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
   }
 
   export type employeesUpdateManyMutationInput = {
@@ -61477,6 +69061,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type employeesUncheckedUpdateManyInput = {
@@ -61505,6 +69090,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type inspectionsCreateInput = {
@@ -62640,11 +70226,14 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     companies?: companiesCreateNestedManyWithoutUsersInput
     employee?: employeesCreateNestedOneWithoutUserInput
     custom_role?: rolesCreateNestedOneWithoutUsersInput
     created_requests?: requestsCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateInput = {
@@ -62665,9 +70254,12 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
     created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersUpdateInput = {
@@ -62685,11 +70277,14 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     companies?: companiesUpdateManyWithoutUsersNestedInput
     employee?: employeesUpdateOneWithoutUserNestedInput
     custom_role?: rolesUpdateOneWithoutUsersNestedInput
     created_requests?: requestsUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateInput = {
@@ -62710,9 +70305,12 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
     created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type usersCreateManyInput = {
@@ -62733,6 +70331,7 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
   }
 
   export type usersUpdateManyMutationInput = {
@@ -62750,6 +70349,7 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type usersUncheckedUpdateManyInput = {
@@ -62770,6 +70370,7 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type vehiclesCreateInput = {
@@ -64244,6 +71845,369 @@ export namespace Prisma {
     expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type company_notification_settingsCreateInput = {
+    company_id: number
+    settings_json: string
+    updated_at?: Date | string | null
+  }
+
+  export type company_notification_settingsUncheckedCreateInput = {
+    company_id: number
+    settings_json: string
+    updated_at?: Date | string | null
+  }
+
+  export type company_notification_settingsUpdateInput = {
+    company_id?: IntFieldUpdateOperationsInput | number
+    settings_json?: StringFieldUpdateOperationsInput | string
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type company_notification_settingsUncheckedUpdateInput = {
+    company_id?: IntFieldUpdateOperationsInput | number
+    settings_json?: StringFieldUpdateOperationsInput | string
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type company_notification_settingsCreateManyInput = {
+    company_id: number
+    settings_json: string
+    updated_at?: Date | string | null
+  }
+
+  export type company_notification_settingsUpdateManyMutationInput = {
+    company_id?: IntFieldUpdateOperationsInput | number
+    settings_json?: StringFieldUpdateOperationsInput | string
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type company_notification_settingsUncheckedUpdateManyInput = {
+    company_id?: IntFieldUpdateOperationsInput | number
+    settings_json?: StringFieldUpdateOperationsInput | string
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_notification_settingsCreateInput = {
+    user_id: number
+    settings_json: string
+    updated_at?: Date | string | null
+  }
+
+  export type user_notification_settingsUncheckedCreateInput = {
+    user_id: number
+    settings_json: string
+    updated_at?: Date | string | null
+  }
+
+  export type user_notification_settingsUpdateInput = {
+    user_id?: IntFieldUpdateOperationsInput | number
+    settings_json?: StringFieldUpdateOperationsInput | string
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_notification_settingsUncheckedUpdateInput = {
+    user_id?: IntFieldUpdateOperationsInput | number
+    settings_json?: StringFieldUpdateOperationsInput | string
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_notification_settingsCreateManyInput = {
+    user_id: number
+    settings_json: string
+    updated_at?: Date | string | null
+  }
+
+  export type user_notification_settingsUpdateManyMutationInput = {
+    user_id?: IntFieldUpdateOperationsInput | number
+    settings_json?: StringFieldUpdateOperationsInput | string
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_notification_settingsUncheckedUpdateManyInput = {
+    user_id?: IntFieldUpdateOperationsInput | number
+    settings_json?: StringFieldUpdateOperationsInput | string
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type email_settingsCreateInput = {
+    smtp_host?: string | null
+    smtp_port?: number | null
+    smtp_secure?: boolean | null
+    smtp_user?: string | null
+    smtp_pass?: string | null
+    sender_name?: string | null
+    sender_email?: string | null
+    updated_at?: Date | string | null
+  }
+
+  export type email_settingsUncheckedCreateInput = {
+    id?: number
+    smtp_host?: string | null
+    smtp_port?: number | null
+    smtp_secure?: boolean | null
+    smtp_user?: string | null
+    smtp_pass?: string | null
+    sender_name?: string | null
+    sender_email?: string | null
+    updated_at?: Date | string | null
+  }
+
+  export type email_settingsUpdateInput = {
+    smtp_host?: NullableStringFieldUpdateOperationsInput | string | null
+    smtp_port?: NullableIntFieldUpdateOperationsInput | number | null
+    smtp_secure?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    smtp_user?: NullableStringFieldUpdateOperationsInput | string | null
+    smtp_pass?: NullableStringFieldUpdateOperationsInput | string | null
+    sender_name?: NullableStringFieldUpdateOperationsInput | string | null
+    sender_email?: NullableStringFieldUpdateOperationsInput | string | null
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type email_settingsUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    smtp_host?: NullableStringFieldUpdateOperationsInput | string | null
+    smtp_port?: NullableIntFieldUpdateOperationsInput | number | null
+    smtp_secure?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    smtp_user?: NullableStringFieldUpdateOperationsInput | string | null
+    smtp_pass?: NullableStringFieldUpdateOperationsInput | string | null
+    sender_name?: NullableStringFieldUpdateOperationsInput | string | null
+    sender_email?: NullableStringFieldUpdateOperationsInput | string | null
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type email_settingsCreateManyInput = {
+    id?: number
+    smtp_host?: string | null
+    smtp_port?: number | null
+    smtp_secure?: boolean | null
+    smtp_user?: string | null
+    smtp_pass?: string | null
+    sender_name?: string | null
+    sender_email?: string | null
+    updated_at?: Date | string | null
+  }
+
+  export type email_settingsUpdateManyMutationInput = {
+    smtp_host?: NullableStringFieldUpdateOperationsInput | string | null
+    smtp_port?: NullableIntFieldUpdateOperationsInput | number | null
+    smtp_secure?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    smtp_user?: NullableStringFieldUpdateOperationsInput | string | null
+    smtp_pass?: NullableStringFieldUpdateOperationsInput | string | null
+    sender_name?: NullableStringFieldUpdateOperationsInput | string | null
+    sender_email?: NullableStringFieldUpdateOperationsInput | string | null
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type email_settingsUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    smtp_host?: NullableStringFieldUpdateOperationsInput | string | null
+    smtp_port?: NullableIntFieldUpdateOperationsInput | number | null
+    smtp_secure?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    smtp_user?: NullableStringFieldUpdateOperationsInput | string | null
+    smtp_pass?: NullableStringFieldUpdateOperationsInput | string | null
+    sender_name?: NullableStringFieldUpdateOperationsInput | string | null
+    sender_email?: NullableStringFieldUpdateOperationsInput | string | null
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type email_templatesCreateInput = {
+    type: string
+    name: string
+    subject: string
+    html_content: string
+    description?: string | null
+    updated_at?: Date | string | null
+    created_at?: Date | string | null
+    sender_name?: string | null
+  }
+
+  export type email_templatesUncheckedCreateInput = {
+    id?: number
+    type: string
+    name: string
+    subject: string
+    html_content: string
+    description?: string | null
+    updated_at?: Date | string | null
+    created_at?: Date | string | null
+    sender_name?: string | null
+  }
+
+  export type email_templatesUpdateInput = {
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    html_content?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sender_name?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type email_templatesUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    html_content?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sender_name?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type email_templatesCreateManyInput = {
+    id?: number
+    type: string
+    name: string
+    subject: string
+    html_content: string
+    description?: string | null
+    updated_at?: Date | string | null
+    created_at?: Date | string | null
+    sender_name?: string | null
+  }
+
+  export type email_templatesUpdateManyMutationInput = {
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    html_content?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sender_name?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type email_templatesUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    subject?: StringFieldUpdateOperationsInput | string
+    html_content?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sender_name?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type user_company_accessCreateInput = {
+    created_at?: Date | string | null
+    users: usersCreateNestedOneWithoutUser_company_accessInput
+    companies: companiesCreateNestedOneWithoutUser_company_accessInput
+  }
+
+  export type user_company_accessUncheckedCreateInput = {
+    id?: number
+    user_id: number
+    company_id: number
+    created_at?: Date | string | null
+  }
+
+  export type user_company_accessUpdateInput = {
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    users?: usersUpdateOneRequiredWithoutUser_company_accessNestedInput
+    companies?: companiesUpdateOneRequiredWithoutUser_company_accessNestedInput
+  }
+
+  export type user_company_accessUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    user_id?: IntFieldUpdateOperationsInput | number
+    company_id?: IntFieldUpdateOperationsInput | number
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_company_accessCreateManyInput = {
+    id?: number
+    user_id: number
+    company_id: number
+    created_at?: Date | string | null
+  }
+
+  export type user_company_accessUpdateManyMutationInput = {
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_company_accessUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    user_id?: IntFieldUpdateOperationsInput | number
+    company_id?: IntFieldUpdateOperationsInput | number
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_permissionsCreateInput = {
+    vehicles?: string | null
+    employees?: string | null
+    finance?: string | null
+    works?: string | null
+    settings?: string | null
+    created_at?: Date | string | null
+    users: usersCreateNestedOneWithoutUser_permissionsInput
+  }
+
+  export type user_permissionsUncheckedCreateInput = {
+    id?: number
+    user_id: number
+    vehicles?: string | null
+    employees?: string | null
+    finance?: string | null
+    works?: string | null
+    settings?: string | null
+    created_at?: Date | string | null
+  }
+
+  export type user_permissionsUpdateInput = {
+    vehicles?: NullableStringFieldUpdateOperationsInput | string | null
+    employees?: NullableStringFieldUpdateOperationsInput | string | null
+    finance?: NullableStringFieldUpdateOperationsInput | string | null
+    works?: NullableStringFieldUpdateOperationsInput | string | null
+    settings?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    users?: usersUpdateOneRequiredWithoutUser_permissionsNestedInput
+  }
+
+  export type user_permissionsUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    user_id?: IntFieldUpdateOperationsInput | number
+    vehicles?: NullableStringFieldUpdateOperationsInput | string | null
+    employees?: NullableStringFieldUpdateOperationsInput | string | null
+    finance?: NullableStringFieldUpdateOperationsInput | string | null
+    works?: NullableStringFieldUpdateOperationsInput | string | null
+    settings?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_permissionsCreateManyInput = {
+    id?: number
+    user_id: number
+    vehicles?: string | null
+    employees?: string | null
+    finance?: string | null
+    works?: string | null
+    settings?: string | null
+    created_at?: Date | string | null
+  }
+
+  export type user_permissionsUpdateManyMutationInput = {
+    vehicles?: NullableStringFieldUpdateOperationsInput | string | null
+    employees?: NullableStringFieldUpdateOperationsInput | string | null
+    finance?: NullableStringFieldUpdateOperationsInput | string | null
+    works?: NullableStringFieldUpdateOperationsInput | string | null
+    settings?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_permissionsUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    user_id?: IntFieldUpdateOperationsInput | number
+    vehicles?: NullableStringFieldUpdateOperationsInput | string | null
+    employees?: NullableStringFieldUpdateOperationsInput | string | null
+    finance?: NullableStringFieldUpdateOperationsInput | string | null
+    works?: NullableStringFieldUpdateOperationsInput | string | null
+    settings?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
   export type IntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -64592,6 +72556,12 @@ export namespace Prisma {
     none?: requestsWhereInput
   }
 
+  export type User_company_accessListRelationFilter = {
+    every?: user_company_accessWhereInput
+    some?: user_company_accessWhereInput
+    none?: user_company_accessWhereInput
+  }
+
   export type employeesOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -64657,6 +72627,10 @@ export namespace Prisma {
   }
 
   export type requestsOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type user_company_accessOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -65263,6 +73237,7 @@ export namespace Prisma {
     devir_tarihi?: SortOrder
     iban?: SortOrder
     off_days?: SortOrder
+    allow_login?: SortOrder
   }
 
   export type employeesAvgOrderByAggregateInput = {
@@ -65273,6 +73248,7 @@ export namespace Prisma {
     past_used_leaves?: SortOrder
     devir_izin_bakiyesi?: SortOrder
     devir_maas_bakiyesi?: SortOrder
+    allow_login?: SortOrder
   }
 
   export type employeesMaxOrderByAggregateInput = {
@@ -65301,6 +73277,7 @@ export namespace Prisma {
     devir_tarihi?: SortOrder
     iban?: SortOrder
     off_days?: SortOrder
+    allow_login?: SortOrder
   }
 
   export type employeesMinOrderByAggregateInput = {
@@ -65329,6 +73306,7 @@ export namespace Prisma {
     devir_tarihi?: SortOrder
     iban?: SortOrder
     off_days?: SortOrder
+    allow_login?: SortOrder
   }
 
   export type employeesSumOrderByAggregateInput = {
@@ -65339,6 +73317,7 @@ export namespace Prisma {
     past_used_leaves?: SortOrder
     devir_izin_bakiyesi?: SortOrder
     devir_maas_bakiyesi?: SortOrder
+    allow_login?: SortOrder
   }
 
   export type VehiclesScalarRelationFilter = {
@@ -66092,11 +74071,21 @@ export namespace Prisma {
     none?: request_approvalsWhereInput
   }
 
+  export type User_permissionsListRelationFilter = {
+    every?: user_permissionsWhereInput
+    some?: user_permissionsWhereInput
+    none?: user_permissionsWhereInput
+  }
+
   export type companiesOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type request_approvalsOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type user_permissionsOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -66118,6 +74107,7 @@ export namespace Prisma {
     two_factor_backup_codes?: SortOrder
     recovery_otp?: SortOrder
     recovery_otp_expires_at?: SortOrder
+    status?: SortOrder
   }
 
   export type usersAvgOrderByAggregateInput = {
@@ -66147,6 +74137,7 @@ export namespace Prisma {
     two_factor_backup_codes?: SortOrder
     recovery_otp?: SortOrder
     recovery_otp_expires_at?: SortOrder
+    status?: SortOrder
   }
 
   export type usersMinOrderByAggregateInput = {
@@ -66167,6 +74158,7 @@ export namespace Prisma {
     two_factor_backup_codes?: SortOrder
     recovery_otp?: SortOrder
     recovery_otp_expires_at?: SortOrder
+    status?: SortOrder
   }
 
   export type usersSumOrderByAggregateInput = {
@@ -67178,6 +75170,237 @@ export namespace Prisma {
     user_id?: SortOrder
   }
 
+  export type company_notification_settingsCountOrderByAggregateInput = {
+    company_id?: SortOrder
+    settings_json?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type company_notification_settingsAvgOrderByAggregateInput = {
+    company_id?: SortOrder
+  }
+
+  export type company_notification_settingsMaxOrderByAggregateInput = {
+    company_id?: SortOrder
+    settings_json?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type company_notification_settingsMinOrderByAggregateInput = {
+    company_id?: SortOrder
+    settings_json?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type company_notification_settingsSumOrderByAggregateInput = {
+    company_id?: SortOrder
+  }
+
+  export type user_notification_settingsCountOrderByAggregateInput = {
+    user_id?: SortOrder
+    settings_json?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type user_notification_settingsAvgOrderByAggregateInput = {
+    user_id?: SortOrder
+  }
+
+  export type user_notification_settingsMaxOrderByAggregateInput = {
+    user_id?: SortOrder
+    settings_json?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type user_notification_settingsMinOrderByAggregateInput = {
+    user_id?: SortOrder
+    settings_json?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type user_notification_settingsSumOrderByAggregateInput = {
+    user_id?: SortOrder
+  }
+
+  export type BoolNullableFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
+  }
+
+  export type email_settingsCountOrderByAggregateInput = {
+    id?: SortOrder
+    smtp_host?: SortOrder
+    smtp_port?: SortOrder
+    smtp_secure?: SortOrder
+    smtp_user?: SortOrder
+    smtp_pass?: SortOrder
+    sender_name?: SortOrder
+    sender_email?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type email_settingsAvgOrderByAggregateInput = {
+    id?: SortOrder
+    smtp_port?: SortOrder
+  }
+
+  export type email_settingsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    smtp_host?: SortOrder
+    smtp_port?: SortOrder
+    smtp_secure?: SortOrder
+    smtp_user?: SortOrder
+    smtp_pass?: SortOrder
+    sender_name?: SortOrder
+    sender_email?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type email_settingsMinOrderByAggregateInput = {
+    id?: SortOrder
+    smtp_host?: SortOrder
+    smtp_port?: SortOrder
+    smtp_secure?: SortOrder
+    smtp_user?: SortOrder
+    smtp_pass?: SortOrder
+    sender_name?: SortOrder
+    sender_email?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type email_settingsSumOrderByAggregateInput = {
+    id?: SortOrder
+    smtp_port?: SortOrder
+  }
+
+  export type BoolNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableWithAggregatesFilter<$PrismaModel> | boolean | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedBoolNullableFilter<$PrismaModel>
+    _max?: NestedBoolNullableFilter<$PrismaModel>
+  }
+
+  export type email_templatesCountOrderByAggregateInput = {
+    id?: SortOrder
+    type?: SortOrder
+    name?: SortOrder
+    subject?: SortOrder
+    html_content?: SortOrder
+    description?: SortOrder
+    updated_at?: SortOrder
+    created_at?: SortOrder
+    sender_name?: SortOrder
+  }
+
+  export type email_templatesAvgOrderByAggregateInput = {
+    id?: SortOrder
+  }
+
+  export type email_templatesMaxOrderByAggregateInput = {
+    id?: SortOrder
+    type?: SortOrder
+    name?: SortOrder
+    subject?: SortOrder
+    html_content?: SortOrder
+    description?: SortOrder
+    updated_at?: SortOrder
+    created_at?: SortOrder
+    sender_name?: SortOrder
+  }
+
+  export type email_templatesMinOrderByAggregateInput = {
+    id?: SortOrder
+    type?: SortOrder
+    name?: SortOrder
+    subject?: SortOrder
+    html_content?: SortOrder
+    description?: SortOrder
+    updated_at?: SortOrder
+    created_at?: SortOrder
+    sender_name?: SortOrder
+  }
+
+  export type email_templatesSumOrderByAggregateInput = {
+    id?: SortOrder
+  }
+
+  export type user_company_accessCountOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    company_id?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type user_company_accessAvgOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    company_id?: SortOrder
+  }
+
+  export type user_company_accessMaxOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    company_id?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type user_company_accessMinOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    company_id?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type user_company_accessSumOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    company_id?: SortOrder
+  }
+
+  export type user_permissionsCountOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    vehicles?: SortOrder
+    employees?: SortOrder
+    finance?: SortOrder
+    works?: SortOrder
+    settings?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type user_permissionsAvgOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+  }
+
+  export type user_permissionsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    vehicles?: SortOrder
+    employees?: SortOrder
+    finance?: SortOrder
+    works?: SortOrder
+    settings?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type user_permissionsMinOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+    vehicles?: SortOrder
+    employees?: SortOrder
+    finance?: SortOrder
+    works?: SortOrder
+    settings?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type user_permissionsSumOrderByAggregateInput = {
+    id?: SortOrder
+    user_id?: SortOrder
+  }
+
   export type vehiclesCreateNestedOneWithoutAssignmentsInput = {
     create?: XOR<vehiclesCreateWithoutAssignmentsInput, vehiclesUncheckedCreateWithoutAssignmentsInput>
     connectOrCreate?: vehiclesCreateOrConnectWithoutAssignmentsInput
@@ -67357,6 +75580,13 @@ export namespace Prisma {
     connect?: requestsWhereUniqueInput | requestsWhereUniqueInput[]
   }
 
+  export type user_company_accessCreateNestedManyWithoutCompaniesInput = {
+    create?: XOR<user_company_accessCreateWithoutCompaniesInput, user_company_accessUncheckedCreateWithoutCompaniesInput> | user_company_accessCreateWithoutCompaniesInput[] | user_company_accessUncheckedCreateWithoutCompaniesInput[]
+    connectOrCreate?: user_company_accessCreateOrConnectWithoutCompaniesInput | user_company_accessCreateOrConnectWithoutCompaniesInput[]
+    createMany?: user_company_accessCreateManyCompaniesInputEnvelope
+    connect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+  }
+
   export type employeesUncheckedCreateNestedManyWithoutCompaniesInput = {
     create?: XOR<employeesCreateWithoutCompaniesInput, employeesUncheckedCreateWithoutCompaniesInput> | employeesCreateWithoutCompaniesInput[] | employeesUncheckedCreateWithoutCompaniesInput[]
     connectOrCreate?: employeesCreateOrConnectWithoutCompaniesInput | employeesCreateOrConnectWithoutCompaniesInput[]
@@ -67480,6 +75710,13 @@ export namespace Prisma {
     connectOrCreate?: requestsCreateOrConnectWithoutCompaniesInput | requestsCreateOrConnectWithoutCompaniesInput[]
     createMany?: requestsCreateManyCompaniesInputEnvelope
     connect?: requestsWhereUniqueInput | requestsWhereUniqueInput[]
+  }
+
+  export type user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput = {
+    create?: XOR<user_company_accessCreateWithoutCompaniesInput, user_company_accessUncheckedCreateWithoutCompaniesInput> | user_company_accessCreateWithoutCompaniesInput[] | user_company_accessUncheckedCreateWithoutCompaniesInput[]
+    connectOrCreate?: user_company_accessCreateOrConnectWithoutCompaniesInput | user_company_accessCreateOrConnectWithoutCompaniesInput[]
+    createMany?: user_company_accessCreateManyCompaniesInputEnvelope
+    connect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
   }
 
   export type usersUpdateOneWithoutCompaniesNestedInput = {
@@ -67740,6 +75977,20 @@ export namespace Prisma {
     deleteMany?: requestsScalarWhereInput | requestsScalarWhereInput[]
   }
 
+  export type user_company_accessUpdateManyWithoutCompaniesNestedInput = {
+    create?: XOR<user_company_accessCreateWithoutCompaniesInput, user_company_accessUncheckedCreateWithoutCompaniesInput> | user_company_accessCreateWithoutCompaniesInput[] | user_company_accessUncheckedCreateWithoutCompaniesInput[]
+    connectOrCreate?: user_company_accessCreateOrConnectWithoutCompaniesInput | user_company_accessCreateOrConnectWithoutCompaniesInput[]
+    upsert?: user_company_accessUpsertWithWhereUniqueWithoutCompaniesInput | user_company_accessUpsertWithWhereUniqueWithoutCompaniesInput[]
+    createMany?: user_company_accessCreateManyCompaniesInputEnvelope
+    set?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    disconnect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    delete?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    connect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    update?: user_company_accessUpdateWithWhereUniqueWithoutCompaniesInput | user_company_accessUpdateWithWhereUniqueWithoutCompaniesInput[]
+    updateMany?: user_company_accessUpdateManyWithWhereWithoutCompaniesInput | user_company_accessUpdateManyWithWhereWithoutCompaniesInput[]
+    deleteMany?: user_company_accessScalarWhereInput | user_company_accessScalarWhereInput[]
+  }
+
   export type employeesUncheckedUpdateManyWithoutCompaniesNestedInput = {
     create?: XOR<employeesCreateWithoutCompaniesInput, employeesUncheckedCreateWithoutCompaniesInput> | employeesCreateWithoutCompaniesInput[] | employeesUncheckedCreateWithoutCompaniesInput[]
     connectOrCreate?: employeesCreateOrConnectWithoutCompaniesInput | employeesCreateOrConnectWithoutCompaniesInput[]
@@ -67986,6 +76237,20 @@ export namespace Prisma {
     update?: requestsUpdateWithWhereUniqueWithoutCompaniesInput | requestsUpdateWithWhereUniqueWithoutCompaniesInput[]
     updateMany?: requestsUpdateManyWithWhereWithoutCompaniesInput | requestsUpdateManyWithWhereWithoutCompaniesInput[]
     deleteMany?: requestsScalarWhereInput | requestsScalarWhereInput[]
+  }
+
+  export type user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput = {
+    create?: XOR<user_company_accessCreateWithoutCompaniesInput, user_company_accessUncheckedCreateWithoutCompaniesInput> | user_company_accessCreateWithoutCompaniesInput[] | user_company_accessUncheckedCreateWithoutCompaniesInput[]
+    connectOrCreate?: user_company_accessCreateOrConnectWithoutCompaniesInput | user_company_accessCreateOrConnectWithoutCompaniesInput[]
+    upsert?: user_company_accessUpsertWithWhereUniqueWithoutCompaniesInput | user_company_accessUpsertWithWhereUniqueWithoutCompaniesInput[]
+    createMany?: user_company_accessCreateManyCompaniesInputEnvelope
+    set?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    disconnect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    delete?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    connect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    update?: user_company_accessUpdateWithWhereUniqueWithoutCompaniesInput | user_company_accessUpdateWithWhereUniqueWithoutCompaniesInput[]
+    updateMany?: user_company_accessUpdateManyWithWhereWithoutCompaniesInput | user_company_accessUpdateManyWithWhereWithoutCompaniesInput[]
+    deleteMany?: user_company_accessScalarWhereInput | user_company_accessScalarWhereInput[]
   }
 
   export type companiesCreateNestedOneWithoutCustomersInput = {
@@ -68855,6 +77120,20 @@ export namespace Prisma {
     connect?: request_approvalsWhereUniqueInput | request_approvalsWhereUniqueInput[]
   }
 
+  export type user_company_accessCreateNestedManyWithoutUsersInput = {
+    create?: XOR<user_company_accessCreateWithoutUsersInput, user_company_accessUncheckedCreateWithoutUsersInput> | user_company_accessCreateWithoutUsersInput[] | user_company_accessUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: user_company_accessCreateOrConnectWithoutUsersInput | user_company_accessCreateOrConnectWithoutUsersInput[]
+    createMany?: user_company_accessCreateManyUsersInputEnvelope
+    connect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+  }
+
+  export type user_permissionsCreateNestedManyWithoutUsersInput = {
+    create?: XOR<user_permissionsCreateWithoutUsersInput, user_permissionsUncheckedCreateWithoutUsersInput> | user_permissionsCreateWithoutUsersInput[] | user_permissionsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: user_permissionsCreateOrConnectWithoutUsersInput | user_permissionsCreateOrConnectWithoutUsersInput[]
+    createMany?: user_permissionsCreateManyUsersInputEnvelope
+    connect?: user_permissionsWhereUniqueInput | user_permissionsWhereUniqueInput[]
+  }
+
   export type companiesUncheckedCreateNestedManyWithoutUsersInput = {
     create?: XOR<companiesCreateWithoutUsersInput, companiesUncheckedCreateWithoutUsersInput> | companiesCreateWithoutUsersInput[] | companiesUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: companiesCreateOrConnectWithoutUsersInput | companiesCreateOrConnectWithoutUsersInput[]
@@ -68874,6 +77153,20 @@ export namespace Prisma {
     connectOrCreate?: request_approvalsCreateOrConnectWithoutApproverInput | request_approvalsCreateOrConnectWithoutApproverInput[]
     createMany?: request_approvalsCreateManyApproverInputEnvelope
     connect?: request_approvalsWhereUniqueInput | request_approvalsWhereUniqueInput[]
+  }
+
+  export type user_company_accessUncheckedCreateNestedManyWithoutUsersInput = {
+    create?: XOR<user_company_accessCreateWithoutUsersInput, user_company_accessUncheckedCreateWithoutUsersInput> | user_company_accessCreateWithoutUsersInput[] | user_company_accessUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: user_company_accessCreateOrConnectWithoutUsersInput | user_company_accessCreateOrConnectWithoutUsersInput[]
+    createMany?: user_company_accessCreateManyUsersInputEnvelope
+    connect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+  }
+
+  export type user_permissionsUncheckedCreateNestedManyWithoutUsersInput = {
+    create?: XOR<user_permissionsCreateWithoutUsersInput, user_permissionsUncheckedCreateWithoutUsersInput> | user_permissionsCreateWithoutUsersInput[] | user_permissionsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: user_permissionsCreateOrConnectWithoutUsersInput | user_permissionsCreateOrConnectWithoutUsersInput[]
+    createMany?: user_permissionsCreateManyUsersInputEnvelope
+    connect?: user_permissionsWhereUniqueInput | user_permissionsWhereUniqueInput[]
   }
 
   export type companiesUpdateManyWithoutUsersNestedInput = {
@@ -68938,6 +77231,34 @@ export namespace Prisma {
     deleteMany?: request_approvalsScalarWhereInput | request_approvalsScalarWhereInput[]
   }
 
+  export type user_company_accessUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<user_company_accessCreateWithoutUsersInput, user_company_accessUncheckedCreateWithoutUsersInput> | user_company_accessCreateWithoutUsersInput[] | user_company_accessUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: user_company_accessCreateOrConnectWithoutUsersInput | user_company_accessCreateOrConnectWithoutUsersInput[]
+    upsert?: user_company_accessUpsertWithWhereUniqueWithoutUsersInput | user_company_accessUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: user_company_accessCreateManyUsersInputEnvelope
+    set?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    disconnect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    delete?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    connect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    update?: user_company_accessUpdateWithWhereUniqueWithoutUsersInput | user_company_accessUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: user_company_accessUpdateManyWithWhereWithoutUsersInput | user_company_accessUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: user_company_accessScalarWhereInput | user_company_accessScalarWhereInput[]
+  }
+
+  export type user_permissionsUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<user_permissionsCreateWithoutUsersInput, user_permissionsUncheckedCreateWithoutUsersInput> | user_permissionsCreateWithoutUsersInput[] | user_permissionsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: user_permissionsCreateOrConnectWithoutUsersInput | user_permissionsCreateOrConnectWithoutUsersInput[]
+    upsert?: user_permissionsUpsertWithWhereUniqueWithoutUsersInput | user_permissionsUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: user_permissionsCreateManyUsersInputEnvelope
+    set?: user_permissionsWhereUniqueInput | user_permissionsWhereUniqueInput[]
+    disconnect?: user_permissionsWhereUniqueInput | user_permissionsWhereUniqueInput[]
+    delete?: user_permissionsWhereUniqueInput | user_permissionsWhereUniqueInput[]
+    connect?: user_permissionsWhereUniqueInput | user_permissionsWhereUniqueInput[]
+    update?: user_permissionsUpdateWithWhereUniqueWithoutUsersInput | user_permissionsUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: user_permissionsUpdateManyWithWhereWithoutUsersInput | user_permissionsUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: user_permissionsScalarWhereInput | user_permissionsScalarWhereInput[]
+  }
+
   export type companiesUncheckedUpdateManyWithoutUsersNestedInput = {
     create?: XOR<companiesCreateWithoutUsersInput, companiesUncheckedCreateWithoutUsersInput> | companiesCreateWithoutUsersInput[] | companiesUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: companiesCreateOrConnectWithoutUsersInput | companiesCreateOrConnectWithoutUsersInput[]
@@ -68978,6 +77299,34 @@ export namespace Prisma {
     update?: request_approvalsUpdateWithWhereUniqueWithoutApproverInput | request_approvalsUpdateWithWhereUniqueWithoutApproverInput[]
     updateMany?: request_approvalsUpdateManyWithWhereWithoutApproverInput | request_approvalsUpdateManyWithWhereWithoutApproverInput[]
     deleteMany?: request_approvalsScalarWhereInput | request_approvalsScalarWhereInput[]
+  }
+
+  export type user_company_accessUncheckedUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<user_company_accessCreateWithoutUsersInput, user_company_accessUncheckedCreateWithoutUsersInput> | user_company_accessCreateWithoutUsersInput[] | user_company_accessUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: user_company_accessCreateOrConnectWithoutUsersInput | user_company_accessCreateOrConnectWithoutUsersInput[]
+    upsert?: user_company_accessUpsertWithWhereUniqueWithoutUsersInput | user_company_accessUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: user_company_accessCreateManyUsersInputEnvelope
+    set?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    disconnect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    delete?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    connect?: user_company_accessWhereUniqueInput | user_company_accessWhereUniqueInput[]
+    update?: user_company_accessUpdateWithWhereUniqueWithoutUsersInput | user_company_accessUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: user_company_accessUpdateManyWithWhereWithoutUsersInput | user_company_accessUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: user_company_accessScalarWhereInput | user_company_accessScalarWhereInput[]
+  }
+
+  export type user_permissionsUncheckedUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<user_permissionsCreateWithoutUsersInput, user_permissionsUncheckedCreateWithoutUsersInput> | user_permissionsCreateWithoutUsersInput[] | user_permissionsUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: user_permissionsCreateOrConnectWithoutUsersInput | user_permissionsCreateOrConnectWithoutUsersInput[]
+    upsert?: user_permissionsUpsertWithWhereUniqueWithoutUsersInput | user_permissionsUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: user_permissionsCreateManyUsersInputEnvelope
+    set?: user_permissionsWhereUniqueInput | user_permissionsWhereUniqueInput[]
+    disconnect?: user_permissionsWhereUniqueInput | user_permissionsWhereUniqueInput[]
+    delete?: user_permissionsWhereUniqueInput | user_permissionsWhereUniqueInput[]
+    connect?: user_permissionsWhereUniqueInput | user_permissionsWhereUniqueInput[]
+    update?: user_permissionsUpdateWithWhereUniqueWithoutUsersInput | user_permissionsUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: user_permissionsUpdateManyWithWhereWithoutUsersInput | user_permissionsUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: user_permissionsScalarWhereInput | user_permissionsScalarWhereInput[]
   }
 
   export type assignmentsCreateNestedManyWithoutVehiclesInput = {
@@ -69810,6 +78159,52 @@ export namespace Prisma {
     update?: XOR<XOR<companiesUpdateToOneWithWhereWithoutAudit_logsInput, companiesUpdateWithoutAudit_logsInput>, companiesUncheckedUpdateWithoutAudit_logsInput>
   }
 
+  export type NullableBoolFieldUpdateOperationsInput = {
+    set?: boolean | null
+  }
+
+  export type usersCreateNestedOneWithoutUser_company_accessInput = {
+    create?: XOR<usersCreateWithoutUser_company_accessInput, usersUncheckedCreateWithoutUser_company_accessInput>
+    connectOrCreate?: usersCreateOrConnectWithoutUser_company_accessInput
+    connect?: usersWhereUniqueInput
+  }
+
+  export type companiesCreateNestedOneWithoutUser_company_accessInput = {
+    create?: XOR<companiesCreateWithoutUser_company_accessInput, companiesUncheckedCreateWithoutUser_company_accessInput>
+    connectOrCreate?: companiesCreateOrConnectWithoutUser_company_accessInput
+    connect?: companiesWhereUniqueInput
+  }
+
+  export type usersUpdateOneRequiredWithoutUser_company_accessNestedInput = {
+    create?: XOR<usersCreateWithoutUser_company_accessInput, usersUncheckedCreateWithoutUser_company_accessInput>
+    connectOrCreate?: usersCreateOrConnectWithoutUser_company_accessInput
+    upsert?: usersUpsertWithoutUser_company_accessInput
+    connect?: usersWhereUniqueInput
+    update?: XOR<XOR<usersUpdateToOneWithWhereWithoutUser_company_accessInput, usersUpdateWithoutUser_company_accessInput>, usersUncheckedUpdateWithoutUser_company_accessInput>
+  }
+
+  export type companiesUpdateOneRequiredWithoutUser_company_accessNestedInput = {
+    create?: XOR<companiesCreateWithoutUser_company_accessInput, companiesUncheckedCreateWithoutUser_company_accessInput>
+    connectOrCreate?: companiesCreateOrConnectWithoutUser_company_accessInput
+    upsert?: companiesUpsertWithoutUser_company_accessInput
+    connect?: companiesWhereUniqueInput
+    update?: XOR<XOR<companiesUpdateToOneWithWhereWithoutUser_company_accessInput, companiesUpdateWithoutUser_company_accessInput>, companiesUncheckedUpdateWithoutUser_company_accessInput>
+  }
+
+  export type usersCreateNestedOneWithoutUser_permissionsInput = {
+    create?: XOR<usersCreateWithoutUser_permissionsInput, usersUncheckedCreateWithoutUser_permissionsInput>
+    connectOrCreate?: usersCreateOrConnectWithoutUser_permissionsInput
+    connect?: usersWhereUniqueInput
+  }
+
+  export type usersUpdateOneRequiredWithoutUser_permissionsNestedInput = {
+    create?: XOR<usersCreateWithoutUser_permissionsInput, usersUncheckedCreateWithoutUser_permissionsInput>
+    connectOrCreate?: usersCreateOrConnectWithoutUser_permissionsInput
+    upsert?: usersUpsertWithoutUser_permissionsInput
+    connect?: usersWhereUniqueInput
+    update?: XOR<XOR<usersUpdateToOneWithWhereWithoutUser_permissionsInput, usersUpdateWithoutUser_permissionsInput>, usersUncheckedUpdateWithoutUser_permissionsInput>
+  }
+
   export type NestedIntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -70043,6 +78438,19 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
+  export type NestedBoolNullableFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
+  }
+
+  export type NestedBoolNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel> | null
+    not?: NestedBoolNullableWithAggregatesFilter<$PrismaModel> | boolean | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedBoolNullableFilter<$PrismaModel>
+    _max?: NestedBoolNullableFilter<$PrismaModel>
+  }
+
   export type vehiclesCreateWithoutAssignmentsInput = {
     type: string
     plate: string
@@ -70168,10 +78576,13 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     employee?: employeesCreateNestedOneWithoutUserInput
     custom_role?: rolesCreateNestedOneWithoutUsersInput
     created_requests?: requestsCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutCompaniesInput = {
@@ -70192,8 +78603,11 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersCreateOrConnectWithoutCompaniesInput = {
@@ -70225,6 +78639,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -70264,6 +78679,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -70846,6 +79262,27 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type user_company_accessCreateWithoutCompaniesInput = {
+    created_at?: Date | string | null
+    users: usersCreateNestedOneWithoutUser_company_accessInput
+  }
+
+  export type user_company_accessUncheckedCreateWithoutCompaniesInput = {
+    id?: number
+    user_id: number
+    created_at?: Date | string | null
+  }
+
+  export type user_company_accessCreateOrConnectWithoutCompaniesInput = {
+    where: user_company_accessWhereUniqueInput
+    create: XOR<user_company_accessCreateWithoutCompaniesInput, user_company_accessUncheckedCreateWithoutCompaniesInput>
+  }
+
+  export type user_company_accessCreateManyCompaniesInputEnvelope = {
+    data: user_company_accessCreateManyCompaniesInput | user_company_accessCreateManyCompaniesInput[]
+    skipDuplicates?: boolean
+  }
+
   export type usersUpsertWithoutCompaniesInput = {
     update: XOR<usersUpdateWithoutCompaniesInput, usersUncheckedUpdateWithoutCompaniesInput>
     create: XOR<usersCreateWithoutCompaniesInput, usersUncheckedCreateWithoutCompaniesInput>
@@ -70872,10 +79309,13 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     employee?: employeesUpdateOneWithoutUserNestedInput
     custom_role?: rolesUpdateOneWithoutUsersNestedInput
     created_requests?: requestsUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutCompaniesInput = {
@@ -70896,8 +79336,11 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type employeesUpsertWithWhereUniqueWithoutCompaniesInput = {
@@ -70945,6 +79388,7 @@ export namespace Prisma {
     devir_tarihi?: DateTimeNullableFilter<"employees"> | Date | string | null
     iban?: StringNullableFilter<"employees"> | string | null
     off_days?: StringNullableFilter<"employees"> | string | null
+    allow_login?: IntNullableFilter<"employees"> | number | null
   }
 
   export type meal_settingsUpsertWithoutCompaniesInput = {
@@ -71476,6 +79920,32 @@ export namespace Prisma {
     updated_at?: DateTimeNullableFilter<"requests"> | Date | string | null
   }
 
+  export type user_company_accessUpsertWithWhereUniqueWithoutCompaniesInput = {
+    where: user_company_accessWhereUniqueInput
+    update: XOR<user_company_accessUpdateWithoutCompaniesInput, user_company_accessUncheckedUpdateWithoutCompaniesInput>
+    create: XOR<user_company_accessCreateWithoutCompaniesInput, user_company_accessUncheckedCreateWithoutCompaniesInput>
+  }
+
+  export type user_company_accessUpdateWithWhereUniqueWithoutCompaniesInput = {
+    where: user_company_accessWhereUniqueInput
+    data: XOR<user_company_accessUpdateWithoutCompaniesInput, user_company_accessUncheckedUpdateWithoutCompaniesInput>
+  }
+
+  export type user_company_accessUpdateManyWithWhereWithoutCompaniesInput = {
+    where: user_company_accessScalarWhereInput
+    data: XOR<user_company_accessUpdateManyMutationInput, user_company_accessUncheckedUpdateManyWithoutCompaniesInput>
+  }
+
+  export type user_company_accessScalarWhereInput = {
+    AND?: user_company_accessScalarWhereInput | user_company_accessScalarWhereInput[]
+    OR?: user_company_accessScalarWhereInput[]
+    NOT?: user_company_accessScalarWhereInput | user_company_accessScalarWhereInput[]
+    id?: IntFilter<"user_company_access"> | number
+    user_id?: IntFilter<"user_company_access"> | number
+    company_id?: IntFilter<"user_company_access"> | number
+    created_at?: DateTimeNullableFilter<"user_company_access"> | Date | string | null
+  }
+
   export type companiesCreateWithoutCustomersInput = {
     name: string
     tax_number?: string | null
@@ -71511,6 +79981,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutCustomersInput = {
@@ -71549,6 +80020,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutCustomersInput = {
@@ -71659,6 +80131,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutCustomersInput = {
@@ -71697,6 +80170,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type worksUpsertWithWhereUniqueWithoutCustomersInput = {
@@ -71849,6 +80323,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_attendance?: employee_attendanceCreateNestedManyWithoutEmployeesInput
@@ -71889,6 +80364,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_attendance?: employee_attendanceUncheckedCreateNestedManyWithoutEmployeesInput
@@ -71942,6 +80418,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_attendance?: employee_attendanceUpdateManyWithoutEmployeesNestedInput
@@ -71982,6 +80459,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_attendance?: employee_attendanceUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -72019,6 +80497,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -72059,6 +80538,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -72112,6 +80592,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -72152,6 +80633,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -72189,6 +80671,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -72229,6 +80712,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -72282,6 +80766,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -72322,6 +80807,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -72359,6 +80845,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -72399,6 +80886,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -72452,6 +80940,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -72492,6 +80981,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -72529,6 +81019,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -72569,6 +81060,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -72622,6 +81114,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -72662,6 +81155,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -72690,10 +81184,13 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     companies?: companiesCreateNestedManyWithoutUsersInput
     custom_role?: rolesCreateNestedOneWithoutUsersInput
     created_requests?: requestsCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutEmployeeInput = {
@@ -72713,9 +81210,12 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
     created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersCreateOrConnectWithoutEmployeeInput = {
@@ -72958,6 +81458,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutEmployeesInput = {
@@ -72996,6 +81497,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutEmployeesInput = {
@@ -73242,10 +81744,13 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     companies?: companiesUpdateManyWithoutUsersNestedInput
     custom_role?: rolesUpdateOneWithoutUsersNestedInput
     created_requests?: requestsUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutEmployeeInput = {
@@ -73265,9 +81770,12 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
     created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type requestsUpsertWithWhereUniqueWithoutEmployeeInput = {
@@ -73488,6 +81996,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutEmployeesInput = {
@@ -73526,6 +82035,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type leavesUpsertWithWhereUniqueWithoutEmployeesInput = {
@@ -73928,6 +82438,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -73968,6 +82479,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -74021,6 +82533,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -74061,6 +82574,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -74219,6 +82733,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutMeal_settingsInput = {
@@ -74257,6 +82772,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutMeal_settingsInput = {
@@ -74310,6 +82826,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutMeal_settingsInput = {
@@ -74348,6 +82865,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesCreateWithoutMeal_ticketsInput = {
@@ -74385,6 +82903,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutMeal_ticketsInput = {
@@ -74423,6 +82942,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutMeal_ticketsInput = {
@@ -74476,6 +82996,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutMeal_ticketsInput = {
@@ -74514,6 +83035,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesCreateWithoutMeal_price_historyInput = {
@@ -74551,6 +83073,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutMeal_price_historyInput = {
@@ -74589,6 +83112,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutMeal_price_historyInput = {
@@ -74642,6 +83166,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutMeal_price_historyInput = {
@@ -74680,6 +83205,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type employeesCreateWithoutOvertimesInput = {
@@ -74706,6 +83232,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -74746,6 +83273,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -74799,6 +83327,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -74839,6 +83368,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -74887,6 +83417,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutRecurring_transactionsInput = {
@@ -74925,6 +83456,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutRecurring_transactionsInput = {
@@ -74978,6 +83510,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutRecurring_transactionsInput = {
@@ -75016,6 +83549,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type employeesCreateWithoutSalariesInput = {
@@ -75042,6 +83576,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -75082,6 +83617,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -75135,6 +83671,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -75175,6 +83712,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -75333,6 +83871,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutTransactionsInput = {
@@ -75371,6 +83910,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutTransactionsInput = {
@@ -75424,6 +83964,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutTransactionsInput = {
@@ -75462,6 +84003,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesCreateWithoutUsersInput = {
@@ -75499,6 +84041,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutUsersInput = {
@@ -75537,6 +84080,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutUsersInput = {
@@ -75573,6 +84117,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
     employee_attendance?: employee_attendanceCreateNestedManyWithoutEmployeesInput
@@ -75613,6 +84158,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
     employee_attendance?: employee_attendanceUncheckedCreateNestedManyWithoutEmployeesInput
@@ -75723,6 +84269,56 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type user_company_accessCreateWithoutUsersInput = {
+    created_at?: Date | string | null
+    companies: companiesCreateNestedOneWithoutUser_company_accessInput
+  }
+
+  export type user_company_accessUncheckedCreateWithoutUsersInput = {
+    id?: number
+    company_id: number
+    created_at?: Date | string | null
+  }
+
+  export type user_company_accessCreateOrConnectWithoutUsersInput = {
+    where: user_company_accessWhereUniqueInput
+    create: XOR<user_company_accessCreateWithoutUsersInput, user_company_accessUncheckedCreateWithoutUsersInput>
+  }
+
+  export type user_company_accessCreateManyUsersInputEnvelope = {
+    data: user_company_accessCreateManyUsersInput | user_company_accessCreateManyUsersInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type user_permissionsCreateWithoutUsersInput = {
+    vehicles?: string | null
+    employees?: string | null
+    finance?: string | null
+    works?: string | null
+    settings?: string | null
+    created_at?: Date | string | null
+  }
+
+  export type user_permissionsUncheckedCreateWithoutUsersInput = {
+    id?: number
+    vehicles?: string | null
+    employees?: string | null
+    finance?: string | null
+    works?: string | null
+    settings?: string | null
+    created_at?: Date | string | null
+  }
+
+  export type user_permissionsCreateOrConnectWithoutUsersInput = {
+    where: user_permissionsWhereUniqueInput
+    create: XOR<user_permissionsCreateWithoutUsersInput, user_permissionsUncheckedCreateWithoutUsersInput>
+  }
+
+  export type user_permissionsCreateManyUsersInputEnvelope = {
+    data: user_permissionsCreateManyUsersInput | user_permissionsCreateManyUsersInput[]
+    skipDuplicates?: boolean
+  }
+
   export type companiesUpsertWithWhereUniqueWithoutUsersInput = {
     where: companiesWhereUniqueInput
     update: XOR<companiesUpdateWithoutUsersInput, companiesUncheckedUpdateWithoutUsersInput>
@@ -75798,6 +84394,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
     employee_attendance?: employee_attendanceUpdateManyWithoutEmployeesNestedInput
@@ -75838,6 +84435,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
     employee_attendance?: employee_attendanceUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -75922,6 +84520,52 @@ export namespace Prisma {
     status?: StringFilter<"request_approvals"> | string
     comment?: StringNullableFilter<"request_approvals"> | string | null
     action_date?: DateTimeNullableFilter<"request_approvals"> | Date | string | null
+  }
+
+  export type user_company_accessUpsertWithWhereUniqueWithoutUsersInput = {
+    where: user_company_accessWhereUniqueInput
+    update: XOR<user_company_accessUpdateWithoutUsersInput, user_company_accessUncheckedUpdateWithoutUsersInput>
+    create: XOR<user_company_accessCreateWithoutUsersInput, user_company_accessUncheckedCreateWithoutUsersInput>
+  }
+
+  export type user_company_accessUpdateWithWhereUniqueWithoutUsersInput = {
+    where: user_company_accessWhereUniqueInput
+    data: XOR<user_company_accessUpdateWithoutUsersInput, user_company_accessUncheckedUpdateWithoutUsersInput>
+  }
+
+  export type user_company_accessUpdateManyWithWhereWithoutUsersInput = {
+    where: user_company_accessScalarWhereInput
+    data: XOR<user_company_accessUpdateManyMutationInput, user_company_accessUncheckedUpdateManyWithoutUsersInput>
+  }
+
+  export type user_permissionsUpsertWithWhereUniqueWithoutUsersInput = {
+    where: user_permissionsWhereUniqueInput
+    update: XOR<user_permissionsUpdateWithoutUsersInput, user_permissionsUncheckedUpdateWithoutUsersInput>
+    create: XOR<user_permissionsCreateWithoutUsersInput, user_permissionsUncheckedCreateWithoutUsersInput>
+  }
+
+  export type user_permissionsUpdateWithWhereUniqueWithoutUsersInput = {
+    where: user_permissionsWhereUniqueInput
+    data: XOR<user_permissionsUpdateWithoutUsersInput, user_permissionsUncheckedUpdateWithoutUsersInput>
+  }
+
+  export type user_permissionsUpdateManyWithWhereWithoutUsersInput = {
+    where: user_permissionsScalarWhereInput
+    data: XOR<user_permissionsUpdateManyMutationInput, user_permissionsUncheckedUpdateManyWithoutUsersInput>
+  }
+
+  export type user_permissionsScalarWhereInput = {
+    AND?: user_permissionsScalarWhereInput | user_permissionsScalarWhereInput[]
+    OR?: user_permissionsScalarWhereInput[]
+    NOT?: user_permissionsScalarWhereInput | user_permissionsScalarWhereInput[]
+    id?: IntFilter<"user_permissions"> | number
+    user_id?: IntFilter<"user_permissions"> | number
+    vehicles?: StringNullableFilter<"user_permissions"> | string | null
+    employees?: StringNullableFilter<"user_permissions"> | string | null
+    finance?: StringNullableFilter<"user_permissions"> | string | null
+    works?: StringNullableFilter<"user_permissions"> | string | null
+    settings?: StringNullableFilter<"user_permissions"> | string | null
+    created_at?: DateTimeNullableFilter<"user_permissions"> | Date | string | null
   }
 
   export type assignmentsCreateWithoutVehiclesInput = {
@@ -76181,6 +84825,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutVehiclesInput = {
@@ -76219,6 +84864,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutVehiclesInput = {
@@ -76582,6 +85228,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutVehiclesInput = {
@@ -76620,6 +85267,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type work_itemsUpsertWithWhereUniqueWithoutVehiclesInput = {
@@ -76678,6 +85326,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -76718,6 +85367,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -76875,6 +85525,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -76915,6 +85566,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -77117,6 +85769,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     requests?: requestsCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
@@ -77157,6 +85810,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     requests?: requestsUncheckedCreateNestedManyWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
@@ -77262,6 +85916,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutWorksInput = {
@@ -77300,6 +85955,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutWorksInput = {
@@ -77390,6 +86046,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -77430,6 +86087,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -77547,6 +86205,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutWorksInput = {
@@ -77585,6 +86244,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type customersUpsertWithoutWorksInput = {
@@ -77660,6 +86320,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutDepartmentsInput = {
@@ -77698,6 +86359,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutDepartmentsInput = {
@@ -77751,6 +86413,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutDepartmentsInput = {
@@ -77789,6 +86452,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesCreateWithoutLeave_typesInput = {
@@ -77826,6 +86490,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutLeave_typesInput = {
@@ -77864,6 +86529,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutLeave_typesInput = {
@@ -77917,6 +86583,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutLeave_typesInput = {
@@ -77955,6 +86622,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesCreateWithoutDocument_categoriesInput = {
@@ -77992,6 +86660,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutDocument_categoriesInput = {
@@ -78030,6 +86699,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutDocument_categoriesInput = {
@@ -78083,6 +86753,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutDocument_categoriesInput = {
@@ -78121,6 +86792,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesCreateWithoutDocument_foldersInput = {
@@ -78158,6 +86830,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutDocument_foldersInput = {
@@ -78196,6 +86869,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutDocument_foldersInput = {
@@ -78249,6 +86923,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutDocument_foldersInput = {
@@ -78287,6 +86962,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesCreateWithoutVehicle_typesInput = {
@@ -78324,6 +87000,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutVehicle_typesInput = {
@@ -78362,6 +87039,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutVehicle_typesInput = {
@@ -78415,6 +87093,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutVehicle_typesInput = {
@@ -78453,6 +87132,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesCreateWithoutPublic_holidaysInput = {
@@ -78490,6 +87170,7 @@ export namespace Prisma {
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutPublic_holidaysInput = {
@@ -78528,6 +87209,7 @@ export namespace Prisma {
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutPublic_holidaysInput = {
@@ -78581,6 +87263,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutPublic_holidaysInput = {
@@ -78619,6 +87302,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type usersCreateWithoutCustom_roleInput = {
@@ -78636,10 +87320,13 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     companies?: companiesCreateNestedManyWithoutUsersInput
     employee?: employeesCreateNestedOneWithoutUserInput
     created_requests?: requestsCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutCustom_roleInput = {
@@ -78659,9 +87346,12 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
     created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
     approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersCreateOrConnectWithoutCustom_roleInput = {
@@ -78740,6 +87430,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutRolesInput = {
@@ -78778,6 +87469,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutRolesInput = {
@@ -78822,6 +87514,7 @@ export namespace Prisma {
     two_factor_backup_codes?: StringNullableFilter<"users"> | string | null
     recovery_otp?: StringNullableFilter<"users"> | string | null
     recovery_otp_expires_at?: DateTimeNullableFilter<"users"> | Date | string | null
+    status?: StringNullableFilter<"users"> | string | null
   }
 
   export type permissionsUpsertWithWhereUniqueWithoutRolesInput = {
@@ -78901,6 +87594,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutRolesInput = {
@@ -78939,6 +87633,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type rolesCreateWithoutPermissionsInput = {
@@ -79006,10 +87701,13 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     companies?: companiesCreateNestedManyWithoutUsersInput
     employee?: employeesCreateNestedOneWithoutUserInput
     custom_role?: rolesCreateNestedOneWithoutUsersInput
     approval_actions?: request_approvalsCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutCreated_requestsInput = {
@@ -79030,8 +87728,11 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
     approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersCreateOrConnectWithoutCreated_requestsInput = {
@@ -79063,6 +87764,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersCreateNestedOneWithoutEmployeeInput
     employee_assignments?: employee_assignmentsCreateNestedManyWithoutEmployeesInput
     employee_attendance?: employee_attendanceCreateNestedManyWithoutEmployeesInput
@@ -79103,6 +87805,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
     user?: usersUncheckedCreateNestedOneWithoutEmployeeInput
     employee_assignments?: employee_assignmentsUncheckedCreateNestedManyWithoutEmployeesInput
     employee_attendance?: employee_attendanceUncheckedCreateNestedManyWithoutEmployeesInput
@@ -79183,6 +87886,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysCreateNestedManyWithoutCompaniesInput
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutRequestsInput = {
@@ -79221,6 +87925,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysUncheckedCreateNestedManyWithoutCompaniesInput
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutRequestsInput = {
@@ -79254,10 +87959,13 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     companies?: companiesUpdateManyWithoutUsersNestedInput
     employee?: employeesUpdateOneWithoutUserNestedInput
     custom_role?: rolesUpdateOneWithoutUsersNestedInput
     approval_actions?: request_approvalsUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutCreated_requestsInput = {
@@ -79278,8 +87986,11 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
     approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type employeesUpsertWithoutRequestsInput = {
@@ -79317,6 +88028,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
     employee_attendance?: employee_attendanceUpdateManyWithoutEmployeesNestedInput
@@ -79357,6 +88069,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
     employee_attendance?: employee_attendanceUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -79432,6 +88145,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysUpdateManyWithoutCompaniesNestedInput
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutRequestsInput = {
@@ -79470,6 +88184,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysUncheckedUpdateManyWithoutCompaniesNestedInput
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type requestsCreateWithoutApprovalsInput = {
@@ -79525,10 +88240,13 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     companies?: companiesCreateNestedManyWithoutUsersInput
     employee?: employeesCreateNestedOneWithoutUserInput
     custom_role?: rolesCreateNestedOneWithoutUsersInput
     created_requests?: requestsCreateNestedManyWithoutCreatorInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutApproval_actionsInput = {
@@ -79549,8 +88267,11 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
     companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
     created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutUsersInput
+    user_permissions?: user_permissionsUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersCreateOrConnectWithoutApproval_actionsInput = {
@@ -79628,10 +88349,13 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     companies?: companiesUpdateManyWithoutUsersNestedInput
     employee?: employeesUpdateOneWithoutUserNestedInput
     custom_role?: rolesUpdateOneWithoutUsersNestedInput
     created_requests?: requestsUpdateManyWithoutCreatorNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutApproval_actionsInput = {
@@ -79652,8 +88376,11 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
     created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type companiesCreateWithoutAudit_logsInput = {
@@ -79691,6 +88418,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysCreateNestedManyWithoutCompaniesInput
     roles?: rolesCreateNestedManyWithoutCompaniesInput
     requests?: requestsCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesUncheckedCreateWithoutAudit_logsInput = {
@@ -79729,6 +88457,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysUncheckedCreateNestedManyWithoutCompaniesInput
     roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
     requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutCompaniesInput
   }
 
   export type companiesCreateOrConnectWithoutAudit_logsInput = {
@@ -79782,6 +88511,7 @@ export namespace Prisma {
     public_holidays?: public_holidaysUpdateManyWithoutCompaniesNestedInput
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutAudit_logsInput = {
@@ -79820,6 +88550,405 @@ export namespace Prisma {
     public_holidays?: public_holidaysUncheckedUpdateManyWithoutCompaniesNestedInput
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
+  }
+
+  export type usersCreateWithoutUser_company_accessInput = {
+    username: string
+    email: string
+    full_name?: string | null
+    password_hash: string
+    created_at?: Date | string | null
+    role?: string | null
+    permissions?: string | null
+    must_change_password?: number | null
+    is_active?: number | null
+    two_factor_secret?: string | null
+    two_factor_enabled?: number | null
+    two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
+    status?: string | null
+    companies?: companiesCreateNestedManyWithoutUsersInput
+    employee?: employeesCreateNestedOneWithoutUserInput
+    custom_role?: rolesCreateNestedOneWithoutUsersInput
+    created_requests?: requestsCreateNestedManyWithoutCreatorInput
+    approval_actions?: request_approvalsCreateNestedManyWithoutApproverInput
+    user_permissions?: user_permissionsCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersUncheckedCreateWithoutUser_company_accessInput = {
+    id?: number
+    username: string
+    email: string
+    full_name?: string | null
+    password_hash: string
+    created_at?: Date | string | null
+    role?: string | null
+    role_id?: number | null
+    employee_id?: number | null
+    permissions?: string | null
+    must_change_password?: number | null
+    is_active?: number | null
+    two_factor_secret?: string | null
+    two_factor_enabled?: number | null
+    two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
+    status?: string | null
+    companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
+    created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
+    approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
+    user_permissions?: user_permissionsUncheckedCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersCreateOrConnectWithoutUser_company_accessInput = {
+    where: usersWhereUniqueInput
+    create: XOR<usersCreateWithoutUser_company_accessInput, usersUncheckedCreateWithoutUser_company_accessInput>
+  }
+
+  export type companiesCreateWithoutUser_company_accessInput = {
+    name: string
+    tax_number?: string | null
+    tax_office?: string | null
+    sgk_no?: string | null
+    address?: string | null
+    phone?: string | null
+    signature_path?: string | null
+    stamp_path?: string | null
+    plan?: string | null
+    status?: string | null
+    expires_at?: Date | string | null
+    max_vehicles?: number | null
+    max_employees?: number | null
+    max_users?: number | null
+    storage_limit_mb?: number | null
+    created_at?: Date | string | null
+    users?: usersCreateNestedOneWithoutCompaniesInput
+    employees?: employeesCreateNestedManyWithoutCompaniesInput
+    meal_settings?: meal_settingsCreateNestedOneWithoutCompaniesInput
+    meal_tickets?: meal_ticketsCreateNestedManyWithoutCompaniesInput
+    recurring_transactions?: recurring_transactionsCreateNestedManyWithoutCompaniesInput
+    transactions?: transactionsCreateNestedManyWithoutCompaniesInput
+    vehicles?: vehiclesCreateNestedManyWithoutCompaniesInput
+    works?: worksCreateNestedManyWithoutCompaniesInput
+    customers?: customersCreateNestedManyWithoutCompaniesInput
+    departments?: departmentsCreateNestedManyWithoutCompaniesInput
+    leave_types?: leave_typesCreateNestedManyWithoutCompaniesInput
+    document_categories?: document_categoriesCreateNestedManyWithoutCompaniesInput
+    vehicle_types?: vehicle_typesCreateNestedManyWithoutCompaniesInput
+    document_folders?: document_foldersCreateNestedManyWithoutCompaniesInput
+    meal_price_history?: meal_price_historyCreateNestedManyWithoutCompaniesInput
+    public_holidays?: public_holidaysCreateNestedManyWithoutCompaniesInput
+    roles?: rolesCreateNestedManyWithoutCompaniesInput
+    audit_logs?: audit_logsCreateNestedManyWithoutCompaniesInput
+    requests?: requestsCreateNestedManyWithoutCompaniesInput
+  }
+
+  export type companiesUncheckedCreateWithoutUser_company_accessInput = {
+    id?: number
+    user_id?: number | null
+    name: string
+    tax_number?: string | null
+    tax_office?: string | null
+    sgk_no?: string | null
+    address?: string | null
+    phone?: string | null
+    signature_path?: string | null
+    stamp_path?: string | null
+    plan?: string | null
+    status?: string | null
+    expires_at?: Date | string | null
+    max_vehicles?: number | null
+    max_employees?: number | null
+    max_users?: number | null
+    storage_limit_mb?: number | null
+    created_at?: Date | string | null
+    employees?: employeesUncheckedCreateNestedManyWithoutCompaniesInput
+    meal_settings?: meal_settingsUncheckedCreateNestedOneWithoutCompaniesInput
+    meal_tickets?: meal_ticketsUncheckedCreateNestedManyWithoutCompaniesInput
+    recurring_transactions?: recurring_transactionsUncheckedCreateNestedManyWithoutCompaniesInput
+    transactions?: transactionsUncheckedCreateNestedManyWithoutCompaniesInput
+    vehicles?: vehiclesUncheckedCreateNestedManyWithoutCompaniesInput
+    works?: worksUncheckedCreateNestedManyWithoutCompaniesInput
+    customers?: customersUncheckedCreateNestedManyWithoutCompaniesInput
+    departments?: departmentsUncheckedCreateNestedManyWithoutCompaniesInput
+    leave_types?: leave_typesUncheckedCreateNestedManyWithoutCompaniesInput
+    document_categories?: document_categoriesUncheckedCreateNestedManyWithoutCompaniesInput
+    vehicle_types?: vehicle_typesUncheckedCreateNestedManyWithoutCompaniesInput
+    document_folders?: document_foldersUncheckedCreateNestedManyWithoutCompaniesInput
+    meal_price_history?: meal_price_historyUncheckedCreateNestedManyWithoutCompaniesInput
+    public_holidays?: public_holidaysUncheckedCreateNestedManyWithoutCompaniesInput
+    roles?: rolesUncheckedCreateNestedManyWithoutCompaniesInput
+    audit_logs?: audit_logsUncheckedCreateNestedManyWithoutCompaniesInput
+    requests?: requestsUncheckedCreateNestedManyWithoutCompaniesInput
+  }
+
+  export type companiesCreateOrConnectWithoutUser_company_accessInput = {
+    where: companiesWhereUniqueInput
+    create: XOR<companiesCreateWithoutUser_company_accessInput, companiesUncheckedCreateWithoutUser_company_accessInput>
+  }
+
+  export type usersUpsertWithoutUser_company_accessInput = {
+    update: XOR<usersUpdateWithoutUser_company_accessInput, usersUncheckedUpdateWithoutUser_company_accessInput>
+    create: XOR<usersCreateWithoutUser_company_accessInput, usersUncheckedCreateWithoutUser_company_accessInput>
+    where?: usersWhereInput
+  }
+
+  export type usersUpdateToOneWithWhereWithoutUser_company_accessInput = {
+    where?: usersWhereInput
+    data: XOR<usersUpdateWithoutUser_company_accessInput, usersUncheckedUpdateWithoutUser_company_accessInput>
+  }
+
+  export type usersUpdateWithoutUser_company_accessInput = {
+    username?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    full_name?: NullableStringFieldUpdateOperationsInput | string | null
+    password_hash?: StringFieldUpdateOperationsInput | string
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    role?: NullableStringFieldUpdateOperationsInput | string | null
+    permissions?: NullableStringFieldUpdateOperationsInput | string | null
+    must_change_password?: NullableIntFieldUpdateOperationsInput | number | null
+    is_active?: NullableIntFieldUpdateOperationsInput | number | null
+    two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
+    two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
+    two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
+    companies?: companiesUpdateManyWithoutUsersNestedInput
+    employee?: employeesUpdateOneWithoutUserNestedInput
+    custom_role?: rolesUpdateOneWithoutUsersNestedInput
+    created_requests?: requestsUpdateManyWithoutCreatorNestedInput
+    approval_actions?: request_approvalsUpdateManyWithoutApproverNestedInput
+    user_permissions?: user_permissionsUpdateManyWithoutUsersNestedInput
+  }
+
+  export type usersUncheckedUpdateWithoutUser_company_accessInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    full_name?: NullableStringFieldUpdateOperationsInput | string | null
+    password_hash?: StringFieldUpdateOperationsInput | string
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    role?: NullableStringFieldUpdateOperationsInput | string | null
+    role_id?: NullableIntFieldUpdateOperationsInput | number | null
+    employee_id?: NullableIntFieldUpdateOperationsInput | number | null
+    permissions?: NullableStringFieldUpdateOperationsInput | string | null
+    must_change_password?: NullableIntFieldUpdateOperationsInput | number | null
+    is_active?: NullableIntFieldUpdateOperationsInput | number | null
+    two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
+    two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
+    two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
+    companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
+    created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
+    approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
+    user_permissions?: user_permissionsUncheckedUpdateManyWithoutUsersNestedInput
+  }
+
+  export type companiesUpsertWithoutUser_company_accessInput = {
+    update: XOR<companiesUpdateWithoutUser_company_accessInput, companiesUncheckedUpdateWithoutUser_company_accessInput>
+    create: XOR<companiesCreateWithoutUser_company_accessInput, companiesUncheckedCreateWithoutUser_company_accessInput>
+    where?: companiesWhereInput
+  }
+
+  export type companiesUpdateToOneWithWhereWithoutUser_company_accessInput = {
+    where?: companiesWhereInput
+    data: XOR<companiesUpdateWithoutUser_company_accessInput, companiesUncheckedUpdateWithoutUser_company_accessInput>
+  }
+
+  export type companiesUpdateWithoutUser_company_accessInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    tax_number?: NullableStringFieldUpdateOperationsInput | string | null
+    tax_office?: NullableStringFieldUpdateOperationsInput | string | null
+    sgk_no?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    signature_path?: NullableStringFieldUpdateOperationsInput | string | null
+    stamp_path?: NullableStringFieldUpdateOperationsInput | string | null
+    plan?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    max_vehicles?: NullableIntFieldUpdateOperationsInput | number | null
+    max_employees?: NullableIntFieldUpdateOperationsInput | number | null
+    max_users?: NullableIntFieldUpdateOperationsInput | number | null
+    storage_limit_mb?: NullableIntFieldUpdateOperationsInput | number | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    users?: usersUpdateOneWithoutCompaniesNestedInput
+    employees?: employeesUpdateManyWithoutCompaniesNestedInput
+    meal_settings?: meal_settingsUpdateOneWithoutCompaniesNestedInput
+    meal_tickets?: meal_ticketsUpdateManyWithoutCompaniesNestedInput
+    recurring_transactions?: recurring_transactionsUpdateManyWithoutCompaniesNestedInput
+    transactions?: transactionsUpdateManyWithoutCompaniesNestedInput
+    vehicles?: vehiclesUpdateManyWithoutCompaniesNestedInput
+    works?: worksUpdateManyWithoutCompaniesNestedInput
+    customers?: customersUpdateManyWithoutCompaniesNestedInput
+    departments?: departmentsUpdateManyWithoutCompaniesNestedInput
+    leave_types?: leave_typesUpdateManyWithoutCompaniesNestedInput
+    document_categories?: document_categoriesUpdateManyWithoutCompaniesNestedInput
+    vehicle_types?: vehicle_typesUpdateManyWithoutCompaniesNestedInput
+    document_folders?: document_foldersUpdateManyWithoutCompaniesNestedInput
+    meal_price_history?: meal_price_historyUpdateManyWithoutCompaniesNestedInput
+    public_holidays?: public_holidaysUpdateManyWithoutCompaniesNestedInput
+    roles?: rolesUpdateManyWithoutCompaniesNestedInput
+    audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
+    requests?: requestsUpdateManyWithoutCompaniesNestedInput
+  }
+
+  export type companiesUncheckedUpdateWithoutUser_company_accessInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    user_id?: NullableIntFieldUpdateOperationsInput | number | null
+    name?: StringFieldUpdateOperationsInput | string
+    tax_number?: NullableStringFieldUpdateOperationsInput | string | null
+    tax_office?: NullableStringFieldUpdateOperationsInput | string | null
+    sgk_no?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    signature_path?: NullableStringFieldUpdateOperationsInput | string | null
+    stamp_path?: NullableStringFieldUpdateOperationsInput | string | null
+    plan?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    max_vehicles?: NullableIntFieldUpdateOperationsInput | number | null
+    max_employees?: NullableIntFieldUpdateOperationsInput | number | null
+    max_users?: NullableIntFieldUpdateOperationsInput | number | null
+    storage_limit_mb?: NullableIntFieldUpdateOperationsInput | number | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    employees?: employeesUncheckedUpdateManyWithoutCompaniesNestedInput
+    meal_settings?: meal_settingsUncheckedUpdateOneWithoutCompaniesNestedInput
+    meal_tickets?: meal_ticketsUncheckedUpdateManyWithoutCompaniesNestedInput
+    recurring_transactions?: recurring_transactionsUncheckedUpdateManyWithoutCompaniesNestedInput
+    transactions?: transactionsUncheckedUpdateManyWithoutCompaniesNestedInput
+    vehicles?: vehiclesUncheckedUpdateManyWithoutCompaniesNestedInput
+    works?: worksUncheckedUpdateManyWithoutCompaniesNestedInput
+    customers?: customersUncheckedUpdateManyWithoutCompaniesNestedInput
+    departments?: departmentsUncheckedUpdateManyWithoutCompaniesNestedInput
+    leave_types?: leave_typesUncheckedUpdateManyWithoutCompaniesNestedInput
+    document_categories?: document_categoriesUncheckedUpdateManyWithoutCompaniesNestedInput
+    vehicle_types?: vehicle_typesUncheckedUpdateManyWithoutCompaniesNestedInput
+    document_folders?: document_foldersUncheckedUpdateManyWithoutCompaniesNestedInput
+    meal_price_history?: meal_price_historyUncheckedUpdateManyWithoutCompaniesNestedInput
+    public_holidays?: public_holidaysUncheckedUpdateManyWithoutCompaniesNestedInput
+    roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
+    audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
+    requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+  }
+
+  export type usersCreateWithoutUser_permissionsInput = {
+    username: string
+    email: string
+    full_name?: string | null
+    password_hash: string
+    created_at?: Date | string | null
+    role?: string | null
+    permissions?: string | null
+    must_change_password?: number | null
+    is_active?: number | null
+    two_factor_secret?: string | null
+    two_factor_enabled?: number | null
+    two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
+    status?: string | null
+    companies?: companiesCreateNestedManyWithoutUsersInput
+    employee?: employeesCreateNestedOneWithoutUserInput
+    custom_role?: rolesCreateNestedOneWithoutUsersInput
+    created_requests?: requestsCreateNestedManyWithoutCreatorInput
+    approval_actions?: request_approvalsCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersUncheckedCreateWithoutUser_permissionsInput = {
+    id?: number
+    username: string
+    email: string
+    full_name?: string | null
+    password_hash: string
+    created_at?: Date | string | null
+    role?: string | null
+    role_id?: number | null
+    employee_id?: number | null
+    permissions?: string | null
+    must_change_password?: number | null
+    is_active?: number | null
+    two_factor_secret?: string | null
+    two_factor_enabled?: number | null
+    two_factor_backup_codes?: string | null
+    recovery_otp?: string | null
+    recovery_otp_expires_at?: Date | string | null
+    status?: string | null
+    companies?: companiesUncheckedCreateNestedManyWithoutUsersInput
+    created_requests?: requestsUncheckedCreateNestedManyWithoutCreatorInput
+    approval_actions?: request_approvalsUncheckedCreateNestedManyWithoutApproverInput
+    user_company_access?: user_company_accessUncheckedCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersCreateOrConnectWithoutUser_permissionsInput = {
+    where: usersWhereUniqueInput
+    create: XOR<usersCreateWithoutUser_permissionsInput, usersUncheckedCreateWithoutUser_permissionsInput>
+  }
+
+  export type usersUpsertWithoutUser_permissionsInput = {
+    update: XOR<usersUpdateWithoutUser_permissionsInput, usersUncheckedUpdateWithoutUser_permissionsInput>
+    create: XOR<usersCreateWithoutUser_permissionsInput, usersUncheckedCreateWithoutUser_permissionsInput>
+    where?: usersWhereInput
+  }
+
+  export type usersUpdateToOneWithWhereWithoutUser_permissionsInput = {
+    where?: usersWhereInput
+    data: XOR<usersUpdateWithoutUser_permissionsInput, usersUncheckedUpdateWithoutUser_permissionsInput>
+  }
+
+  export type usersUpdateWithoutUser_permissionsInput = {
+    username?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    full_name?: NullableStringFieldUpdateOperationsInput | string | null
+    password_hash?: StringFieldUpdateOperationsInput | string
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    role?: NullableStringFieldUpdateOperationsInput | string | null
+    permissions?: NullableStringFieldUpdateOperationsInput | string | null
+    must_change_password?: NullableIntFieldUpdateOperationsInput | number | null
+    is_active?: NullableIntFieldUpdateOperationsInput | number | null
+    two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
+    two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
+    two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
+    companies?: companiesUpdateManyWithoutUsersNestedInput
+    employee?: employeesUpdateOneWithoutUserNestedInput
+    custom_role?: rolesUpdateOneWithoutUsersNestedInput
+    created_requests?: requestsUpdateManyWithoutCreatorNestedInput
+    approval_actions?: request_approvalsUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutUsersNestedInput
+  }
+
+  export type usersUncheckedUpdateWithoutUser_permissionsInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    full_name?: NullableStringFieldUpdateOperationsInput | string | null
+    password_hash?: StringFieldUpdateOperationsInput | string
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    role?: NullableStringFieldUpdateOperationsInput | string | null
+    role_id?: NullableIntFieldUpdateOperationsInput | number | null
+    employee_id?: NullableIntFieldUpdateOperationsInput | number | null
+    permissions?: NullableStringFieldUpdateOperationsInput | string | null
+    must_change_password?: NullableIntFieldUpdateOperationsInput | number | null
+    is_active?: NullableIntFieldUpdateOperationsInput | number | null
+    two_factor_secret?: NullableStringFieldUpdateOperationsInput | string | null
+    two_factor_enabled?: NullableIntFieldUpdateOperationsInput | number | null
+    two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
+    recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
+    companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
+    created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
+    approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type employeesCreateManyCompaniesInput = {
@@ -79847,6 +88976,7 @@ export namespace Prisma {
     devir_tarihi?: Date | string | null
     iban?: string | null
     off_days?: string | null
+    allow_login?: number | null
   }
 
   export type meal_ticketsCreateManyCompaniesInput = {
@@ -80034,6 +89164,12 @@ export namespace Prisma {
     updated_at?: Date | string | null
   }
 
+  export type user_company_accessCreateManyCompaniesInput = {
+    id?: number
+    user_id: number
+    created_at?: Date | string | null
+  }
+
   export type employeesUpdateWithoutCompaniesInput = {
     first_name?: StringFieldUpdateOperationsInput | string
     last_name?: StringFieldUpdateOperationsInput | string
@@ -80058,6 +89194,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUpdateManyWithoutEmployeesNestedInput
@@ -80097,6 +89234,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
     user?: usersUncheckedUpdateOneWithoutEmployeeNestedInput
     requests?: requestsUncheckedUpdateManyWithoutEmployeeNestedInput
     employee_assignments?: employee_assignmentsUncheckedUpdateManyWithoutEmployeesNestedInput
@@ -80136,6 +89274,7 @@ export namespace Prisma {
     devir_tarihi?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     iban?: NullableStringFieldUpdateOperationsInput | string | null
     off_days?: NullableStringFieldUpdateOperationsInput | string | null
+    allow_login?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type meal_ticketsUpdateWithoutCompaniesInput = {
@@ -80701,6 +89840,23 @@ export namespace Prisma {
     document_path?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_company_accessUpdateWithoutCompaniesInput = {
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    users?: usersUpdateOneRequiredWithoutUser_company_accessNestedInput
+  }
+
+  export type user_company_accessUncheckedUpdateWithoutCompaniesInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    user_id?: IntFieldUpdateOperationsInput | number
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_company_accessUncheckedUpdateManyWithoutCompaniesInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    user_id?: IntFieldUpdateOperationsInput | number
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type worksCreateManyCustomersInput = {
@@ -81454,6 +90610,22 @@ export namespace Prisma {
     action_date?: Date | string | null
   }
 
+  export type user_company_accessCreateManyUsersInput = {
+    id?: number
+    company_id: number
+    created_at?: Date | string | null
+  }
+
+  export type user_permissionsCreateManyUsersInput = {
+    id?: number
+    vehicles?: string | null
+    employees?: string | null
+    finance?: string | null
+    works?: string | null
+    settings?: string | null
+    created_at?: Date | string | null
+  }
+
   export type companiesUpdateWithoutUsersInput = {
     name?: StringFieldUpdateOperationsInput | string
     tax_number?: NullableStringFieldUpdateOperationsInput | string | null
@@ -81489,6 +90661,7 @@ export namespace Prisma {
     roles?: rolesUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateWithoutUsersInput = {
@@ -81527,6 +90700,7 @@ export namespace Prisma {
     roles?: rolesUncheckedUpdateManyWithoutCompaniesNestedInput
     audit_logs?: audit_logsUncheckedUpdateManyWithoutCompaniesNestedInput
     requests?: requestsUncheckedUpdateManyWithoutCompaniesNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutCompaniesNestedInput
   }
 
   export type companiesUncheckedUpdateManyWithoutUsersInput = {
@@ -81622,6 +90796,52 @@ export namespace Prisma {
     status?: StringFieldUpdateOperationsInput | string
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     action_date?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_company_accessUpdateWithoutUsersInput = {
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    companies?: companiesUpdateOneRequiredWithoutUser_company_accessNestedInput
+  }
+
+  export type user_company_accessUncheckedUpdateWithoutUsersInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    company_id?: IntFieldUpdateOperationsInput | number
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_company_accessUncheckedUpdateManyWithoutUsersInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    company_id?: IntFieldUpdateOperationsInput | number
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_permissionsUpdateWithoutUsersInput = {
+    vehicles?: NullableStringFieldUpdateOperationsInput | string | null
+    employees?: NullableStringFieldUpdateOperationsInput | string | null
+    finance?: NullableStringFieldUpdateOperationsInput | string | null
+    works?: NullableStringFieldUpdateOperationsInput | string | null
+    settings?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_permissionsUncheckedUpdateWithoutUsersInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    vehicles?: NullableStringFieldUpdateOperationsInput | string | null
+    employees?: NullableStringFieldUpdateOperationsInput | string | null
+    finance?: NullableStringFieldUpdateOperationsInput | string | null
+    works?: NullableStringFieldUpdateOperationsInput | string | null
+    settings?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type user_permissionsUncheckedUpdateManyWithoutUsersInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    vehicles?: NullableStringFieldUpdateOperationsInput | string | null
+    employees?: NullableStringFieldUpdateOperationsInput | string | null
+    finance?: NullableStringFieldUpdateOperationsInput | string | null
+    works?: NullableStringFieldUpdateOperationsInput | string | null
+    settings?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type assignmentsCreateManyVehiclesInput = {
@@ -82222,6 +91442,7 @@ export namespace Prisma {
     two_factor_backup_codes?: string | null
     recovery_otp?: string | null
     recovery_otp_expires_at?: Date | string | null
+    status?: string | null
   }
 
   export type permissionsCreateManyRolesInput = {
@@ -82250,10 +91471,13 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     companies?: companiesUpdateManyWithoutUsersNestedInput
     employee?: employeesUpdateOneWithoutUserNestedInput
     created_requests?: requestsUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutCustom_roleInput = {
@@ -82273,9 +91497,12 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
     companies?: companiesUncheckedUpdateManyWithoutUsersNestedInput
     created_requests?: requestsUncheckedUpdateManyWithoutCreatorNestedInput
     approval_actions?: request_approvalsUncheckedUpdateManyWithoutApproverNestedInput
+    user_company_access?: user_company_accessUncheckedUpdateManyWithoutUsersNestedInput
+    user_permissions?: user_permissionsUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateManyWithoutCustom_roleInput = {
@@ -82295,6 +91522,7 @@ export namespace Prisma {
     two_factor_backup_codes?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp?: NullableStringFieldUpdateOperationsInput | string | null
     recovery_otp_expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type permissionsUpdateWithoutRolesInput = {

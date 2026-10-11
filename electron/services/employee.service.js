@@ -37,9 +37,12 @@ async function getEmployees(companyId, isArchived = 0) {
                 birth_date: true,
                 iban: true,
                 off_days: true,
-                salaries: { where: { status: 'pending' } },
-                leaves: { where: { status: 'pending' } },
-                employee_salary_history: { orderBy: { start_date: 'asc' } }
+                _count: {
+                    select: {
+                        salaries: { where: { status: 'pending' } },
+                        leaves: { where: { status: 'pending' } }
+                    }
+                }
             }
         });
 
@@ -49,8 +52,8 @@ async function getEmployees(companyId, isArchived = 0) {
         // Append summary fields
         const mapped = sortedData.map(emp => ({
             ...emp,
-            pending_salaries: emp.salaries.length,
-            pending_leaves: emp.leaves.length
+            pending_salaries: emp._count?.salaries || 0,
+            pending_leaves: emp._count?.leaves || 0
         }));
 
         return { success: true, data: mapped };
