@@ -625,7 +625,7 @@ export default function DocumentForm({ onSubmit, onCancel, loading, initialType 
                             placeholder="Belge adı girin..."
                         />
                         
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        <div className="form-grid form-grid-2" style={{ gap: '14px' }}>
                             <CustomSelect
                                 label="Kategori"
                                 value={currentItem?.docType}
@@ -642,7 +642,7 @@ export default function DocumentForm({ onSubmit, onCancel, loading, initialType 
                             />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        <div className="form-grid form-grid-2" style={{ gap: '14px' }}>
                             <CustomInput
                                 label="Başlangıç Tarihi"
                                 type="date"

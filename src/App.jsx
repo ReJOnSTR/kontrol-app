@@ -88,8 +88,14 @@ const PersonnelDashboardPortal = lazyWithRetry(() => import('./components/person
 const ApprovalCenter = lazyWithRetry(() => import('./components/personnel/ApprovalCenter'))
 const PlatformAdmin = lazyWithRetry(() => import('./pages/PlatformAdmin'))
 
+import { loadingManager } from './utils/loadingManager'
+
 // Suspense fallback with sleek skeleton loading indicator
 function PageLoader() {
+    useEffect(() => {
+        loadingManager.start()
+        return () => loadingManager.stop()
+    }, [])
     return <PageSkeleton />
 }
 
@@ -184,6 +190,7 @@ function MainLayout() {
             <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
                 <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
                 <div className="main-content">
+                    <TopProgressBar isGlobal />
                     <MobileHeader />
                     <ImpersonationBanner />
                     <TabBar />
@@ -412,7 +419,16 @@ function App() {
         }
     }, [])
 
-    const { user } = useAuth()
+    const { user, userPreferences } = useAuth()
+
+    useEffect(() => {
+        if (userPreferences?.lock) {
+            setLockSettings(prev => ({
+                ...prev,
+                ...userPreferences.lock
+            }))
+        }
+    }, [userPreferences])
 
     useEffect(() => {
         if (isPrintRoute) return

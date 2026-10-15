@@ -70,6 +70,14 @@ const DEFAULT_USER_PREFERENCES = {
         useCustomPassword: false,
         customPassword: ''
     },
+    // Hızlı Aksiyon Kısayol Tercihleri
+    dashboardActions: {
+        fleet: null,
+        hr: null,
+        finance: null
+    },
+    // Kapatılan / Okundu Bildirimler
+    dismissedEvents: [],
     // Kişisel UI Bildirimleri
     notifications: {
         maintenance: true,

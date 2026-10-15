@@ -2576,7 +2576,7 @@ export default function WorkDetails(props) {
                         <em>İpucu: Pazar günlerini aşağıdan "Çalışılmadı (0 Gün - 0 TL)" olarak seçebilir veya puantaj tablosundan istediğiniz günleri tek tıkla 0 gün yapabilirsiniz.</em>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                    <div className="form-grid form-grid-3" style={{ gap: '12px' }}>
                         <CustomInput
                             label="Başlangıç Tarihi"
                             type="date"

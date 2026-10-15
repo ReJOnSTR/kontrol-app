@@ -314,14 +314,36 @@ function createRpcMap() {
         },
 
         // Settings
-        getSettings: () => {
+        getSettings: async (companyId) => {
+            const cid = typeof companyId === 'object' ? companyId?.companyId : companyId;
+            if (cid) {
+                try {
+                    const dbSettings = await systemSettingsService.getCompanyDbSettings(cid);
+                    if (dbSettings && dbSettings.success && dbSettings.data) {
+                        return dbSettings.data;
+                    }
+                } catch (e) {
+                    console.error('Error fetching settings from DB:', e);
+                }
+            }
             try {
                 const sPath = path.join(dataDir, 'settings.json');
                 if (fs.existsSync(sPath)) return JSON.parse(fs.readFileSync(sPath, 'utf8'));
             } catch (e) {}
             return { autoBackup: false, frequency: 'daily', backupPath: '', lastBackup: {} };
         },
-        saveSettings: (settings) => {
+        saveSettings: async (settings, companyId) => {
+            let cid = companyId;
+            if (!cid && settings && typeof settings === 'object' && settings.companyId) {
+                cid = settings.companyId;
+            }
+            if (cid) {
+                try {
+                    return await systemSettingsService.saveCompanyDbSettings(cid, settings);
+                } catch (e) {
+                    console.error('Error saving settings to DB:', e);
+                }
+            }
             try {
                 const sPath = path.join(dataDir, 'settings.json');
                 fs.writeFileSync(sPath, JSON.stringify(settings, null, 2));

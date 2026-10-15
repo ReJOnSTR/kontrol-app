@@ -402,7 +402,7 @@ async function getMealTicketReport(companyId, month, year) {
 async function getFinanceStats(companyId) {
     try {
         const allTxs = await prisma.transactions.findMany({
-            where: { company_id: parseInt(companyId) }
+            where: { company_id: parseInt(companyId), is_archived: 0 }
         });
 
         let totalBalance = 0;

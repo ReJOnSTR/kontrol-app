@@ -880,13 +880,15 @@ export default function Leaves() {
                         display: 'flex', 
                         transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                         transform: leaveModalStep === 1 ? 'translateX(0)' : 'translateX(-100%)',
-                        minHeight: '440px'
+                        minHeight: '440px',
+                        maxHeight: 'calc(85dvh - 120px)',
+                        overflowY: 'auto'
                     }}>
                         {/* Step 1: Selection */}
                         <div style={{ minWidth: '100%', padding: '2px', height: '100%' }}>
                             <form onSubmit={(e) => { e.preventDefault(); startProcessingQueue(); }} style={{ height: '100%' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px', alignItems: 'center' }}>
+                                    <div className="overtime-filter-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px', alignItems: 'center' }}>
                                         <div className="search-box" style={{ height: '36px', minWidth: 'auto', boxSizing: 'border-box' }}>
                                             <Search size={16} />
                                             <input 
@@ -1188,7 +1190,7 @@ export default function Leaves() {
                                             </div>
                                         ) : (
                                             <>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                                <div className="form-grid form-grid-3">
                                                     <div>
                                                         <CustomInput 
                                                             label="Başlangıç Tarihi *" 
@@ -1314,13 +1316,19 @@ export default function Leaves() {
                                             </div>
                                         )}
 
-                                        <div style={{ 
+                                        <div className="modal-actions" style={{ 
                                             display: 'flex', 
                                             justifyContent: 'space-between', 
                                             alignItems: 'center',
+                                            flexWrap: 'wrap',
+                                            gap: '12px',
                                             paddingTop: '15px',
                                             marginTop: 'auto',
-                                            borderTop: '1px solid var(--border-color)' 
+                                            borderTop: '1px solid var(--border-color)',
+                                            position: 'sticky',
+                                            bottom: 0,
+                                            background: 'var(--bg-secondary)',
+                                            zIndex: 10
                                         }}>
                                             <div style={{ display: 'flex', gap: '10px' }}>
                                                 {!editingLeave && (

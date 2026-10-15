@@ -450,12 +450,25 @@ async function loginUser(credentials) {
 
                 if (!supaAuthErr && supaAuthData?.user) {
                     log.info(`[Supabase Auth Login]: User "${rawLookup}" authenticated on Supabase Cloud. Provisioning local user record.`);
-                    let company = await prisma.companies.findFirst();
-                    if (!company) {
-                        company = await prisma.companies.create({ data: { name: 'Varsayılan Şirket' } });
+                    const meta = supaAuthData.user.user_metadata || {};
+                    let companyIdToAssign = null;
+                    if (meta.company_id || meta.companyId) {
+                        const targetCid = Number(meta.company_id || meta.companyId);
+                        const cExists = await prisma.companies.findUnique({ where: { id: targetCid } }).catch(() => null);
+                        if (cExists) companyIdToAssign = targetCid;
+                    }
+                    if (!companyIdToAssign && meta.company_name) {
+                        const createdComp = await prisma.companies.create({ data: { name: meta.company_name } }).catch(() => null);
+                        if (createdComp) companyIdToAssign = createdComp.id;
+                    }
+                    if (!companyIdToAssign) {
+                        let defaultCompany = await prisma.companies.findFirst().catch(() => null);
+                        if (!defaultCompany) {
+                            defaultCompany = await prisma.companies.create({ data: { name: 'Varsayılan Şirket' } }).catch(() => null);
+                        }
+                        if (defaultCompany) companyIdToAssign = defaultCompany.id;
                     }
                     const newHash = bcrypt.hashSync(password, 10);
-                    const meta = supaAuthData.user.user_metadata || {};
                     user = await prisma.users.create({
                         data: {
                             username: meta.username || rawLookup.split('@')[0],
@@ -463,6 +476,7 @@ async function loginUser(credentials) {
                             full_name: meta.full_name || meta.username || 'Kullanıcı',
                             password_hash: newHash,
                             role: meta.role || 'user',
+                            company_id: companyIdToAssign,
                             is_active: 1,
                             must_change_password: 0
                         }

@@ -165,9 +165,31 @@ app.use('/uploads', async (req, res, next) => {
         const relativePath = decodeURIComponent(req.path || '').replace(/^\/+/, '');
         if (!relativePath) return res.status(404).send('File not found');
 
-        const localFile = path.join(filesDir, relativePath);
+        let localFile = path.join(filesDir, relativePath);
         const ext = path.extname(relativePath).toLowerCase();
         const mime = ext === '.pdf' ? 'application/pdf' : (ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'application/octet-stream'));
+
+        if (!fs.existsSync(localFile) || !fs.statSync(localFile).isFile()) {
+            // Fallback: search recursively by base filename
+            const baseName = path.basename(relativePath);
+            const findFileRecursively = (dir) => {
+                try {
+                    const entries = fs.readdirSync(dir, { withFileTypes: true });
+                    for (const entry of entries) {
+                        const full = path.join(dir, entry.name);
+                        if (entry.isDirectory()) {
+                            const found = findFileRecursively(full);
+                            if (found) return found;
+                        } else if (entry.isFile() && entry.name === baseName) {
+                            return full;
+                        }
+                    }
+                } catch (e) {}
+                return null;
+            };
+            const fallbackPath = findFileRecursively(filesDir);
+            if (fallbackPath) localFile = fallbackPath;
+        }
 
         if (fs.existsSync(localFile) && fs.statSync(localFile).isFile()) {
             res.setHeader('Content-Type', mime);
@@ -175,10 +197,15 @@ app.use('/uploads', async (req, res, next) => {
             res.setHeader('Cache-Control', 'public, max-age=86400');
             return res.sendFile(localFile);
         }
+
         const { downloadFromStorage } = require('./electron/services/supabase.service');
-        const sRes = await downloadFromStorage(relativePath);
-        const buf = sRes.buffer || sRes.data;
-        if (sRes.success && buf) {
+        let sRes = await downloadFromStorage(relativePath);
+        if (!sRes?.success && path.basename(relativePath) !== relativePath) {
+            sRes = await downloadFromStorage(path.basename(relativePath));
+        }
+
+        const buf = sRes?.buffer || sRes?.data;
+        if (sRes?.success && buf) {
             const localDir = path.dirname(localFile);
             if (!fs.existsSync(localDir)) {
                 fs.mkdirSync(localDir, { recursive: true });
@@ -221,6 +248,43 @@ app.post('/api/upload', async (req, res) => {
         const buffer = Buffer.from(base64Clean, 'base64');
         if (buffer.length > 20 * 1024 * 1024) {
             return res.status(400).json({ success: false, error: 'Dosya boyutu 20 MB sınırını aşamaz.' });
+        }
+
+        // Quota check: Enforce company storage_limit_mb
+        if (companyId) {
+            try {
+                const prisma = getPrismaClient();
+                const comp = await prisma.companies.findUnique({
+                    where: { id: parseInt(companyId, 10) },
+                    select: { storage_limit_mb: true, name: true }
+                });
+                const limitMb = comp?.storage_limit_mb || 1024;
+                const compDir = path.join(filesDir, `company_${companyId}`);
+                let currentBytes = 0;
+                if (fs.existsSync(compDir)) {
+                    const getDirSize = (dir) => {
+                        let total = 0;
+                        try {
+                            const entries = fs.readdirSync(dir, { withFileTypes: true });
+                            for (const e of entries) {
+                                const fullP = path.join(dir, e.name);
+                                if (e.isDirectory()) total += getDirSize(fullP);
+                                else if (e.isFile()) total += fs.statSync(fullP).size;
+                            }
+                        } catch (err) {}
+                        return total;
+                    };
+                    currentBytes = getDirSize(compDir);
+                }
+                if (currentBytes + buffer.length > limitMb * 1024 * 1024) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Depolama kotanız dolmuştur (Maksimum: ${limitMb} MB). Yeni dosya yüklemek için lütfen paketinizi yükseltin.`
+                    });
+                }
+            } catch (quotaErr) {
+                console.warn('[Upload Quota Check Warning]:', quotaErr.message);
+            }
         }
 
         const uniqueFile = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
@@ -559,15 +623,24 @@ const rpcMap = {
     },
 
     // Settings
-    getSettings: () => {
+    getSettings: async (companyId) => {
         try {
+            const cid = parseInt(typeof companyId === 'object' ? companyId?.companyId : companyId, 10);
+            if (cid) {
+                const res = await systemSettingsService.getCompanyDbSettings(cid);
+                if (res?.data) return res.data;
+            }
             const sPath = path.join(dataDir, 'settings.json');
             if (fs.existsSync(sPath)) return JSON.parse(fs.readFileSync(sPath, 'utf8'));
         } catch (e) {}
         return { autoBackup: false, frequency: 'daily', backupPath: '', lastBackup: {} };
     },
-    saveSettings: (settings) => {
+    saveSettings: async (settings) => {
         try {
+            const cid = parseInt(settings?.companyId, 10);
+            if (cid) {
+                await systemSettingsService.saveCompanyDbSettings(cid, settings);
+            }
             const sPath = path.join(dataDir, 'settings.json');
             fs.writeFileSync(sPath, JSON.stringify(settings, null, 2));
             return { success: true };
@@ -724,6 +797,28 @@ const rpcMap = {
 };
 
 
+// Methods accessible without authentication (public/auth entrypoints)
+const PUBLIC_RPC_METHODS = new Set([
+    'login', 'loginUser', 'register', 'registerUser',
+    'requestPasswordReset', 'completePasswordReset', 'verifyRecoveryOtp',
+    'activateUserByEmail', 'resendVerificationEmail',
+    'getAppVersion', 'testSmtpConnection', 'getMfaStatus', 'verifyMfaLogin',
+    'recordHeartbeat'
+]);
+
+// Methods restricted strictly to SuperAdmin role
+const SUPERADMIN_RPC_METHODS = new Set([
+    'getPlatformOverview', 'getPlatformUsers', 'resetPlatformUserPassword',
+    'impersonatePlatformUser', 'createPlatformUser', 'sendUserInvite',
+    'updatePlatformUser', 'deletePlatformUser', 'toggleCompanyStatus',
+    'toggleUserStatus', 'getPlatformBackups', 'triggerPlatformBackup',
+    'getPlatformSystemHealth', 'getPlatformLogs', 'clearPlatformLogs',
+    'getPlatformAnnouncements', 'createPlatformAnnouncement',
+    'toggleAnnouncementStatus', 'deletePlatformAnnouncement',
+    'createPlatformCompany', 'updatePlatformCompany', 'deletePlatformCompany',
+    'getCompanyUsers'
+]);
+
 // Generic RPC Router
 app.post('/api/rpc/:method', async (req, res) => {
     const { method } = req.params;
@@ -735,8 +830,59 @@ app.post('/api/rpc/:method', async (req, res) => {
         return res.status(404).json({ success: false, error: `Method "${method}" not found` });
     }
 
+    // Auth & Permission Verification for non-public methods
+    if (!PUBLIC_RPC_METHODS.has(method)) {
+        const authHeader = req.headers.authorization;
+        const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        let currentUser = null;
+
+        if (token) {
+            try {
+                currentUser = jwt.verify(token, SECRET_KEY);
+            } catch (jwtErr) {
+                if (req.query.key && req.query.key === SECRET_KEY) {
+                    currentUser = { role: 'superadmin' };
+                } else {
+                    return res.status(401).json({ success: false, error: 'Oturum süresi dolmuş veya geçersiz yetki anahtarı. Lütfen tekrar giriş yapın.' });
+                }
+            }
+        } else if (req.query.key && req.query.key === SECRET_KEY) {
+            currentUser = { role: 'superadmin' };
+        } else {
+            return res.status(401).json({ success: false, error: 'Bu işlem için yetkilendirme (Bearer Token) gereklidir.' });
+        }
+
+        // Restrict SuperAdmin only endpoints
+        if (SUPERADMIN_RPC_METHODS.has(method) && currentUser?.role !== 'superadmin') {
+            return res.status(403).json({ success: false, error: 'Bu işlem yalnızca Süper Yönetici yetkisi gerektirir.' });
+        }
+
+        // Automatic tenant enforcement for single-record delete operations
+        const COMPANY_SCOPED_SINGLE_ID_DELETES = new Set([
+            'deleteInspection', 'deleteInsurance', 'deleteAssignment', 'deleteService',
+            'deleteMaintenance', 'deleteSalary', 'deleteLeave', 'deleteOvertime',
+            'deleteEmployeeAssignment', 'deleteEmployeeDocument', 'deleteSalaryHistory',
+            'deleteEmployeeMovement', 'deleteWork', 'deleteVehicle', 'deleteEmployee', 'deleteCustomer'
+        ]);
+        if (COMPANY_SCOPED_SINGLE_ID_DELETES.has(method) && args.length === 1 && currentUser?.company_id && currentUser?.role !== 'superadmin') {
+            args.push(currentUser.company_id);
+        }
+    }
+
     try {
         const result = await fn(...args);
+
+        // Attach signed JWT token upon successful authentication for Web clients
+        if ((method === 'login' || method === 'loginUser' || method === 'verifyMfaLogin') && result && result.success && result.user) {
+            const tokenPayload = {
+                id: result.user.id,
+                username: result.user.username,
+                role: result.user.role,
+                company_id: result.user.company_id || null
+            };
+            result.token = jwt.sign(tokenPayload, SECRET_KEY, { expiresIn: '7d' });
+        }
+
         res.json(result !== undefined ? result : { success: true });
     } catch (err) {
         console.error(`RPC Error [${method}]:`, err);

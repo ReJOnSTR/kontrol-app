@@ -403,7 +403,7 @@ export default function MainPortal() {
                 {inactiveModules.length > 0 && (
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                            Yakında Gelecek
+                            Diğer Modüller (Yetki / Plan Gerektirir)
                         </div>
                         <div className="portal-inactive-grid">
                             {inactiveModules.map((mod, idx) => (

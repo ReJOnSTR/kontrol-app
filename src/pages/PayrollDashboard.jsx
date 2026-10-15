@@ -35,7 +35,7 @@ const paymentMethods = [
 ]
 
 export default function PayrollDashboard() {
-    const { currentCompany } = useCompany()
+    const { currentCompany, companySettings } = useCompany()
     const navigate = useNavigate()
     const { openNewTab } = useTabs()
     const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -60,6 +60,20 @@ export default function PayrollDashboard() {
         notes: '',
         useRemaining: false
     })
+
+    const getDefaultAdvance = (emp = null) => {
+        const val = companySettings?.hr?.defaultAdvanceAmount ?? localStorage.getItem('hr_default_advance_amount')
+        if (val === 'salary') {
+            if (emp) {
+                return parseFloat(emp.salary || emp.base_salary) || 0
+            }
+            return 0
+        }
+        if (val !== undefined && val !== null) {
+            return parseFloat(val) || 0
+        }
+        return 0
+    }
 
     // Restore Month Persistence
     useEffect(() => {
@@ -178,7 +192,7 @@ export default function PayrollDashboard() {
                     : 0
             }
 
-            const defaultAdvance = parseFloat(localStorage.getItem('hr_default_advance_amount')) || 0
+            const defaultAdvance = getDefaultAdvance()
             const activeCount = (result.success && result.data) ? result.data.length : 0
             const potentialTotal = activeCount * defaultAdvance
 
@@ -248,7 +262,7 @@ export default function PayrollDashboard() {
                 salary_month: selectedMonth
             })
         } else {
-            const defaultAdvance = parseFloat(localStorage.getItem('hr_default_advance_amount')) || 0
+            const defaultAdvance = getDefaultAdvance()
             setFormData({
                 period: 'advance',
                 amount: defaultAdvance > 0 ? defaultAdvance : '',
@@ -270,7 +284,8 @@ export default function PayrollDashboard() {
             let newAmount = prev.amount
             
             if (isAdvance) {
-                const defaultAdvance = parseFloat(localStorage.getItem('hr_default_advance_amount')) || 0
+                const empRow = selectedRows.length === 1 ? payrollList.find(p => p.id === selectedRows[0]) : null
+                const defaultAdvance = getDefaultAdvance(empRow)
                 newAmount = defaultAdvance > 0 ? defaultAdvance : prev.amount
             } else if (isSalaryOrOvertime) {
                 newAmount = ''

@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const { getPrismaClient } = require('../prismaClient');
 const { logAudit } = require('./audit.service');
 const { buildInviteEmailHtml } = require('./emailTemplate.service');
+const { checkQuota } = require('./quota.service');
 const prisma = getPrismaClient();
 
 function getAppBaseUrl(providedUrl) {
@@ -415,6 +416,11 @@ async function createPlatformUser(userData) {
             if (empRecord && !resolvedCompanyId) {
                 resolvedCompanyId = empRecord.company_id;
             }
+        }
+
+        // Check company user quota if company is specified
+        if (resolvedCompanyId && userRole !== 'superadmin') {
+            await checkQuota(resolvedCompanyId, 'users');
         }
 
         // If creating for a company without an explicit employee selection, always link via an employee profile

@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 
 export default function NotificationCenter() {
     const { upcomingEvents } = useCompany()
-    const { user, isAdmin, hasPermission, isPersonnel } = useAuth()
+    const { user, isAdmin, hasPermission, isPersonnel, userPreferences } = useAuth()
     const [isOpen, setIsOpen] = useState(false)
     const [activeFilter, setActiveFilter] = useState('all') // 'all' | 'overdue' | 'urgent' | 'upcoming'
     const [userSettings, setUserSettings] = useState(() => {
@@ -64,9 +64,47 @@ export default function NotificationCenter() {
         return false
     }
 
-    // Filter events based on User RBAC permissions first, then user in-app preferences
-    const permittedEvents = (upcomingEvents || []).filter(isEventPermitted)
+    const [dismissedIds, setDismissedIds] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem(`dismissed_notifs_${user?.id || 'anon'}`) || '[]')
+        } catch (e) { return [] }
+    })
+
+    const dismissNotification = (e, notifKey) => {
+        if (e && e.stopPropagation) e.stopPropagation()
+        setDismissedIds(prev => {
+            const next = Array.from(new Set([...prev, notifKey]))
+            localStorage.setItem(`dismissed_notifs_${user?.id || 'anon'}`, JSON.stringify(next))
+            if (user?.id && window.electronAPI?.saveUserPreferences) {
+                window.electronAPI.saveUserPreferences({
+                    userId: user.id,
+                    preferences: { dismissedEvents: next }
+                }).catch(() => {})
+            }
+            return next
+        })
+    }
+
+    const clearAllDismissed = () => {
+        setDismissedIds([])
+        localStorage.removeItem(`dismissed_notifs_${user?.id || 'anon'}`)
+        if (user?.id && window.electronAPI?.saveUserPreferences) {
+            window.electronAPI.saveUserPreferences({
+                userId: user.id,
+                preferences: { dismissedEvents: [] }
+            }).catch(() => {})
+        }
+    }
+
+    // Filter events based on User RBAC permissions first, then user in-app preferences & dismissed
+    const permittedEvents = (upcomingEvents || [])
+        .filter(isEventPermitted)
+        .filter(e => !dismissedIds.includes(`${e.eventType}_${e.id}`))
+
     const filteredEvents = !isMasterInAppEnabled ? [] : permittedEvents.filter(e => {
+        if (userPreferences?.notifications && userPreferences.notifications[e.eventType] !== undefined) {
+            return userPreferences.notifications[e.eventType] === true
+        }
         if (userSettings?.items && userSettings.items[e.eventType]) {
             return userSettings.items[e.eventType].inApp !== false
         }
@@ -388,7 +426,12 @@ export default function NotificationCenter() {
                                 ) : (
                                     <div>
                                         {displayedEvents.map((e, idx) => (
-                                            <NotificationItem key={`notif-${e.id || idx}-${e.eventType}`} event={e} onClick={() => handleItemClick(e)} />
+                                            <NotificationItem 
+                                                key={`notif-${e.id || idx}-${e.eventType}`} 
+                                                event={e} 
+                                                onClick={() => handleItemClick(e)} 
+                                                onDismiss={dismissNotification} 
+                                            />
                                         ))}
                                     </div>
                                 )}
@@ -406,22 +449,40 @@ export default function NotificationCenter() {
                         background: 'var(--bg-tertiary)',
                         fontSize: '11.5px'
                     }}>
-                        <button
-                            type="button"
-                            onClick={() => { setIsOpen(false); navigate('/profile'); }}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--text-secondary)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                padding: 0
-                            }}
-                        >
-                            <Sliders size={13} /> Bildirim Tercihleri
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                                type="button"
+                                onClick={() => { setIsOpen(false); navigate('/profile'); }}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    padding: 0
+                                }}
+                            >
+                                <Sliders size={13} /> Bildirim Tercihleri
+                            </button>
+                            {dismissedIds.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={clearAllDismissed}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#3b82f6',
+                                        cursor: 'pointer',
+                                        padding: 0,
+                                        fontSize: '11px'
+                                    }}
+                                >
+                                    (Gizlenenleri Sıfırla)
+                                </button>
+                            )}
+                        </div>
                         <button
                             type="button"
                             onClick={() => { setIsOpen(false); navigate('/'); }}
@@ -443,7 +504,7 @@ export default function NotificationCenter() {
     )
 }
 
-function NotificationItem({ event, onClick }) {
+function NotificationItem({ event, onClick, onDismiss }) {
     const days = getDaysUntil(event.date)
     
     // E-postadaki rozet sistemiyle birebir aynı durum rozetleri
@@ -511,19 +572,41 @@ function NotificationItem({ event, onClick }) {
                     <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {event.plate || event.employeeName || (event.eventType === 'finance_check' ? 'Çek/Senet Vadesi' : 'Operasyonel İşlem')}
                     </span>
-                    <span style={{
-                        fontSize: '10px',
-                        padding: '2px 7px',
-                        borderRadius: '5px',
-                        background: badgeBg,
-                        color: badgeColor,
-                        border: `1px solid ${badgeBorder}`,
-                        fontWeight: '700',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0
-                    }}>
-                        {badgeText}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        <span style={{
+                            fontSize: '10px',
+                            padding: '2px 7px',
+                            borderRadius: '5px',
+                            background: badgeBg,
+                            color: badgeColor,
+                            border: `1px solid ${badgeBorder}`,
+                            fontWeight: '700',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            {badgeText}
+                        </span>
+                        {onDismiss && (
+                            <button
+                                type="button"
+                                title="Bildirimi gizle / okundu"
+                                onClick={(e) => onDismiss(e, `${event.eventType}_${event.id}`)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    padding: '2px',
+                                    borderRadius: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    lineHeight: 1
+                                }}
+                            >
+                                <X size={12} />
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                     {event.type}

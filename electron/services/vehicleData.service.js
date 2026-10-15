@@ -118,8 +118,16 @@ async function updateInspection(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteInspection(id) {
+async function deleteInspection(id, companyId = null) {
     try {
+        const item = await prisma.inspections.findUnique({
+            where: { id: parseInt(id) },
+            include: { vehicles: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.vehicles?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         const { deleteOperationDocument } = require('./operationSync.helper');
         await deleteOperationDocument('inspection', id);
         await prisma.inspections.delete({ where: { id: parseInt(id) } });
@@ -237,8 +245,16 @@ async function updateInsurance(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteInsurance(id) {
+async function deleteInsurance(id, companyId = null) {
     try {
+        const item = await prisma.insurances.findUnique({
+            where: { id: parseInt(id) },
+            include: { vehicles: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.vehicles?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         const { deleteOperationDocument } = require('./operationSync.helper');
         await deleteOperationDocument('insurance', id);
         await prisma.insurances.delete({ where: { id: parseInt(id) } });
@@ -319,8 +335,16 @@ async function updateAssignment(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteAssignment(id) {
+async function deleteAssignment(id, companyId = null) {
     try {
+        const item = await prisma.assignments.findUnique({
+            where: { id: parseInt(id) },
+            include: { vehicles: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.vehicles?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         await prisma.assignments.delete({ where: { id: parseInt(id) } });
         return { success: true };
     } catch (error) { return { success: false, error: error.message }; }
@@ -420,8 +444,16 @@ async function updateService(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteService(id) {
+async function deleteService(id, companyId = null) {
     try {
+        const item = await prisma.services.findUnique({
+            where: { id: parseInt(id) },
+            include: { vehicles: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.vehicles?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         const { deleteOperationDocument } = require('./operationSync.helper');
         await deleteOperationDocument('service', id);
         await prisma.services.delete({ where: { id: parseInt(id) } });

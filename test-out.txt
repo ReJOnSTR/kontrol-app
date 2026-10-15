@@ -1,4 +1,0 @@
-18:49:11.645 › Initializing Prisma Client on DB: /Users/halilsak/Library/Application Support/Electron/data/aractakip.db
-18:49:11.750 › Running auto-migrations for missing tables and columns...
-18:49:11.827 › Auto-migrations loop completed.
-GET CUSTOMERS: {"success":true,"data":[]}

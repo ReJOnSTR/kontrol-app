@@ -12,6 +12,7 @@ import DataTable from '../components/DataTable'
 import CustomInput from '../components/CustomInput'
 import CustomSelect from '../components/CustomSelect'
 import { useCompany } from '../context/CompanyContext'
+import MealTicketSettings from './MealTicketSettings'
 
 const moduleConfig = {
     fleet: {
@@ -54,26 +55,26 @@ function DefaultModuleContent({ config, ModuleIcon }) {
                 <div className="settings-section">
                     <h2 className="settings-section-title">Genel</h2>
                     <div className="settings-list">
-                        <div className="settings-item" style={{ opacity: 0.5, cursor: 'default' }}>
+                        <div className="settings-item">
                             <div className="settings-item-icon">
                                 <ModuleIcon size={18} />
                             </div>
                             <div className="settings-item-content">
-                                <div className="settings-item-label">Modül Tercihleri</div>
-                                <div className="settings-item-desc">Bu modüle özel tercihler yakında eklenecektir</div>
+                                <div className="settings-item-label">Modül Durumu</div>
+                                <div className="settings-item-desc">Bu modül standart şirket ayarlarıyla etkin olarak çalışmaktadır</div>
                             </div>
-                            <span className="badge badge-warning" style={{ fontSize: '10px' }}>YAKINDA</span>
+                            <span className="badge badge-success" style={{ fontSize: '10px' }}>AKTİF</span>
                         </div>
 
-                        <div className="settings-item" style={{ opacity: 0.5, cursor: 'default' }}>
+                        <div className="settings-item">
                             <div className="settings-item-icon">
                                 <Bell size={18} />
                             </div>
                             <div className="settings-item-content">
-                                <div className="settings-item-label">Bildirim Tercihleri</div>
-                                <div className="settings-item-desc">Bu modüle özel bildirim ayarları</div>
+                                <div className="settings-item-label">Bildirimler</div>
+                                <div className="settings-item-desc">Modüle ait tüm sistem bildirimleri açık</div>
                             </div>
-                            <span className="badge badge-warning" style={{ fontSize: '10px' }}>YAKINDA</span>
+                            <span className="badge badge-success" style={{ fontSize: '10px' }}>AÇIK</span>
                         </div>
                     </div>
                 </div>
@@ -133,7 +134,8 @@ function HrModuleContent() {
             setWeekdayHoursPerLeave(parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8)
             setSundayDaysPerLeave(parseFloat(localStorage.getItem('hr_overtime_sunday_days_per_leave')) || 1)
             setHolidayDaysPerLeave(parseFloat(localStorage.getItem('hr_overtime_holiday_days_per_leave')) || 1)
-            setDefaultAdvanceAmount(parseFloat(localStorage.getItem('hr_default_advance_amount')) || 0)
+            const savedAdv = localStorage.getItem('hr_default_advance_amount')
+            setDefaultAdvanceAmount(savedAdv === 'salary' ? 'salary' : (parseFloat(savedAdv) || 0))
         }
     }, [companySettings])
 
@@ -220,9 +222,9 @@ function HrModuleContent() {
         {
             id: 'default_advance',
             label: 'Varsayılan Avans Tutarı',
-            description: 'Ödeme eklerken avans seçildiğinde otomatik doldurulan tutar',
-            value: defaultAdvanceAmount,
-            unit: ' ₺',
+            description: 'Ödeme eklerken avans seçildiğinde otomatik doldurulan tutar veya personel maaşı',
+            value: defaultAdvanceAmount === 'salary' ? 'Personel Maaşı' : (Number(defaultAdvanceAmount) > 0 ? `₺${Number(defaultAdvanceAmount).toLocaleString('tr-TR')}` : 'Belirlenmedi'),
+            unit: '',
             storageKey: 'hr_default_advance_amount'
         }
     ]
@@ -351,14 +353,28 @@ function HrModuleContent() {
 
     const openEdit = (item) => {
         setEditingItem(item)
-        setEditValue(String(item.value))
+        if (item.id === 'default_advance') {
+            setEditValue(String(defaultAdvanceAmount))
+        } else {
+            setEditValue(String(item.value))
+        }
         setShowModal(true)
     }
 
     const handleSave = async (e) => {
         e.preventDefault()
-        const numVal = parseFloat(editValue)
-        if (isNaN(numVal) || numVal < 0) return
+        let finalValue = editValue
+        if (editingItem.id === 'default_advance') {
+            if (editValue !== 'salary') {
+                const numVal = parseFloat(editValue)
+                if (isNaN(numVal) || numVal < 0) return
+                finalValue = numVal
+            }
+        } else {
+            const numVal = parseFloat(editValue)
+            if (isNaN(numVal) || numVal < 0) return
+            finalValue = numVal
+        }
 
         let updatedWeekday = weekdayMultiplier
         let updatedSunday = sundayMultiplier
@@ -369,16 +385,16 @@ function HrModuleContent() {
         let updatedHolidayLeave = holidayDaysPerLeave
         let updatedDefaultAdvance = defaultAdvanceAmount
 
-        if (editingItem.id === 'weekday') { setWeekdayMultiplier(numVal); updatedWeekday = numVal; }
-        if (editingItem.id === 'sunday') { setSundayMultiplier(numVal); updatedSunday = numVal; }
-        if (editingItem.id === 'holiday') { setHolidayMultiplier(numVal); updatedHoliday = numVal; }
-        if (editingItem.id === 'gurbet') { setGurbetMultiplier(numVal); updatedGurbet = numVal; }
-        if (editingItem.id === 'weekday_leave') { setWeekdayHoursPerLeave(numVal); updatedWeekdayLeave = numVal; }
-        if (editingItem.id === 'sunday_leave') { setSundayDaysPerLeave(numVal); updatedSundayLeave = numVal; }
-        if (editingItem.id === 'holiday_leave') { setHolidayDaysPerLeave(numVal); updatedHolidayLeave = numVal; }
-        if (editingItem.id === 'default_advance') { setDefaultAdvanceAmount(numVal); updatedDefaultAdvance = numVal; }
+        if (editingItem.id === 'weekday') { setWeekdayMultiplier(finalValue); updatedWeekday = finalValue; }
+        if (editingItem.id === 'sunday') { setSundayMultiplier(finalValue); updatedSunday = finalValue; }
+        if (editingItem.id === 'holiday') { setHolidayMultiplier(finalValue); updatedHoliday = finalValue; }
+        if (editingItem.id === 'gurbet') { setGurbetMultiplier(finalValue); updatedGurbet = finalValue; }
+        if (editingItem.id === 'weekday_leave') { setWeekdayHoursPerLeave(finalValue); updatedWeekdayLeave = finalValue; }
+        if (editingItem.id === 'sunday_leave') { setSundayDaysPerLeave(finalValue); updatedSundayLeave = finalValue; }
+        if (editingItem.id === 'holiday_leave') { setHolidayDaysPerLeave(finalValue); updatedHolidayLeave = finalValue; }
+        if (editingItem.id === 'default_advance') { setDefaultAdvanceAmount(finalValue); updatedDefaultAdvance = finalValue; }
 
-        localStorage.setItem(editingItem.storageKey, numVal.toString())
+        localStorage.setItem(editingItem.storageKey, finalValue.toString())
 
         if (updateCompanySettings) {
             await updateCompanySettings({
@@ -479,7 +495,11 @@ function HrModuleContent() {
                         <div className="stat-icon primary" style={{ width: '32px', height: '32px' }}><Wallet size={16} /></div>
                     </div>
                     <div>
-                        <div className="stat-value" style={{ fontSize: '22px' }}>{defaultAdvanceAmount > 0 ? `₺${defaultAdvanceAmount.toLocaleString('tr-TR')}` : 'Belirlenmedi'}</div>
+                        <div className="stat-value" style={{ fontSize: '22px' }}>
+                            {defaultAdvanceAmount === 'salary'
+                                ? 'Personel Maaşı'
+                                : (Number(defaultAdvanceAmount) > 0 ? `₺${Number(defaultAdvanceAmount).toLocaleString('tr-TR')}` : 'Belirlenmedi')}
+                        </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Varsayılan avans</div>
                     </div>
                 </div>
@@ -757,18 +777,53 @@ function HrModuleContent() {
             >
                 <form onSubmit={handleSave}>
                     <div className="form-group">
-                        <label className="form-label">Katsayı Değeri</label>
-                        <input
-                            type="number"
-                            className="form-input"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            min="0.1"
-                            max="10"
-                            step="0.1"
-                            placeholder="Örn: 1.5"
-                            autoFocus
-                        />
+                        <label className="form-label">{editingItem?.id === 'default_advance' ? 'Varsayılan Avans Değeri' : 'Katsayı Değeri'}</label>
+                        {editingItem?.id === 'default_advance' ? (
+                            <div>
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                                    <button
+                                        type="button"
+                                        className={`btn ${editValue === 'salary' ? 'btn-primary' : 'btn-secondary'}`}
+                                        style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}
+                                        onClick={() => setEditValue('salary')}
+                                    >
+                                        Maaş Kadar (Dinamik)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn ${editValue !== 'salary' ? 'btn-primary' : 'btn-secondary'}`}
+                                        style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}
+                                        onClick={() => setEditValue(editValue === 'salary' ? '5000' : editValue)}
+                                    >
+                                        Sabit Tutar (₺)
+                                    </button>
+                                </div>
+                                {editValue !== 'salary' && (
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        min="0"
+                                        step="100"
+                                        placeholder="Örn: 5000"
+                                        autoFocus
+                                    />
+                                )}
+                            </div>
+                        ) : (
+                            <input
+                                type="number"
+                                className="form-input"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                min="0.1"
+                                max="10"
+                                step="0.1"
+                                placeholder="Örn: 1.5"
+                                autoFocus
+                            />
+                        )}
                         {editingItem && (
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: '1.6' }}>
                                 {editingItem.id === 'weekday' && <>Hesaplama: Maaş ÷ 30 ÷ 10 × <strong>{editValue || '?'}</strong> = Saatlik mesai ücreti</>}
@@ -778,7 +833,11 @@ function HrModuleContent() {
                                 {editingItem.id === 'weekday_leave' && <><strong>{editValue || '?'}</strong> saat hafta içi mesai yapan personel 1 gün izin hak eder</>}
                                 {editingItem.id === 'sunday_leave' && <><strong>{editValue || '?'}</strong> gün pazar mesai yapan personel 1 gün izin hak eder</>}
                                 {editingItem.id === 'holiday_leave' && <><strong>{editValue || '?'}</strong> gün bayram mesai yapan personel 1 gün izin hak eder</>}
-                                {editingItem.id === 'default_advance' && <>Avans işlemi eklerken tutar otomatik olarak <strong>₺{editValue || '0'}</strong> olarak doldurulacaktır. Değiştirilebilir.</>}
+                                {editingItem.id === 'default_advance' && (
+                                    editValue === 'salary'
+                                        ? <>Avans ekleme ekranında personelin kendi maaş tutarı otomatik doldurulacaktır.</>
+                                        : <>Avans işlemi eklerken tutar otomatik olarak <strong>₺{editValue || '0'}</strong> olarak doldurulacaktır. Değiştirilebilir.</>
+                                )}
                             </div>
                         )}
                     </div>
@@ -1637,6 +1696,8 @@ export default function ModuleSettings() {
                 <WorksModuleContent />
             ) : moduleKey === 'customers' ? (
                 <CustomersModuleContent />
+            ) : moduleKey === 'meals' ? (
+                <MealTicketSettings />
             ) : (
                 <DefaultModuleContent config={config} ModuleIcon={ModuleIcon} />
             )}

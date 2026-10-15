@@ -64,11 +64,16 @@ async function getWorks(companyId, isArchived = 0) {
     }
 }
 
-async function getWorkDetails(id) {
+async function getWorkDetails(id, companyId = null) {
     try {
         const prisma = getPrismaClient()
-        const work = await prisma.works.findUnique({
-            where: { id: parseInt(id) },
+        const wId = parseInt(id)
+        const whereClause = { id: wId }
+        if (companyId) {
+            whereClause.company_id = parseInt(companyId)
+        }
+        const work = await prisma.works.findFirst({
+            where: whereClause,
             include: {
                 customers: true,
                 work_items: {
@@ -199,10 +204,16 @@ async function updateWork(data) {
     }
 }
 
-async function deleteWork(id) {
+async function deleteWork(id, companyId = null) {
     try {
         const wId = parseInt(id)
         const prisma = getPrismaClient()
+        if (companyId) {
+            const check = await prisma.works.findFirst({
+                where: { id: wId, company_id: parseInt(companyId) }
+            })
+            if (!check) return { success: false, error: 'İş kaydı bulunamadı veya bu işlem için yetkiniz yok' }
+        }
         await prisma.$transaction(async (tx) => {
             await tx.work_items.deleteMany({ where: { work_id: wId } })
             await tx.works.delete({ where: { id: wId } })

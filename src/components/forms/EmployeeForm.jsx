@@ -121,7 +121,7 @@ export default function EmployeeForm({ initialData, onSubmit, onCancel, saving, 
 
     return (
         <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-grid form-grid-2">
                 <CustomInput
                     label="Ad *"
                     value={form.firstName}

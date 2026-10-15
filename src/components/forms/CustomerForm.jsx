@@ -54,7 +54,7 @@ export default function CustomerForm({ initialData = null, onSubmit, onCancel, l
                     maxLength={100}
                 />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-grid form-grid-2">
                     <CustomInput
                         label="Telefon"
                         format="phone"
@@ -72,7 +72,7 @@ export default function CustomerForm({ initialData = null, onSubmit, onCancel, l
                     />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-grid form-grid-2">
                     <CustomInput
                         label="Vergi Numarası / T.C. Kimlik"
                         format="tc_no"

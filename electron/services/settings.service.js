@@ -70,13 +70,21 @@ async function getDashboardStats(companyId) {
             insuranceCost = ins._sum.premium || 0;
         } catch (e) { console.error('Dashboard insurances aggregate error:', e.message); }
 
+        // Active assignments count
+        let activeAssignments = 0;
+        try {
+            activeAssignments = await prisma.assignments.count({
+                where: { vehicles: { company_id: cid, is_archived: 0 }, is_archived: 0 }
+            });
+        } catch (e) { console.error('Dashboard activeAssignments aggregate error:', e.message); }
+
         const currentMonthCost = maintenanceCost + serviceCost + inspectionCost + insuranceCost;
 
         return {
             success: true, data: {
                 totalVehicles,
                 activeVehicles,
-                activeAssignments: 0,
+                activeAssignments,
                 totalEmployees,
                 monthlyCost: currentMonthCost,
                 statusBreakdown: {
@@ -260,8 +268,32 @@ async function getRecentActivity(companyId) {
     try {
         const cid = parseInt(companyId);
 
-        // Fetch recent services as an example of recent activity. 
-        // A more complete logging table might be needed for full audit trails.
+        // 1. Try real audit logs first
+        try {
+            const logs = await prisma.audit_logs.findMany({
+                where: { company_id: cid },
+                orderBy: { created_at: 'desc' },
+                take: 10
+            });
+            if (logs && logs.length > 0) {
+                return {
+                    success: true,
+                    data: logs.map(l => ({
+                        id: l.id,
+                        description: l.description,
+                        date: l.created_at,
+                        type: l.action?.toLowerCase() || 'log',
+                        entityType: l.entity_type,
+                        entityName: l.entity_name,
+                        username: l.username
+                    }))
+                };
+            }
+        } catch (auditErr) {
+            console.error('getRecentActivity audit_logs query error:', auditErr.message);
+        }
+
+        // 2. Fallback to recent services if no audit logs exist yet
         const recentServices = await prisma.services.findMany({
             where: { vehicles: { company_id: cid } },
             include: { vehicles: true },
@@ -271,7 +303,7 @@ async function getRecentActivity(companyId) {
 
         const activities = recentServices.map(s => ({
             id: s.id,
-            description: `${s.vehicles?.plate} için ${s.vendor} servisi.`,
+            description: `${s.vehicles?.plate} için ${s.vendor || s.service_name || 'servis'} işlemi.`,
             date: s.date,
             type: 'service'
         }));

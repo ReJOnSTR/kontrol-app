@@ -152,7 +152,7 @@ export default function Settings() {
     const [testingConnection, setTestingConnection] = useState(false)
     const [connectionTestResult, setConnectionTestResult] = useState(null)
 
-    const DEFAULT_CLOUD_PG_URL = 'postgresql://postgres:eyaeaj0djlbjhybz04ma4vrw7otatabf@45.147.47.56:5432/postgres'
+    const DEFAULT_CLOUD_PG_URL = ''
     const [postgresUrl, setPostgresUrl] = useState(() => localStorage.getItem('aractakip_postgres_migration_url') || DEFAULT_CLOUD_PG_URL)
     const [migrating, setMigrating] = useState(false)
     const [migrationLogs, setMigrationLogs] = useState([])

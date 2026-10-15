@@ -12,11 +12,11 @@ async function getCompanies(userId) {
 
             if (user) {
                 const role = (user.role || '').toLowerCase();
-                if (role === 'superadmin' || role === 'admin' || role === 'company_admin' || role === 'company_owner' || role === 'manager' || !user.employee_id) {
+                if (role === 'superadmin' || role === 'platform_admin') {
                     companies = await prisma.companies.findMany({
                         orderBy: { name: 'asc' }
                     });
-                } else if ((role === 'personnel' || role === 'employee') && user.employee_id) {
+                } else if (user.employee_id) {
                     const emp = await prisma.employees.findUnique({
                         where: { id: user.employee_id }
                     }).catch(() => null);
@@ -25,29 +25,22 @@ async function getCompanies(userId) {
                             where: { id: parseInt(emp.company_id, 10) }
                         });
                     }
-                    if (companies.length === 0) {
-                        companies = await prisma.companies.findMany();
-                    }
                 } else {
+                    const accessRecords = await prisma.user_company_access.findMany({
+                        where: { user_id: uid }
+                    }).catch(() => []);
+                    const accessCompanyIds = accessRecords.map(a => a.company_id);
+
+                    const conditions = [{ user_id: uid }];
+                    if (user.company_id) conditions.push({ id: user.company_id });
+                    if (accessCompanyIds.length > 0) conditions.push({ id: { in: accessCompanyIds } });
+
                     companies = await prisma.companies.findMany({
-                        where: {
-                            OR: [
-                                { user_id: uid },
-                                { user_id: null }
-                            ]
-                        },
+                        where: { OR: conditions },
                         orderBy: { name: 'asc' }
                     });
-
-                    if (companies.length === 0) {
-                        companies = await prisma.companies.findMany({ orderBy: { name: 'asc' } });
-                    }
                 }
             }
-        }
-
-        if (companies.length === 0) {
-            companies = await prisma.companies.findMany();
         }
 
         const collator = new Intl.Collator('tr');

@@ -14,18 +14,20 @@ const settingsPath = (app && typeof app.getPath === 'function')
     : path.join(process.env.DATA_DIR || path.join(__dirname, '../../data'), 'settings.json')
 
 async function getArventoCredentials(companyId = null) {
+    if (!companyId) {
+        return { username: '', pin1: '', pin2: '', language: 'tr', enabled: false };
+    }
+    const cid = parseInt(companyId, 10);
+    if (!cid) {
+        return { username: '', pin1: '', pin2: '', language: 'tr', enabled: false };
+    }
     // 1. Check company_settings from PostgreSQL / DB first
     try {
         const prisma = getPrismaClient()
         if (prisma && prisma.company_settings) {
-            let row = null
-            if (companyId) {
-                row = await prisma.company_settings.findUnique({
-                    where: { company_id: parseInt(companyId, 10) }
-                })
-            } else {
-                row = await prisma.company_settings.findFirst()
-            }
+            const row = await prisma.company_settings.findUnique({
+                where: { company_id: cid }
+            })
             if (row && row.settings_json) {
                 const parsed = typeof row.settings_json === 'string' ? JSON.parse(row.settings_json) : row.settings_json
                 const arvento = parsed?.integrations?.arvento
@@ -156,7 +158,17 @@ function parseXmlTable(xml) {
 }
 
 async function makeArventoRequest(methodName, params = {}, credentialsOverride = null) {
-    const creds = credentialsOverride || await getArventoCredentials()
+    let creds = credentialsOverride
+    if (!creds || (!creds.username && !creds.pin1)) {
+        const targetCompanyId = typeof credentialsOverride === 'number' || typeof credentialsOverride === 'string'
+            ? credentialsOverride
+            : credentialsOverride?.companyId
+        creds = await getArventoCredentials(targetCompanyId)
+    }
+
+    if (!creds || !creds.username || !creds.pin1) {
+        throw new Error('Arvento kimlik bilgileri yapılandırılmamış veya eksik.')
+    }
     const username = creds.username
     const pin1 = creds.pin1
     const pin2 = creds.pin2

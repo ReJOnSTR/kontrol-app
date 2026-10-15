@@ -75,10 +75,10 @@ async function createVehicle(data) {
         });
 
         if (existingVehicle) {
-            await prisma.vehicles.update({
-                where: { id: existingVehicle.id },
-                data: { is_archived: 1 }
-            });
+            return {
+                success: false,
+                error: `"${plate}" plakalı aktif bir araç zaten mevcut. Lütfen mevcut aracı düzenleyin veya arşivden çıkarın.`
+            };
         }
 
         const vehicle = await prisma.vehicles.create({
@@ -149,10 +149,14 @@ async function updateVehicle(data) {
     }
 }
 
-async function deleteVehicle(id) {
+async function deleteVehicle(id, companyId = null) {
     try {
         const vId = parseInt(id);
         const existing = await prisma.vehicles.findUnique({ where: { id: vId } });
+        if (!existing) return { success: false, error: 'Araç bulunamadı' };
+        if (companyId && existing.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu aracı silme yetkiniz yok.' };
+        }
 
         await prisma.$transaction(async (tx) => {
             await tx.maintenances.deleteMany({ where: { vehicle_id: vId } }).catch(() => {});
@@ -283,8 +287,16 @@ async function updateMaintenance(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteMaintenance(id) {
+async function deleteMaintenance(id, companyId = null) {
     try {
+        const item = await prisma.maintenances.findUnique({
+            where: { id: parseInt(id) },
+            include: { vehicles: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.vehicles?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         const { deleteOperationDocument } = require('./operationSync.helper');
         await deleteOperationDocument('maintenance', id);
         await prisma.maintenances.delete({ where: { id: parseInt(id) } });

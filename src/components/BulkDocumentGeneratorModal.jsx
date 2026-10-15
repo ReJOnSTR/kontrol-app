@@ -5,8 +5,10 @@ import StampSignaturePreview, { STAMP_DEFAULTS } from './StampSignaturePreview'
 import { FileText, Download, Check, ArrowLeft, Stamp, Users, FolderDown, Archive, Loader2 } from 'lucide-react'
 import { documentTemplates } from '../utils/documentTemplates'
 import { formatDate, formatDateForInput, generateUniqueFileName } from '../utils/helpers'
+import { useAuth } from '../context/AuthContext'
 
 export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEmployees = [], company, onSuccess }) {
+    const { userPreferences, updateUserPreferences } = useAuth()
     const [selectedTemplate, setSelectedTemplate] = useState(documentTemplates[0])
     const [placeholders, setPlaceholders] = useState({})
     const [content, setContent] = useState('')
@@ -17,8 +19,8 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
     const [step, setStep] = useState('edit')
     const [stampSettings, setStampSettings] = useState(() => {
         try {
-            const saved = localStorage.getItem('lastStampSettings')
-            return saved ? { ...STAMP_DEFAULTS, ...JSON.parse(saved) } : STAMP_DEFAULTS
+            const saved = userPreferences?.stampSettings || JSON.parse(localStorage.getItem('lastStampSettings') || 'null')
+            return saved ? { ...STAMP_DEFAULTS, ...saved } : STAMP_DEFAULTS
         } catch (e) {
             return STAMP_DEFAULTS
         }
@@ -26,7 +28,16 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
     const [outputMode, setOutputMode] = useState('combined') // 'combined' | 'folder' | 'archive'
 
     useEffect(() => {
+        if (userPreferences?.stampSettings) {
+            setStampSettings(prev => ({ ...prev, ...userPreferences.stampSettings }))
+        }
+    }, [userPreferences?.stampSettings])
+
+    useEffect(() => {
         localStorage.setItem('lastStampSettings', JSON.stringify(stampSettings))
+        if (updateUserPreferences) {
+            updateUserPreferences({ stampSettings })
+        }
     }, [stampSettings])
 
     useEffect(() => {

@@ -221,6 +221,10 @@ export function AuthProvider({ children }) {
                 setUser(result.user)
                 localStorage.setItem('aractakip_user', JSON.stringify(result.user))
                 sessionStorage.setItem('aractakip_session_active', 'true')
+                if (result.token) {
+                    localStorage.setItem('token', result.token)
+                    localStorage.setItem('aractakip_token', result.token)
+                }
                 
                 // Keep Supabase Auth session synced on client
                 if (result.user?.email) {
@@ -258,6 +262,10 @@ export function AuthProvider({ children }) {
                 setUser(result.user)
                 localStorage.setItem('aractakip_user', JSON.stringify(result.user))
                 sessionStorage.setItem('aractakip_session_active', 'true')
+                if (result.token) {
+                    localStorage.setItem('token', result.token)
+                    localStorage.setItem('aractakip_token', result.token)
+                }
                 return { success: true, backupCodeUsed: result.backupCodeUsed, remainingBackupCodes: result.remainingBackupCodes }
             }
             return { success: false, error: result?.error || 'Geçersiz 2FA güvenlik kodu' }
@@ -288,6 +296,10 @@ export function AuthProvider({ children }) {
                 setUser(result.user)
                 localStorage.setItem('aractakip_user', JSON.stringify(result.user))
                 sessionStorage.setItem('aractakip_session_active', 'true')
+                if (result.token) {
+                    localStorage.setItem('token', result.token)
+                    localStorage.setItem('aractakip_token', result.token)
+                }
 
                 return { success: true }
             }
@@ -304,8 +316,11 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('aractakip_user')
         localStorage.removeItem('aractakip_company')
         localStorage.removeItem('aractakip_locked')
+        localStorage.removeItem('token')
+        localStorage.removeItem('aractakip_token')
         sessionStorage.removeItem('aractakip_session_id')
         sessionStorage.removeItem('aractakip_session_active')
+        sessionStorage.removeItem('token')
         supabase.auth.signOut().catch(() => {});
     }
 

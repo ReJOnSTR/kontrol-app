@@ -120,10 +120,9 @@ async function getEmployeeById(id) {
 
 async function addEmployee(data) {
     try {
-        let compId = data.companyId || data.company_id;
-        if (!compId) {
-            const firstComp = await prisma.companies.findFirst();
-            compId = firstComp?.id || 1;
+        let compId = parseInt(data.companyId || data.company_id, 10);
+        if (!compId || isNaN(compId)) {
+            return { success: false, error: 'Şirket kimliği (companyId) zorunludur.' };
         }
 
         await checkQuota(compId, 'employees');
@@ -274,10 +273,14 @@ async function updateEmployee(data) {
     }
 }
 
-async function deleteEmployee(id) {
+async function deleteEmployee(id, companyId = null) {
     try {
         const empId = parseInt(id);
         const existing = await prisma.employees.findUnique({ where: { id: empId } });
+        if (!existing) return { success: false, error: 'Personel bulunamadı' };
+        if (companyId && existing.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu personeli silme yetkiniz yok.' };
+        }
 
         await prisma.$transaction(async (tx) => {
             // Disassociate or remove users linked to this employee
@@ -324,9 +327,11 @@ async function deleteEmployee(id) {
 async function getPayrollSummary(companyId, month) {
     try {
         const targetMonth = month || new Date().toISOString().slice(0, 7);
-        const [year, m] = targetMonth.split('-');
-        const startDate = new Date(year, parseInt(m) - 1, 1);
-        const endDate = new Date(year, parseInt(m), 0, 23, 59, 59);
+        const [yearStr, mStr] = targetMonth.split('-');
+        const y = parseInt(yearStr, 10);
+        const mon = parseInt(mStr, 10);
+        const startDate = new Date(Date.UTC(y, mon - 1, 1, 0, 0, 0, 0));
+        const endDate = new Date(Date.UTC(y, mon, 0, 23, 59, 59, 999));
 
         const employees = await prisma.employees.findMany({
             where: { 
@@ -367,9 +372,19 @@ async function getPayrollSummary(companyId, month) {
         });
 
         // Filter employees based on their start date and archived/end date for targetMonth
+        const formatMonth = (val) => {
+            if (!val) return null;
+            if (typeof val === 'string') return val.slice(0, 7);
+            const d = new Date(val);
+            if (isNaN(d.getTime())) return null;
+            const dY = d.getUTCFullYear();
+            const dM = String(d.getUTCMonth() + 1).padStart(2, '0');
+            return `${dY}-${dM}`;
+        };
+
         const resultEmployees = filteredEmployees.filter(emp => {
-            const startMonth = emp.start_date ? new Date(emp.start_date).toISOString().slice(0, 7) : null;
-            const endMonth = emp.end_date ? new Date(emp.end_date).toISOString().slice(0, 7) : null;
+            const startMonth = formatMonth(emp.start_date);
+            const endMonth = formatMonth(emp.end_date);
 
             // 1. Skip if before start date
             if (startMonth && targetMonth < startMonth) {

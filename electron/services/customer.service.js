@@ -86,11 +86,16 @@ async function getCustomers(companyId, isArchived = 0) {
     }
 }
 
-async function getCustomerDetails(id) {
+async function getCustomerDetails(id, companyId = null) {
     try {
         const prisma = getPrismaClient()
-        const customer = await prisma.customers.findUnique({
-            where: { id: parseInt(id) },
+        const cId = parseInt(id)
+        const whereClause = { id: cId }
+        if (companyId) {
+            whereClause.company_id = parseInt(companyId)
+        }
+        const customer = await prisma.customers.findFirst({
+            where: whereClause,
             include: {
                 works: {
                     include: {
@@ -235,10 +240,16 @@ async function updateCustomer(data) {
     }
 }
 
-async function deleteCustomer(id) {
+async function deleteCustomer(id, companyId = null) {
     try {
         const cId = parseInt(id)
         const prisma = getPrismaClient()
+        const existing = await prisma.customers.findUnique({ where: { id: cId } })
+        if (!existing) return { success: false, error: 'Müşteri bulunamadı' }
+        if (companyId && existing.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu müşteriyi silme yetkiniz yok.' }
+        }
+
         await prisma.$transaction(async (tx) => {
             const customerWorks = await tx.works.findMany({ where: { customer_id: cId }, select: { id: true } })
             const workIds = customerWorks.map(w => w.id)

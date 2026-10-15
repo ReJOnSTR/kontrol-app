@@ -1,5 +1,26 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
+const PASSIVE_CHANNELS = new Set([
+    'app:checkForUpdates',
+    'app:getMemoryUsage',
+    'app:getDiskUsage',
+    'app:getPlatform',
+    'app:getAppVersion'
+]);
+
+const rawInvoke = ipcRenderer.invoke.bind(ipcRenderer);
+ipcRenderer.invoke = (channel, ...args) => {
+    const isPassive = PASSIVE_CHANNELS.has(channel);
+    if (!isPassive && typeof window !== 'undefined') {
+        try { window.postMessage('app:loading:start', '*'); } catch (_) {}
+    }
+    return rawInvoke(channel, ...args).finally(() => {
+        if (!isPassive && typeof window !== 'undefined') {
+            try { window.postMessage('app:loading:stop', '*'); } catch (_) {}
+        }
+    });
+};
+
 contextBridge.exposeInMainWorld('electronAPI', {
     // Auth
     register: (userData) => ipcRenderer.invoke('auth:register', userData),

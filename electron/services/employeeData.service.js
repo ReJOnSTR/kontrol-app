@@ -117,8 +117,16 @@ async function updateSalary(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteSalary(id) {
+async function deleteSalary(id, companyId = null) {
     try {
+        const item = await prisma.salaries.findUnique({
+            where: { id: parseInt(id) },
+            include: { employees: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.employees?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         await syncFinanceTransaction(parseInt(id), 'delete');
         await prisma.salaries.delete({ where: { id: parseInt(id) } });
         return { success: true };
@@ -173,8 +181,16 @@ async function updateLeave(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteLeave(id) {
+async function deleteLeave(id, companyId = null) {
     try {
+        const item = await prisma.leaves.findUnique({
+            where: { id: parseInt(id) },
+            include: { employees: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.employees?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         await prisma.leaves.delete({ where: { id: parseInt(id) } });
         return { success: true };
     } catch (error) { return { success: false, error: error.message }; }
@@ -251,8 +267,16 @@ async function updateOvertime(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteOvertime(id) {
+async function deleteOvertime(id, companyId = null) {
     try {
+        const item = await prisma.overtimes.findUnique({
+            where: { id: parseInt(id) },
+            include: { employees: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.employees?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         await prisma.overtimes.delete({ where: { id: parseInt(id) } });
         return { success: true };
     } catch (error) { return { success: false, error: error.message }; }
@@ -305,8 +329,16 @@ async function updateEmployeeAssignment(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteEmployeeAssignment(id) {
+async function deleteEmployeeAssignment(id, companyId = null) {
     try {
+        const item = await prisma.employee_assignments.findUnique({
+            where: { id: parseInt(id) },
+            include: { employees: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.employees?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         await prisma.employee_assignments.delete({ where: { id: parseInt(id) } });
         return { success: true };
     } catch (error) { return { success: false, error: error.message }; }
@@ -346,8 +378,16 @@ async function addEmployeeDocument(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteEmployeeDocument(id) {
+async function deleteEmployeeDocument(id, companyId = null) {
     try {
+        const item = await prisma.employee_documents.findUnique({
+            where: { id: parseInt(id) },
+            include: { employees: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.employees?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         await prisma.employee_documents.delete({ where: { id: parseInt(id) } });
         return { success: true };
     } catch (error) { return { success: false, error: error.message }; }
@@ -476,8 +516,16 @@ async function updateSalaryHistory(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteSalaryHistory(id) {
+async function deleteSalaryHistory(id, companyId = null) {
     try {
+        const item = await prisma.employee_salary_history.findUnique({
+            where: { id: parseInt(id) },
+            include: { employees: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.employees?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         await prisma.employee_salary_history.delete({ where: { id: parseInt(id) } });
         return { success: true };
     } catch (error) { return { success: false, error: error.message }; }
@@ -531,8 +579,16 @@ async function updateEmployeeMovement(data) {
     } catch (error) { return { success: false, error: error.message }; }
 }
 
-async function deleteEmployeeMovement(id) {
+async function deleteEmployeeMovement(id, companyId = null) {
     try {
+        const item = await prisma.employee_movements.findUnique({
+            where: { id: parseInt(id) },
+            include: { employees: { select: { company_id: true } } }
+        });
+        if (!item) return { success: false, error: 'Kayıt bulunamadı' };
+        if (companyId && item.employees?.company_id !== parseInt(companyId)) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
         await prisma.employee_movements.delete({
             where: { id: parseInt(id) }
         });

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useIsFetching, useIsMutating } from '@tanstack/react-query'
+import { loadingManager } from '../utils/loadingManager'
 
 const style = `
 .top-progress-bar {
@@ -21,16 +23,49 @@ body.is-electron .top-progress-bar {
 }
 `
 
-export default function TopProgressBar({ loading }) {
+let hasGlobalBar = false
+
+export default function TopProgressBar({ loading: explicitLoading, isGlobal = false }) {
+    useEffect(() => {
+        if (isGlobal) {
+            hasGlobalBar = true
+            return () => { hasGlobalBar = false }
+        }
+    }, [isGlobal])
+
+    // Forward local loading prop to global loading manager
+    useEffect(() => {
+        if (explicitLoading) {
+            loadingManager.start()
+            return () => loadingManager.stop()
+        }
+    }, [explicitLoading])
+
+    const isFetching = useIsFetching()
+    const isMutating = useIsMutating()
+    const [managerLoading, setManagerLoading] = useState(loadingManager.isLoading())
     const [progress, setProgress] = useState(0)
     const [visible, setVisible] = useState(false)
     const [fading, setFading] = useState(false)
 
     useEffect(() => {
+        return loadingManager.subscribe((isLoading) => {
+            setManagerLoading(isLoading)
+        })
+    }, [])
+
+    const active = Boolean(
+        explicitLoading || 
+        managerLoading || 
+        isFetching > 0 || 
+        isMutating > 0
+    )
+
+    useEffect(() => {
         let raf
         let timeout
 
-        if (loading) {
+        if (active) {
             setProgress(0)
             setVisible(true)
             setFading(false)
@@ -64,7 +99,12 @@ export default function TopProgressBar({ loading }) {
             cancelAnimationFrame(raf)
             clearTimeout(timeout)
         }
-    }, [loading])
+    }, [active])
+
+    // Avoid duplicate DOM rendering if global bar is already active in MainLayout
+    if (!isGlobal && hasGlobalBar) {
+        return null
+    }
 
     if (!visible) return null
 

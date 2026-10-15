@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { useCompany } from '../context/CompanyContext'
 import TopProgressBar from '../components/TopProgressBar'
 import Modal from '../components/Modal'
@@ -10,6 +11,7 @@ import { DashboardSkeleton } from '../components/Skeleton'
 
 export default function FinanceDashboard() {
     const { currentCompany } = useCompany()
+    const { user } = useAuth()
     const [loading, setLoading] = useState(true)
     const [transactions, setTransactions] = useState([])
     const [checks, setChecks] = useState([])
@@ -44,27 +46,43 @@ export default function FinanceDashboard() {
         }
     }
 
-    const loadActionPreferences = () => {
-        const saved = localStorage.getItem(`finance_actions_${currentCompany?.id}`)
-        if (saved) {
-            try {
-                const parsedIds = JSON.parse(saved)
-                const restored = parsedIds
-                    .map(id => allActions.find(a => a.id === id))
-                    .filter(Boolean)
+    const loadActionPreferences = async () => {
+        let parsedIds = null
 
-                if (restored.length > 0) {
-                    setVisibleActions(restored)
-                } else {
-                    setVisibleActions(allActions.filter(a => a.default))
+        // 1. Try DB user preferences first
+        if (user?.id && window.electronAPI?.getUserPreferences) {
+            try {
+                const prefsRes = await window.electronAPI.getUserPreferences(user.id)
+                if (prefsRes?.success && prefsRes?.data?.dashboardActions?.finance) {
+                    parsedIds = prefsRes.data.dashboardActions.finance
                 }
-            } catch (e) {
-                console.error("Failed to parse saved actions", e)
-                setVisibleActions(allActions.filter(a => a.default))
-            }
-        } else {
-            setVisibleActions(allActions.filter(a => a.default))
+            } catch (err) {}
         }
+
+        // 2. Fallback to localStorage
+        if (!parsedIds) {
+            const saved = localStorage.getItem(`finance_actions_${currentCompany?.id}`)
+            if (saved) {
+                try {
+                    parsedIds = JSON.parse(saved)
+                } catch (e) {
+                    parsedIds = null
+                }
+            }
+        }
+
+        if (parsedIds && Array.isArray(parsedIds) && parsedIds.length > 0) {
+            const restored = parsedIds
+                .map(id => allActions.find(a => a.id === id))
+                .filter(Boolean)
+
+            if (restored.length > 0) {
+                setVisibleActions(restored)
+                return
+            }
+        }
+
+        setVisibleActions(allActions.filter(a => a.default))
     }
 
     useEffect(() => {
@@ -77,7 +95,7 @@ export default function FinanceDashboard() {
             setVisibleActions(allActions.filter(a => a.default))
             setLoading(false)
         }
-    }, [currentCompany])
+    }, [currentCompany, user?.id])
 
     // Real-time synchronization listener
     const loadDataRef = useRef(null)
@@ -141,7 +159,16 @@ export default function FinanceDashboard() {
     const saveSettings = () => {
         const selected = tempActions.filter(a => a.active)
         setVisibleActions(selected)
-        localStorage.setItem(`finance_actions_${currentCompany?.id}`, JSON.stringify(selected.map(a => a.id)))
+        const ids = selected.map(a => a.id)
+        if (currentCompany?.id) {
+            localStorage.setItem(`finance_actions_${currentCompany.id}`, JSON.stringify(ids))
+        }
+        if (user?.id && window.electronAPI?.saveUserPreferences) {
+            window.electronAPI.saveUserPreferences({
+                userId: user.id,
+                preferences: { dashboardActions: { finance: ids } }
+            }).catch(() => {})
+        }
         setShowSettings(false)
     }
 

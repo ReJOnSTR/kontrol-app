@@ -105,19 +105,27 @@ async function getDocumentsByVehicle(vehicleId, isArchived = 0) {
 
 async function getDocumentsByCompany(companyId, isArchived = 0) {
     const execute = async () => {
+        const cid = parseInt(companyId);
         // Get all work IDs for this company to filter work-related documents
         const companyWorks = await prisma.works.findMany({
-            where: { company_id: parseInt(companyId) },
+            where: { company_id: cid },
             select: { id: true }
         });
         const workIds = companyWorks.map(w => w.id);
 
         // Get all customer IDs for this company to filter customer-related documents
         const companyCustomers = await prisma.customers.findMany({
-            where: { company_id: parseInt(companyId) },
+            where: { company_id: cid },
             select: { id: true }
         });
         const customerIds = companyCustomers.map(c => c.id);
+
+        // Get all employee IDs for this company to filter employee-related documents
+        const companyEmployees = await prisma.employees.findMany({
+            where: { company_id: cid },
+            select: { id: true }
+        });
+        const employeeIds = companyEmployees.map(e => e.id);
 
         const docs = await prisma.documents.findMany({
             where: {
@@ -125,7 +133,7 @@ async function getDocumentsByCompany(companyId, isArchived = 0) {
                 OR: [
                     {
                         vehicles: {
-                            company_id: parseInt(companyId)
+                            company_id: cid
                         }
                     },
                     {
@@ -138,6 +146,12 @@ async function getDocumentsByCompany(companyId, isArchived = 0) {
                         related_type: 'customer',
                         related_id: {
                             in: customerIds
+                        }
+                    },
+                    {
+                        related_type: 'employee',
+                        related_id: {
+                            in: employeeIds
                         }
                     }
                 ]
@@ -161,10 +175,36 @@ async function getDocumentsByCompany(companyId, isArchived = 0) {
     }
 }
 
-async function deleteDocument(id) {
+async function deleteDocument(id, companyId = null) {
     try {
+        const docId = parseInt(id);
+        if (companyId) {
+            const cid = parseInt(companyId);
+            const doc = await prisma.documents.findUnique({
+                where: { id: docId },
+                include: { vehicles: true }
+            });
+            if (!doc) return { success: false, error: "Belge bulunamadı." };
+
+            let belongsToCompany = false;
+            if (doc.vehicle_id && doc.vehicles && doc.vehicles.company_id === cid) {
+                belongsToCompany = true;
+            } else if (doc.related_type === 'work' && doc.related_id) {
+                const work = await prisma.works.findUnique({ where: { id: doc.related_id } });
+                if (work && work.company_id === cid) belongsToCompany = true;
+            } else if (doc.related_type === 'customer' && doc.related_id) {
+                const cust = await prisma.customers.findUnique({ where: { id: doc.related_id } });
+                if (cust && cust.company_id === cid) belongsToCompany = true;
+            } else if (doc.related_type === 'employee' && doc.related_id) {
+                const emp = await prisma.employees.findUnique({ where: { id: doc.related_id } });
+                if (emp && emp.company_id === cid) belongsToCompany = true;
+            }
+            if (!belongsToCompany && (doc.vehicle_id || doc.related_id)) {
+                return { success: false, error: "Yetkisiz işlem: Bu belge şirketinize ait değil." };
+            }
+        }
         await prisma.documents.delete({
-            where: { id: parseInt(id) }
+            where: { id: docId }
         });
         return { success: true };
     } catch (error) {

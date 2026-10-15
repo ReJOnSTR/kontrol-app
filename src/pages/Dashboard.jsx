@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import TopProgressBar from '../components/TopProgressBar'
 import { useCompany } from '../context/CompanyContext'
+import { useAuth } from '../context/AuthContext'
 import { formatDate, getDaysUntil, getDaysUntilText, getStatusColor, formatCurrency, getVehicleTypeLabel } from '../utils/helpers'
 import {
     Car,
@@ -28,6 +29,7 @@ import { dataCache } from '../utils/dataCache'
 
 export default function Dashboard() {
     const { currentCompany, loading: companyLoading, upcomingEvents, loadUpcomingEvents } = useCompany()
+    const { user } = useAuth()
     const navigate = useNavigate()
 
     // PC Listeners
@@ -145,25 +147,43 @@ export default function Dashboard() {
         }
     }
 
-    const loadActionPreferences = () => {
-        const saved = localStorage.getItem(`dashboard_actions_${currentCompany?.id}`)
-        if (saved) {
-            try {
-                const parsedIds = JSON.parse(saved)
-                const restored = parsedIds
-                    .map(id => allActions.find(a => a.id === id))
-                    .filter(Boolean)
+    const loadActionPreferences = async () => {
+        let parsedIds = null
 
-                if (restored.length > 0) {
-                    setVisibleActions(restored)
-                } else {
-                    setVisibleActions(allActions.filter(a => a.default))
+        // 1. Try DB user preferences first
+        if (user?.id && window.electronAPI?.getUserPreferences) {
+            try {
+                const prefsRes = await window.electronAPI.getUserPreferences(user.id)
+                if (prefsRes?.success && prefsRes?.data?.dashboardActions?.fleet) {
+                    parsedIds = prefsRes.data.dashboardActions.fleet
                 }
-            } catch (e) {
-                console.error("Failed to parse saved actions", e)
-                setVisibleActions(allActions.filter(a => a.default))
+            } catch (err) {}
+        }
+
+        // 2. Fallback to localStorage
+        if (!parsedIds) {
+            const saved = localStorage.getItem(`dashboard_actions_${currentCompany?.id}`)
+            if (saved) {
+                try {
+                    parsedIds = JSON.parse(saved)
+                } catch (e) {
+                    parsedIds = null
+                }
             }
         }
+
+        if (parsedIds && Array.isArray(parsedIds) && parsedIds.length > 0) {
+            const restored = parsedIds
+                .map(id => allActions.find(a => a.id === id))
+                .filter(Boolean)
+
+            if (restored.length > 0) {
+                setVisibleActions(restored)
+                return
+            }
+        }
+
+        setVisibleActions(allActions.filter(a => a.default))
     }
 
     const handleOpenSettings = () => {
@@ -206,7 +226,14 @@ export default function Dashboard() {
     const saveSettings = () => {
         const selected = tempActions.filter(a => a.active)
         setVisibleActions(selected)
-        localStorage.setItem(`dashboard_actions_${currentCompany?.id}`, JSON.stringify(selected.map(a => a.id)))
+        const ids = selected.map(a => a.id)
+        localStorage.setItem(`dashboard_actions_${currentCompany?.id}`, JSON.stringify(ids))
+        if (user?.id && window.electronAPI?.saveUserPreferences) {
+            window.electronAPI.saveUserPreferences({
+                userId: user.id,
+                preferences: { dashboardActions: { fleet: ids } }
+            }).catch(() => {})
+        }
         setShowSettings(false)
     }
 

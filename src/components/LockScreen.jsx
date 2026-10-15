@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { authService } from '../services'
 
 export default function LockScreen({ isLocked, onUnlock }) {
-    const { user, logout } = useAuth()
+    const { user, logout, userPreferences } = useAuth()
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -13,20 +13,20 @@ export default function LockScreen({ isLocked, onUnlock }) {
     const getLockSettings = () => {
         try {
             const local = JSON.parse(localStorage.getItem('aractakip_lock_settings') || '{}')
-            const userPref = user?.userPreferences?.lock || {}
+            const userPref = userPreferences?.lock || user?.userPreferences?.lock || {}
             return {
                 enabled: false,
                 timeout: 5,
                 useCustomPassword: false,
-                ...userPref,
-                ...local
+                ...local,
+                ...userPref
             }
         } catch {
             return {
                 enabled: false,
                 timeout: 5,
                 useCustomPassword: false,
-                ...(user?.userPreferences?.lock || {})
+                ...(userPreferences?.lock || user?.userPreferences?.lock || {})
             }
         }
     }

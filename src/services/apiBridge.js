@@ -1,8 +1,16 @@
-/**
- * apiBridge.js
- * Automatically bridges window.electronAPI calls over HTTP RPC when running in a web browser.
- * In Electron desktop mode, this is a no-op as window.electronAPI is already provided by preload.js.
- */
+import { loadingManager } from '../utils/loadingManager';
+
+const PASSIVE_RPC_METHODS = new Set([
+    'checkForUpdates',
+    'getMemoryUsage',
+    'getDiskUsage',
+    'getPlatform',
+    'getAppVersion',
+    'on',
+    'removeListener',
+    'removePCListeners',
+    'removeUpdateListeners'
+]);
 
 if (typeof window !== 'undefined' && !window.electronAPI) {
     console.info('[API Bridge] Running in Web mode. Polyfilling window.electronAPI via HTTP RPC.');
@@ -153,8 +161,8 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
             if (prop === 'openFile' || prop === 'openDocument') {
                 return async (fileNameOrPath) => {
                     if (!fileNameOrPath) return { success: false, error: 'No file specified' };
-                    const cleanName = String(fileNameOrPath).split(/[\\/]/).pop();
-                    window.open(`/uploads/${cleanName}`, '_blank', 'noopener,noreferrer');
+                    const cleanPath = String(fileNameOrPath).replace(/^[\\/]+/, '').replace(/^uploads[\\/]/, '');
+                    window.open(`/uploads/${cleanPath}`, '_blank', 'noopener,noreferrer');
                     return { success: true };
                 };
             }
@@ -220,12 +228,12 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
             // Web file download polyfill
             if (prop === 'downloadFile') {
                 return async (params) => {
-                    const fileName = typeof params === 'string' ? params : (params?.fileName || params?.path);
-                    if (!fileName) return { success: false, error: 'No file specified' };
-                    const cleanName = String(fileName).split(/[\\/]/).pop();
+                    const rawName = typeof params === 'string' ? params : (params?.fileName || params?.path);
+                    if (!rawName) return { success: false, error: 'No file specified' };
+                    const cleanPath = String(rawName).replace(/^[\\/]+/, '').replace(/^uploads[\\/]/, '');
                     const a = document.createElement('a');
-                    a.href = `/uploads/${cleanName}`;
-                    a.download = cleanName;
+                    a.href = `/uploads/${cleanPath}`;
+                    a.download = cleanPath.split(/[\\/]/).pop();
                     a.target = '_blank';
                     document.body.appendChild(a);
                     a.click();
@@ -326,9 +334,12 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
 
             // Standard RPC method call
             return async (...args) => {
+                const propStr = String(prop);
+                const isPassive = PASSIVE_RPC_METHODS.has(propStr);
+                if (!isPassive) loadingManager.start();
                 const token = localStorage.getItem('token') || localStorage.getItem('aractakip_token') || sessionStorage.getItem('token');
                 try {
-                    const res = await fetch(`/api/rpc/${String(prop)}`, {
+                    const res = await fetch(`/api/rpc/${propStr}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -345,8 +356,10 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                     const data = await res.json();
                     return data;
                 } catch (err) {
-                    console.error(`[API Bridge Error] Method "${String(prop)}" failed:`, err);
+                    console.error(`[API Bridge Error] Method "${propStr}" failed:`, err);
                     return { success: false, error: err.message };
+                } finally {
+                    if (!isPassive) loadingManager.stop();
                 }
             };
         }

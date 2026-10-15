@@ -6,10 +6,12 @@ import StampSignaturePreview, { STAMP_DEFAULTS } from './StampSignaturePreview'
 import { FileText, Download, Check, ArrowLeft, Stamp, Plus, Trash2, X, Truck, RotateCcw, ChevronUp, ChevronDown, Eye } from 'lucide-react'
 import { customerDocumentTemplates, DEFAULT_CONTRACT_ANNEX_ITEMS, DEFAULT_CONTRACT_NOTICE, DEFAULT_CONTRACT_ARTICLES } from '../utils/customerDocumentTemplates'
 import { formatDate, formatDateForInput, generateUniqueFileName } from '../utils/helpers'
+import { useAuth } from '../context/AuthContext'
 
 const UNIT_OPTIONS = ['Gün', 'Saat', 'Sefer', 'Adet', 'Ay', 'Hafta', 'İş', 'Ton', 'Metre', 'Takım']
 
 export default function CustomerDocumentGeneratorModal({ isOpen, onClose, customer, company, onSuccess }) {
+    const { userPreferences, updateUserPreferences } = useAuth()
     const [selectedTemplate, setSelectedTemplate] = useState(customerDocumentTemplates[0])
     const [placeholders, setPlaceholders] = useState({})
     const [content, setContent] = useState('')
@@ -21,8 +23,8 @@ export default function CustomerDocumentGeneratorModal({ isOpen, onClose, custom
     const [vehicles, setVehicles] = useState([])
     const [stampSettings, setStampSettings] = useState(() => {
         try {
-            const saved = localStorage.getItem('lastStampSettings')
-            return saved ? { ...STAMP_DEFAULTS, ...JSON.parse(saved) } : STAMP_DEFAULTS
+            const saved = userPreferences?.stampSettings || JSON.parse(localStorage.getItem('lastStampSettings') || 'null')
+            return saved ? { ...STAMP_DEFAULTS, ...saved } : STAMP_DEFAULTS
         } catch (e) {
             return STAMP_DEFAULTS
         }
@@ -71,7 +73,16 @@ export default function CustomerDocumentGeneratorModal({ isOpen, onClose, custom
     const [contractArticles, setContractArticles] = useState(DEFAULT_CONTRACT_ARTICLES)
 
     useEffect(() => {
+        if (userPreferences?.stampSettings) {
+            setStampSettings(prev => ({ ...prev, ...userPreferences.stampSettings }))
+        }
+    }, [userPreferences?.stampSettings])
+
+    useEffect(() => {
         localStorage.setItem('lastStampSettings', JSON.stringify(stampSettings))
+        if (updateUserPreferences) {
+            updateUserPreferences({ stampSettings })
+        }
     }, [stampSettings])
 
     useEffect(() => {

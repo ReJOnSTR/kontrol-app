@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import TopProgressBar from '../components/TopProgressBar'
+import { useAuth } from '../context/AuthContext'
 import { useCompany } from '../context/CompanyContext'
 import { formatCurrency, formatDate, getDaysUntil } from '../utils/helpers'
 import { ScrollableList } from '../components/DashboardComponents'
@@ -41,6 +42,7 @@ import { DashboardSkeleton } from '../components/Skeleton'
 
 export default function PersonelDashboard() {
     const { currentCompany } = useCompany()
+    const { user } = useAuth()
     const navigate = useNavigate()
     const [loading, setLoading] = useState(true)
     const [employees, setEmployees] = useState([])
@@ -205,20 +207,49 @@ export default function PersonelDashboard() {
     const [draggedItemIndex, setDraggedItemIndex] = useState(null)
 
     // Load preferences
-    useEffect(() => {
-        if (currentCompany) {
+    const loadActionPreferences = async () => {
+        let parsedIds = null
+
+        // 1. Try DB user preferences first
+        if (user?.id && window.electronAPI?.getUserPreferences) {
+            try {
+                const prefsRes = await window.electronAPI.getUserPreferences(user.id)
+                if (prefsRes?.success && prefsRes?.data?.dashboardActions?.hr) {
+                    parsedIds = prefsRes.data.dashboardActions.hr
+                }
+            } catch (err) {}
+        }
+
+        // 2. Fallback to localStorage
+        if (!parsedIds && currentCompany) {
             const saved = localStorage.getItem(`hr_dashboard_actions_${currentCompany.id}`)
             if (saved) {
                 try {
-                    const parsedIds = JSON.parse(saved)
-                    const restored = parsedIds
-                        .map(id => allActions.find(a => a.id === id))
-                        .filter(Boolean)
-                    if (restored.length > 0) setVisibleActions(restored)
-                } catch (e) { console.error(e) }
+                    parsedIds = JSON.parse(saved)
+                } catch (e) {
+                    parsedIds = null
+                }
             }
         }
-    }, [currentCompany, allActions])
+
+        if (parsedIds && Array.isArray(parsedIds) && parsedIds.length > 0) {
+            const restored = parsedIds
+                .map(id => allActions.find(a => a.id === id))
+                .filter(Boolean)
+            if (restored.length > 0) {
+                setVisibleActions(restored)
+                return
+            }
+        }
+
+        setVisibleActions(allActions.filter(a => a.default))
+    }
+
+    useEffect(() => {
+        if (currentCompany) {
+            loadActionPreferences()
+        }
+    }, [currentCompany, user?.id])
 
     const handleOpenSettings = () => {
         const visibleIds = new Set(visibleActions.map(a => a.id))
@@ -248,10 +279,23 @@ export default function PersonelDashboard() {
         setDraggedItemIndex(index)
     }
 
+    const onDragEnd = () => {
+        setDraggedItemIndex(null)
+    }
+
     const saveSettings = () => {
         const selected = tempActions.filter(a => a.active)
         setVisibleActions(selected)
-        localStorage.setItem(`hr_dashboard_actions_${currentCompany.id}`, JSON.stringify(selected.map(a => a.id)))
+        const ids = selected.map(a => a.id)
+        if (currentCompany) {
+            localStorage.setItem(`hr_dashboard_actions_${currentCompany.id}`, JSON.stringify(ids))
+        }
+        if (user?.id && window.electronAPI?.saveUserPreferences) {
+            window.electronAPI.saveUserPreferences({
+                userId: user.id,
+                preferences: { dashboardActions: { hr: ids } }
+            }).catch(() => {})
+        }
         setShowSettings(false)
     }
 
