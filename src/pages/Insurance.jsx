@@ -502,6 +502,7 @@ export default function Insurance() {
                 showCheckboxes={true}
                 showDateFilter={true}
                 dateFilterKey="start_date"
+                dateFilterEndKey="end_date"
                 emptyMessage={showArchived ? "Arşivlenmiş sigorta kaydı bulunmuyor." : "Henüz sigorta kaydı bulunmuyor."}
                 filters={[
                     {

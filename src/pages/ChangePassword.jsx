@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { Lock, Eye, EyeOff, LogOut, ArrowLeft } from 'lucide-react'
 
 export default function ChangePassword() {
-    const { user, login, logout } = useAuth()
+    const { user, logout } = useAuth()
     const navigate = useNavigate()
+    const [currentPassword, setCurrentPassword] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -13,16 +14,16 @@ export default function ChangePassword() {
     const [loading, setLoading] = useState(false)
 
     const handleSkip = () => {
-        login({ ...user, mustChangePassword: false })
-        navigate('/', { replace: true })
+        logout()
+        navigate('/login', { replace: true })
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         setError('')
 
-        if (password.length < 6) {
-            setError('Şifre en az 6 karakter olmalıdır.')
+        if (password.length < 12) {
+            setError('Şifre en az 12 karakter olmalıdır.')
             return
         }
 
@@ -35,13 +36,14 @@ export default function ChangePassword() {
         try {
             const result = await window.electronAPI.changePassword({
                 userId: Number(user?.id),
+                currentPassword,
                 newPassword: password
             })
 
             if (result.success) {
                 // Update user state to remove mustChangePassword flag
-                login({ ...user, mustChangePassword: false })
-                navigate('/', { replace: true })
+                logout()
+                navigate('/login', { replace: true })
             } else {
                 setError(result.error || 'Şifre değiştirilemedi.')
             }
@@ -131,6 +133,8 @@ export default function ChangePassword() {
                 </div>
 
                 <form onSubmit={handleSubmit}>
+                    <label htmlFor="current-password">Mevcut Şifre</label>
+                    <input id="current-password" type="password" autoComplete="current-password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="form-input" style={{ marginBottom: 16 }} />
                     <div style={{ marginBottom: '16px' }}>
                         <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                             Yeni Şifre
@@ -140,7 +144,7 @@ export default function ChangePassword() {
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="En az 6 karakter"
+                                placeholder="En az 12 karakter"
                                 className="form-input"
                                 style={{ width: '100%', paddingRight: '40px' }}
                                 maxLength={64}
@@ -202,7 +206,7 @@ export default function ChangePassword() {
                             onClick={handleSkip}
                             style={{ flex: 1, justifyContent: 'center', height: '42px' }}
                         >
-                            Şimdilik Geç
+                            Çıkış Yap
                         </button>
                         <button
                             type="submit"

@@ -155,6 +155,8 @@ function createRpcMap() {
         createOvertime: db.addOvertime,
         updateOvertime: db.updateOvertime,
         deleteOvertime: db.deleteOvertime,
+        convertOvertimesToLeave: db.convertOvertimesToLeave,
+        revertOvertimesFromLeave: db.revertOvertimesFromLeave,
 
         // Employee Assignments
         getEmployeeAssignments: db.getEmployeeAssignments,

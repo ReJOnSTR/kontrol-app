@@ -4276,16 +4276,28 @@ body:has(.modal-overlay) .desktop-title-bar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  width: 100%;
+}
+
+.modal-drawer .modal-body .form-grid-3,
+.modal-drawer .modal-body .grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
 }
 
 .modal-drawer.modal-sm .modal-body .form-row,
 .modal-drawer.modal-sm .modal-body .form-grid-2,
-.modal-drawer.modal-sm .modal-body .grid-2 {
+.modal-drawer.modal-sm .modal-body .form-grid-3,
+.modal-drawer.modal-sm .modal-body .grid-2,
+.modal-drawer.modal-sm .modal-body .grid-3 {
   grid-template-columns: 1fr;
 }
 
 .modal-drawer .modal-body .form-group {
   margin-bottom: 14px;
+  width: 100%;
 }
 
 .modal-drawer .modal-body .form-group:last-child {
@@ -4384,14 +4396,15 @@ body:has(.modal-overlay) .desktop-title-bar {
     flex: 1;
   }
 
-  .modal-drawer .modal-body form > [style*="justify-content: flex-end"],
-  .modal-drawer .modal-body form > [style*="justifyContent: 'flex-end'"],
-  .modal-drawer .modal-body form > [style*="justify-content:flex-end"],
-  .modal-drawer .modal-body form > [style*="justifyContent: \"flex-end\""],
-  .modal-drawer .modal-body form > .form-actions,
+  .modal-drawer .modal-body .modal-actions,
+  .modal-drawer .modal-body .step-modal-actions,
   .modal-drawer .modal-body .form-actions,
-  .modal-drawer .modal-body form > div:last-child:has(button[type="submit"]),
-  .modal-drawer .modal-body form > div:last-child:has(.btn-primary) {
+  .modal-drawer .modal-body form > .form-actions,
+  .modal-drawer .modal-body form > .modal-actions,
+  .modal-drawer .modal-body form > [style*="justify-content: flex-end"]:not([style*="column"]),
+  .modal-drawer .modal-body form > [style*="justifyContent: 'flex-end'"]:not([style*="column"]),
+  .modal-drawer .modal-body form > [style*="justify-content:flex-end"]:not([style*="column"]),
+  .modal-drawer .modal-body form > [style*="justifyContent: \"flex-end\""]:not([style*="column"]) {
     position: sticky;
     bottom: -24px;
     left: 0;
@@ -4411,6 +4424,11 @@ body:has(.modal-overlay) .desktop-title-bar {
     gap: 12px !important;
     border-bottom-left-radius: 18px;
     border-bottom-right-radius: 18px;
+  }
+
+  .modal-drawer .modal-body .step-modal-actions {
+    justify-content: space-between !important;
+    gap: 12px !important;
   }
 }
 
@@ -4434,6 +4452,23 @@ body:has(.modal-overlay) .desktop-title-bar {
   .modal-footer {
     padding-left: 18px;
     padding-right: 18px;
+  }
+
+  .modal-drawer .modal-body .modal-actions,
+  .modal-drawer .modal-body .step-modal-actions,
+  .modal-drawer .modal-body .form-actions {
+    position: sticky;
+    bottom: -18px;
+    left: 0;
+    right: 0;
+    margin-left: -18px !important;
+    margin-right: -18px !important;
+    margin-bottom: -18px !important;
+    padding: 12px 18px !important;
+    background: var(--bg-secondary) !important;
+    border-top: 1px solid var(--border-color) !important;
+    z-index: 30 !important;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25) !important;
   }
 }
 

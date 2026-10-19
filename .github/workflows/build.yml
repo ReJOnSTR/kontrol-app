@@ -37,6 +37,10 @@ jobs:
       - name: Rebuild Native Modules
         run: npx electron-builder install-app-deps
 
+      # Run automated test gate before building
+      - name: Run Test Suite
+        run: npm test
+
       - name: Build & Publish Application
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

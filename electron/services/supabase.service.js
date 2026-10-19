@@ -103,7 +103,7 @@ async function syncAllEmployeesToSupabaseAuth(companyId) {
         const bcrypt = require('bcryptjs');
         const prisma = getPrismaClient();
 
-        const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:eyaeaj0djlbjhybz04ma4vrw7otatabf@45.147.47.56:5432/postgres';
+        const dbUrl = process.env.DATABASE_URL || '';
         let isPostgres = dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://');
 
         if (isPostgres) {

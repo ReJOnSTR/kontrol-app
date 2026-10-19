@@ -112,41 +112,29 @@ export function AuthProvider({ children }) {
     };
 
     useEffect(() => {
-        // Check for stored user on mount
-        const storedUser = localStorage.getItem('aractakip_user')
-        if (storedUser) {
+        let canceled = false;
+        const restore = async () => {
             try {
-                const parsed = JSON.parse(storedUser)
-                setUser(parsed)
-
-                // Asynchronously fetch fresh user profile from server so role changes apply immediately
-                if (parsed.id) {
-                    const fetchFresh = async () => {
-                        try {
-                            let res;
-                            if (window.electronAPI?.getUserProfile) {
-                                res = await window.electronAPI.getUserProfile(parsed.id)
-                            } else {
-                                res = await fetch('/api/rpc/getUserProfile', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ args: [parsed.id] })
-                                }).then(r => r.json()).catch(() => null)
-                            }
-                            if (res && res.success && res.user) {
-                                setUser(res.user)
-                                localStorage.setItem('aractakip_user', JSON.stringify(res.user))
-                            }
-                        } catch (e) {}
-                    }
-                    fetchFresh()
+                const stored = JSON.parse(localStorage.getItem('aractakip_user') || 'null');
+                if (!stored?.id) return;
+                const res = await window.electronAPI.getUserProfile(stored.id);
+                if (canceled) return;
+                if (res?.success && res.user) {
+                    setUser(res.user);
+                    localStorage.setItem('aractakip_user', JSON.stringify(res.user));
+                } else {
+                    localStorage.removeItem('aractakip_user');
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('aractakip_token');
                 }
-            } catch (e) {
-                localStorage.removeItem('aractakip_user')
-            }
-        }
-        setLoading(false)
-    }, [])
+            } catch { localStorage.removeItem('aractakip_user'); }
+            finally { if (!canceled) setLoading(false); }
+        };
+        restore();
+        const expire = () => { setUser(null); setLoading(false); ['aractakip_user', 'token', 'aractakip_token'].forEach(k => localStorage.removeItem(k)); dataCache.clear(); };
+        window.addEventListener('kontrol:session-expired', expire);
+        return () => { canceled = true; window.removeEventListener('kontrol:session-expired', expire); };
+    }, []);
 
     // Real-Time Heartbeat & Session Liveness
     useEffect(() => {
@@ -208,6 +196,7 @@ export function AuthProvider({ children }) {
                     return {
                         success: true,
                         require2FA: true,
+                        challenge: result.challenge,
                         userId: result.userId,
                         username: result.username,
                         email: result.email
@@ -215,7 +204,7 @@ export function AuthProvider({ children }) {
                 }
 
                 // Generate fresh new session ID on every login
-                const freshSessionId = 'sess_' + result.user.id + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
+                const freshSessionId = result.sessionId || crypto.randomUUID()
                 sessionStorage.setItem('aractakip_session_id', freshSessionId)
 
                 setUser(result.user)
@@ -239,24 +228,24 @@ export function AuthProvider({ children }) {
         }
     }
 
-    const verify2FALogin = async (userId, tokenOrBackupCode) => {
+    const verify2FALogin = async (userId, tokenOrBackupCode, challenge) => {
         try {
             let result;
             if (window.electronAPI?.verifyMfaLogin) {
-                result = await window.electronAPI.verifyMfaLogin(userId, tokenOrBackupCode);
+                result = await window.electronAPI.verifyMfaLogin(userId, tokenOrBackupCode, challenge);
             } else if (authService?.verifyMfaLogin) {
                 result = await authService.verifyMfaLogin({ userId, token: tokenOrBackupCode });
             } else {
                 result = await fetch('/api/rpc/verifyMfaLogin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ args: [userId, tokenOrBackupCode] })
+                    body: JSON.stringify({ args: [userId, tokenOrBackupCode, challenge] })
                 }).then(r => r.json());
             }
 
             if (result && result.success && result.user) {
                 // Generate fresh new session ID on 2FA login
-                const freshSessionId = 'sess_' + result.user.id + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
+                const freshSessionId = result.sessionId || crypto.randomUUID()
                 sessionStorage.setItem('aractakip_session_id', freshSessionId)
 
                 setUser(result.user)
@@ -290,7 +279,7 @@ export function AuthProvider({ children }) {
                     }
                 }
 
-                const freshSessionId = 'sess_' + result.user.id + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
+                const freshSessionId = result.sessionId || crypto.randomUUID()
                 sessionStorage.setItem('aractakip_session_id', freshSessionId)
 
                 setUser(result.user)
@@ -311,6 +300,7 @@ export function AuthProvider({ children }) {
     }
 
     const logout = () => {
+        window.electronAPI?.logout?.().catch(() => {});
         dataCache.clear()
         setUser(null)
         localStorage.removeItem('aractakip_user')

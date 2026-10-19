@@ -1,20 +1,48 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 const PASSIVE_CHANNELS = new Set([
+    // App & system diagnostics
     'app:checkForUpdates',
     'app:getMemoryUsage',
     'app:getDiskUsage',
     'app:getPlatform',
-    'app:getAppVersion'
+    'app:getAppVersion',
+
+    // Session & heartbeat
+    'session:heartbeat',
+    'session:getRealtimeActiveUsers',
+
+    // Periodic banners & announcements
+    'platform:getActiveAnnouncements',
+    'platform:getLogs',
+
+    // Periodic events & background calendars
+    'dashboard:getUpcoming',
+    'employeeDocuments:getUpcoming',
+
+    // Notifications
+    'notification:show',
+    'notification:getUserSettings',
+    'notification:getCompanySettings',
+
+    // Live tracking & periodic telemetry
+    'arvento:getStatus',
+    'arvento:getDailyReport',
+    'arvento:getAlarms',
+    'arvento:getInfo'
 ]);
 
 const rawInvoke = ipcRenderer.invoke.bind(ipcRenderer);
 ipcRenderer.invoke = (channel, ...args) => {
-    const isPassive = PASSIVE_CHANNELS.has(channel);
+    if (channel === 'files:select') args[0] = { ...args[0], companyId: args[0]?.companyId || Number(localStorage.getItem('aractakip_company')) };
+    const isPassive = PASSIVE_CHANNELS.has(channel) || args.some(a => a && typeof a === 'object' && (a.__passive === true || a.isBackground === true || a.silent === true));
     if (!isPassive && typeof window !== 'undefined') {
         try { window.postMessage('app:loading:start', '*'); } catch (_) {}
     }
-    return rawInvoke(channel, ...args).finally(() => {
+    return rawInvoke(channel, { __authToken: localStorage.getItem('token') || localStorage.getItem('aractakip_token') }, ...args).then(result => {
+        if (result?.status === 401) window.dispatchEvent(new Event('kontrol:session-expired'));
+        return result;
+    }).finally(() => {
         if (!isPassive && typeof window !== 'undefined') {
             try { window.postMessage('app:loading:stop', '*'); } catch (_) {}
         }
@@ -23,6 +51,7 @@ ipcRenderer.invoke = (channel, ...args) => {
 
 contextBridge.exposeInMainWorld('electronAPI', {
     // Auth
+    logout: () => ipcRenderer.invoke('auth:logout'),
     register: (userData) => ipcRenderer.invoke('auth:register', userData),
     login: (credentials) => ipcRenderer.invoke('auth:login', credentials),
     changePassword: (data) => ipcRenderer.invoke('auth:changePassword', data),
@@ -137,6 +166,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateOvertime: (data) => ipcRenderer.invoke('overtimes:update', data),
     deleteOvertime: (id) => ipcRenderer.invoke('overtimes:delete', id),
     getAllOvertimes: (companyId) => ipcRenderer.invoke('overtimes:getAllByCompany', companyId),
+    convertOvertimesToLeave: (ids, companyId) => ipcRenderer.invoke('overtimes:convertToLeave', ids, companyId),
+    revertOvertimesFromLeave: (ids, companyId) => ipcRenderer.invoke('overtimes:revertFromLeave', ids, companyId),
 
     // Employee Assignments
     getEmployeeAssignments: (employeeId) => ipcRenderer.invoke('employeeAssignments:getAll', employeeId),
@@ -162,16 +193,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     archiveItems: (table, ids, isArchived) => ipcRenderer.invoke('archive:items', table, ids, isArchived),
 
     // Dashboard
-    getDashboardStats: (companyId) => ipcRenderer.invoke('dashboard:getStats', companyId),
-    getUpcomingEvents: (companyId) => ipcRenderer.invoke('dashboard:getUpcoming', companyId),
-    getRecentActivity: (companyId) => ipcRenderer.invoke('dashboard:getRecentActivity', companyId),
+    getDashboardStats: (companyId, options) => ipcRenderer.invoke('dashboard:getStats', companyId, options),
+    getUpcomingEvents: (companyId, options) => ipcRenderer.invoke('dashboard:getUpcoming', companyId, options),
+    getRecentActivity: (companyId, options) => ipcRenderer.invoke('dashboard:getRecentActivity', companyId, options),
 
     // Data Management
     exportCompanyData: (data) => ipcRenderer.invoke('data:export', data),
     importCompanyData: (userId) => ipcRenderer.invoke('data:import', userId),
 
     // Settings & Auto Backup
-    getSettings: () => ipcRenderer.invoke('settings:get'),
+    getSettings: (companyId) => ipcRenderer.invoke('settings:get', companyId || Number(localStorage.getItem('aractakip_company'))),
     saveSettings: (settings) => ipcRenderer.invoke('settings:save', settings),
     selectFolder: () => ipcRenderer.invoke('settings:selectFolder'),
     getCompanyDbSettings: (companyId) => ipcRenderer.invoke('companySettings:get', companyId),
@@ -368,8 +399,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deletePlatformCompany: (companyId) => ipcRenderer.invoke('platform:deleteCompany', companyId),
     generateMfaSetup: (userId) => ipcRenderer.invoke('mfa:generateSetup', userId),
     enableMfa: (userId, secret, token, backupCodes) => ipcRenderer.invoke('mfa:enable', userId, secret, token, backupCodes),
-    disableMfa: (userId) => ipcRenderer.invoke('mfa:disable', userId),
-    verifyMfaLogin: (userId, tokenOrBackupCode) => ipcRenderer.invoke('mfa:verifyLogin', userId, tokenOrBackupCode),
+    disableMfa: (userId, password) => ipcRenderer.invoke('mfa:disable', userId, password),
+    verifyMfaLogin: (userId, tokenOrBackupCode, challenge) => ipcRenderer.invoke('mfa:verifyLogin', userId, tokenOrBackupCode, challenge),
     getMfaStatus: (userId) => ipcRenderer.invoke('mfa:getStatus', userId),
     getPlatformAuditLogs: (params) => ipcRenderer.invoke('platform:getAuditLogs', params),
     getAuditSummaryMetrics: () => ipcRenderer.invoke('platform:getAuditSummaryMetrics'),

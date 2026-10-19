@@ -175,60 +175,13 @@ function getRealtimeActiveUsers() {
 /**
  * Force-logout / Terminate an active user session
  */
-function terminateUserSession(sessionId, adminUser = 'SuperAdmin') {
-    try {
-        const session = activeSessions.get(sessionId);
-        terminatedSessionIds.add(sessionId);
-
-        // Persist to PostgreSQL / SQLite revoked_sessions table
-        try {
-            const { getPrismaClient } = require('../prismaClient');
-            const prisma = getPrismaClient();
-            if (prisma) {
-                const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-                const uid = session?.userId || null;
-                prisma.$executeRawUnsafe(
-                    `INSERT INTO revoked_sessions (session_id, user_id, revoked_at, reason, expires_at)
-                     VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4)
-                     ON CONFLICT (session_id) DO UPDATE SET expires_at = $4, reason = $3`,
-                    sessionId, uid, `Terminated by ${adminUser}`, expiresAt
-                ).catch(() => {});
-            }
-        } catch (dbErr) {
-            console.error('Failed to persist revoked session to DB:', dbErr);
-        }
-
-        if (session) {
-            activeSessions.delete(sessionId);
-
-            logAudit({
-                companyId: session.companyId,
-                userId: session.userId,
-                username: session.username,
-                userRole: session.userRole,
-                action: 'SECURITY',
-                entityType: 'auth',
-                entityId: String(session.userId),
-                entityName: `${session.username} (${session.companyName})`,
-                description: `${adminUser} tarafından "${session.username}" kullanıcısının canlı oturumu zorla sonlandırıldı (Kick / Force Logout)`,
-                severity: 'critical',
-                details: { sessionId, terminatedBy: adminUser, ip: session.ip }
-            });
-        }
-
-        // Keep blacklist clean after 30 minutes
-        setTimeout(() => {
-            terminatedSessionIds.delete(sessionId);
-        }, 30 * 60 * 1000);
-
-        return {
-            success: true,
-            message: 'Kullanıcının canlı oturumu başarıyla sonlandırıldı'
-        };
-    } catch (error) {
-        console.error('terminateUserSession error:', error);
-        return { success: false, error: error.message };
-    }
+async function terminateUserSession(sessionId, adminUser = 'SuperAdmin') {
+    const { getPrismaClient } = require('../prismaClient');
+    const { revokeSession } = require('../security/sessions');
+    await require('../security/context').run(null, () => revokeSession(sessionId, getPrismaClient(), activeSessions.get(sessionId)?.userId || null));
+    activeSessions.delete(sessionId);
+    terminatedSessionIds.add(sessionId);
+    return { success: true, message: 'Oturum sunucuda iptal edildi.' };
 }
 
 module.exports = {

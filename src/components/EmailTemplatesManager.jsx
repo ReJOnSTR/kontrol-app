@@ -416,7 +416,7 @@ export default function EmailTemplatesManager() {
                             <div className="supabase-field-group">
                                 <div className="field-row-split">
                                     <div className="field-half">
-                                        <label className="supabase-label">Sender name</label>
+                                        <label className="supabase-label">Gönderen Adı</label>
                                         <input 
                                             type="text"
                                             className="supabase-input"
@@ -427,14 +427,14 @@ export default function EmailTemplatesManager() {
                                         />
                                     </div>
                                     <div className="field-half">
-                                        <label className="supabase-label">Subject heading</label>
+                                        <label className="supabase-label">E-posta Konusu</label>
                                         <input 
                                             type="text"
                                             className="supabase-input"
                                             value={currentSubject}
                                             onChange={handleSubjectChange}
                                             maxLength={150}
-                                            placeholder="Subject heading..."
+                                            placeholder="E-posta konusu..."
                                         />
                                     </div>
                                 </div>
@@ -443,7 +443,7 @@ export default function EmailTemplatesManager() {
                             {/* Row 2: Message Body Header & Source/Preview Switcher */}
                             <div className="supabase-field-group" style={{ marginTop: '20px' }}>
                                 <div className="message-body-header">
-                                    <label className="supabase-label">Message body</label>
+                                    <label className="supabase-label">Mesaj Gövdesi (HTML)</label>
                                     
                                     <div className="source-preview-toggle">
                                         <button 
@@ -451,14 +451,14 @@ export default function EmailTemplatesManager() {
                                             className={`toggle-tab ${editorTab === 'source' ? 'active' : ''}`}
                                             onClick={() => setEditorTab('source')}
                                         >
-                                            Source
+                                            Kaynak Kod
                                         </button>
                                         <button 
                                             type="button"
                                             className={`toggle-tab ${editorTab === 'preview' ? 'active' : ''}`}
                                             onClick={() => setEditorTab('preview')}
                                         >
-                                            Preview
+                                            Önizleme
                                         </button>
                                     </div>
                                 </div>
@@ -477,7 +477,7 @@ export default function EmailTemplatesManager() {
                                             value={currentHtml}
                                             onChange={handleHtmlChange}
                                             maxLength={20000}
-                                            placeholder="<h2>Confirm your signup</h2>..."
+                                            placeholder="<h2>E-posta içeriğiniz</h2>..."
                                             spellCheck="false"
                                         />
                                     </div>
@@ -485,7 +485,7 @@ export default function EmailTemplatesManager() {
                                     <div className="supabase-preview-wrapper">
                                         <div className="preview-toolbar">
                                             <div className="preview-info">
-                                                <strong>From:</strong> {currentSenderName} &lt;{defaultSenderEmail}&gt; | <strong>Subject:</strong> {currentSubject}
+                                                <strong>Gönderen:</strong> {currentSenderName} &lt;{defaultSenderEmail}&gt; | <strong>Konu:</strong> {currentSubject}
                                             </div>
                                             <div className="device-pills">
                                                 <button 
@@ -493,14 +493,14 @@ export default function EmailTemplatesManager() {
                                                     className={`dev-btn ${previewDevice === 'desktop' ? 'active' : ''}`}
                                                     onClick={() => setPreviewDevice('desktop')}
                                                 >
-                                                    Desktop
+                                                    Masaüstü
                                                 </button>
                                                 <button 
                                                     type="button" 
                                                     className={`dev-btn ${previewDevice === 'mobile' ? 'active' : ''}`}
                                                     onClick={() => setPreviewDevice('mobile')}
                                                 >
-                                                    Mobile
+                                                    Mobil
                                                 </button>
                                             </div>
                                         </div>
@@ -528,7 +528,7 @@ export default function EmailTemplatesManager() {
                                         onClick={handleReset}
                                         disabled={resetting}
                                     >
-                                        Reset to default
+                                        Varsayılana Sıfırla
                                     </button>
                                 )}
                             </div>
@@ -539,7 +539,7 @@ export default function EmailTemplatesManager() {
                                     className="btn btn-secondary"
                                     onClick={() => setTestModalOpen(true)}
                                 >
-                                    Send test email
+                                    Test E-postası Gönder
                                 </button>
 
                                 <button 
@@ -548,7 +548,7 @@ export default function EmailTemplatesManager() {
                                     onClick={handleSave}
                                     disabled={saving || !isDirty}
                                 >
-                                    {saving ? 'Saving...' : 'Save changes'}
+                                    {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
                                 </button>
                             </div>
                         </div>

@@ -17,6 +17,8 @@ const systemSettingsService = require('./services/systemSettings.service')
 const { syncFileToCloud, startStartupBackfill } = require('./services/documentSync.service')
 
 
+require('./security/ipc').install(ipcMain, getPrismaClient);
+
 app.setName('Kontrol')
 
 // ── CHROMIUM & V8 LOW-RAM & GPU ACCELERATION SWITCHES ──
@@ -154,6 +156,11 @@ function createWindow() {
         backgroundColor: '#0f0f1a',
         show: false
     })
+
+    mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        try { const target = new URL(url); const current = new URL(mainWindow.webContents.getURL()); if (target.origin !== current.origin || (target.protocol === 'file:' && target.pathname !== current.pathname)) event.preventDefault(); } catch { event.preventDefault(); }
+    });
 
     // Save window state
     mainWindow.on('close', () => {
@@ -374,10 +381,16 @@ app.whenReady().then(async () => {
         log.info('Database initialized')
 
         // Start API server immediately so frontend never receives ECONNREFUSED on port 9999
-        startAdminServer(getPrismaClient(), notifyDbUpdate)
+        if (!app.isPackaged && process.env.ENABLE_LOCAL_API === 'true') startAdminServer()
 
-        // Run schema migrations (add missing columns to older DBs)
-        await runAutoMigrations()
+        // Run schema migrations (add missing columns to older DBs) with graceful retry
+        try {
+            await runAutoMigrations()
+        } catch (migErr) {
+            log.warn('Initial migration attempt encountered transient error, retrying in 800ms...', migErr.message);
+            await new Promise(r => setTimeout(r, 800));
+            await runAutoMigrations();
+        }
 
 
         // Background purge of audit logs older than 180 days
@@ -1034,6 +1047,16 @@ ipcMain.handle('overtimes:update', async (event, data) => {
 ipcMain.handle('overtimes:delete', async (event, id) => {
     const result = await db.deleteOvertime(id)
     if (result.success) notifyDbUpdate({ table: 'overtimes', action: 'delete' })
+    return result
+})
+ipcMain.handle('overtimes:convertToLeave', async (event, ids, companyId) => {
+    const result = await db.convertOvertimesToLeave(ids, companyId)
+    if (result.success) notifyDbUpdate({ table: 'overtimes', action: 'update' })
+    return result
+})
+ipcMain.handle('overtimes:revertFromLeave', async (event, ids, companyId) => {
+    const result = await db.revertOvertimesFromLeave(ids, companyId)
+    if (result.success) notifyDbUpdate({ table: 'overtimes', action: 'update' })
     return result
 })
 
@@ -2026,7 +2049,7 @@ ipcMain.handle('app:getVersion', () => {
 })
 
 ipcMain.on('app:openExternal', (event, url) => {
-    require('electron').shell.openExternal(url)
+    if (typeof url === 'string' && /^(https?:|mailto:)/i.test(url)) require('electron').shell.openExternal(url)
 })
 
 // File handlers
@@ -2772,11 +2795,11 @@ ipcMain.handle('mfa:generateSetup', async (event, userId) => {
 ipcMain.handle('mfa:enable', async (event, userId, secret, token, backupCodes) => {
     return await mfaService.enableMfa(userId, secret, token, backupCodes);
 });
-ipcMain.handle('mfa:disable', async (event, userId) => {
-    return await mfaService.disableMfa(userId);
+ipcMain.handle('mfa:disable', async (event, userId, password) => {
+    return await mfaService.disableMfa(userId, password);
 });
-ipcMain.handle('mfa:verifyLogin', async (event, userId, tokenOrBackupCode) => {
-    return await mfaService.verifyMfaLogin(userId, tokenOrBackupCode);
+ipcMain.handle('mfa:verifyLogin', async (event, userId, tokenOrBackupCode, challenge) => {
+    return await mfaService.verifyMfaLogin(userId, tokenOrBackupCode, challenge);
 });
 ipcMain.handle('mfa:getStatus', async (event, userId) => {
     return await mfaService.getMfaStatus(userId);

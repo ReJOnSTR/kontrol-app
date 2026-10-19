@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useId } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function CustomInput({
     label,
+    id,
     value,
     onChange,
     required,
@@ -17,6 +18,9 @@ export default function CustomInput({
     maxDecimals = 6,
     ...props
 }) {
+    const generatedId = useId()
+    const inputId = id || generatedId
+    const errorId = `${inputId}-error`
     const [touched, setTouched] = useState(false)
     const [isFocused, setIsFocused] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
@@ -177,10 +181,10 @@ export default function CustomInput({
     }
 
     // Validation check
-    const isInvalid = (touched && required && !value) || error
+    const isInvalid = (touched && required && (value === '' || value === null || value === undefined)) || error
 
     // Determine if we should use floating label style
-    const isFloating = true // Enforce floating label for consistency
+    const isFloating = floatingLabel !== false // Enforce floating label for consistency
     // Date/Time inputs always show a mask/placeholder natively, so label must float to avoid overlap
     const isDateType = ['date', 'time', 'datetime-local', 'month', 'week'].includes(type)
 
@@ -220,6 +224,9 @@ export default function CustomInput({
 
     // Ensure native maxLength doesn't block currency typing with thousands dots & extra decimals
     const inputProps = { ...props }
+    delete inputProps.onFocus
+    delete inputProps.onBlur
+    delete inputProps.onKeyDown
     if (isCurrency && inputProps.maxLength && inputProps.maxLength < 22) {
         inputProps.maxLength = 22
     }
@@ -229,6 +236,10 @@ export default function CustomInput({
             {/* Input Element */}
             {type === 'textarea' || multiline ? (
                 <textarea
+                    id={inputId}
+                    required={required}
+                    aria-invalid={!!isInvalid}
+                    aria-describedby={isInvalid ? errorId : props['aria-describedby']}
                     className={`form-textarea ${isInvalid ? 'input-error' : ''}`}
                     value={safeValue}
                     onChange={handleChange}
@@ -238,11 +249,15 @@ export default function CustomInput({
                     rows={props.rows || 3}
                     style={isInvalid ? { borderColor: 'var(--danger)' } : {}}
                     disabled={disabled}
-                    {...props}
+                    {...inputProps}
                 />
             ) : (
                 <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
                     <input
+                        id={inputId}
+                        required={required}
+                        aria-invalid={!!isInvalid}
+                        aria-describedby={isInvalid ? errorId : props['aria-describedby']}
                         type={isCurrency ? 'text' : (type === 'password' && showPassword ? 'text' : type)}
                         className={`form-input ${isInvalid ? 'input-error' : ''} ${isCurrency ? 'has-currency' : ''}`}
                         value={safeValue}
@@ -300,7 +315,7 @@ export default function CustomInput({
 
             {/* Label (After input for CSS peer selector) */}
             {label && (
-                <label className="form-label">
+                <label className="form-label" htmlFor={inputId}>
                     <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                         <span>
                             {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
@@ -321,7 +336,7 @@ export default function CustomInput({
 
             {/* Error Message */}
             {isInvalid && (
-                <span className="input-error-text" style={{
+                <span id={errorId} role="alert" className="input-error-text" style={{
                     color: 'var(--danger)',
                     fontSize: '11px',
                     marginTop: '4px',

@@ -79,26 +79,14 @@ async function updateTransaction(data) {
 
 async function deleteTransaction(id) {
     try {
-        const tx = await prisma.transactions.findUnique({ where: { id: parseInt(id) } });
-        
-        await prisma.transactions.delete({ where: { id: parseInt(id) } });
-        
-        // If this was a tahsilat payment linked to a work, revert the work status
-        if (tx && tx.category && tx.category.startsWith('WORK_PAYMENT_')) {
-            const workId = parseInt(tx.category.replace('WORK_PAYMENT_', ''));
-            if (!isNaN(workId)) {
-                await prisma.works.update({ where: { id: workId }, data: { status: 'completed' } });
-            }
-        }
-
-        // If this was a salary payment, delete it from salaries to keep them synced
-        if (tx && tx.category && tx.category.startsWith('SALARY_PAYMENT_')) {
-            const salaryId = parseInt(tx.category.replace('SALARY_PAYMENT_', ''));
-            if (!isNaN(salaryId)) {
-                await prisma.salaries.delete({ where: { id: salaryId } }).catch(e => console.log('Salary might already be deleted'));
-            }
-        }
-
+        await prisma.$transaction(async tx => {
+            const transaction = await tx.transactions.findUnique({ where: { id: Number(id) } });
+            if (!transaction) throw new Error('İşlem bulunamadı.');
+            const match = /^(WORK_PAYMENT_|SALARY_PAYMENT_)(\d+)$/.exec(transaction.category || '');
+            if (match?.[1] === 'WORK_PAYMENT_') await tx.works.update({ where: { id: Number(match[2]) }, data: { status: 'completed' } });
+            if (match?.[1] === 'SALARY_PAYMENT_') await tx.salaries.delete({ where: { id: Number(match[2]) } });
+            await tx.transactions.delete({ where: { id: transaction.id } });
+        });
         return { success: true };
     } catch (error) { return { success: false, error: error.message }; }
 }

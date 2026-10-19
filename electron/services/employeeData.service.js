@@ -146,14 +146,21 @@ async function getLeavesByEmployee(employeeId) {
 
 async function createLeave(data) {
     try {
+        const daysVal = (data.days !== undefined && data.days !== null && data.days !== '')
+            ? parseFloat(data.days)
+            : 1;
+        const hoursVal = (data.hours !== undefined && data.hours !== null && data.hours !== '')
+            ? parseFloat(data.hours)
+            : null;
+
         const result = await prisma.leaves.create({
             data: {
                 employee_id: parseInt(data.employeeId),
                 type: data.type || 'annual',
                 start_date: new Date(data.startDate),
                 end_date: new Date(data.endDate),
-                days: data.days !== undefined ? parseFloat(data.days) : 1,
-                hours: data.hours !== undefined ? parseFloat(data.hours) : null,
+                days: isNaN(daysVal) ? 1 : daysVal,
+                hours: (hoursVal !== null && !isNaN(hoursVal)) ? hoursVal : null,
                 status: data.status || 'approved',
                 notes: data.notes || null
             }
@@ -164,18 +171,29 @@ async function createLeave(data) {
 
 async function updateLeave(data) {
     try {
+        const updateData = {};
+        if (data.employeeId) updateData.employee_id = parseInt(data.employeeId);
+        if (data.type) updateData.type = data.type;
+        if (data.startDate) updateData.start_date = new Date(data.startDate);
+        if (data.endDate) updateData.end_date = new Date(data.endDate);
+        if (data.days !== undefined && data.days !== null) {
+            const d = parseFloat(data.days);
+            updateData.days = isNaN(d) ? 1 : d;
+        }
+        if (data.hours !== undefined) {
+            if (data.hours === null || data.hours === '') {
+                updateData.hours = null;
+            } else {
+                const h = parseFloat(data.hours);
+                updateData.hours = isNaN(h) ? null : h;
+            }
+        }
+        if (data.status) updateData.status = data.status;
+        if (data.notes !== undefined) updateData.notes = data.notes || null;
+
         const result = await prisma.leaves.update({
             where: { id: parseInt(data.id) },
-            data: {
-                employee_id: data.employeeId ? parseInt(data.employeeId) : undefined,
-                type: data.type,
-                start_date: new Date(data.startDate),
-                end_date: new Date(data.endDate),
-                days: data.days !== undefined ? parseFloat(data.days) : 1,
-                hours: data.hours !== undefined ? parseFloat(data.hours) : null,
-                status: data.status,
-                notes: data.notes || null
-            }
+            data: updateData
         });
         return { success: true, data: result };
     } catch (error) { return { success: false, error: error.message }; }
@@ -236,13 +254,24 @@ async function getOvertimes(employeeId) {
 
 async function addOvertime(data) {
     try {
+        const rawAmount = data.amount;
+        const amount = (rawAmount !== undefined && rawAmount !== null && rawAmount !== '') 
+            ? (isNaN(parseFloat(rawAmount)) ? 0 : parseFloat(rawAmount))
+            : 0;
+        const hours = (data.hours !== undefined && data.hours !== null && data.hours !== '')
+            ? (isNaN(parseFloat(data.hours)) ? 0 : parseFloat(data.hours))
+            : 0;
+        const rate = (data.rate !== undefined && data.rate !== null && data.rate !== '')
+            ? (isNaN(parseFloat(data.rate)) ? 1.5 : parseFloat(data.rate))
+            : 1.5;
+
         const result = await prisma.overtimes.create({
             data: {
                 employee_id: parseInt(data.employeeId),
                 date: new Date(data.date),
-                hours: parseFloat(data.hours),
-                rate: data.rate ? parseFloat(data.rate) : 1.5,
-                amount: parseFloat(data.amount),
+                hours: hours,
+                rate: rate,
+                amount: amount,
                 notes: data.notes || null
             }
         });
@@ -254,9 +283,18 @@ async function updateOvertime(data) {
     try {
         const updateData = {};
         if (data.date !== undefined && data.date !== null) updateData.date = new Date(data.date);
-        if (data.hours !== undefined && data.hours !== null) updateData.hours = parseFloat(data.hours);
-        if (data.rate !== undefined && data.rate !== null) updateData.rate = parseFloat(data.rate);
-        if (data.amount !== undefined && data.amount !== null) updateData.amount = parseFloat(data.amount);
+        if (data.hours !== undefined && data.hours !== null) {
+            const h = parseFloat(data.hours);
+            updateData.hours = isNaN(h) ? 0 : h;
+        }
+        if (data.rate !== undefined && data.rate !== null) {
+            const r = parseFloat(data.rate);
+            updateData.rate = isNaN(r) ? 1.5 : r;
+        }
+        if (data.amount !== undefined && data.amount !== null) {
+            const a = parseFloat(data.amount);
+            updateData.amount = isNaN(a) ? 0 : a;
+        }
         if (data.notes !== undefined) updateData.notes = data.notes || null;
 
         const result = await prisma.overtimes.update({
@@ -280,6 +318,88 @@ async function deleteOvertime(id, companyId = null) {
         await prisma.overtimes.delete({ where: { id: parseInt(id) } });
         return { success: true };
     } catch (error) { return { success: false, error: error.message }; }
+}
+
+async function convertOvertimesToLeave(ids, companyId = null) {
+    try {
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return { success: false, error: 'Seçili mesai bulunamadı.' };
+        }
+        const parsedIds = ids.map(id => parseInt(id)).filter(Number.isSafeInteger);
+        if (parsedIds.length === 0) {
+            return { success: false, error: 'Geçersiz mesai kayıtları.' };
+        }
+
+        const marker = '[İZİN OLARAK KULLANILDI]';
+
+        const updatedCount = await prisma.$transaction(async (tx) => {
+            const items = await tx.overtimes.findMany({
+                where: {
+                    id: { in: parsedIds },
+                    ...(companyId ? { employees: { company_id: parseInt(companyId) } } : {})
+                }
+            });
+
+            let count = 0;
+            for (const item of items) {
+                const currentNotes = item.notes || '';
+                if (!currentNotes.includes(marker)) {
+                    const finalNotes = (marker + ' ' + currentNotes).trim();
+                    await tx.overtimes.update({
+                        where: { id: item.id },
+                        data: { notes: finalNotes }
+                    });
+                    count++;
+                }
+            }
+            return count;
+        });
+
+        return { success: true, count: updatedCount, message: `${updatedCount} adet mesai başarıyla izne dönüştürüldü.` };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+async function revertOvertimesFromLeave(ids, companyId = null) {
+    try {
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return { success: false, error: 'Seçili mesai bulunamadı.' };
+        }
+        const parsedIds = ids.map(id => parseInt(id)).filter(Number.isSafeInteger);
+        if (parsedIds.length === 0) {
+            return { success: false, error: 'Geçersiz mesai kayıtları.' };
+        }
+
+        const marker = '[İZİN OLARAK KULLANILDI]';
+
+        const updatedCount = await prisma.$transaction(async (tx) => {
+            const items = await tx.overtimes.findMany({
+                where: {
+                    id: { in: parsedIds },
+                    ...(companyId ? { employees: { company_id: parseInt(companyId) } } : {})
+                }
+            });
+
+            let count = 0;
+            for (const item of items) {
+                const currentNotes = item.notes || '';
+                if (currentNotes.includes(marker)) {
+                    const finalNotes = currentNotes.replace(marker, '').replace(/\[LID:\d+\]/g, '').trim();
+                    await tx.overtimes.update({
+                        where: { id: item.id },
+                        data: { notes: finalNotes || null }
+                    });
+                    count++;
+                }
+            }
+            return count;
+        });
+
+        return { success: true, count: updatedCount, message: `${updatedCount} adet mesai ücretli mesaiye geri çevrildi.` };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 }
 
 // ========== EMPLOYEE ASSIGNMENTS (ZIMMET) ==========
@@ -629,7 +749,7 @@ async function getAllSalariesForCompany(companyId) {
 module.exports = {
     getSalariesByEmployee, createSalary, updateSalary, deleteSalary, getAllSalariesForCompany,
     getLeavesByEmployee, getAllLeaves, createLeave, updateLeave, deleteLeave,
-    getOvertimes, addOvertime, updateOvertime, deleteOvertime,
+    getOvertimes, addOvertime, updateOvertime, deleteOvertime, convertOvertimesToLeave, revertOvertimesFromLeave,
     getEmployeeAssignments, addEmployeeAssignment, updateEmployeeAssignment, deleteEmployeeAssignment,
     getEmployeeDocuments, addEmployeeDocument, deleteEmployeeDocument, updateEmployeeDocument,
     getUpcomingDocuments, getEmployeeDocumentById,

@@ -94,237 +94,65 @@ function generateBackupCodes(count = 8) {
     return codes;
 }
 
-/**
- * Initiate 2FA Setup: generates secret, otpauth URI, QR Code and backup codes
- */
+const pendingSetups = new Map();
+const hashCode = code => crypto.createHash('sha256').update(String(code).replace(/[^a-z0-9]/gi, '').toUpperCase()).digest('hex');
+
 async function generateMfaSetup(userId) {
-    try {
-        const uid = parseInt(userId, 10);
-        const user = await prisma.users.findUnique({ where: { id: uid } });
-        if (!user) {
-            return { success: false, error: 'Kullanıcı bulunamadı' };
-        }
-
-        const secret = generateSecret(20);
-        const issuer = 'KONTROL App';
-        const accountName = encodeURIComponent(`${user.username} (${user.email || 'KONTROL'})`);
-        const otpauth = `otpauth://totp/${encodeURIComponent(issuer)}:${accountName}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
-        
-        // Generate high-resolution dark-themed QR Code Data URL
-        const qrCodeUrl = await QRCode.toDataURL(otpauth, {
-            errorCorrectionLevel: 'M',
-            margin: 2,
-            scale: 6,
-            color: {
-                dark: '#0f172a',
-                light: '#ffffff'
-            }
-        });
-
-        const backupCodes = generateBackupCodes(8);
-
-        return {
-            success: true,
-            secret,
-            qrCodeUrl,
-            otpauth,
-            backupCodes
-        };
-    } catch (error) {
-        console.error('generateMfaSetup error:', error);
-        return { success: false, error: error.message };
-    }
+    const user = await prisma.users.findUnique({ where: { id: Number(userId) } });
+    if (!user || user.is_active !== 1 || user.two_factor_enabled === 1) return { success: false, error: 'MFA kurulumu bu hesapta başlatılamaz.' };
+    const secret = generateSecret();
+    const backupCodes = generateBackupCodes();
+    const otpauth = `otpauth://totp/KONTROL:${encodeURIComponent(user.email || user.username)}?secret=${secret}&issuer=KONTROL`;
+    for (const [id, setup] of pendingSetups) if (setup.expires < Date.now()) pendingSetups.delete(id);
+    pendingSetups.set(user.id, { secret, backupCodes, expires: Date.now() + 10 * 60 * 1000 });
+    return { success: true, secret, backupCodes, otpauth, qrCodeUrl: await QRCode.toDataURL(otpauth) };
 }
 
-/**
- * Enable 2FA after user confirms with the first 6-digit TOTP code
- */
-async function enableMfa(userId, secret, token, backupCodes) {
-    try {
-        const uid = parseInt(userId, 10);
-        const user = await prisma.users.findUnique({ where: { id: uid } });
-        if (!user) {
-            return { success: false, error: 'Kullanıcı bulunamadı' };
-        }
-
-        // Clean token
-        const cleanToken = String(token).replace(/\s+/g, '').trim();
-
-        // Verify the token with the provided secret
-        const isValid = verifyTOTP(cleanToken, secret);
-        if (!isValid) {
-            return { success: false, error: 'Girdiğiniz 6 haneli doğrulama kodu geçersiz. Lütfen Authenticator uygulamanızdaki güncel kodu girin.' };
-        }
-
-        // Save 2FA to DB
-        await prisma.users.update({
-            where: { id: uid },
-            data: {
-                two_factor_secret: secret,
-                two_factor_enabled: 1,
-                two_factor_backup_codes: JSON.stringify(backupCodes || [])
-            }
-        });
-
-        return {
-            success: true,
-            message: 'İki Adımlı Doğrulama (2FA) başarıyla etkinleştirildi.',
-            backupCodes: backupCodes || []
-        };
-    } catch (error) {
-        console.error('enableMfa error:', error);
-        return { success: false, error: error.message };
-    }
+async function enableMfa(userId, secret, token) {
+    const uid = Number(userId);
+    const setup = pendingSetups.get(uid);
+    if (!setup || setup.expires <= Date.now() || setup.secret !== secret || !verifyTOTP(token, setup.secret)) return { success: false, error: 'Kurulum süresi doldu veya kod geçersiz.' };
+    const result = await prisma.users.updateMany({ where: { id: uid, is_active: 1, two_factor_enabled: 0 }, data: { two_factor_secret: secret, two_factor_enabled: 1, two_factor_backup_codes: JSON.stringify(setup.backupCodes.map(hashCode)) } });
+    pendingSetups.delete(uid);
+    return result.count === 1 ? { success: true, backupCodes: setup.backupCodes } : { success: false, error: 'MFA zaten etkin veya hesap kapalı.' };
 }
 
-/**
- * Disable 2FA for a user
- */
-async function disableMfa(userId) {
-    try {
-        const uid = parseInt(userId, 10);
-        await prisma.users.update({
-            where: { id: uid },
-            data: {
-                two_factor_secret: null,
-                two_factor_enabled: 0,
-                two_factor_backup_codes: null
-            }
-        });
-
-        return { success: true, message: 'İki Adımlı Doğrulama (2FA) devre dışı bırakıldı.' };
-    } catch (error) {
-        console.error('disableMfa error:', error);
-        return { success: false, error: error.message };
-    }
+async function disableMfa(userId, currentPassword) {
+    const user = await prisma.users.findUnique({ where: { id: Number(userId) } });
+    if (!user || !currentPassword || !await bcrypt.compare(currentPassword, user.password_hash)) return { success: false, error: 'MFA kapatmak için mevcut şifrenizi doğrulayın.' };
+    await prisma.users.update({ where: { id: user.id }, data: { two_factor_secret: null, two_factor_enabled: 0, two_factor_backup_codes: null } });
+    return { success: true };
 }
 
-/**
- * Verify 2FA code during login challenge (supports 6-digit TOTP and 8-char backup codes)
- */
-async function verifyMfaLogin(userId, tokenOrBackupCode) {
-    try {
-        const uid = parseInt(userId, 10);
-        const user = await prisma.users.findUnique({
-            where: { id: uid },
-            include: {
-                companies: true,
-                employee: { include: { companies: true } },
-                custom_role: true
-            }
-        });
-
-        if (!user) {
-            return { success: false, error: 'Kullanıcı bulunamadı' };
+async function verifyMfaLogin(userId, tokenOrBackupCode, challenge) {
+    const challenges = require('../security/challenges');
+    const user = await prisma.users.findUnique({ where: { id: Number(userId) } });
+    if (!user || user.is_active !== 1 || user.two_factor_enabled !== 1 || !user.two_factor_secret || !challenges.check(challenge, user)) return { success: false, error: 'Geçersiz veya süresi dolmuş giriş doğrulaması. Yeniden giriş yapın.' };
+    let valid = verifyTOTP(tokenOrBackupCode, user.two_factor_secret);
+    let usedBackup = false;
+    let codes = [];
+    try { codes = JSON.parse(user.two_factor_backup_codes || '[]'); } catch {}
+    if (!valid) {
+        // Existing plaintext codes are consumed once; remaining codes are upgraded.
+        const hash = hashCode(tokenOrBackupCode);
+        const index = codes.findIndex(c => (c.length === 64 ? c : hashCode(c)) === hash);
+        if (index >= 0) {
+            codes.splice(index, 1);
+            const consumed = await prisma.users.updateMany({ where: { id: user.id, two_factor_backup_codes: user.two_factor_backup_codes }, data: { two_factor_backup_codes: JSON.stringify(codes.map(c => c.length === 64 ? c : hashCode(c))) } });
+            valid = consumed.count === 1;
+            usedBackup = valid;
         }
-
-        if (user.two_factor_enabled !== 1 || !user.two_factor_secret) {
-            return { success: true, verified: true, user: sanitizeUser(user) };
-        }
-
-        const inputCode = String(tokenOrBackupCode).replace(/\s+/g, '').trim().toUpperCase();
-
-        // 1. Try 6-digit TOTP verification
-        if (/^\d{6}$/.test(inputCode)) {
-            const isValid = verifyTOTP(inputCode, user.two_factor_secret);
-            if (isValid) {
-                return {
-                    success: true,
-                    verified: true,
-                    user: sanitizeUser(user)
-                };
-            }
-        }
-
-        // 2. Try Backup Recovery Codes verification
-        let backupCodes = [];
-        try {
-            backupCodes = JSON.parse(user.two_factor_backup_codes || '[]');
-        } catch {
-            backupCodes = [];
-        }
-
-        const normalizedInput = inputCode.includes('-') ? inputCode : `${inputCode.slice(0, 4)}-${inputCode.slice(4)}`;
-        const matchedIndex = backupCodes.findIndex(c => c.toUpperCase() === normalizedInput);
-
-        if (matchedIndex !== -1) {
-            // Consume backup code
-            backupCodes.splice(matchedIndex, 1);
-            await prisma.users.update({
-                where: { id: uid },
-                data: { two_factor_backup_codes: JSON.stringify(backupCodes) }
-            });
-
-            return {
-                success: true,
-                verified: true,
-                backupCodeUsed: true,
-                remainingBackupCodes: backupCodes.length,
-                user: sanitizeUser(user)
-            };
-        }
-
-        return {
-            success: false,
-            error: 'Geçersiz 6 haneli güvenlik kodu veya kurtarma kodu. Lütfen tekrar deneyin.'
-        };
-    } catch (error) {
-        console.error('verifyMfaLogin error:', error);
-        return { success: false, error: error.message };
     }
+    if (!valid || !challenges.consume(challenge)) return { success: false, error: 'Doğrulama kodu geçersiz veya kullanılmış.' };
+    const profile = await require('./auth.service').getUserProfile(user.id);
+    return { ...profile, verified: true, backupCodeUsed: usedBackup, remainingBackupCodes: codes.length };
 }
 
-/**
- * Get 2FA Status for current user
- */
 async function getMfaStatus(userId) {
-    try {
-        const uid = parseInt(userId, 10);
-        const user = await prisma.users.findUnique({
-            where: { id: uid },
-            select: {
-                id: true,
-                username: true,
-                two_factor_enabled: true,
-                two_factor_backup_codes: true
-            }
-        });
-
-        if (!user) return { success: false, error: 'Kullanıcı bulunamadı' };
-
-        let backupCodesCount = 0;
-        try {
-            backupCodesCount = JSON.parse(user.two_factor_backup_codes || '[]').length;
-        } catch {}
-
-        return {
-            success: true,
-            enabled: user.two_factor_enabled === 1,
-            remainingBackupCodes: backupCodesCount
-        };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
+    const user = await prisma.users.findUnique({ where: { id: Number(userId) }, select: { two_factor_enabled: true, two_factor_backup_codes: true } });
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+    let codes = [];
+    try { codes = JSON.parse(user.two_factor_backup_codes || '[]'); } catch {}
+    return { success: true, enabled: user.two_factor_enabled === 1, remainingBackupCodes: codes.length };
 }
-
-function sanitizeUser(user) {
-    return {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        full_name: user.full_name,
-        role: user.role,
-        role_id: user.role_id,
-        employee_id: user.employee_id,
-        two_factor_enabled: user.two_factor_enabled === 1,
-        mustChangePassword: user.must_change_password === 1
-    };
-}
-
-module.exports = {
-    generateMfaSetup,
-    enableMfa,
-    disableMfa,
-    verifyMfaLogin,
-    getMfaStatus
-};
+module.exports = { generateMfaSetup, enableMfa, disableMfa, verifyMfaLogin, getMfaStatus };

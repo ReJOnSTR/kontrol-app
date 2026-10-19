@@ -110,6 +110,7 @@ export default function Login() {
                 if (result.require2FA) {
                     setMfaChallenge({
                         userId: result.userId,
+                        challenge: result.challenge,
                         username: result.username,
                         email: result.email
                     })
@@ -155,7 +156,7 @@ export default function Login() {
         setVerifying2FA(true)
 
         try {
-            const result = await verify2FALogin(mfaChallenge.userId, cleanCode)
+            const result = await verify2FALogin(mfaChallenge.userId, cleanCode, mfaChallenge.challenge)
 
             if (result.success) {
                 if (rememberMe) {

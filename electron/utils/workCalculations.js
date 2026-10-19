@@ -1,9 +1,8 @@
 /**
  * Shared work price calculation logic for Node.js (backend).
- * This is the SINGLE SOURCE OF TRUTH for total price calculations.
- * Mirrors: src/utils/workCalculations.js (frontend ESM version)
+ * This file is synchronized with src/utils/workCalculations.js (frontend).
  * 
- * IMPORTANT: Must match WorkPdfReport.jsx and src/utils/workCalculations.js logic EXACTLY.
+ * IMPORTANT: Any change here must match src/utils/workCalculations.js EXACTLY.
  */
 
 function calculateAutoHours(startTime, endTime, pricingType, workStartStr = '08:00', workEndStr = '17:00', disableOvertime = false) {
@@ -142,7 +141,8 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
 
         const info = vehicleRateInfo[vehicleBaseKey]
         if (info) {
-            if (unitPriceVal === 0 && info.firstPositivePrice > 0) {
+            const itemHours = Number(item.hours) || 0
+            if (unitPriceVal === 0 && info.firstPositivePrice > 0 && itemHours > 0) {
                 unitPriceVal = info.firstPositivePrice
             }
             if (!cleanDesc && unitPriceVal > 0 && info.descByPrice[unitPriceVal]) {
@@ -163,7 +163,8 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
         const descUpper = (item.description || '').toUpperCase()
         const dateObj = new Date(item.date)
         const isSunday = !isNaN(dateObj.getTime()) && dateObj.getDay() === 0
-        const isPazar = isSunday || descUpper.includes('PAZAR')
+        const isHoliday = descUpper.includes('TATİL') || descUpper.includes('ÇALIŞILMADI') || (Number(item.hours) === 0 && Number(item.overtime_hours) === 0)
+        const isPazar = !isHoliday && (isSunday || descUpper.includes('PAZAR'))
         const isSaatlik = descUpper.includes('[SAATLİK]') || item.pricingType === 'hourly'
         const isAylik = descUpper.includes('[AYLIK]') || item.pricingType === 'monthly'
 
@@ -219,13 +220,38 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
         let monthlyAmount = rawPrimaryPrice;
 
         if (isAylikGroup && rawPrimaryPrice > 0) {
-            const positiveItems = group.items.filter(i => (Number(i.hours) || 0) > 0 && i.unitPriceVal > 0);
-            if (positiveItems.length === 1 && rawPrimaryPrice >= 50000) {
-                dailyRate = rawPrimaryPrice / 26;
-                monthlyAmount = rawPrimaryPrice;
+            // 1. Açıklamada açıkça [AYLIK:320000] veya [AYLIK:250000] belirtilmiş mi?
+            const aylikTagItem = group.items.find(i => (i.description || '').match(/\[AYLIK:([0-9.]+)\]/));
+            let explicitMonthly = null;
+            if (aylikTagItem) {
+                const m = aylikTagItem.description.match(/\[AYLIK:([0-9.]+)\]/);
+                if (m && parseFloat(m[1]) > 0) explicitMonthly = parseFloat(m[1]);
+            }
+
+            if (explicitMonthly) {
+                monthlyAmount = explicitMonthly;
+                dailyRate = explicitMonthly / 26;
             } else {
-                dailyRate = rawPrimaryPrice;
-                monthlyAmount = Math.round(rawPrimaryPrice * 26);
+                const positiveItems = group.items.filter(i => (Number(i.hours) || 0) > 0 && i.unitPriceVal > 0);
+                if (positiveItems.length === 1 && rawPrimaryPrice >= 50000) {
+                    dailyRate = rawPrimaryPrice / 26;
+                    monthlyAmount = rawPrimaryPrice;
+                } else if (Math.abs(Math.round(rawPrimaryPrice) - 9615) < 2) {
+                    // 250.000 TL için önceden yuvarlanmış kayıtlar (9615 TL)
+                    dailyRate = 250000 / 26;
+                    monthlyAmount = 250000;
+                } else if (Math.abs(Math.round(rawPrimaryPrice) - 12308) < 2) {
+                    // 320.000 TL için önceden yuvarlanmış kayıtlar (12308 TL)
+                    dailyRate = 320000 / 26;
+                    monthlyAmount = 320000;
+                } else if (rawPrimaryPrice > 0 && Math.abs(rawPrimaryPrice * 26 - Math.round(rawPrimaryPrice * 26)) < 0.1) {
+                    // 250.000 / 26 = 9615.384615... gibi tam oranlı değerler
+                    dailyRate = rawPrimaryPrice;
+                    monthlyAmount = Math.round(rawPrimaryPrice * 26);
+                } else {
+                    dailyRate = rawPrimaryPrice;
+                    monthlyAmount = Math.round(rawPrimaryPrice * 26);
+                }
             }
         }
 
@@ -332,7 +358,7 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
             }
         } else {
             // Regular Daily Job
-            const allDailyItems = group.items.filter(i => !i.isPazar && !i.isSaatlik);
+            const allDailyItems = group.items.filter(i => !i.isPazar && !i.isSaatlik && (Number(i.hours) || 0) > 0);
             if (allDailyItems.length > 0) {
                 const dailyPricesMap = {};
                 allDailyItems.forEach(i => {
@@ -347,7 +373,7 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
                     dailyPricesMap[key].count += hrs;
                 });
 
-                Object.values(dailyPricesMap).forEach(itemData => {
+                Object.values(dailyPricesMap).filter(itemData => itemData.count > 0).forEach(itemData => {
                     const lineTotal = Math.round(itemData.count * itemData.price);
                     summaryLines.push({
                         typeLabel: itemData.label,
@@ -488,4 +514,4 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
     }
 }
 
-module.exports = { calculateWorkStats, calculateAutoHours }
+module.exports = { calculateWorkStats, calculateAutoHours };

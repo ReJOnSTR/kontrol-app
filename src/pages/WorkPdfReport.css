@@ -805,7 +805,9 @@ tr.pdf-page-break-row:hover td {
 
 /* Hide indicators during print and PDF download */
 .is-generating-pdf tr.pdf-page-break-row td,
-.is-generating-pdf .pdf-overflow-smart-pill,
+.is-generating-pdf .pdf-overflow-smart-pill {
+    display: none !important;
+}
 @media print {
     tr.pdf-page-break-row td {
         border: none !important;

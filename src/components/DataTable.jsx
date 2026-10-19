@@ -17,6 +17,7 @@ export default function DataTable({
     showSearch = true,
     showDateFilter = false,
     dateFilterKey = 'date',
+    dateFilterEndKey = null,
     filters = [],
     onRowClick = null,
     onSelectionChange = null,
@@ -375,20 +376,32 @@ export default function DataTable({
 
             // Check date range
             if (showDateFilter && (dateRange.start || dateRange.end)) {
-                const rawDate = row[dateFilterKey]
-                if (rawDate) {
-                    // Normalize to YYYY-MM-DD for comparison (input type="date" gives YYYY-MM-DD)
-                    const d = new Date(rawDate)
-                    const rowDateStr = isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0]
-                    if (!rowDateStr) return false
-                    if (dateRange.start && rowDateStr < dateRange.start) return false
-                    if (dateRange.end && rowDateStr > dateRange.end) return false
+                const rawStartDate = row[dateFilterKey]
+                const rawEndDate = dateFilterEndKey ? (row[dateFilterEndKey] || rawStartDate) : rawStartDate
+
+                if (rawStartDate || rawEndDate) {
+                    const dStart = rawStartDate ? new Date(rawStartDate) : null
+                    const dEnd = rawEndDate ? new Date(rawEndDate) : null
+
+                    const rowStartStr = dStart && !isNaN(dStart.getTime()) ? dStart.toISOString().split('T')[0] : ''
+                    const rowEndStr = dEnd && !isNaN(dEnd.getTime()) ? dEnd.toISOString().split('T')[0] : (rowStartStr || '')
+
+                    if (!rowStartStr && !rowEndStr) return false
+
+                    // Interval overlap condition:
+                    // Row interval: [rowStartStr, rowEndStr]
+                    // Filter interval: [dateRange.start, dateRange.end]
+                    // Exclude if row ends before filter start, or starts after filter end
+                    if (dateRange.start && rowEndStr && rowEndStr < dateRange.start) return false
+                    if (dateRange.end && rowStartStr && rowStartStr > dateRange.end) return false
+                } else {
+                    return false
                 }
             }
 
             return true
         })
-    }, [data, activeFilters, dateRange, showDateFilter, dateFilterKey])
+    }, [data, activeFilters, dateRange, showDateFilter, dateFilterKey, dateFilterEndKey])
 
     // Helper to normalize Turkish text for search comparison
     const normalizeSearchString = (str) => {

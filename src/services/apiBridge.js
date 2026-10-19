@@ -9,7 +9,20 @@ const PASSIVE_RPC_METHODS = new Set([
     'on',
     'removeListener',
     'removePCListeners',
-    'removeUpdateListeners'
+    'removeUpdateListeners',
+    'recordHeartbeat',
+    'getRealtimeActiveUsers',
+    'getActiveAnnouncements',
+    'getPlatformLogs',
+    'getUpcomingEvents',
+    'getUpcomingPersonnelDocuments',
+    'showNotification',
+    'getUserNotificationSettings',
+    'getCompanyNotificationSettings',
+    'arventoGetStatus',
+    'arventoGetDailyReport',
+    'arventoGetAlarms',
+    'arventoGetInfo'
 ]);
 
 if (typeof window !== 'undefined' && !window.electronAPI) {
@@ -44,7 +57,7 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
             }
 
             if (prop === 'getAppVersion') {
-                return async () => '1.13.122-web';
+                return async () => typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.13.148';
             }
 
             if (prop === 'openExternal') {
@@ -79,8 +92,8 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                     let currentCompanyId = options?.companyId;
                     if (!currentCompanyId) {
                         try {
-                            const comp = JSON.parse(localStorage.getItem('aractakip_company') || '{}');
-                            currentCompanyId = comp?.id || null;
+                            const stored = JSON.parse(localStorage.getItem('aractakip_company') || 'null');
+                            currentCompanyId = Number(typeof stored === 'object' ? stored?.id : stored) || null;
                         } catch (e) {}
                     }
 
@@ -188,30 +201,66 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
 
                     // Hidden iframe fallback: NEVER open a new tab/window in browser
                     return new Promise((resolve) => {
-                        try {
-                            const iframe = document.createElement('iframe');
-                            iframe.style.position = 'fixed';
-                            iframe.style.top = '-99999px';
-                            iframe.style.left = '-99999px';
-                            iframe.style.width = '1200px';
-                            iframe.style.height = '900px';
-                            iframe.style.opacity = '0';
-                            iframe.style.pointerEvents = 'none';
+                        let isResolved = false;
+                        const cleanup = () => {
+                            if (timer) clearTimeout(timer);
+                            window.removeEventListener('message', handleMessage);
+                            if (iframe.parentNode) {
+                                iframe.parentNode.removeChild(iframe);
+                            }
+                        };
 
+                        const handleMessage = (event) => {
+                            if (event.data?.type === 'pdf:complete') {
+                                if (!isResolved) {
+                                    isResolved = true;
+                                    cleanup();
+                                    resolve({ success: true, isWeb: true, filePath: event.data.fileName || 'İndirildi' });
+                                }
+                            } else if (event.data?.type === 'pdf:error') {
+                                if (!isResolved) {
+                                    isResolved = true;
+                                    cleanup();
+                                    resolve({ success: false, error: event.data.error || 'PDF oluşturulamadı.' });
+                                }
+                            }
+                        };
+
+                        window.addEventListener('message', handleMessage);
+
+                        const iframe = document.createElement('iframe');
+                        iframe.style.position = 'fixed';
+                        iframe.style.top = '-99999px';
+                        iframe.style.left = '-99999px';
+                        iframe.style.width = '1200px';
+                        iframe.style.height = '900px';
+                        iframe.style.opacity = '0';
+                        iframe.style.pointerEvents = 'none';
+
+                        iframe.onerror = () => {
+                            if (!isResolved) {
+                                isResolved = true;
+                                cleanup();
+                                resolve({ success: false, error: 'Rapor yüklenemedi.' });
+                            }
+                        };
+
+                        const timer = setTimeout(() => {
+                            if (!isResolved) {
+                                isResolved = true;
+                                cleanup();
+                                resolve({ success: true, isWeb: true, filePath: 'İndirildi' });
+                            }
+                        }, 8000);
+
+                        try {
                             const rawRoute = route || '/print';
                             const cleanHash = rawRoute.startsWith('#') ? rawRoute : `#${rawRoute.startsWith('/') ? '' : '/'}${rawRoute}`;
                             const separator = cleanHash.includes('?') ? '&' : '?';
                             iframe.src = `${cleanHash}${separator}autoDownload=1`;
-
                             document.body.appendChild(iframe);
-
-                            setTimeout(() => {
-                                if (iframe.parentNode) {
-                                    iframe.parentNode.removeChild(iframe);
-                                }
-                                resolve({ success: true, isWeb: true, filePath: 'İndirildi' });
-                            }, 5000);
                         } catch (e) {
+                            cleanup();
                             resolve({ success: false, error: e.message });
                         }
                     });
@@ -335,7 +384,7 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
             // Standard RPC method call
             return async (...args) => {
                 const propStr = String(prop);
-                const isPassive = PASSIVE_RPC_METHODS.has(propStr);
+                const isPassive = PASSIVE_RPC_METHODS.has(propStr) || args.some(a => a && typeof a === 'object' && (a.__passive === true || a.isBackground === true || a.silent === true));
                 if (!isPassive) loadingManager.start();
                 const token = localStorage.getItem('token') || localStorage.getItem('aractakip_token') || sessionStorage.getItem('token');
                 try {
@@ -350,6 +399,7 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
 
                     if (!res.ok) {
                         const errBody = await res.json().catch(() => ({}));
+                        if (res.status === 401) window.dispatchEvent(new Event('kontrol:session-expired'));
                         return { success: false, error: errBody.error || `HTTP ${res.status}: ${res.statusText}` };
                     }
 

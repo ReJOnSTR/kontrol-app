@@ -29,16 +29,27 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
 
     useEffect(() => {
         if (userPreferences?.stampSettings) {
-            setStampSettings(prev => ({ ...prev, ...userPreferences.stampSettings }))
+            const serverStr = JSON.stringify(userPreferences.stampSettings)
+            const currentStr = JSON.stringify(stampSettings)
+            if (serverStr !== currentStr) {
+                setStampSettings(prev => ({ ...prev, ...userPreferences.stampSettings }))
+            }
         }
     }, [userPreferences?.stampSettings])
 
-    useEffect(() => {
-        localStorage.setItem('lastStampSettings', JSON.stringify(stampSettings))
+    const handleStampSettingsChange = (newSettings) => {
+        setStampSettings(newSettings)
+        try {
+            localStorage.setItem('lastStampSettings', JSON.stringify(newSettings))
+        } catch (_) {}
         if (updateUserPreferences) {
-            updateUserPreferences({ stampSettings })
+            const currentStr = JSON.stringify(userPreferences?.stampSettings || null)
+            const newStr = JSON.stringify(newSettings)
+            if (currentStr !== newStr) {
+                updateUserPreferences({ stampSettings: newSettings })
+            }
         }
-    }, [stampSettings])
+    }
 
     useEffect(() => {
         if (selectedTemplate && company) {
@@ -547,7 +558,7 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
                         }}
                         company={company}
                         settings={stampSettings}
-                        onChange={setStampSettings}
+                        onChange={handleStampSettingsChange}
                     />
                 </div>
             )}

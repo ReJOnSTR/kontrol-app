@@ -258,9 +258,10 @@ export default function Dashboard() {
         }
 
         try {
+            const bgOpt = isBackground ? { isBackground: true } : undefined
             const [statsResult, recentResult] = await Promise.all([
-                window.electronAPI.getDashboardStats(currentCompany.id),
-                window.electronAPI.getRecentActivity(currentCompany.id)
+                window.electronAPI.getDashboardStats(currentCompany.id, bgOpt),
+                window.electronAPI.getRecentActivity(currentCompany.id, bgOpt)
             ])
 
             if (statsResult.success) setStats(statsResult.data)

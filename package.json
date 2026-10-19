@@ -1,12 +1,12 @@
 {
   "name": "kontrol-app",
-  "version": "1.13.148",
+  "version": "1.13.149",
   "description": "Kontrol - Filo Yönetim Sistemi",
   "author": "Halil Sak",
   "main": "electron/main.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node scripts/clear-port.js && concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev": "node scripts/clear-port.js && concurrently -k \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "node scripts/wait-vite.js && electron .",
     "build": "npx prisma generate && vite build && electron-builder",
@@ -74,7 +74,10 @@
     "electron": "^33.4.11",
     "electron-builder": "^24.9.1",
     "electron-rebuild": "^3.2.9",
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.88.0",
     "prisma": "^7.4.2",
+    "ultracite": "^8.0.1",
     "vite": "^5.4.15",
     "vitest": "^4.0.18",
     "wait-on": "^7.2.0"

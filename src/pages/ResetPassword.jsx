@@ -213,8 +213,8 @@ export default function ResetPassword() {
             return
         }
 
-        if (password.length < 6) {
-            setError('Şifreniz en az 6 karakter olmalıdır.')
+        if (password.length < 12) {
+            setError('Şifreniz en az 12 karakter olmalıdır.')
             return
         }
 
@@ -242,31 +242,6 @@ export default function ResetPassword() {
                 } else if (res?.error) {
                     lastErrorMessage = res.error
                 }
-            }
-
-            // 2. Supabase Auth updateUser fallback
-            if (!resetSuccess) {
-                try {
-                    const { data, error: updateError } = await supabase.auth.updateUser({
-                        password: password
-                    })
-                    if (!updateError) {
-                        resetSuccess = true
-                    }
-                } catch (supaErr) {}
-            }
-
-            // 3. Fallback sync if needed
-            if (!resetSuccess && activeEmail && window.electronAPI?.syncPasswordReset) {
-                try {
-                    const syncRes = await window.electronAPI.syncPasswordReset({
-                        email: activeEmail,
-                        newPassword: password
-                    })
-                    if (syncRes?.success) {
-                        resetSuccess = true
-                    }
-                } catch (syncErr) {}
             }
 
             if (resetSuccess) {
@@ -423,7 +398,7 @@ export default function ResetPassword() {
                                             type={showPassword ? 'text' : 'password'}
                                             className="modern-input-field"
                                             style={{ paddingRight: '42px' }}
-                                            placeholder="En az 6 karakter"
+                                            placeholder="En az 12 karakter"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             maxLength={64}

@@ -11,7 +11,7 @@ import MonthFilter from '../components/MonthFilter'
 import ConfirmModal from '../components/ConfirmModal'
 import CustomMultiSelect from '../components/CustomMultiSelect'
 import { formatCurrency, getHistoricalBaseSalary, getHistoricalFullSalary, formatDateForInput } from '../utils/helpers'
-import { Clock, Users, User, Building2, Wallet, Banknote, X, Plus, Calendar, Calculator, Trash2, ChevronRight, ChevronLeft, CheckCircle, Pencil, Search, Check } from 'lucide-react'
+import { Clock, Users, User, Building2, Wallet, Banknote, X, Plus, Calendar, Calculator, Trash2, ChevronRight, ChevronLeft, CheckCircle, Pencil, Search, Check, Palmtree, ArrowRightLeft, FileCheck } from 'lucide-react'
 import { useToast } from '../context/ToastContext'
 
 const paymentMethods = [
@@ -31,11 +31,11 @@ const checkIsSundayRecord = (row) => {
     if (!row) return false;
     const typeStr = (row.type || row.overtime_type || '').toLowerCase();
     const notes = (row.notes || row.description || '').toUpperCase();
+    if (typeStr === 'weekday' || notes.includes('[HAFTA İÇİ]') || typeStr === 'holiday' || typeStr === 'bayram' || typeStr === 'gurbet' || notes.includes('[BAYRAM]') || notes.includes('[GURBET]')) {
+        return false;
+    }
     if (typeStr === 'sunday' || typeStr === 'weekend' || notes.includes('[PAZAR]') || notes.includes('[HAFTA SONU]')) {
         return true;
-    }
-    if (typeStr === 'weekday' || typeStr === 'holiday' || typeStr === 'gurbet' || notes.includes('[BAYRAM]') || notes.includes('[GURBET]')) {
-        return false;
     }
     if (row.date) {
         const d = new Date(row.date);
@@ -45,6 +45,20 @@ const checkIsSundayRecord = (row) => {
     }
     return false;
 };
+
+const calculateHoursFromTimes = (startTime, endTime) => {
+    if (!startTime || !endTime) return null
+    const [startH, startM] = startTime.split(':').map(Number)
+    const [endH, endM] = endTime.split(':').map(Number)
+    if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM)) return null
+
+    let diffMinutes = (endH * 60 + endM) - (startH * 60 + startM)
+    if (diffMinutes < 0) {
+        diffMinutes += 24 * 60 // Gece yarısını aşan mesailer (örn: 22:00 -> 02:00)
+    }
+    const rawHours = diffMinutes / 60
+    return Math.round(rawHours * 100) / 100
+}
 
 export default function Overtimes() {
     const { currentCompany, companySettings } = useCompany()
@@ -68,6 +82,9 @@ export default function Overtimes() {
     const [displayData, setDisplayData] = useState([]) 
     const [loading, setLoading] = useState(true)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [convertConfirm, setConvertConfirm] = useState(null) // Array of IDs to convert to leave
+    const [revertConfirm, setRevertConfirm] = useState(null)   // Array of IDs to revert from leave
+    const [clearSelectionFn, setClearSelectionFn] = useState(null)
 
     const [selectedRows, setSelectedRows] = useState([])
     const [modalOpen, setModalOpen] = useState(false)
@@ -99,7 +116,10 @@ export default function Overtimes() {
         employeeIds: [], // For initial selection
         overtimeType: 'weekday',
         date: formatDateForInput(new Date()),
+        startTime: '',
+        endTime: '',
         hours: '',
+        extraHours: '',
         rate: 0,
         amount: '',
         notes: '',
@@ -262,8 +282,16 @@ export default function Overtimes() {
 
                     otEntries.forEach(o => {
                         const typeStr = (o.type || o.overtime_type || '').toLowerCase();
-                        const isHoliday = (o.notes && o.notes.includes('[BAYRAM]')) || typeStr === 'holiday' || typeStr === 'bayram';
-                        const isGurbet = (o.notes && o.notes.includes('[GURBET]')) || typeStr === 'gurbet';
+                        const notes = (o.notes || o.description || '');
+                        const isHoliday = (notes && notes.includes('[BAYRAM]')) || typeStr === 'holiday' || typeStr === 'bayram';
+                        const isGurbet = (notes && notes.includes('[GURBET]')) || typeStr === 'gurbet';
+                        
+                        const extraMatch = notes ? notes.match(/\[\+([0-9.]+)\s*Saat\]/i) : null;
+                        const extraH = extraMatch ? (parseFloat(extraMatch[1]) || 0) : 0;
+                        if (extraH > 0) {
+                            otHours += extraH;
+                        }
+
                         if (isHoliday) {
                             otHolidays += (o.hours || 0);
                         } else if (isGurbet) {
@@ -329,6 +357,27 @@ export default function Overtimes() {
         return 0
     }
 
+    const calculateOvertimeAmount = (type, rate, hoursVal, extraHoursVal) => {
+        const hours = parseFloat(hoursVal) || 0
+        const extraHours = parseFloat(extraHoursVal) || 0
+        const r = parseFloat(rate) || 0
+        if (r <= 0) return ''
+        
+        if (type === 'weekday') {
+            const total = hours * r
+            return total > 0 ? Math.round(total * 100) / 100 : ''
+        } else {
+            // Gün bazlı mesailer (pazar, bayram, gurbet)
+            // Günlük hakediş = gün sayısı * günlük mesai ücreti
+            // Ekstra saat hakedişi = ekstra saat sayısı * (günlük mesai ücreti / 10)
+            const dayTotal = hours * r
+            const extraHourlyRate = r / 10
+            const extraTotal = extraHours * extraHourlyRate
+            const total = dayTotal + extraTotal
+            return total > 0 ? Math.round(total * 100) / 100 : ''
+        }
+    }
+
     const updateOvertimeField = (key, value) => {
         // If we are in Step 2 (Queue), update the item in the queue
         if (overtimeModalStep === 2 && overtimeQueue.length > 0) {
@@ -336,17 +385,32 @@ export default function Overtimes() {
                 if (idx !== overtimeQueueIndex) return item
                 
                 const newItem = { ...item, [key]: value }
+
+                // Auto-calculate hours if startTime or endTime changes
+                if (key === 'startTime' || key === 'endTime') {
+                    const start = key === 'startTime' ? value : (newItem.startTime || '')
+                    const end = key === 'endTime' ? value : (newItem.endTime || '')
+                    const calcHours = calculateHoursFromTimes(start, end)
+                    if (calcHours !== null && calcHours > 0) {
+                        newItem.hours = calcHours
+                    }
+                }
                 
                 // If type changes, recalculate rate
                 if (key === 'overtimeType') {
                     newItem.rate = calcOvertimeRate(value, newItem.employee)
+                    if (value !== 'weekday') {
+                        if (!newItem.hours || newItem.hours === '') {
+                            newItem.hours = 1
+                        }
+                    } else {
+                        newItem.extraHours = ''
+                    }
                 }
 
                 // Auto-calculate amount
-                if (key === 'hours' || key === 'overtimeType' || key === 'rate') {
-                    const hours = parseFloat(newItem.hours) || 0
-                    const rate = newItem.rate
-                    newItem.amount = hours > 0 ? Math.round(hours * rate * 100) / 100 : ''
+                if (key === 'hours' || key === 'extraHours' || key === 'overtimeType' || key === 'rate' || key === 'startTime' || key === 'endTime') {
+                    newItem.amount = calculateOvertimeAmount(newItem.overtimeType, newItem.rate, newItem.hours, newItem.extraHours)
                 }
                 return newItem
             }))
@@ -356,9 +420,17 @@ export default function Overtimes() {
         // Otherwise update the main formData (Step 1)
         setOvertimeFormData(prev => {
             const newData = { ...prev, [key]: value }
+
+            if (key === 'startTime' || key === 'endTime') {
+                const start = key === 'startTime' ? value : (newData.startTime || '')
+                const end = key === 'endTime' ? value : (newData.endTime || '')
+                const calcHours = calculateHoursFromTimes(start, end)
+                if (calcHours !== null && calcHours > 0) {
+                    newData.hours = calcHours
+                }
+            }
             
-            if (newData.employeeId && (key === 'hours' || key === 'overtimeType' || key === 'rate' || key === 'employeeId')) {
-                const hours = parseFloat(newData.hours) || 0
+            if (newData.employeeId && (key === 'hours' || key === 'extraHours' || key === 'overtimeType' || key === 'rate' || key === 'employeeId' || key === 'startTime' || key === 'endTime')) {
                 let rate = newData.rate
                 
                 if (key === 'overtimeType' || key === 'employeeId') {
@@ -368,12 +440,17 @@ export default function Overtimes() {
                     if (emp) {
                         rate = calcOvertimeRate(type, emp)
                         newData.rate = rate
+                        if (type !== 'weekday') {
+                            if (!newData.hours || newData.hours === '') {
+                                newData.hours = 1
+                            }
+                        } else {
+                            newData.extraHours = ''
+                        }
                     }
                 }
                 
-                if (hours > 0 && rate > 0) {
-                    newData.amount = Math.round(hours * rate * 100) / 100
-                }
+                newData.amount = calculateOvertimeAmount(newData.overtimeType, rate, newData.hours, newData.extraHours)
             }
             return newData
         })
@@ -406,17 +483,45 @@ export default function Overtimes() {
             }
         }
 
-        const rate = isEditing ? row.rate : (emp ? calcOvertimeRate('weekday', emp) : 0)
+        const rate = isEditing ? row.rate : (emp ? calcOvertimeRate(overtimeType, emp) : 0)
+
+        let startTime = ''
+        let endTime = ''
+        let extraHours = ''
+        let cleanNotes = isEditing ? (row.notes || '') : ''
+        if (row && row.notes) {
+            const timeMatch = row.notes.match(/\[(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\]/)
+            if (timeMatch) {
+                startTime = timeMatch[1]
+                endTime = timeMatch[2]
+            }
+            const extraMatch = row.notes.match(/\[\+([0-9.]+)\s*Saat\]/i)
+            if (extraMatch) {
+                extraHours = extraMatch[1]
+            }
+            cleanNotes = cleanNotes
+                .replace(/\[(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\]/g, '')
+                .replace(/\[\+([0-9.]+)\s*Saat\]/gi, '')
+                .replace(/\[(PAZAR|BAYRAM|GURBET|HAFTA İÇİ|HAFTA SONU|İZİN OLARAK KULLANILDI)\]/gi, '')
+                .trim()
+        }
+
+        const calculatedInitialAmount = isEditing 
+            ? row.amount 
+            : (overtimeType !== 'weekday' && rate > 0 ? calculateOvertimeAmount(overtimeType, rate, 1, '') : '')
 
         setOvertimeFormData({
             employeeId: empId,
             employeeIds: empIds,
             overtimeType: overtimeType,
             date: isEditing ? formatDateForInput(row.date) : formatDateForInput(new Date()),
-            hours: isEditing ? row.hours : '',
+            startTime,
+            endTime,
+            hours: isEditing ? row.hours : (overtimeType !== 'weekday' ? 1 : ''),
+            extraHours,
             rate: rate,
-            amount: isEditing ? row.amount : '',
-            notes: isEditing ? (row.notes || '') : '',
+            amount: calculatedInitialAmount,
+            notes: cleanNotes,
             useAsLeave: isEditing ? (row.notes && row.notes.includes('[İZİN OLARAK KULLANILDI]')) : false
         })
         
@@ -431,10 +536,13 @@ export default function Overtimes() {
                 employee: emp,
                 overtimeType: overtimeType,
                 date: isEditing ? formatDateForInput(row.date) : formatDateForInput(new Date()),
-                hours: isEditing ? row.hours : '',
+                startTime,
+                endTime,
+                hours: isEditing ? row.hours : (overtimeType !== 'weekday' ? 1 : ''),
+                extraHours,
                 rate,
-                amount: isEditing ? row.amount : '',
-                notes: isEditing ? (row.notes || '') : '',
+                amount: calculatedInitialAmount,
+                notes: cleanNotes,
                 useAsLeave: isEditing ? (row.notes && row.notes.includes('[İZİN OLARAK KULLANILDI]')) : false,
                 isSaved: false
             }])
@@ -453,7 +561,10 @@ export default function Overtimes() {
                 employee: emp,
                 overtimeType: 'weekday',
                 date: formatDateForInput(new Date()),
+                startTime: '',
+                endTime: '',
                 hours: '',
+                extraHours: '',
                 rate,
                 amount: '',
                 notes: '',
@@ -470,16 +581,18 @@ export default function Overtimes() {
         const current = overtimeQueue[overtimeQueueIndex]
         setOvertimeQueue(prev => prev.map((item, idx) => {
             if (item.isSaved) return item
-            // Recalculate rate and amount for each based on the shared type/hours
+            // Recalculate rate and amount for each based on the shared type/hours/extraHours
             const rate = item.employee ? calcOvertimeRate(current.overtimeType, item.employee) : 0
-            const hours = parseFloat(current.hours) || 0
-            const amount = Math.round(hours * rate * 100) / 100
+            const amount = calculateOvertimeAmount(current.overtimeType, rate, current.hours, current.extraHours)
             
             return {
                 ...item,
                 overtimeType: current.overtimeType,
                 date: current.date,
+                startTime: current.startTime,
+                endTime: current.endTime,
                 hours: current.hours,
+                extraHours: current.extraHours || '',
                 notes: current.notes,
                 useAsLeave: current.useAsLeave,
                 rate,
@@ -492,22 +605,51 @@ export default function Overtimes() {
         if (e) e.preventDefault()
         setSaving(true)
         try {
-            const marker = '[İZİN OLARAK KULLANILDI]'
-            
             const targetItems = overtimeQueue.filter(item => !item.isSaved)
+            if (targetItems.length === 0) {
+                setOvertimeModalOpen(false)
+                return
+            }
+
+            // Check if any item has missing hours
+            const invalidItem = targetItems.find(item => {
+                const h = parseFloat(item.hours)
+                return isNaN(h) || h <= 0
+            })
+            if (invalidItem) {
+                showToast(`${invalidItem.employee?.first_name || 'Personel'} için mesai süresi girilmelidir. Tümüne uygulamak için 'Tümüne Uygula' butonunu kullanabilirsiniz.`, 'warning')
+                setSaving(false)
+                return
+            }
             
             for (const item of targetItems) {
                 let finalNotes = item.notes || ''
                 const leaveMarker = '[İZİN OLARAK KULLANILDI]'
                 const holidayMarker = '[BAYRAM]'
                 const gurbetMarker = '[GURBET]'
+                const sundayMarker = '[PAZAR]'
+                const weekdayMarker = '[HAFTA İÇİ]'
                 
-                // Ensure markers are in sync
-                finalNotes = finalNotes.replace(holidayMarker, '').replace(gurbetMarker, '').trim()
+                // Clean existing markers
+                finalNotes = finalNotes
+                    .replace(holidayMarker, '')
+                    .replace(gurbetMarker, '')
+                    .replace(sundayMarker, '')
+                    .replace(weekdayMarker, '')
+                    .replace(/\[\+([0-9.]+)\s*Saat\]/gi, '')
+                    .trim()
+                
+                const extraH = parseFloat(item.extraHours)
+                const extraMarker = (extraH && extraH > 0) ? `[+${extraH} Saat]` : ''
+
                 if (item.overtimeType === 'holiday') {
-                    finalNotes = (holidayMarker + ' ' + finalNotes).trim()
+                    finalNotes = [holidayMarker, extraMarker, finalNotes].filter(Boolean).join(' ').trim()
                 } else if (item.overtimeType === 'gurbet') {
-                    finalNotes = (gurbetMarker + ' ' + finalNotes).trim()
+                    finalNotes = [gurbetMarker, extraMarker, finalNotes].filter(Boolean).join(' ').trim()
+                } else if (item.overtimeType === 'sunday') {
+                    finalNotes = [sundayMarker, extraMarker, finalNotes].filter(Boolean).join(' ').trim()
+                } else if (item.overtimeType === 'weekday') {
+                    finalNotes = [weekdayMarker, finalNotes].filter(Boolean).join(' ').trim()
                 }
                 
                 if (item.useAsLeave && !finalNotes.includes(leaveMarker)) {
@@ -516,28 +658,40 @@ export default function Overtimes() {
                     finalNotes = finalNotes.replace(leaveMarker, '').trim()
                 }
 
+                if (item.startTime && item.endTime) {
+                    finalNotes = finalNotes.replace(/\[\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}\]/g, '').trim()
+                    finalNotes = `[${item.startTime} - ${item.endTime}] ${finalNotes}`.trim()
+                }
+
+                const parsedHours = parseFloat(item.hours) || 0
+                const parsedRate = item.rate !== undefined && item.rate !== '' ? (parseFloat(item.rate) || 1.5) : 1.5
+                const parsedAmount = item.useAsLeave ? 0 : (parseFloat(item.amount) || 0)
+
                 const payload = {
-                    employeeId: item.employeeId,
+                    employeeId: parseInt(item.employeeId),
                     date: item.date,
-                    hours: parseFloat(item.hours) || 0,
-                    rate: item.rate,
-                    amount: item.amount,
+                    hours: parsedHours,
+                    rate: parsedRate,
+                    amount: parsedAmount,
                     notes: finalNotes || null
                 }
 
-                if (item.id) {
-                    await window.electronAPI.updateOvertime({ id: item.id, ...payload })
-                } else {
-                    await window.electronAPI.createOvertime(payload)
+                const res = item.id
+                    ? await window.electronAPI.updateOvertime({ id: item.id, ...payload })
+                    : await window.electronAPI.createOvertime(payload)
+
+                if (!res || !res.success) {
+                    throw new Error(res?.error || `${item.employee?.first_name || 'Personel'} için mesai kaydedilemedi.`)
                 }
             }
 
             setOvertimeModalOpen(false)
             loadOvertimes()
             setSelectedRows([])
+            showToast('Mesai kayıtları başarıyla kaydedildi.', 'success')
         } catch (error) {
             console.error(error)
-            showToast('Mesai kaydedilirken hata oluştu', 'error')
+            showToast(error.message || 'Mesai kaydedilirken hata oluştu', 'error')
         } finally {
             setSaving(false)
         }
@@ -684,6 +838,56 @@ export default function Overtimes() {
         setSaving(false)
     }
 
+    const handleConfirmBulkConvertToLeave = async () => {
+        if (!convertConfirm || convertConfirm.length === 0) return
+        setSaving(true)
+        try {
+            const companyId = currentCompany?.id || companySettings?.id || null
+            const res = await window.electronAPI.convertOvertimesToLeave(convertConfirm, companyId)
+            if (res?.success) {
+                showToast(res.message || `${convertConfirm.length} mesai izne dönüştürüldü.`, 'success')
+                setConvertConfirm(null)
+                if (clearSelectionFn) {
+                    clearSelectionFn()
+                    setClearSelectionFn(null)
+                }
+                loadOvertimes()
+            } else {
+                showToast(res?.error || 'Mesailer izne dönüştürülemedi.', 'error')
+            }
+        } catch (err) {
+            console.error('Bulk convert to leave failed:', err)
+            showToast(err.message || 'Hata oluştu.', 'error')
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const handleConfirmBulkRevertFromLeave = async () => {
+        if (!revertConfirm || revertConfirm.length === 0) return
+        setSaving(true)
+        try {
+            const companyId = currentCompany?.id || companySettings?.id || null
+            const res = await window.electronAPI.revertOvertimesFromLeave(revertConfirm, companyId)
+            if (res?.success) {
+                showToast(res.message || `${revertConfirm.length} mesai ücretli mesaiye geri çevrildi.`, 'success')
+                setRevertConfirm(null)
+                if (clearSelectionFn) {
+                    clearSelectionFn()
+                    setClearSelectionFn(null)
+                }
+                loadOvertimes()
+            } else {
+                showToast(res?.error || 'İşlem başarısız.', 'error')
+            }
+        } catch (err) {
+            console.error('Bulk revert from leave failed:', err)
+            showToast(err.message || 'Hata oluştu.', 'error')
+        } finally {
+            setSaving(false)
+        }
+    }
+
     const columns = useMemo(() => [
         {
             key: 'date',
@@ -707,7 +911,9 @@ export default function Overtimes() {
             label: 'Tür',
             width: '100px',
             render: (v, row) => {
-                const isHoliday = row.notes && row.notes.includes('[BAYRAM]')
+                const typeStr = (row.type || row.overtime_type || '').toLowerCase();
+                const notes = (row.notes || row.description || '').toUpperCase();
+                const isHoliday = notes.includes('[BAYRAM]') || typeStr === 'holiday' || typeStr === 'bayram';
                 if (isHoliday) {
                     return (
                         <span style={{ 
@@ -720,7 +926,7 @@ export default function Overtimes() {
                         </span>
                     )
                 }
-                const isGurbet = row.notes && row.notes.includes('[GURBET]')
+                const isGurbet = notes.includes('[GURBET]') || typeStr === 'gurbet';
                 if (isGurbet) {
                     return (
                         <span style={{ 
@@ -769,17 +975,34 @@ export default function Overtimes() {
         {
             key: 'hours',
             label: 'Süre',
-            width: '120px',
+            width: '130px',
             render: (value, row) => {
                 const typeStr = (row.type || row.overtime_type || '').toLowerCase();
-                const isHoliday = (row.notes && row.notes.includes('[BAYRAM]')) || typeStr === 'holiday' || typeStr === 'bayram';
-                const isGurbet = (row.notes && row.notes.includes('[GURBET]')) || typeStr === 'gurbet';
+                const notes = (row.notes || row.description || '');
+                const isHoliday = notes.includes('[BAYRAM]') || typeStr === 'holiday' || typeStr === 'bayram';
+                const isGurbet = notes.includes('[GURBET]') || typeStr === 'gurbet';
                 const isSunday = !isHoliday && !isGurbet && checkIsSundayRecord(row);
+                const isDayBased = isSunday || isHoliday || isGurbet;
+                
+                const extraMatch = notes.match(/\[\+([0-9.]+)\s*Saat\]/i);
+                const extraHours = extraMatch ? parseFloat(extraMatch[1]) : 0;
+
                 return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Clock size={14} style={{ color: 'var(--text-muted)' }} />
                         <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                            {value || 0} {isSunday || isHoliday || isGurbet ? 'Gün' : 'Saat'}
+                            {isDayBased ? (
+                                <>
+                                    {value || 0} Gün
+                                    {extraHours > 0 && (
+                                        <span style={{ color: 'var(--accent-primary)', marginLeft: '4px', fontWeight: '700' }}>
+                                            + {extraHours} Sa
+                                        </span>
+                                    )}
+                                </>
+                            ) : (
+                                `${value || 0} Saat`
+                            )}
                         </span>
                     </div>
                 )
@@ -799,11 +1022,18 @@ export default function Overtimes() {
             key: 'notes',
             label: 'Notlar',
             width: '200px',
-            render: (val) => val ? (
-                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '200px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={val}>
-                    {val}
-                </span>
-            ) : <span style={{ color: 'var(--text-muted)' }}>-</span>
+            render: (val) => {
+                if (!val) return <span style={{ color: 'var(--text-muted)' }}>-</span>
+                const cleanDisplay = val
+                    .replace(/\[(PAZAR|BAYRAM|GURBET|HAFTA İÇİ|HAFTA SONU|İZİN OLARAK KULLANILDI)\]/gi, '')
+                    .replace(/\[\+([0-9.]+)\s*Saat\]/gi, '')
+                    .trim()
+                return cleanDisplay ? (
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '200px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={cleanDisplay}>
+                        {cleanDisplay}
+                    </span>
+                ) : <span style={{ color: 'var(--text-muted)' }}>-</span>
+            }
         },
         {
             key: 'calc_paid',
@@ -1100,6 +1330,47 @@ export default function Overtimes() {
                     columns={columns}
                     data={overtimeData}
                     onBulkDelete={handleBulkDelete}
+                    customBulkActions={(selectedIds, clearSelection) => {
+                        const selectedItems = overtimeData.filter(d => selectedIds.includes(d.id))
+                        const hasRegular = selectedItems.some(item => !item.notes || !item.notes.includes('[İZİN OLARAK KULLANILDI]'))
+                        const hasLeave = selectedItems.some(item => item.notes && item.notes.includes('[İZİN OLARAK KULLANILDI]'))
+
+                        return (
+                            <>
+                                {hasRegular && (
+                                    <button 
+                                        type="button"
+                                        className="btn-bulk-action primary" 
+                                        style={{ background: 'var(--accent-primary)', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                        onClick={() => {
+                                            setConvertConfirm(selectedIds)
+                                            setClearSelectionFn(() => clearSelection)
+                                        }}
+                                        title="Seçili mesaileri izin bakiyesine aktar"
+                                    >
+                                        <Palmtree size={15} />
+                                        İzne Dönüştür
+                                    </button>
+                                )}
+
+                                {hasLeave && (
+                                    <button 
+                                        type="button"
+                                        className="btn-bulk-action secondary" 
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                        onClick={() => {
+                                            setRevertConfirm(selectedIds)
+                                            setClearSelectionFn(() => clearSelection)
+                                        }}
+                                        title="Seçili izinli mesaileri tekrar normal ücretli mesaiye çevir"
+                                    >
+                                        <ArrowRightLeft size={15} />
+                                        Ücretliye Çevir
+                                    </button>
+                                )}
+                            </>
+                        )
+                    }}
                     onFilteredDataChange={setDisplayData}
                     actions={(row) => (
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -1286,9 +1557,9 @@ export default function Overtimes() {
                 isOpen={overtimeModalOpen} 
                 onClose={() => setOvertimeModalOpen(false)} 
                 title={overtimeFormData.employeeId ? 'Mesai Ekle' : `Toplu Mesai Ekle`}
-                size="medium"
+                size="lg"
             >
-                <div style={{ overflow: 'hidden', position: 'relative' }}>
+                <div style={{ position: 'relative', width: '100%' }}>
                     {/* Stepper Header */}
                     {!overtimeFormData.employeeId && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
@@ -1351,16 +1622,9 @@ export default function Overtimes() {
                         </div>
                     )}
 
-                    <div style={{ 
-                        display: 'flex', 
-                        transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                        transform: overtimeModalStep === 1 ? 'translateX(0)' : 'translateX(-100%)',
-                        minHeight: '440px',
-                        maxHeight: 'calc(85dvh - 120px)',
-                        overflowY: 'auto'
-                    }}>
-                        {/* Step 1: Selection */}
-                        <div style={{ minWidth: '100%', padding: '2px', height: '100%' }}>
+                    {/* Step 1: Selection */}
+                    {overtimeModalStep === 1 && (
+                        <div className="fade-in" style={{ width: '100%', minHeight: '440px' }}>
                             <form onSubmit={(e) => { e.preventDefault(); startProcessingQueue(); }} style={{ height: '100%' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
                                     <div className="overtime-filter-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px', alignItems: 'center' }}>
@@ -1398,7 +1662,7 @@ export default function Overtimes() {
                                             width: '100%', 
                                             border: '1px solid var(--border-color)', 
                                             borderRadius: 'var(--radius-md)', 
-                                            height: '220px', 
+                                            height: '240px', 
                                             overflowY: 'auto', 
                                             background: 'var(--bg-secondary)', 
                                             boxShadow: 'none',
@@ -1499,227 +1763,436 @@ export default function Overtimes() {
                                         </div>
                                     </div>
 
-                                    <div className="modal-actions" style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '20px' }}>
-                                        <button type="button" className="btn btn-secondary" onClick={() => setOvertimeModalOpen(false)}>Vazgeç</button>
-                                        <button type="submit" className="btn btn-primary" disabled={overtimeFormData.employeeIds.length === 0} style={{ padding: '0 25px', gap: '10px' }}>
+                                    <div className="modal-actions" style={{ 
+                                        marginTop: 'auto', 
+                                        display: 'flex', 
+                                        justifyContent: 'flex-end', 
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        paddingTop: '16px'
+                                    }}>
+                                        <button 
+                                            type="button" 
+                                            className="btn btn-secondary" 
+                                            style={{ height: '42px', padding: '0 20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} 
+                                            onClick={() => setOvertimeModalOpen(false)}
+                                        >
+                                            Vazgeç
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            className="btn btn-primary" 
+                                            disabled={overtimeFormData.employeeIds.length === 0} 
+                                            style={{ 
+                                                height: '42px', 
+                                                padding: '0 24px', 
+                                                display: 'inline-flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center', 
+                                                gap: '8px',
+                                                fontSize: '14px',
+                                                fontWeight: 600,
+                                                background: overtimeFormData.employeeIds.length === 0 ? 'var(--bg-tertiary)' : 'var(--accent-primary)',
+                                                color: overtimeFormData.employeeIds.length === 0 ? 'var(--text-muted)' : '#ffffff',
+                                                border: overtimeFormData.employeeIds.length === 0 ? '1px solid var(--border-color)' : 'none',
+                                                boxShadow: overtimeFormData.employeeIds.length === 0 ? 'none' : '0 2px 8px rgba(20, 184, 166, 0.3)',
+                                                cursor: overtimeFormData.employeeIds.length === 0 ? 'not-allowed' : 'pointer',
+                                                opacity: overtimeFormData.employeeIds.length === 0 ? 0.6 : 1
+                                            }}
+                                        >
                                             İşleme Başla <ChevronRight size={18} />
                                         </button>
                                     </div>
                                 </div>
                             </form>
                         </div>
+                    )}
 
-                        {/* Step 2: Individual Processing Queue */}
-                        <div style={{ minWidth: '100%', padding: '2px', height: '100%' }}>
-                            {overtimeQueue.length > 0 && (
-                                <form onSubmit={handleBulkOvertimeSubmit} style={{ height: '100%' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', height: '100%', overflowY: 'auto' }}>
-                                        {/* Navigation and Current Employee Header */}
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                                                <div style={{ 
-                                                    width: '40px', 
-                                                    height: '40px', 
-                                                    borderRadius: 'var(--radius-sm)', 
-                                                    background: 'var(--accent-subtle)', 
-                                                    color: 'var(--accent-primary)', 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    justifyContent: 'center', 
-                                                    fontWeight: 700,
-                                                    fontSize: '13px',
-                                                    flexShrink: 0,
-                                                    border: '1px solid rgba(20, 184, 166, 0.2)'
-                                                }}>
-                                                    {getInitials(overtimeQueue[overtimeQueueIndex].employee?.first_name, overtimeQueue[overtimeQueueIndex].employee?.last_name)}
+                    {/* Step 2: Individual Processing Queue */}
+                    {overtimeModalStep === 2 && overtimeQueue.length > 0 && (
+                        <div className="fade-in" style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <form onSubmit={handleBulkOvertimeSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', paddingBottom: '16px' }}>
+                                    {/* Navigation and Current Employee Header Card */}
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'space-between', 
+                                        gap: '15px', 
+                                        width: '100%',
+                                        padding: '12px 16px',
+                                        background: 'var(--bg-tertiary)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)',
+                                        boxSizing: 'border-box'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                                            <div style={{ 
+                                                width: '42px', 
+                                                height: '42px', 
+                                                borderRadius: 'var(--radius-sm)', 
+                                                background: 'var(--accent-subtle)', 
+                                                color: 'var(--accent-primary)', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center', 
+                                                fontWeight: 700,
+                                                fontSize: '14px',
+                                                flexShrink: 0,
+                                                border: '1px solid rgba(20, 184, 166, 0.25)'
+                                            }}>
+                                                {getInitials(overtimeQueue[overtimeQueueIndex].employee?.first_name, overtimeQueue[overtimeQueueIndex].employee?.last_name)}
+                                            </div>
+                                            <div style={{ minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>İşlenen Personel</span>
+                                                    {overtimeQueue[overtimeQueueIndex].employee?.department && (
+                                                        <span style={{ 
+                                                            fontSize: '10px', 
+                                                            fontWeight: 600, 
+                                                            color: 'var(--text-secondary)', 
+                                                            background: 'var(--bg-secondary)', 
+                                                            padding: '2px 6px', 
+                                                            borderRadius: 'var(--radius-xs)', 
+                                                            border: '1px solid var(--border-color)' 
+                                                        }}>{overtimeQueue[overtimeQueueIndex].employee.department}</span>
+                                                    )}
                                                 </div>
-                                                <div style={{ minWidth: 0 }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>İşlenen Personel</span>
-                                                        {overtimeQueue[overtimeQueueIndex].employee?.department && (
-                                                            <span style={{ 
-                                                                fontSize: '10px', 
-                                                                fontWeight: 600, 
-                                                                color: 'var(--text-secondary)', 
-                                                                background: 'var(--bg-tertiary)', 
-                                                                padding: '2px 6px', 
-                                                                borderRadius: 'var(--radius-xs)', 
-                                                                border: '1px solid var(--border-color)' 
-                                                            }}>{overtimeQueue[overtimeQueueIndex].employee.department}</span>
-                                                        )}
-                                                    </div>
-                                                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                        {overtimeQueue[overtimeQueueIndex].employee?.first_name} {overtimeQueue[overtimeQueueIndex].employee?.last_name}
-                                                    </div>
+                                                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {overtimeQueue[overtimeQueueIndex].employee?.first_name} {overtimeQueue[overtimeQueueIndex].employee?.last_name}
                                                 </div>
                                             </div>
-
-                                            {!overtimeFormData.employeeId && (
-                                                <div style={{ display: 'flex', gap: '4px' }}>
-                                                    <button 
-                                                        type="button"
-                                                        className="btn btn-secondary"
-                                                        disabled={overtimeQueueIndex === 0} 
-                                                        onClick={() => setOvertimeQueueIndex(prev => prev - 1)}
-                                                        style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                    >
-                                                        <ChevronLeft size={20} />
-                                                    </button>
-                                                    <button 
-                                                        type="button"
-                                                        className="btn btn-secondary"
-                                                        disabled={overtimeQueueIndex === overtimeQueue.length - 1} 
-                                                        onClick={() => setOvertimeQueueIndex(prev => prev + 1)}
-                                                        style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                    >
-                                                        <ChevronRight size={20} />
-                                                    </button>
-                                                </div>
-                                            )}
                                         </div>
 
-                                        {/* Standard Inputs */}
-                                        <div className="form-grid form-grid-3">
+                                        {!overtimeFormData.employeeId && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginRight: '4px' }}>
+                                                    {overtimeQueueIndex + 1} / {overtimeQueue.length}
+                                                </span>
+                                                <button 
+                                                    type="button"
+                                                    className="btn btn-secondary"
+                                                    disabled={overtimeQueueIndex === 0} 
+                                                    onClick={() => setOvertimeQueueIndex(prev => prev - 1)}
+                                                    style={{ width: '34px', height: '34px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    title="Önceki personel"
+                                                >
+                                                    <ChevronLeft size={18} />
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    className="btn btn-secondary"
+                                                    disabled={overtimeQueueIndex === overtimeQueue.length - 1} 
+                                                    onClick={() => setOvertimeQueueIndex(prev => prev + 1)}
+                                                    style={{ width: '34px', height: '34px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    title="Sonraki personel"
+                                                >
+                                                    <ChevronRight size={18} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Standard Inputs */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+                                        <div className="form-grid form-grid-2" style={{ width: '100%' }}>
                                             <CustomSelect 
-                                                label="Mesai Türü *" 
+                                                label="Mesai Türü" 
                                                 value={overtimeQueue[overtimeQueueIndex].overtimeType} 
                                                 options={overtimeTypes} 
                                                 onChange={(val) => updateOvertimeField('overtimeType', val)} 
+                                                required
                                             />
                                             <CustomInput 
-                                                label="Tarih *" 
+                                                label="Tarih" 
                                                 type="date" 
                                                 value={overtimeQueue[overtimeQueueIndex].date} 
                                                 onChange={(val) => updateOvertimeField('date', val)} 
                                                 required 
                                             />
-                                            <CustomInput 
-                                                label={overtimeQueue[overtimeQueueIndex].overtimeType === 'weekday' ? 'Süre (Saat) *' : 'Süre (Gün) *'} 
-                                                type="number" 
-                                                value={overtimeQueue[overtimeQueueIndex].hours} 
-                                                onChange={(val) => updateOvertimeField('hours', val)} 
-                                                step="0.5" 
-                                                min={0} 
-                                                max={24}
-                                                required 
-                                            />
                                         </div>
 
-                                        {/* Payment style toggle & earnings */}
-                                        <div className="form-grid form-grid-2">
-                                            {/* Toggle Card */}
-                                            <div style={{
-                                                display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 14px',
-                                                background: overtimeQueue[overtimeQueueIndex].useAsLeave ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
-                                                border: `1px solid ${overtimeQueue[overtimeQueueIndex].useAsLeave ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-                                                borderRadius: 'var(--radius-sm)', transition: 'background 0.15s ease, border-color 0.15s ease', cursor: 'pointer'
-                                            }} onClick={() => updateOvertimeField('useAsLeave', !overtimeQueue[overtimeQueueIndex].useAsLeave)}>
-                                                <label className="toggle-switch" style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                                                    <input type="checkbox" checked={overtimeQueue[overtimeQueueIndex].useAsLeave} onChange={(e) => updateOvertimeField('useAsLeave', e.target.checked)} />
-                                                    <span className="toggle-slider"></span>
-                                                </label>
-                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ödeme Şekli</span>
-                                                    <span style={{ fontSize: '14px', fontWeight: 600, color: overtimeQueue[overtimeQueueIndex].useAsLeave ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                                                        {overtimeQueue[overtimeQueueIndex].useAsLeave ? 'İzin Olarak' : 'Nakit Hakediş'}
-                                                    </span>
+                                        {overtimeQueue[overtimeQueueIndex].overtimeType === 'weekday' ? (
+                                            <div className="form-grid form-grid-3" style={{ width: '100%' }}>
+                                                <CustomInput 
+                                                    label="Başlangıç Saati" 
+                                                    type="time" 
+                                                    value={overtimeQueue[overtimeQueueIndex].startTime || ''} 
+                                                    onChange={(val) => updateOvertimeField('startTime', val)} 
+                                                />
+                                                <CustomInput 
+                                                    label="Bitiş Saati" 
+                                                    type="time" 
+                                                    value={overtimeQueue[overtimeQueueIndex].endTime || ''} 
+                                                    onChange={(val) => updateOvertimeField('endTime', val)} 
+                                                />
+                                                <CustomInput 
+                                                    label="Süre (Saat)" 
+                                                    type="number" 
+                                                    value={overtimeQueue[overtimeQueueIndex].hours} 
+                                                    onChange={(val) => updateOvertimeField('hours', val)} 
+                                                    step="0.5" 
+                                                    min={0} 
+                                                    max={24}
+                                                    placeholder="Otomatik / Elle"
+                                                    required 
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+                                                {/* Günlük Süre */}
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px', alignItems: 'flex-start', width: '100%' }}>
+                                                    <CustomInput 
+                                                        label="Süre (Gün)" 
+                                                        type="number" 
+                                                        value={overtimeQueue[overtimeQueueIndex].hours} 
+                                                        onChange={(val) => updateOvertimeField('hours', val)} 
+                                                        step="0.5" 
+                                                        min={0} 
+                                                        max={31}
+                                                        className="mb-0"
+                                                        required 
+                                                    />
+                                                    <div style={{ display: 'flex', gap: '8px', height: '40px', alignItems: 'center' }}>
+                                                        <button 
+                                                            type="button" 
+                                                            className="btn btn-secondary" 
+                                                            style={{ 
+                                                                flex: 1,
+                                                                height: '40px', 
+                                                                padding: '0 8px', 
+                                                                fontSize: '13px', 
+                                                                fontWeight: 600,
+                                                                borderColor: String(overtimeQueue[overtimeQueueIndex].hours) === '1' ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                color: String(overtimeQueue[overtimeQueueIndex].hours) === '1' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                background: String(overtimeQueue[overtimeQueueIndex].hours) === '1' ? 'var(--accent-subtle)' : 'transparent',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                whiteSpace: 'nowrap'
+                                                            }}
+                                                            onClick={() => updateOvertimeField('hours', 1)}
+                                                        >
+                                                            Tam Gün (1)
+                                                        </button>
+                                                        <button 
+                                                            type="button" 
+                                                            className="btn btn-secondary" 
+                                                            style={{ 
+                                                                flex: 1,
+                                                                height: '40px', 
+                                                                padding: '0 8px', 
+                                                                fontSize: '13px', 
+                                                                fontWeight: 600,
+                                                                borderColor: String(overtimeQueue[overtimeQueueIndex].hours) === '0.5' ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                color: String(overtimeQueue[overtimeQueueIndex].hours) === '0.5' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                background: String(overtimeQueue[overtimeQueueIndex].hours) === '0.5' ? 'var(--accent-subtle)' : 'transparent',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                whiteSpace: 'nowrap'
+                                                            }}
+                                                            onClick={() => updateOvertimeField('hours', 0.5)}
+                                                        >
+                                                            Yarım Gün (0.5)
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Ekstra Mesai (Saat) Uzatması */}
+                                                <div style={{ 
+                                                    display: 'grid', 
+                                                    gridTemplateColumns: '1.2fr 1fr', 
+                                                    gap: '16px', 
+                                                    alignItems: 'center', 
+                                                    width: '100%',
+                                                    padding: '10px 12px',
+                                                    background: 'var(--bg-tertiary)',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    border: '1px dashed var(--border-color)'
+                                                }}>
+                                                    <div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                                + Ekstra Mesai (Saat)
+                                                            </span>
+                                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>(Opsiyonel)</span>
+                                                        </div>
+                                                        <CustomInput 
+                                                            type="number" 
+                                                            value={overtimeQueue[overtimeQueueIndex].extraHours || ''} 
+                                                            onChange={(val) => updateOvertimeField('extraHours', val)} 
+                                                            step="0.5" 
+                                                            min={0} 
+                                                            max={24}
+                                                            placeholder="Örn: 2"
+                                                            className="mb-0"
+                                                        />
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', paddingTop: '16px' }}>
+                                                        {[1, 2, 3, 4].map(h => (
+                                                            <button
+                                                                key={h}
+                                                                type="button"
+                                                                className="btn btn-secondary"
+                                                                style={{
+                                                                    padding: '4px 10px',
+                                                                    fontSize: '12px',
+                                                                    fontWeight: 600,
+                                                                    height: '32px',
+                                                                    borderColor: String(overtimeQueue[overtimeQueueIndex].extraHours) === String(h) ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                    color: String(overtimeQueue[overtimeQueueIndex].extraHours) === String(h) ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                    background: String(overtimeQueue[overtimeQueueIndex].extraHours) === String(h) ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                                                                }}
+                                                                onClick={() => updateOvertimeField('extraHours', String(overtimeQueue[overtimeQueueIndex].extraHours) === String(h) ? '' : h)}
+                                                            >
+                                                                +{h} Sa
+                                                            </button>
+                                                        ))}
+                                                        {overtimeQueue[overtimeQueueIndex].extraHours ? (
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-ghost"
+                                                                style={{ padding: '4px 8px', fontSize: '12px', height: '32px', color: 'var(--text-muted)' }}
+                                                                onClick={() => updateOvertimeField('extraHours', '')}
+                                                                title="Ekstra saati kaldır"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        ) : null}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            
-                                            {/* Hakediş Editable Input */}
-                                            <div style={{ 
-                                                padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)',
-                                                border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'center'
-                                            }}>
-                                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>Hakediş Tutar (TL)</span>
-                                                {overtimeQueue[overtimeQueueIndex].useAsLeave ? (
-                                                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)' }}>İzin Hakedişi</span>
-                                                ) : (
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        maxLength={12}
-                                                        value={overtimeQueue[overtimeQueueIndex].amount ?? ''}
-                                                        onChange={(e) => {
-                                                            const val = e.target.value.replace(',', '.')
-                                                            if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                                                updateOvertimeField('amount', val)
-                                                            }
-                                                        }}
-                                                        placeholder="0.00"
-                                                        style={{
-                                                            fontSize: '15px',
-                                                            fontWeight: 700,
-                                                            color: 'var(--accent-primary)',
-                                                            background: 'transparent',
-                                                            border: 'none',
-                                                            borderBottom: '1.5px dashed var(--accent-primary)',
-                                                            outline: 'none',
-                                                            width: '100%',
-                                                            padding: '2px 0'
-                                                        }}
-                                                    />
-                                                )}
+                                        )}
+                                    </div>
+
+                                    {/* Payment style toggle & earnings */}
+                                    <div className="form-grid form-grid-2" style={{ width: '100%' }}>
+                                        {/* Toggle Card */}
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 14px',
+                                            background: overtimeQueue[overtimeQueueIndex].useAsLeave ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                            border: `1px solid ${overtimeQueue[overtimeQueueIndex].useAsLeave ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                                            borderRadius: 'var(--radius-sm)', transition: 'background 0.15s ease, border-color 0.15s ease', cursor: 'pointer'
+                                        }} onClick={() => updateOvertimeField('useAsLeave', !overtimeQueue[overtimeQueueIndex].useAsLeave)}>
+                                            <label className="toggle-switch" style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                                                <input type="checkbox" checked={overtimeQueue[overtimeQueueIndex].useAsLeave} onChange={(e) => updateOvertimeField('useAsLeave', e.target.checked)} />
+                                                <span className="toggle-slider"></span>
+                                            </label>
+                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ödeme Şekli</span>
+                                                <span style={{ fontSize: '14px', fontWeight: 600, color: overtimeQueue[overtimeQueueIndex].useAsLeave ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                                                    {overtimeQueue[overtimeQueueIndex].useAsLeave ? 'İzin Olarak' : 'Nakit Hakediş'}
+                                                </span>
                                             </div>
                                         </div>
-
-                                        <div>
-                                            <CustomInput 
-                                                label="Notlar" 
-                                                type="textarea" 
-                                                value={overtimeQueue[overtimeQueueIndex].notes} 
-                                                onChange={(val) => updateOvertimeField('notes', val)} 
-                                                rows={1} 
-                                                placeholder="Opsiyonel not..."
-                                                maxLength={300}
-                                            />
-                                        </div>
-
-                                        <div className="modal-actions" style={{ 
-                                            display: 'flex', 
-                                            justifyContent: 'space-between', 
-                                            alignItems: 'center',
-                                            flexWrap: 'wrap',
-                                            gap: '12px',
-                                            paddingTop: '15px',
-                                            marginTop: 'auto',
-                                            borderTop: '1px solid var(--border-color)',
-                                            position: 'sticky',
-                                            bottom: 0,
-                                            background: 'var(--bg-secondary)',
-                                            zIndex: 10
+                                        
+                                        {/* Hakediş Editable Input */}
+                                        <div style={{ 
+                                            padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)',
+                                            border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'center'
                                         }}>
-                                            <div style={{ display: 'flex', gap: '10px' }}>
-                                                {!overtimeFormData.employeeId && (
-                                                    <button type="button" className="btn btn-secondary" onClick={() => setOvertimeModalStep(1)}>
-                                                        Değiştir
-                                                    </button>
-                                                )}
-                                                {overtimeQueue.length > 1 && (
-                                                    <button 
-                                                        type="button" 
-                                                        className="btn btn-ghost" 
-                                                        style={{ color: 'var(--accent-primary)', fontWeight: 600, fontSize: '13px' }}
-                                                        onClick={applyToAll}
-                                                        title="Bu değerleri henüz kaydedilmemiş tüm personellere uygula"
-                                                    >
-                                                        Tümüne Uygula
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <div style={{ display: 'flex', gap: '10px' }}>
-                                                <button type="button" className="btn btn-secondary" onClick={() => setOvertimeModalOpen(false)}>Vazgeç</button>
-                                                <button type="submit" className="btn btn-primary" disabled={saving} style={{ padding: '0 30px' }}>
-                                                    {saving ? 'Kaydediliyor...' : 'Tümünü Kaydet'}
-                                                </button>
-                                            </div>
+                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>Hakediş Tutar (TL)</span>
+                                            {overtimeQueue[overtimeQueueIndex].useAsLeave ? (
+                                                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)' }}>İzin Hakedişi</span>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    maxLength={12}
+                                                    value={overtimeQueue[overtimeQueueIndex].amount ?? ''}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(',', '.')
+                                                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                                            updateOvertimeField('amount', val)
+                                                        }
+                                                    }}
+                                                    placeholder="0.00"
+                                                    style={{
+                                                        fontSize: '15px',
+                                                        fontWeight: 700,
+                                                        color: 'var(--accent-primary)',
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        borderBottom: '1.5px dashed var(--accent-primary)',
+                                                        outline: 'none',
+                                                        width: '100%',
+                                                        padding: '2px 0'
+                                                    }}
+                                                />
+                                            )}
                                         </div>
                                     </div>
-                                </form>
-                            )}
+
+                                    <div style={{ width: '100%' }}>
+                                        <CustomInput 
+                                            label="Notlar" 
+                                            type="textarea" 
+                                            value={overtimeQueue[overtimeQueueIndex].notes} 
+                                            onChange={(val) => updateOvertimeField('notes', val)} 
+                                            rows={2} 
+                                            placeholder="Opsiyonel not..."
+                                            maxLength={300}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+
+                                    <div className="modal-actions step-modal-actions" style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        marginTop: 'auto'
+                                    }}>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            {!overtimeFormData.employeeId && (
+                                                <button type="button" className="btn btn-secondary" style={{ height: '42px', padding: '0 16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setOvertimeModalStep(1)}>
+                                                    Değiştir
+                                                </button>
+                                            )}
+                                            {overtimeQueue.length > 1 && (
+                                                <button 
+                                                    type="button" 
+                                                    className="btn btn-ghost" 
+                                                    style={{ color: 'var(--accent-primary)', fontWeight: 600, fontSize: '13px' }}
+                                                    onClick={applyToAll}
+                                                    title="Bu değerleri henüz kaydedilmemiş tüm personellere uygula"
+                                                >
+                                                    Tümüne Uygula
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <button type="button" className="btn btn-secondary" style={{ height: '42px', padding: '0 20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setOvertimeModalOpen(false)}>Vazgeç</button>
+                                            <button 
+                                                type="submit" 
+                                                className="btn btn-primary" 
+                                                disabled={saving} 
+                                                style={{ 
+                                                    height: '42px', 
+                                                    padding: '0 28px', 
+                                                    display: 'inline-flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center', 
+                                                    gap: '8px',
+                                                    fontSize: '14px',
+                                                    fontWeight: 600,
+                                                    background: 'var(--accent-primary)',
+                                                    color: '#ffffff',
+                                                    border: 'none',
+                                                    boxShadow: '0 2px 8px rgba(20, 184, 166, 0.3)',
+                                                    cursor: saving ? 'not-allowed' : 'pointer'
+                                                }}
+                                            >
+                                                {saving ? 'Kaydediliyor...' : 'Tümünü Kaydet'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </div>
+                    )}
                 </div>
             </Modal>
             {/* Delete Confirmation */}
@@ -1730,6 +2203,28 @@ export default function Overtimes() {
                 title="Mesai Kaydını Sil"
                 message="Bu mesai kaydını silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
                 confirmText="Sil"
+            />
+
+            {/* Bulk Convert to Leave Confirmation */}
+            <ConfirmModal 
+                isOpen={!!convertConfirm}
+                onClose={() => setConvertConfirm(null)}
+                onConfirm={handleConfirmBulkConvertToLeave}
+                title="Toplu İzne Dönüştür"
+                message={`Seçtiğiniz ${convertConfirm?.length || 0} adet mesai kaydı personel izin bakiyesine (mesai izni) dönüştürülecektir. Bu kayıtlar nakit mesai ödeme listesinden düşülecektir. Onaylıyor musunuz?`}
+                confirmText="İzne Dönüştür"
+                type="primary"
+            />
+
+            {/* Bulk Revert from Leave Confirmation */}
+            <ConfirmModal 
+                isOpen={!!revertConfirm}
+                onClose={() => setRevertConfirm(null)}
+                onConfirm={handleConfirmBulkRevertFromLeave}
+                title="Ücretli Mesaiye Çevir"
+                message={`Seçtiğiniz ${revertConfirm?.length || 0} adet izinli mesai tekrar normal ücretli mesaiye çevrilecektir. Onaylıyor musunuz?`}
+                confirmText="Ücretliye Çevir"
+                type="primary"
             />
         </div>
     )

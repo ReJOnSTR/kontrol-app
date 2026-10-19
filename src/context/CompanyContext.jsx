@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { useAuth } from './AuthContext'
 import { companyService, dashboardService } from '../services'
 import { settingsService } from '../services/settings'
@@ -36,6 +36,8 @@ export function CompanyProvider({ children }) {
     const { user } = useAuth()
     const [companies, setCompanies] = useState([])
     const [currentCompany, setCurrentCompany] = useState(null)
+    const activeCompanyId = useRef(null)
+    activeCompanyId.current = currentCompany?.id || null
     const [companySettings, setCompanySettings] = useState(null)
     const [loading, setLoading] = useState(true)
     const [upcomingEvents, setUpcomingEvents] = useState([])
@@ -81,8 +83,10 @@ export function CompanyProvider({ children }) {
     const loadCompanySettings = async (companyId) => {
         if (!companyId) return;
         clearHrSettingsFromLocalStorage();
+        setCompanySettings(null);
         try {
             const res = await settingsService.getCompanyDbSettings(companyId);
+            if (activeCompanyId.current !== companyId) return;
             if (res && res.success && res.data) {
                 setCompanySettings(res.data);
                 syncHrSettingsToLocalStorage(res.data.hr);
@@ -137,6 +141,7 @@ export function CompanyProvider({ children }) {
 
         try {
             const result = await dashboardService.getUpcomingEvents(currentCompany.id)
+            if (activeCompanyId.current !== currentCompany.id) return
             if (result.success) {
                 setUpcomingEvents(result.data)
             }
@@ -205,6 +210,9 @@ export function CompanyProvider({ children }) {
     }
 
     const selectCompany = (company) => {
+        activeCompanyId.current = company.id
+        setCompanySettings(null)
+        setUpcomingEvents([])
         dataCache.clear()
         setCurrentCompany(company)
         if (!isImpersonating) {

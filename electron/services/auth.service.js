@@ -212,7 +212,7 @@ async function registerUser(userData) {
 
                 // Generate signup confirmation link & OTP
                 let actionLink = 'https://kontrol-app.com/login?verified=true';
-                const randomOtp = String(Math.floor(100000 + Math.random() * 900000));
+                const randomOtp = String(require('crypto').randomInt(100000, 1000000));
                 let rawOtpCode = randomOtp;
                 let otpToken = `${randomOtp.slice(0, 3)} ${randomOtp.slice(3)}`;
 
@@ -647,6 +647,7 @@ async function loginUser(credentials) {
             return {
                 success: true,
                 require2FA: true,
+                challenge: require('../security/challenges').issue(user),
                 userId: user.id,
                 username: user.username,
                 email: user.email
@@ -715,6 +716,9 @@ async function changePassword(data) {
             return { success: false, error: 'Kullanıcı bulunamadı' };
         }
 
+        if (!currentPassword || typeof newPassword !== 'string' || newPassword.length < 12) {
+            return { success: false, error: 'Mevcut şifre ve en az 12 karakterlik yeni şifre gereklidir.' };
+        }
         if (currentPassword) {
             const isValid = bcrypt.compareSync(currentPassword, user.password_hash);
             if (!isValid) {
@@ -990,108 +994,18 @@ async function createEmployeeUser(data) {
  * Ensures a dedicated superadmin account exists and separates company admins
  */
 async function ensureSuperAdminExists() {
-    try {
-        // 1. If admin@muayen.com has role superadmin, update it to company_admin so it manages SAK PETROL
-        const adminMuayen = await prisma.users.findFirst({
-            where: { email: 'admin@muayen.com' }
-        });
-        if (adminMuayen && adminMuayen.role === 'superadmin') {
-            await prisma.users.update({
-                where: { id: adminMuayen.id },
-                data: { role: 'company_admin' }
-            });
-            log.info('Updated admin@muayen.com role to company_admin.');
-        }
-
-        // 2. Check if a dedicated superadmin user exists
-        let superAdmin = await prisma.users.findFirst({
-            where: { role: 'superadmin' }
-        });
-
-        if (!superAdmin) {
-            const username = process.env.SUPERADMIN_USERNAME || 'superadmin';
-            const email = process.env.SUPERADMIN_EMAIL || 'superadmin@kontrolapp.com';
-            const initialPassword = process.env.SUPERADMIN_INITIAL_PASSWORD || generateSecurePassword(16);
-            const password_hash = bcrypt.hashSync(initialPassword, 10);
-
-            superAdmin = await prisma.users.create({
-                data: {
-                    username,
-                    email,
-                    full_name: 'SaaS Sistem Yöneticisi',
-                    password_hash,
-                    role: 'superadmin',
-                    is_active: 1,
-                    must_change_password: 0
-                }
-            });
-
-            const box = `
-╔══════════════════════════════════════════════════════════════════════╗
-║             KONTROL SAAS - SİSTEM YÖNETİCİSİ OLUŞTURULDU         ║
-╠══════════════════════════════════════════════════════════════════════╣
-║ Kullanıcı Adı : ${superAdmin.username.padEnd(52)}║
-║ E-Posta       : ${superAdmin.email.padEnd(52)}║
-║ Geçici Şifre  : ${initialPassword.padEnd(52)}║
-║                                                                      ║
-║ Bu şifre rastgele üretilmiştir. Güvenli bir yere kaydediniz.     ║
-╚══════════════════════════════════════════════════════════════════════╝`;
-            console.log(box);
-            log.info('SuperAdmin auto-created:\n' + box);
-        }
-
-        return superAdmin;
-    } catch (err) {
-        log.warn('ensureSuperAdminExists notice:', err.message);
+    const existing = await prisma.users.findFirst({ where: { role: 'superadmin' } });
+    if (existing) return existing;
+    const { SUPERADMIN_EMAIL: email, SUPERADMIN_USERNAME: username, SUPERADMIN_INITIAL_PASSWORD: password } = process.env;
+    if (!email || !username || !password || password.length < 16) {
+        log.warn('Initial administrator setup requires SUPERADMIN_EMAIL, SUPERADMIN_USERNAME and a password of at least 16 characters.');
+        return null;
     }
+    return prisma.users.create({ data: { username, email, full_name: 'Sistem Yöneticisi', password_hash: bcrypt.hashSync(password, 12), role: 'superadmin', is_active: 1, must_change_password: 1 } });
 }
 
-async function syncPasswordReset(arg1, arg2) {
-    try {
-        let email, newPassword;
-        if (arg1 && typeof arg1 === 'object') {
-            email = arg1.email;
-            newPassword = arg1.newPassword || arg1.password;
-        } else {
-            email = arg1;
-            newPassword = arg2;
-        }
-        if (!email || !newPassword) {
-            return { success: false, error: 'E-posta ve yeni şifre gereklidir' };
-        }
-
-        const user = await prisma.users.findFirst({
-            where: { email: email.trim().toLowerCase() }
-        });
-
-        if (user) {
-            const password_hash = bcrypt.hashSync(newPassword, 10);
-            await prisma.users.update({
-                where: { id: user.id },
-                data: {
-                    password_hash,
-                    must_change_password: 0
-                }
-            });
-
-            logAudit({
-                userId: user.id,
-                username: user.username,
-                userRole: user.role,
-                action: 'PASSWORD_RESET',
-                entityType: 'auth',
-                entityId: user.id,
-                details: 'Kullanıcı şifresini e-posta kurtarma linki/kodu ile sıfırladı.'
-            });
-
-            log.info(`[Auth Sync] Password reset synced for user ${user.username} (${user.email})`);
-        }
-
-        return { success: true };
-    } catch (err) {
-        log.error('syncPasswordReset error:', err);
-        return { success: false, error: err.message };
-    }
+async function syncPasswordReset() {
+    return { success: false, error: 'Bu yöntem kaldırıldı. Doğrulama koduyla şifre sıfırlayın.' };
 }
 
 const recoveryOtpStore = new Map();
@@ -1130,7 +1044,7 @@ async function requestPasswordReset(data) {
 
             // 3. Generate password recovery action link & token from Supabase Auth
             let actionLink = 'https://kontrol-app.com/#/reset-password';
-            const randomOtp = String(Math.floor(100000 + Math.random() * 900000));
+            const randomOtp = String(require('crypto').randomInt(100000, 1000000));
             let rawOtpCode = randomOtp;
             let otpToken = randomOtp.slice(0, 3) + ' ' + randomOtp.slice(3);
 
@@ -1167,6 +1081,7 @@ async function requestPasswordReset(data) {
                     where: { email: cleanEmail },
                     data: {
                         recovery_otp: rawOtpCode,
+                        recovery_otp_attempts: 0,
                         recovery_otp_expires_at: otpExpiry
                     }
                 });
@@ -1225,96 +1140,14 @@ async function requestPasswordReset(data) {
 }
 
 async function verifyRecoveryOtp(arg1, arg2) {
-    try {
-        let email, otp;
-        if (arg1 && typeof arg1 === 'object') {
-            email = arg1.email;
-            otp = arg1.otp || arg1.token;
-        } else {
-            email = arg1;
-            otp = arg2;
-        }
-        if (!email || !otp) return { success: false, error: 'E-posta ve doğrulama kodu gereklidir' };
-        const cleanEmail = email.trim().toLowerCase();
-        const cleanOtp = String(otp).replace(/[\s\-_]/g, '').trim();
-
-        // 1. Check in-memory store
-        const entry = recoveryOtpStore.get(cleanEmail);
-
-        if (entry) {
-            // Check expiry
-            if (entry.expiresAt <= Date.now()) {
-                recoveryOtpStore.delete(cleanEmail);
-                return { success: false, error: 'Doğrulama kodunun süresi dolmuş. Lütfen yeni bir davet veya şifre sıfırlama bağlantısı talep edin.' };
-            }
-
-            // Rate-limiting / brute-force protection (max 5 attempts)
-            entry.attempts = (entry.attempts || 0) + 1;
-            if (entry.attempts > 5) {
-                recoveryOtpStore.delete(cleanEmail);
-                log.warn(`[Security Alert] Max OTP attempts exceeded for ${cleanEmail}. Entry invalidated.`);
-                return { success: false, error: 'Çok fazla hatalı kod denemesi yapıldı. Güvenlik nedeniyle bu kod iptal edildi, lütfen yeni bir bağlantı talep edin.' };
-            }
-
-            if (entry.otp === cleanOtp) {
-                entry.verified = true;
-                log.info(`[Password Reset] OTP verified via memory cache for ${cleanEmail}`);
-                return { success: true, verified: true };
-            }
-        }
-
-        // 2. Check Database persistent recovery OTP (for cross-client Web / Mobile / Desktop sync)
-        const dbUser = await prisma.users.findFirst({
-            where: {
-                OR: [
-                    { email: cleanEmail },
-                    { username: cleanEmail }
-                ]
-            }
-        });
-
-        if (dbUser && dbUser.recovery_otp) {
-            const isExpired = dbUser.recovery_otp_expires_at && new Date(dbUser.recovery_otp_expires_at).getTime() <= Date.now();
-            if (isExpired) {
-                await prisma.users.updateMany({
-                    where: { id: dbUser.id },
-                    data: { recovery_otp: null, recovery_otp_expires_at: null }
-                }).catch(() => {});
-                return { success: false, error: 'Doğrulama kodunun süresi dolmuş. Lütfen yeni bir davet veya şifre sıfırlama bağlantısı talep edin.' };
-            }
-
-            if (dbUser.recovery_otp === cleanOtp) {
-                // Cache into memory store as verified
-                recoveryOtpStore.set(cleanEmail, {
-                    otp: cleanOtp,
-                    expiresAt: Date.now() + 15 * 60 * 1000,
-                    verified: true
-                });
-                log.info(`[Password Reset] OTP verified via Database for ${cleanEmail}`);
-                return { success: true, verified: true };
-            }
-        }
-
-        // 3. Also attempt Supabase Auth verify
-        try {
-            const { supabaseAdmin } = require('./supabase.service');
-            if (supabaseAdmin) {
-                const { data: supaData, error: supaErr } = await supabaseAdmin.auth.verifyOtp({
-                    email: cleanEmail,
-                    token: cleanOtp,
-                    type: 'recovery'
-                });
-                if (!supaErr) {
-                    recoveryOtpStore.set(cleanEmail, { otp: cleanOtp, expiresAt: Date.now() + 15 * 60 * 1000, verified: true });
-                    return { success: true, verified: true };
-                }
-            }
-        } catch (e) {}
-
-        return { success: false, error: 'Geçersiz veya süresi dolmuş doğrulama kodu.' };
-    } catch (err) {
-        return { success: false, error: err.message };
-    }
+    const email = (typeof arg1 === 'object' ? arg1?.email : arg1)?.trim().toLowerCase();
+    const otp = String(typeof arg1 === 'object' ? (arg1?.otp || arg1?.token || '') : (arg2 || '')).replace(/[\s\-_]/g, '');
+    if (!email || !/^\d{6,8}$/.test(otp)) return { success: false, error: 'Geçersiz doğrulama kodu.' };
+    const user = await prisma.users.findFirst({ where: { OR: [{ email }, { username: email }] } });
+    if (!user) return { success: false, error: 'Geçersiz doğrulama kodu.' };
+    const attempt = await prisma.users.updateMany({ where: { id: user.id, recovery_otp: { not: null }, recovery_otp_expires_at: { gt: new Date() }, recovery_otp_attempts: { lt: 5 } }, data: { recovery_otp_attempts: { increment: 1 } } });
+    if (attempt.count !== 1 || !user.recovery_otp || user.recovery_otp !== otp) return { success: false, error: 'Kod geçersiz, süresi dolmuş veya deneme sınırı aşıldı.' };
+    return { success: true, verified: true };
 }
 
 async function completePasswordReset(arg1, arg2, arg3) {
@@ -1330,7 +1163,7 @@ async function completePasswordReset(arg1, arg2, arg3) {
             newPassword = arg3;
         }
         if (!email || !newPassword) return { success: false, error: 'E-posta ve yeni şifre gereklidir' };
-        if (newPassword.length < 6) return { success: false, error: 'Şifre en az 6 karakter olmalıdır' };
+        if (typeof newPassword !== 'string' || newPassword.length < 12) return { success: false, error: 'Şifre en az 12 karakter olmalıdır' };
         const cleanEmail = email.trim().toLowerCase();
 
         // 1. Verify user exists in database (check by email or username)
@@ -1346,48 +1179,16 @@ async function completePasswordReset(arg1, arg2, arg3) {
             return { success: false, error: 'Kullanıcı hesabı bulunamadı.' };
         }
 
-        // 2. Strict OTP authorization check
-        const entry = recoveryOtpStore.get(cleanEmail);
-        const cleanOtp = otp ? String(otp).replace(/[\s\-_]/g, '').trim() : '';
-
-        let isAuthorized = false;
-
-        if (entry && entry.expiresAt > Date.now()) {
-            if (entry.verified) {
-                isAuthorized = true;
-            } else if (cleanOtp && entry.otp === cleanOtp) {
-                entry.verified = true;
-                isAuthorized = true;
-            }
-        }
-
-        if (!isAuthorized && cleanOtp) {
-            const v = await verifyRecoveryOtp({ email: cleanEmail, otp: cleanOtp });
-            if (v.success) {
-                isAuthorized = true;
-            } else {
-                return v;
-            }
-        }
-
-        // Enforce strict authorization requirement
-        if (!isAuthorized) {
-            log.warn(`[Security Alert] Unauthorized completePasswordReset attempt for: ${cleanEmail}`);
-            return { success: false, error: 'Yetkisiz işlem: Şifre belirlemek için geçerli ve doğrulanmış bir güvenlik kodu (OTP) gereklidir.' };
-        }
-
-        // 3. Update PostgreSQL user password & activate & clear recovery OTP
-        const newHash = bcrypt.hashSync(newPassword, 10);
-        await prisma.users.updateMany({
-            where: { id: user.id },
-            data: { 
-                password_hash: newHash,
-                must_change_password: 0,
-                is_active: 1,
-                recovery_otp: null,
-                recovery_otp_expires_at: null
-            }
+        // Consume the persistent OTP in the same database write as the password change.
+        const verification = await verifyRecoveryOtp({ email: cleanEmail, otp });
+        if (!verification.success) return verification;
+        const cleanOtp = String(otp).replace(/[\s\-_]/g, '');
+        const newHash = bcrypt.hashSync(newPassword, 12);
+        const updated = await prisma.users.updateMany({
+            where: { id: user.id, recovery_otp: cleanOtp, recovery_otp_expires_at: { gt: new Date() }, recovery_otp_attempts: { lte: 5 } },
+            data: { password_hash: newHash, must_change_password: 0, recovery_otp: null, recovery_otp_expires_at: null, recovery_otp_attempts: 0 }
         });
+        if (updated.count !== 1) return { success: false, error: 'Bu doğrulama kodu artık kullanılamaz.' };
 
         // 4. Update Supabase Auth user (auth.users)
         try {
@@ -1462,7 +1263,7 @@ async function resendVerificationEmail(data) {
 
         if (supabaseAdmin) {
             let actionLink = 'https://kontrol-app.com/login?verified=true';
-            const randomOtp = String(Math.floor(100000 + Math.random() * 900000));
+            const randomOtp = String(require('crypto').randomInt(100000, 1000000));
             let rawOtpCode = randomOtp;
             let otpToken = `${randomOtp.slice(0, 3)} ${randomOtp.slice(3)}`;
 
@@ -1507,6 +1308,7 @@ async function resendVerificationEmail(data) {
                     where: { email: cleanEmail },
                     data: {
                         recovery_otp: rawOtpCode,
+                        recovery_otp_attempts: 0,
                         recovery_otp_expires_at: otpExpiry
                     }
                 });
@@ -1601,7 +1403,7 @@ async function sendPersonnelInvite(data) {
         }
 
         // 2. Generate 6-digit OTP and single-use Invite Token
-        const randomOtp = String(Math.floor(100000 + Math.random() * 900000));
+        const randomOtp = String(require('crypto').randomInt(100000, 1000000));
         const inviteToken = crypto.randomUUID();
 
         recoveryOtpStore.set(cleanEmail, {
@@ -1622,6 +1424,7 @@ async function sendPersonnelInvite(data) {
                 where: { email: cleanEmail },
                 data: {
                     recovery_otp: randomOtp,
+                        recovery_otp_attempts: 0,
                     recovery_otp_expires_at: otpExpiry,
                     must_change_password: 1
                 }
@@ -1704,30 +1507,14 @@ async function sendPersonnelInvite(data) {
 }
 
 async function activateUserByEmail(data) {
-    try {
-        const { email } = data || {};
-        if (!email) return { success: false, error: 'E-posta adresi gereklidir' };
-
-        const cleanEmail = email.trim().toLowerCase();
-        const user = await prisma.users.findFirst({
-            where: { email: cleanEmail }
-        });
-
-        if (user) {
-            // If personnel, activate immediately. If company_admin, keep in pending approval state
-            const newStatus = user.role === 'personnel' ? 1 : 0;
-            await prisma.users.update({
-                where: { id: user.id },
-                data: { is_active: newStatus }
-            });
-            log.info(`[Auth] User email confirmed: ${cleanEmail} (role: ${user.role}, is_active: ${newStatus})`);
-        }
-
-        return { success: true, isPersonnel: user?.role === 'personnel' };
-    } catch (err) {
-        log.error('activateUserByEmail error:', err);
-        return { success: false, error: err.message };
-    }
+    const check = await verifyRecoveryOtp(data);
+    if (!check.success) return check;
+    const email = data.email.trim().toLowerCase();
+    const user = await prisma.users.findFirst({ where: { email } });
+    if (!user) return { success: false, error: 'Geçersiz doğrulama.' };
+    // Confirmation must never deactivate an existing account or approve a company admin.
+    const result = await prisma.users.updateMany({ where: { id: user.id, recovery_otp: String(data.otp).replace(/[\s\-_]/g, ''), recovery_otp_expires_at: { gt: new Date() } }, data: { ...(user.role === 'personnel' ? { is_active: 1 } : {}), recovery_otp: null, recovery_otp_expires_at: null } });
+    return { success: result.count === 1, isPersonnel: user.role === 'personnel' };
 }
 
 async function getUserProfile(userId) {

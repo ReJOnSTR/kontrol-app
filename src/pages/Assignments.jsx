@@ -474,6 +474,7 @@ export default function Assignments() {
                 showCheckboxes={true}
                 showDateFilter={true}
                 dateFilterKey="start_date"
+                dateFilterEndKey="end_date"
                 searchKeys={['vehicle_plate', 'model', 'driver_name', 'driver_phone', 'notes']}
                 filters={[
                     {

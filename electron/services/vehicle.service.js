@@ -65,19 +65,33 @@ async function getVehicleById(vehicleId) {
     }
 }
 
+function normalizePlate(plate) {
+    if (!plate || typeof plate !== 'string') return '';
+    return plate.trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
 async function createVehicle(data) {
     try {
         const { companyId, type, plate, ...rest } = data;
         await checkQuota(companyId, 'vehicles');
 
+        const cleanPlate = normalizePlate(plate);
+        if (!cleanPlate) {
+            return { success: false, error: 'Geçerli bir plaka girilmelidir.' };
+        }
+
         const existingVehicle = await prisma.vehicles.findFirst({
-            where: { company_id: parseInt(companyId), plate: plate, is_archived: 0 }
+            where: {
+                company_id: parseInt(companyId),
+                plate: cleanPlate,
+                OR: [{ is_archived: 0 }, { is_archived: null }]
+            }
         });
 
         if (existingVehicle) {
             return {
                 success: false,
-                error: `"${plate}" plakalı aktif bir araç zaten mevcut. Lütfen mevcut aracı düzenleyin veya arşivden çıkarın.`
+                error: `"${cleanPlate}" plakalı aktif bir araç zaten mevcut. Lütfen mevcut aracı düzenleyin veya arşivden çıkarın.`
             };
         }
 
@@ -85,7 +99,7 @@ async function createVehicle(data) {
             data: {
                 company_id: parseInt(companyId),
                 type,
-                plate,
+                plate: cleanPlate,
                 brand: rest.brand || null,
                 model: rest.model || null,
                 year: rest.year ? parseInt(rest.year) : null,
@@ -117,11 +131,36 @@ async function createVehicle(data) {
 async function updateVehicle(data) {
     try {
         const { id, type, plate, ...rest } = data;
+        const vId = parseInt(id);
+        const existing = await prisma.vehicles.findUnique({ where: { id: vId } });
+        if (!existing) return { success: false, error: 'Araç bulunamadı' };
+
+        let cleanPlate = existing.plate;
+        if (plate) {
+            cleanPlate = normalizePlate(plate);
+            if (cleanPlate !== existing.plate) {
+                const duplicate = await prisma.vehicles.findFirst({
+                    where: {
+                        id: { not: vId },
+                        company_id: existing.company_id,
+                        plate: cleanPlate,
+                        OR: [{ is_archived: 0 }, { is_archived: null }]
+                    }
+                });
+                if (duplicate) {
+                    return {
+                        success: false,
+                        error: `"${cleanPlate}" plakalı aktif bir araç zaten mevcut.`
+                    };
+                }
+            }
+        }
+
         const vehicle = await prisma.vehicles.update({
-            where: { id: parseInt(id) },
+            where: { id: vId },
             data: {
                 type,
-                plate,
+                plate: cleanPlate,
                 brand: rest.brand || null,
                 model: rest.model || null,
                 year: rest.year ? parseInt(rest.year) : null,

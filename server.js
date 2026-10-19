@@ -3,7 +3,10 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
+const { call, requestToken } = require('./electron/security/transport');
+const { authenticate, getSecret } = require('./electron/security/sessions');
+const { PUBLIC } = require('./electron/security/access');
+const { safePath, segment, authorizeFile } = require('./electron/security/files');
 
 // Global unhandled error & crash safety
 process.on('uncaughtException', (err) => {
@@ -39,16 +42,23 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Hardened Secret Key Resolution
-let SECRET_KEY = process.env.JWT_SECRET;
-if (!SECRET_KEY) {
-    if (process.env.NODE_ENV === 'production') {
-        console.warn('⚠️ [SECURITY WARNING] JWT_SECRET is not set in environment! Generating secure random ephemeral key for this process.');
-        SECRET_KEY = crypto.randomBytes(32).toString('hex');
-    } else {
-        SECRET_KEY = 'kontrol-app-production-secret-key-98765';
-    }
+// A missing/weak server secret is a startup error, not a development backdoor.
+getSecret();
+const allowedOrigins = new Set((process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean));
+function sameOrigin(req) {
+    const origin = req.headers.origin;
+    if (!origin) return true;
+    try { return new URL(origin).host === req.headers.host || allowedOrigins.has(origin); } catch { return false; }
 }
+app.use((req, res, next) => {
+    if (!sameOrigin(req)) return res.status(403).json({ success: false, error: 'İzin verilmeyen kaynak.' });
+    next();
+});
+const requireSession = async (req, res, next) => {
+    try { req.actor = await authenticate(requestToken(req), getPrismaClient()); next(); }
+    catch (error) { res.status(error.status || 401).json({ success: false, error: 'Geçerli oturum gerekli.' }); }
+};
+const requirePlatformAdmin = [requireSession, (req, res, next) => req.actor.role === 'superadmin' ? next() : res.status(403).json({ success: false, error: 'Yönetici yetkisi gerekli.' })];
 
 // Security Headers (configured to allow PDF previews & embedded assets)
 app.use(helmet({
@@ -59,7 +69,7 @@ app.use(helmet({
 
 // CORS Configuration
 app.use(cors({
-    origin: true,
+    origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)),
     credentials: true
 }));
 
@@ -82,7 +92,7 @@ const authLimiter = rateLimit({
 });
 
 app.use('/api/', apiLimiter);
-app.use(['/api/rpc/login', '/api/rpc/loginUser', '/api/rpc/register', '/api/rpc/registerUser'], authLimiter);
+app.use('/api/rpc/:method', (req, res, next) => PUBLIC.has(req.params.method) && req.params.method !== 'getAppVersion' ? authLimiter(req, res, next) : next());
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -123,22 +133,14 @@ app.get('/api/health', handleHealthCheck);
 app.get('/health', handleHealthCheck);
 
 // Automated Database Backup Trigger Endpoint
-app.post('/api/admin/backup', async (req, res) => {
+app.post('/api/admin/backup', ...requirePlatformAdmin, async (req, res) => {
     const { performBackup } = require('./scripts/backup-service');
-    const authHeader = req.headers.authorization;
-    if (!authHeader && req.query.key !== SECRET_KEY) {
-        return res.status(401).json({ success: false, error: 'Yetkisiz erişim' });
-    }
     const result = await performBackup();
     res.json(result);
 });
 
 // Download Backup File Endpoint
-app.get('/api/admin/backup/download/:fileName', (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader && req.query.key !== SECRET_KEY) {
-        return res.status(401).json({ success: false, error: 'Yetkisiz erişim' });
-    }
+app.get('/api/admin/backup/download/:fileName', ...requirePlatformAdmin, (req, res) => {
 
     const { fileName } = req.params;
     const safeName = path.basename(fileName);
@@ -152,188 +154,61 @@ app.get('/api/admin/backup/download/:fileName', (req, res) => {
     res.download(filePath, safeName);
 });
 
-// Uploads directory configuration
-const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
-const filesDir = path.join(dataDir, 'files');
-if (!fs.existsSync(filesDir)) {
-    fs.mkdirSync(filesDir, { recursive: true });
-}
+// Documents are private: a session and an owner are required for every read/write.
+let dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
+let filesDir = path.join(dataDir, 'files');
+try {
+    const electronApp = require('electron').app;
+    if (electronApp) { dataDir = path.join(electronApp.getPath('userData'), 'data'); filesDir = path.join(electronApp.getPath('userData'), 'files'); }
+} catch {}
+fs.mkdirSync(filesDir, { recursive: true });
 
-// Serve /uploads with automatic fallback to Supabase Storage (Express 5 compatible)
-app.use('/uploads', async (req, res, next) => {
+app.use('/uploads', requireSession, async (req, res) => {
     try {
-        const relativePath = decodeURIComponent(req.path || '').replace(/^\/+/, '');
-        if (!relativePath) return res.status(404).send('File not found');
-
-        let localFile = path.join(filesDir, relativePath);
-        const ext = path.extname(relativePath).toLowerCase();
-        const mime = ext === '.pdf' ? 'application/pdf' : (ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'application/octet-stream'));
-
-        if (!fs.existsSync(localFile) || !fs.statSync(localFile).isFile()) {
-            // Fallback: search recursively by base filename
-            const baseName = path.basename(relativePath);
-            const findFileRecursively = (dir) => {
-                try {
-                    const entries = fs.readdirSync(dir, { withFileTypes: true });
-                    for (const entry of entries) {
-                        const full = path.join(dir, entry.name);
-                        if (entry.isDirectory()) {
-                            const found = findFileRecursively(full);
-                            if (found) return found;
-                        } else if (entry.isFile() && entry.name === baseName) {
-                            return full;
-                        }
-                    }
-                } catch (e) {}
-                return null;
-            };
-            const fallbackPath = findFileRecursively(filesDir);
-            if (fallbackPath) localFile = fallbackPath;
+        const name = decodeURIComponent(req.path).replace(/^\/+/, '');
+        const target = safePath(filesDir, name);
+        await authorizeFile(req.actor, name, getPrismaClient());
+        if (!fs.existsSync(target)) {
+            const result = await require('./electron/services/supabase.service').downloadFromStorage(name);
+            const buffer = result?.buffer || result?.data;
+            if (!result?.success || !buffer) return res.sendStatus(404);
+            fs.mkdirSync(path.dirname(target), { recursive: true });
+            fs.writeFileSync(target, buffer);
         }
-
-        if (fs.existsSync(localFile) && fs.statSync(localFile).isFile()) {
-            res.setHeader('Content-Type', mime);
-            res.setHeader('Content-Disposition', 'inline; filename="' + encodeURIComponent(path.basename(relativePath)) + '"');
-            res.setHeader('Cache-Control', 'public, max-age=86400');
-            return res.sendFile(localFile);
-        }
-
-        const { downloadFromStorage } = require('./electron/services/supabase.service');
-        let sRes = await downloadFromStorage(relativePath);
-        if (!sRes?.success && path.basename(relativePath) !== relativePath) {
-            sRes = await downloadFromStorage(path.basename(relativePath));
-        }
-
-        const buf = sRes?.buffer || sRes?.data;
-        if (sRes?.success && buf) {
-            const localDir = path.dirname(localFile);
-            if (!fs.existsSync(localDir)) {
-                fs.mkdirSync(localDir, { recursive: true });
-            }
-            fs.writeFileSync(localFile, buf);
-            res.setHeader('Content-Type', mime);
-            res.setHeader('Content-Disposition', 'inline; filename="' + encodeURIComponent(path.basename(relativePath)) + '"');
-            res.setHeader('Cache-Control', 'public, max-age=86400');
-            res.setHeader('Accept-Ranges', 'bytes');
-            return res.send(buf);
-        }
-    } catch (e) {
-        console.error('[Uploads fallback error]:', e.message);
-    }
-    return res.status(404).send('File not found');
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.sendFile(target);
+    } catch (error) { res.status(error.status || 400).json({ success: false, error: 'Belgeye erişilemiyor.' }); }
 });
 
-// Direct File Upload API for Web Client with Enterprise Hierarchical Paths
-app.post('/api/upload', async (req, res) => {
+const extensions = { '.pdf': 'application/pdf', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.csv': 'text/csv' };
+app.post('/api/upload', requireSession, async (req, res) => {
     try {
-        const { fileName, fileData, mimeType, companyId, module, entityId, category } = req.body;
-        if (!fileData) {
-            return res.status(400).json({ success: false, error: 'No file data provided' });
-        }
-
-        const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.doc', '.docx', '.xls', '.xlsx', '.csv'];
-        let ext = (path.extname(fileName || '') || '').toLowerCase();
-        if (!ext && mimeType) {
-            ext = mimeType.includes('pdf') ? '.pdf' : (mimeType.includes('png') ? '.png' : '.jpg');
-        }
-        if (!ext || !allowedExtensions.includes(ext)) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Güvenlik Uyarısı: İzin verilmeyen dosya formatı. Sadece PDF, JPG, PNG ve Office belgeleri yüklenebilir.' 
-            });
-        }
-
-        // Convert base64 data to buffer and enforce 20MB limit
-        const base64Clean = fileData.replace(/^data:.*?;base64,/, '');
-        const buffer = Buffer.from(base64Clean, 'base64');
-        if (buffer.length > 20 * 1024 * 1024) {
-            return res.status(400).json({ success: false, error: 'Dosya boyutu 20 MB sınırını aşamaz.' });
-        }
-
-        // Quota check: Enforce company storage_limit_mb
-        if (companyId) {
-            try {
-                const prisma = getPrismaClient();
-                const comp = await prisma.companies.findUnique({
-                    where: { id: parseInt(companyId, 10) },
-                    select: { storage_limit_mb: true, name: true }
-                });
-                const limitMb = comp?.storage_limit_mb || 1024;
-                const compDir = path.join(filesDir, `company_${companyId}`);
-                let currentBytes = 0;
-                if (fs.existsSync(compDir)) {
-                    const getDirSize = (dir) => {
-                        let total = 0;
-                        try {
-                            const entries = fs.readdirSync(dir, { withFileTypes: true });
-                            for (const e of entries) {
-                                const fullP = path.join(dir, e.name);
-                                if (e.isDirectory()) total += getDirSize(fullP);
-                                else if (e.isFile()) total += fs.statSync(fullP).size;
-                            }
-                        } catch (err) {}
-                        return total;
-                    };
-                    currentBytes = getDirSize(compDir);
-                }
-                if (currentBytes + buffer.length > limitMb * 1024 * 1024) {
-                    return res.status(400).json({
-                        success: false,
-                        error: `Depolama kotanız dolmuştur (Maksimum: ${limitMb} MB). Yeni dosya yüklemek için lütfen paketinizi yükseltin.`
-                    });
-                }
-            } catch (quotaErr) {
-                console.warn('[Upload Quota Check Warning]:', quotaErr.message);
-            }
-        }
-
-        const uniqueFile = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
-
-        // Build enterprise hierarchy: company_X/module/entity_Y/category/file.ext
-        let storageFolder = '';
-        if (companyId) {
-            storageFolder += `company_${companyId}/`;
-        }
-        if (module) {
-            storageFolder += `${module}/`;
-            if (entityId) {
-                const singularModule = module.endsWith('s') ? module.slice(0, -1) : module;
-                storageFolder += `${singularModule}_${entityId}/`;
-            }
-        }
-        if (category) {
-            storageFolder += `${category}/`;
-        }
-
-        const relativeStoragePath = (storageFolder + uniqueFile).replace(/^\/+/, '');
-        const targetPath = path.join(filesDir, relativeStoragePath);
-
-        const targetDir = path.dirname(targetPath);
-        if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir, { recursive: true });
-        }
-
-        fs.writeFileSync(targetPath, buffer);
-
-        // Upload to Supabase Storage in background with clean hierarchical path
-        try {
-            const { uploadToStorage } = require('./electron/services/supabase.service');
-            await uploadToStorage(buffer, relativeStoragePath, mimeType || 'application/octet-stream', 'documents');
-        } catch (e) {
-            console.warn('[Storage upload notice]:', e.message);
-        }
-
-        return res.json({
-            success: true,
-            fileName: relativeStoragePath,
-            originalName: fileName,
-            path: relativeStoragePath,
-            url: `/uploads/${relativeStoragePath}`
-        });
-    } catch (err) {
-        console.error('API upload error:', err);
-        return res.status(500).json({ success: false, error: err.message });
-    }
+        const { fileName, fileData, companyId, module, entityId, category } = req.body;
+        const ext = path.extname(fileName || '').toLowerCase();
+        if (!extensions[ext] || typeof fileData !== 'string') return res.status(400).json({ success: false, error: 'İzin verilmeyen dosya biçimi.' });
+        const cid = Number(companyId);
+        if (!Number.isSafeInteger(cid) || cid <= 0) throw new Error('Şirket seçilmelidir.');
+        const mod = segment(module || 'documents');
+        let folder = `company_${cid}/${mod}/`;
+        if (entityId != null) folder += `${mod.endsWith('s') ? mod.slice(0, -1) : mod}_${segment(String(entityId))}/`;
+        if (category) folder += `${segment(category)}/`;
+        const name = folder + crypto.randomUUID() + ext;
+        await authorizeFile(req.actor, name, getPrismaClient(), true);
+        const target = safePath(filesDir, name);
+        const buffer = Buffer.from(fileData.replace(/^data:[^;]*;base64,/, ''), 'base64');
+        if (!buffer.length || buffer.length > 20 * 1024 * 1024) return res.status(400).json({ success: false, error: 'Dosya boyutu 1 bayt–20 MB arasında olmalıdır.' });
+        const signatures = { '.pdf': '%PDF-', '.png': '\x89PNG', '.jpg': '\xff\xd8\xff', '.jpeg': '\xff\xd8\xff', '.docx': 'PK', '.xlsx': 'PK', '.doc': '\xd0\xcf\x11\xe0', '.xls': '\xd0\xcf\x11\xe0', '.webp': 'RIFF' };
+        if (signatures[ext] && !buffer.subarray(0, Buffer.byteLength(signatures[ext], 'latin1')).equals(Buffer.from(signatures[ext], 'latin1'))) throw new Error('Dosya içeriği uzantıyla eşleşmiyor.');
+        const company = await getPrismaClient().companies.findUnique({ where: { id: cid }, select: { storage_limit_mb: true } });
+        if (!company) throw new Error('Şirket bulunamadı.');
+        const sizeOf = dir => fs.existsSync(dir) ? fs.readdirSync(dir, { withFileTypes: true }).reduce((n, e) => n + (e.isSymbolicLink() ? 0 : e.isDirectory() ? sizeOf(path.join(dir, e.name)) : fs.statSync(path.join(dir, e.name)).size), 0) : 0;
+        if (sizeOf(path.join(filesDir, `company_${cid}`)) + buffer.length > (company.storage_limit_mb ?? 1024) * 1024 * 1024) throw new Error('Depolama kotası aşıldı.');
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, buffer, { flag: 'wx' });
+        const cloud = await require('./electron/services/supabase.service').uploadToStorage(buffer, name, extensions[ext], 'documents').catch(() => ({ success: false }));
+        res.json({ success: true, fileName: name, originalName: fileName, path: name, url: `/uploads/${name}`, cloudSynced: !!cloud?.success });
+    } catch (error) { res.status(error.status || 400).json({ success: false, error: error.message }); }
 });
 
 // Serve compiled React frontend
@@ -374,7 +249,8 @@ const rpcMap = {
     checkForUpdates: async () => ({ success: true, updateAvailable: false }),
     downloadUpdate: async () => ({ success: true }),
     quitAndInstall: async () => ({ success: true }),
-    getAppVersion: async () => '1.13.11-web',
+    getAppVersion: async () => require('./package.json').version,
+    logout: async () => ({ success: true }),
 
     // Companies
     getCompanies: db.getCompanies,
@@ -538,60 +414,13 @@ const rpcMap = {
     updateDocument: db.updateDocument,
     deleteDocument: db.deleteDocument,
     readDocumentData: async (fileName) => {
-        if (!fileName) return { success: false, error: 'No fileName provided' };
-        const relativePath = String(fileName).replace(/^\/+/, '');
-        const cleanName = path.basename(relativePath);
-        const filePath = path.join(filesDir, relativePath);
-        const flatFilePath = path.join(filesDir, cleanName);
-        const ext = path.extname(cleanName).toLowerCase();
-
-        if (fs.existsSync(filePath)) {
-            return {
-                success: true,
-                data: fs.readFileSync(filePath).toString('base64'),
-                fileName: cleanName,
-                path: relativePath,
-                ext: ext
-            };
-        }
-
-        if (fs.existsSync(flatFilePath)) {
-            return {
-                success: true,
-                data: fs.readFileSync(flatFilePath).toString('base64'),
-                fileName: cleanName,
-                path: cleanName,
-                ext: ext
-            };
-        }
-
-        try {
-            const { downloadFromStorage, getStoragePublicUrl } = require('./electron/services/supabase.service');
-            let res = await downloadFromStorage(relativePath);
-            if (!res.success && relativePath !== cleanName) {
-                res = await downloadFromStorage(cleanName);
-            }
-
-            const buf = res.buffer || res.data;
-            if (res.success && buf) {
-                const targetDir = path.dirname(filePath);
-                if (!fs.existsSync(targetDir)) {
-                    fs.mkdirSync(targetDir, { recursive: true });
-                }
-                fs.writeFileSync(filePath, buf);
-                return {
-                    success: true,
-                    data: buf.toString('base64'),
-                    fileName: cleanName,
-                    path: relativePath,
-                    url: getStoragePublicUrl(cleanName, 'documents'),
-                    ext: ext
-                };
-            }
-        } catch (e) {
-            console.error('[readDocumentData Storage Error]:', e.message);
-        }
-        return { success: false, error: 'Belge bulunamadı' };
+        const actor = require('./electron/security/context').context()?.actor;
+        const target = safePath(filesDir, fileName);
+        await authorizeFile(actor, fileName, getPrismaClient());
+        let buffer;
+        if (fs.existsSync(target)) buffer = fs.readFileSync(target);
+        else { const result = await require('./electron/services/supabase.service').downloadFromStorage(fileName); if (result?.success) buffer = result.buffer || result.data; }
+        return buffer ? { success: true, data: buffer.toString('base64'), fileName: path.basename(fileName), path: fileName, ext: path.extname(fileName) } : { success: false, error: 'Belge bulunamadı.' };
     },
 
     // Dashboard & Common
@@ -608,7 +437,7 @@ const rpcMap = {
         const companyId = payload?.companyId || payload;
         const res = await getCompanyCompleteData(companyId);
         if (res.success && res.data) {
-            res.data.localStorageData = payload?.localStorageData || null;
+
             return {
                 success: true,
                 backupData: res.data,
@@ -624,30 +453,11 @@ const rpcMap = {
 
     // Settings
     getSettings: async (companyId) => {
-        try {
-            const cid = parseInt(typeof companyId === 'object' ? companyId?.companyId : companyId, 10);
-            if (cid) {
-                const res = await systemSettingsService.getCompanyDbSettings(cid);
-                if (res?.data) return res.data;
-            }
-            const sPath = path.join(dataDir, 'settings.json');
-            if (fs.existsSync(sPath)) return JSON.parse(fs.readFileSync(sPath, 'utf8'));
-        } catch (e) {}
-        return { autoBackup: false, frequency: 'daily', backupPath: '', lastBackup: {} };
+        const cid = Number(companyId?.companyId || companyId);
+        const result = await systemSettingsService.getCompanyDbSettings(cid);
+        return result.data || {};
     },
-    saveSettings: async (settings) => {
-        try {
-            const cid = parseInt(settings?.companyId, 10);
-            if (cid) {
-                await systemSettingsService.saveCompanyDbSettings(cid, settings);
-            }
-            const sPath = path.join(dataDir, 'settings.json');
-            fs.writeFileSync(sPath, JSON.stringify(settings, null, 2));
-            return { success: true };
-        } catch (e) {
-            return { success: false, error: e.message };
-        }
-    },
+    saveSettings: async settings => systemSettingsService.saveCompanyDbSettings(Number(settings.companyId), settings),
     getPublicHolidays: db.getPublicHolidays,
     createPublicHoliday: db.createPublicHoliday,
     updatePublicHoliday: db.updatePublicHoliday,
@@ -797,156 +607,26 @@ const rpcMap = {
 };
 
 
-// Methods accessible without authentication (public/auth entrypoints)
-const PUBLIC_RPC_METHODS = new Set([
-    'login', 'loginUser', 'register', 'registerUser',
-    'requestPasswordReset', 'completePasswordReset', 'verifyRecoveryOtp',
-    'activateUserByEmail', 'resendVerificationEmail',
-    'getAppVersion', 'testSmtpConnection', 'getMfaStatus', 'verifyMfaLogin',
-    'recordHeartbeat'
-]);
-
-// Methods restricted strictly to SuperAdmin role
-const SUPERADMIN_RPC_METHODS = new Set([
-    'getPlatformOverview', 'getPlatformUsers', 'resetPlatformUserPassword',
-    'impersonatePlatformUser', 'createPlatformUser', 'sendUserInvite',
-    'updatePlatformUser', 'deletePlatformUser', 'toggleCompanyStatus',
-    'toggleUserStatus', 'getPlatformBackups', 'triggerPlatformBackup',
-    'getPlatformSystemHealth', 'getPlatformLogs', 'clearPlatformLogs',
-    'getPlatformAnnouncements', 'createPlatformAnnouncement',
-    'toggleAnnouncementStatus', 'deletePlatformAnnouncement',
-    'createPlatformCompany', 'updatePlatformCompany', 'deletePlatformCompany',
-    'getCompanyUsers'
-]);
-
-// Generic RPC Router
+// Only explicitly registered methods are remotely callable; no service-export fallback.
 app.post('/api/rpc/:method', async (req, res) => {
-    const { method } = req.params;
-    const { args = [] } = req.body;
-
-    const fn = rpcMap[method] || db[method] || authService[method];
-    if (typeof fn !== 'function') {
-        console.warn(`[RPC 404] Method "${method}" not found in rpcMap`);
-        return res.status(404).json({ success: false, error: `Method "${method}" not found` });
-    }
-
-    // Auth & Permission Verification for non-public methods
-    if (!PUBLIC_RPC_METHODS.has(method)) {
-        const authHeader = req.headers.authorization;
-        const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-        let currentUser = null;
-
-        if (token) {
-            try {
-                currentUser = jwt.verify(token, SECRET_KEY);
-            } catch (jwtErr) {
-                if (req.query.key && req.query.key === SECRET_KEY) {
-                    currentUser = { role: 'superadmin' };
-                } else {
-                    return res.status(401).json({ success: false, error: 'Oturum süresi dolmuş veya geçersiz yetki anahtarı. Lütfen tekrar giriş yapın.' });
-                }
-            }
-        } else if (req.query.key && req.query.key === SECRET_KEY) {
-            currentUser = { role: 'superadmin' };
-        } else {
-            return res.status(401).json({ success: false, error: 'Bu işlem için yetkilendirme (Bearer Token) gereklidir.' });
-        }
-
-        // Restrict SuperAdmin only endpoints
-        if (SUPERADMIN_RPC_METHODS.has(method) && currentUser?.role !== 'superadmin') {
-            return res.status(403).json({ success: false, error: 'Bu işlem yalnızca Süper Yönetici yetkisi gerektirir.' });
-        }
-
-        // Automatic tenant enforcement for single-record delete operations
-        const COMPANY_SCOPED_SINGLE_ID_DELETES = new Set([
-            'deleteInspection', 'deleteInsurance', 'deleteAssignment', 'deleteService',
-            'deleteMaintenance', 'deleteSalary', 'deleteLeave', 'deleteOvertime',
-            'deleteEmployeeAssignment', 'deleteEmployeeDocument', 'deleteSalaryHistory',
-            'deleteEmployeeMovement', 'deleteWork', 'deleteVehicle', 'deleteEmployee', 'deleteCustomer'
-        ]);
-        if (COMPANY_SCOPED_SINGLE_ID_DELETES.has(method) && args.length === 1 && currentUser?.company_id && currentUser?.role !== 'superadmin') {
-            args.push(currentUser.company_id);
-        }
-    }
-
+    const method = req.params.method;
+    const fn = Object.hasOwn(rpcMap, method) ? rpcMap[method] : null;
+    if (typeof fn !== 'function') return res.status(404).json({ success: false, error: 'Bilinmeyen işlem.' });
     try {
-        const result = await fn(...args);
-
-        // Attach signed JWT token upon successful authentication for Web clients
-        if ((method === 'login' || method === 'loginUser' || method === 'verifyMfaLogin') && result && result.success && result.user) {
-            const tokenPayload = {
-                id: result.user.id,
-                username: result.user.username,
-                role: result.user.role,
-                company_id: result.user.company_id || null
-            };
-            result.token = jwt.sign(tokenPayload, SECRET_KEY, { expiresIn: '7d' });
-        }
-
-        res.json(result !== undefined ? result : { success: true });
-    } catch (err) {
-        console.error(`RPC Error [${method}]:`, err);
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-// Developer / Generic Table Endpoints
-const TABLES = [
-    'assignments', 'companies', 'customers', 'documents', 'employees', 'employee_documents',
-    'employee_assignments', 'employee_attendance', 'employee_movements', 'employee_salary_history',
-    'inspections', 'insurances', 'leaves', 'maintenances', 'meal_settings', 'meal_tickets', 'overtimes',
-    'recurring_transactions', 'salaries', 'services', 'transactions', 'users', 'vehicles', 'works', 'work_items'
-];
-
-// Verification middleware for developer / sensitive admin endpoints
-const requireAdminOrKey = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-    if (token) {
-        try {
-            const decoded = jwt.verify(token, SECRET_KEY);
-            if (decoded && (decoded.role === 'admin' || decoded.role === 'superadmin' || decoded.role === 'company_admin')) {
-                return next();
-            }
-        } catch (e) {}
-    }
-    if (req.query.key && req.query.key === SECRET_KEY) {
-        return next();
-    }
-    return res.status(401).json({ success: false, error: 'Yetkisiz erişim (Yetkili anahtarı veya yetkili rolü gereklidir)' });
-};
-
-app.get('/api/tables', requireAdminOrKey, (req, res) => {
-    res.json({ success: true, tables: TABLES });
-});
-
-app.get('/api/data/:table', requireAdminOrKey, async (req, res) => {
-    const { table } = req.params;
-    if (!TABLES.includes(table)) return res.status(400).json({ error: 'Invalid table' });
-
-    try {
-        const prisma = getPrismaClient();
-        let data = await prisma[table].findMany({ take: 500 });
-        if (table === 'users' && Array.isArray(data)) {
-            data = data.map(u => {
-                const { password_hash, password, ...safeUser } = u;
-                return safeUser;
-            });
-        }
-        res.json({ success: true, data });
+        const result = await call(method, req.body?.args || [], requestToken(req), fn, getPrismaClient());
+        if (result?.token) res.cookie('kontrol_session', result.token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 12 * 60 * 60 * 1000, path: '/' });
+        if (method === 'logout') res.clearCookie('kontrol_session', { path: '/' });
+        res.json(result ?? { success: true });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(error.status || 500).json({ success: false, error: error.status ? error.message : 'İşlem gerçekleştirilemedi.' });
     }
 });
 
 // Dedicated REST Endpoint for 24/7 Automated Notifications (Runs on Server)
 app.all(['/api/cron/notifications', '/api/cron/daily-summary'], async (req, res) => {
-    // Cron security verification in production
-    const authHeader = req.headers.authorization;
-    const cronKey = req.headers['x-cron-key'] || req.query.key;
-    if (process.env.NODE_ENV === 'production' && !authHeader && cronKey !== SECRET_KEY) {
-        return res.status(401).json({ success: false, error: 'Yetkisiz cron çağrısı' });
-    }
+    const cronSecret = process.env.CRON_SECRET;
+    const supplied = req.headers['x-cron-key'];
+    if (!cronSecret || typeof supplied !== 'string' || Buffer.byteLength(supplied) !== Buffer.byteLength(cronSecret) || !crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(cronSecret))) return res.status(401).json({ success: false, error: 'Yetkisiz cron çağrısı.' });
     try {
         const force = req.query.force === 'true' || req.body?.force === true;
         const prisma = getPrismaClient();
@@ -999,24 +679,6 @@ async function initializePostgres(dbUrl) {
         const pgClient = new Client({ connectionString: dbUrl });
         await pgClient.connect();
         await pgClient.query(postgresDdlSql);
-
-        // Verify users exist, seed default admin if empty
-        const uRes = await pgClient.query('SELECT count(*) as count FROM users');
-        if (parseInt(uRes.rows[0].count, 10) === 0) {
-            console.log('• Seeding default admin user in PostgreSQL...');
-            const bcrypt = require('bcryptjs');
-            const defaultPasswordHash = bcrypt.hashSync('admin', 10);
-            
-            // Create default company
-            const cRes = await pgClient.query("INSERT INTO companies (name, created_at) VALUES ('Varsayılan Şirket', CURRENT_TIMESTAMP) RETURNING id");
-            const companyId = cRes.rows[0].id;
-
-            await pgClient.query(`
-                INSERT INTO users (username, email, password_hash, role, company_id, is_active, created_at)
-                VALUES ('admin', 'admin@muayen.com', $1, 'admin', $2, 1, CURRENT_TIMESTAMP)
-            `, [defaultPasswordHash, companyId]);
-            console.log('✅ Default admin user created in PostgreSQL.');
-        }
 
         await pgClient.end();
         console.log('✅ PostgreSQL Schema & Tables verified.');
@@ -1120,4 +782,5 @@ async function start() {
     }
 }
 
-start();
+if (require.main === module) start();
+module.exports = { app, rpcMap, start };

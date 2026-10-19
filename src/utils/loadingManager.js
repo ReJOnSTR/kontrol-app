@@ -8,21 +8,42 @@
 let activeCount = 0;
 const listeners = new Set();
 let debounceTimer = null;
+let watchdogTimer = null;
 
 export const loadingManager = {
     start() {
         activeCount++;
         this._notifyDebounced();
+        this._resetWatchdog();
     },
 
     stop() {
         activeCount = Math.max(0, activeCount - 1);
         this._notifyDebounced();
+        if (activeCount === 0 && watchdogTimer) {
+            clearTimeout(watchdogTimer);
+            watchdogTimer = null;
+        }
     },
 
     reset() {
         activeCount = 0;
+        if (watchdogTimer) {
+            clearTimeout(watchdogTimer);
+            watchdogTimer = null;
+        }
         this._notifyDebounced();
+    },
+
+    _resetWatchdog() {
+        if (watchdogTimer) clearTimeout(watchdogTimer);
+        // Automatic safety: if an async operation hangs and never calls stop, reset after 6s
+        watchdogTimer = setTimeout(() => {
+            if (activeCount > 0) {
+                activeCount = 0;
+                this._notifyDebounced();
+            }
+        }, 6000);
     },
 
     isLoading() {

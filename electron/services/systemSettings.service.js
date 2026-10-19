@@ -263,12 +263,19 @@ async function getUserPreferences(userId) {
 async function saveUserPreferences(userId, preferences) {
     try {
         await ensureSettingsTables();
-        const uid = parseInt(userId, 10);
+        const uid = parseInt(userId?.userId || userId, 10);
         if (!uid) return { success: false, error: 'Geçersiz kullanıcı kimliği' };
 
         const current = await getUserPreferences(uid);
-        const merged = deepMerge(current.data || DEFAULT_USER_PREFERENCES, preferences || {});
-        const jsonStr = JSON.stringify(merged).replace(/'/g, "''");
+        const merged = deepMerge(current.data || DEFAULT_USER_PREFERENCES, (userId?.preferences !== undefined ? userId.preferences : preferences) || {});
+
+        const currentJson = JSON.stringify(current.data || {});
+        const newJson = JSON.stringify(merged);
+        if (currentJson === newJson) {
+            return { success: true, data: merged };
+        }
+
+        const jsonStr = newJson.replace(/'/g, "''");
 
         try {
             await prisma.$executeRawUnsafe(`

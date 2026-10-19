@@ -1,3 +1,4 @@
+import { escapeHtml } from '../utils/escapeHtml'
 import { useState, useEffect, useCallback } from 'react'
 import { useCompany } from '../context/CompanyContext'
 import TopProgressBar from '../components/TopProgressBar'
@@ -76,9 +77,9 @@ export default function MealTicketReport() {
             <tr class="${idx % 2 === 1 ? 'alt' : ''}">
                 <td class="cell c-center c-muted">${idx + 1}</td>
                 <td class="cell">${formatDate(ticket.date)}</td>
-                <td class="cell c-center c-bold">${ticket.person_count}</td>
+                <td class="cell c-center c-bold">${Number(ticket.person_count) || 0}</td>
                 <td class="cell c-right c-bold">${formatCurrency(ticket.person_count * (ticket.price_per_person || report.pricePerPerson || 0))}</td>
-                <td class="cell c-muted">${ticket.notes || '—'}</td>
+                <td class="cell c-muted">${escapeHtml(ticket.notes || '—')}</td>
             </tr>
         `).join('')
 
@@ -86,12 +87,14 @@ export default function MealTicketReport() {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>${currentCompany.name} - Yemek Raporu - ${monthLabel}</title>
+    <title>${escapeHtml(currentCompany.name)} - Yemek Raporu - ${monthLabel}</title>
     <style>
-        @page { size: A4; margin: 0; }
+        @page { size: A4; margin: 15mm; }
+        thead { display: table-header-group; }
+        tr { break-inside: avoid; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; color: #111827; background: #fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        .page { width: 210mm; min-height: 297mm; padding: 20mm; margin: 0 auto; position: relative; }
+        .page { width: 100%; padding: 0; margin: 0 auto; position: relative; }
 
         /* ─── Header ─── */
         .doc-header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 14px; border-bottom: 2px solid #111827; margin-bottom: 22px; }
@@ -123,7 +126,7 @@ export default function MealTicketReport() {
         .total-row .cell { background: #f3f4f6; font-weight: 700; font-size: 12px; border-top: 2px solid #374151; border-bottom: 1px solid #d1d5db; color: #111827; }
 
         /* ─── Document Footer ─── */
-        .doc-footer { position: absolute; bottom: 15mm; left: 20mm; right: 20mm; display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 8px; color: #9ca3af; }
+        .doc-footer { margin-top: 20px; break-inside: avoid; display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 8px; color: #9ca3af; }
         .doc-footer .page-num { font-weight: 600; }
     </style>
 </head>
@@ -132,7 +135,7 @@ export default function MealTicketReport() {
         <div class="doc-header">
             <div class="left">
                 <h1>Yemek Fişi Raporu</h1>
-                <div class="company-name">${currentCompany.name}</div>
+                <div class="company-name">${escapeHtml(currentCompany.name)}</div>
             </div>
             <div class="right">
                 <div class="period">${monthLabel}</div>
@@ -186,23 +189,24 @@ export default function MealTicketReport() {
         </table>
 
         <div class="doc-footer">
-            <span>${currentCompany.name}</span>
+            <span>${escapeHtml(currentCompany.name)}</span>
             <span>${monthLabel} Yemek Fişi Raporu</span>
-            <span class="page-num">Sayfa 1/1</span>
+            <span class="page-num">Yemek Fişi Raporu</span>
         </div>
     </div>
 </body>
 </html>`
 
-        // Open a new window and print
-        const printWindow = window.open('', '_blank', 'width=800,height=1000')
-        printWindow.document.write(html)
-        printWindow.document.close()
-        printWindow.onload = () => {
-            setTimeout(() => {
-                printWindow.print()
-            }, 300)
-        }
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;width:1px;height:1px;left:-10000px;border:0';
+        iframe.setAttribute('title', 'Yazdırma önizlemesi');
+        iframe.onload = () => {
+            iframe.contentWindow.addEventListener('afterprint', () => iframe.remove(), { once: true });
+            iframe.contentWindow.print();
+        };
+        iframe.srcdoc = html;
+        document.body.appendChild(iframe);
+
     }
 
     return (

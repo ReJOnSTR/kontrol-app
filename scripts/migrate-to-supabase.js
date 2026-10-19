@@ -3,7 +3,7 @@
  * Migrates all SQLite records and local document files to Self-Hosted Supabase.
  * 
  * Usage:
- *   DATABASE_URL="postgresql://postgres:PASSWORD@HOST:5432/postgres" SUPABASE_SECRET_KEY="KEY" node scripts/migrate-to-supabase.js
+ *   DATABASE_URL='' SUPABASE_SECRET_KEY="KEY" node scripts/migrate-to-supabase.js
  */
 
 const fs = require('fs');
@@ -19,7 +19,7 @@ const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!DATABASE_URL) {
     console.error('❌ Error: DATABASE_URL environment variable is required.');
-    console.log('Example: DATABASE_URL="postgresql://postgres:PASSWORD@45.147.47.56:5432/postgres" node scripts/migrate-to-supabase.js');
+    console.log('Example: DATABASE_URL='' node scripts/migrate-to-supabase.js');
     process.exit(1);
 }
 

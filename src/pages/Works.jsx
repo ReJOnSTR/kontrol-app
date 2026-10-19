@@ -374,6 +374,7 @@ export default function Works() {
                 showCheckboxes={canDelete}
                 showDateFilter={true}
                 dateFilterKey="start_date"
+                dateFilterEndKey="end_date"
                 onRowClick={handleRowClick}
                 onBulkDelete={canDelete ? handleBulkDeleteClick : undefined}
                 onBulkArchive={canEdit ? handleBulkArchive : undefined}

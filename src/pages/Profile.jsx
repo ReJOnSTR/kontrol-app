@@ -80,6 +80,8 @@ export default function Profile() {
     // 2FA / MFA State
     const [mfaStatus, setMfaStatus] = useState({ enabled: false, remainingBackupCodes: 0 })
     const [mfaLoading, setMfaLoading] = useState(false)
+    const [disableModal, setDisableModal] = useState(false)
+    const [mfaPassword, setMfaPassword] = useState('')
     const [setupModal, setSetupModal] = useState(false)
     const [setupData, setSetupData] = useState(null) // { secret, qrCodeUrl, backupCodes }
     const [verificationCode, setVerificationCode] = useState('')
@@ -300,13 +302,14 @@ export default function Profile() {
 
     // Disable 2FA
     const handleDisable2FA = async () => {
-        if (!window.confirm('İki Adımlı Doğrulamayı (2FA) devre dışı bırakmak istediğinize emin misiniz?')) {
-            return
-        }
+        if (!disableModal) { setDisableModal(true); return }
+        if (!mfaPassword) return
         setMfaLoading(true)
         try {
-            const res = await window.electronAPI.disableMfa(user.id)
+            const res = await window.electronAPI.disableMfa(user.id, mfaPassword)
             if (res && res.success) {
+                setDisableModal(false)
+                setMfaPassword('')
                 setMsg({ type: 'success', text: 'İki Adımlı Doğrulama (2FA) devre dışı bırakıldı.' })
                 await loadMfaStatus()
             } else {
@@ -807,6 +810,12 @@ export default function Profile() {
             </div>
 
             {/* ── 2FA SETUP MODAL ── */}
+            <Modal isOpen={disableModal} onClose={() => { setDisableModal(false); setMfaPassword('') }} title="İki Adımlı Doğrulamayı Kapat" size="small">
+                <form onSubmit={e => { e.preventDefault(); handleDisable2FA() }}>
+                    <CustomInput label="Mevcut şifreniz" type="password" required value={mfaPassword} onChange={setMfaPassword} autoComplete="current-password" />
+                    <button type="submit" className="btn btn-danger" disabled={mfaLoading}>Doğrula ve Kapat</button>
+                </form>
+            </Modal>
             {setupModal && setupData && (
                 <Modal
                     isOpen={setupModal}

@@ -219,6 +219,29 @@ export default function Leaves() {
         setError('');
         try {
             const targetItems = leaveQueue.filter(item => !item.isSaved);
+            if (targetItems.length === 0) {
+                setIsModalOpen(false);
+                return;
+            }
+
+            // Validation
+            for (const item of targetItems) {
+                if (!item.startDate) {
+                    throw new Error(`${item.employee?.first_name || 'Personel'} için başlangıç tarihi zorunludur.`);
+                }
+                if (item.leaveUnit === 'hourly') {
+                    const hr = parseFloat(item.hours);
+                    if (isNaN(hr) || hr <= 0) {
+                        throw new Error(`${item.employee?.first_name || 'Personel'} için geçerli bir saat süresi girilmelidir.`);
+                    }
+                } else {
+                    const daysNum = parseFloat(item.days);
+                    if (isNaN(daysNum) || daysNum <= 0) {
+                        throw new Error(`${item.employee?.first_name || 'Personel'} için geçerli bir gün sayısı girilmelidir.`);
+                    }
+                }
+            }
+
             for (const item of targetItems) {
                 const payload = {
                     employeeId: parseInt(item.employeeId),
@@ -231,10 +254,12 @@ export default function Leaves() {
                     notes: item.notes || null
                 };
 
-                if (item.id) {
-                    await window.electronAPI.updateLeave({ id: item.id, ...payload });
-                } else {
-                    await window.electronAPI.createLeave(payload);
+                const res = item.id
+                    ? await window.electronAPI.updateLeave({ id: item.id, ...payload })
+                    : await window.electronAPI.createLeave(payload);
+
+                if (!res || !res.success) {
+                    throw new Error(res?.error || `${item.employee?.first_name || 'Personel'} için izin kaydedilemedi.`);
                 }
             }
 
@@ -243,6 +268,7 @@ export default function Leaves() {
             showToast(editingLeave ? 'İzin güncellendi.' : 'İzin(ler) kaydedildi.', 'success');
         } catch (err) {
             setError(err.message || 'İzin kaydedilirken bir hata oluştu.');
+            showToast(err.message || 'İzin kaydedilemedi', 'error');
         } finally {
             setSaving(false);
         }
@@ -384,7 +410,13 @@ export default function Leaves() {
         const newQueue = formData.employeeIds.map(id => {
             const emp = employees.find(e => e.id === id);
             const offDaysStr = emp ? emp.off_days : '0';
-            const autoDays = 1;
+            
+            let autoDays = 14;
+            if (emp && emp.start_date) {
+                const start = new Date(emp.start_date);
+                const years = Math.floor((new Date() - start) / (1000 * 60 * 60 * 24 * 365.25));
+                autoDays = years < 5 ? 14 : (years < 15 ? 20 : 26);
+            }
             const sDate = today();
             const eDate = calculateLeaveEndDate(sDate, autoDays, offDaysStr, holidayDates);
 
@@ -488,23 +520,46 @@ export default function Leaves() {
 
     const stats = useMemo(() => {
         const todayStr = today(); // YYYY-MM-DD
-        const thisMonth = todayStr.slice(0, 7);
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const firstDayOfMonth = new Date(year, month, 1).toISOString().split('T')[0];
+        const lastDayOfMonth = new Date(year, month + 1, 0).toISOString().split('T')[0];
         
         const approvedLeaves = leaves.filter(l => l.status === 'approved');
         
+        // Leaves overlapping with this current month (start <= monthEnd and end >= monthStart)
         const thisMonthLeaves = approvedLeaves.filter(l => {
-            const dateStr = formatDateForInput(l.start_date);
-            return dateStr.startsWith(thisMonth);
+            const startStr = formatDateForInput(l.start_date);
+            const endStr = formatDateForInput(l.end_date || l.start_date);
+            return startStr <= lastDayOfMonth && endStr >= firstDayOfMonth;
         });
+
+        // Sum actual days falling in this month
+        const totalThisMonth = thisMonthLeaves.reduce((sum, l) => {
+            if (l.hours) return sum;
+            const startStr = formatDateForInput(l.start_date);
+            const endStr = formatDateForInput(l.end_date || l.start_date);
+            
+            if (startStr >= firstDayOfMonth && endStr <= lastDayOfMonth) {
+                return sum + (l.days || 1);
+            }
+            
+            const effStart = new Date(startStr < firstDayOfMonth ? firstDayOfMonth : startStr);
+            const effEnd = new Date(endStr > lastDayOfMonth ? lastDayOfMonth : endStr);
+            const diffTime = Math.max(0, effEnd.getTime() - effStart.getTime());
+            const daysInMonth = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            return sum + Math.min(daysInMonth, l.days || daysInMonth);
+        }, 0);
 
         const activeToday = approvedLeaves.filter(l => {
             const startStr = formatDateForInput(l.start_date);
-            const endStr = formatDateForInput(l.end_date);
+            const endStr = formatDateForInput(l.end_date || l.start_date);
             return todayStr >= startStr && todayStr <= endStr;
         });
 
         return {
-            totalThisMonth: thisMonthLeaves.reduce((sum, l) => sum + (l.days || 0), 0),
+            totalThisMonth,
             currentlyOnLeave: activeToday.length,
             pendingApproval: leaves.filter(l => l.status === 'pending').length
         };
@@ -561,11 +616,15 @@ export default function Leaves() {
         {
             key: 'dates',
             label: 'Tarih Aralığı',
-            render: (_, row) => (
-                <div style={{ fontSize: '13px' }}>
-                    {formatDate(row.start_date)} - {formatDate(row.end_date)}
-                </div>
-            )
+            render: (_, row) => {
+                const s = formatDate(row.start_date);
+                const e = formatDate(row.end_date);
+                return (
+                    <div style={{ fontSize: '13px', fontWeight: 500 }}>
+                        {s === e ? s : `${s} - ${e}`}
+                    </div>
+                );
+            }
         },
         {
             key: 'days',
@@ -776,6 +835,7 @@ export default function Leaves() {
                 searchPlaceholder="Personel veya notlarda ara..."
                 showDateFilter={true}
                 dateFilterKey="start_date"
+                dateFilterEndKey="end_date"
                 filters={[
                     {
                         key: 'type',
@@ -810,10 +870,8 @@ export default function Leaves() {
                 onClose={() => setIsModalOpen(false)}
                 title={editingLeave ? 'İzni Düzenle' : (formData.employeeId ? 'İzin Ekle' : 'Toplu İzin Ekle')}
                 size="lg"
-                footer={null}
-                bodyStyle={{ overflow: 'visible', padding: '20px' }}
             >
-                <div style={{ position: 'relative', overflow: 'hidden', width: '100%' }}>
+                <div style={{ position: 'relative', width: '100%' }}>
                     {/* Stepper Header */}
                     {!editingLeave && !formData.employeeId && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
@@ -876,18 +934,11 @@ export default function Leaves() {
                         </div>
                     )}
 
-                    <div style={{ 
-                        display: 'flex', 
-                        transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                        transform: leaveModalStep === 1 ? 'translateX(0)' : 'translateX(-100%)',
-                        minHeight: '440px',
-                        maxHeight: 'calc(85dvh - 120px)',
-                        overflowY: 'auto'
-                    }}>
-                        {/* Step 1: Selection */}
-                        <div style={{ minWidth: '100%', padding: '2px', height: '100%' }}>
-                            <form onSubmit={(e) => { e.preventDefault(); startProcessingQueue(); }} style={{ height: '100%' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
+                    {/* Step 1: Selection */}
+                    {leaveModalStep === 1 && (
+                        <div className="fade-in" style={{ width: '100%' }}>
+                            <form onSubmit={(e) => { e.preventDefault(); startProcessingQueue(); }} style={{ width: '100%' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', paddingBottom: '16px' }}>
                                     <div className="overtime-filter-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px', alignItems: 'center' }}>
                                         <div className="search-box" style={{ height: '36px', minWidth: 'auto', boxSizing: 'border-box' }}>
                                             <Search size={16} />
@@ -924,7 +975,7 @@ export default function Leaves() {
                                             width: '100%', 
                                             border: '1px solid var(--border-color)', 
                                             borderRadius: 'var(--radius-md)', 
-                                            height: '220px', 
+                                            height: '240px', 
                                             overflowY: 'auto', 
                                             background: 'var(--bg-secondary)', 
                                             boxShadow: 'none',
@@ -1024,140 +1075,230 @@ export default function Leaves() {
                                         </div>
                                     </div>
 
-                                    <div className="modal-actions" style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '20px' }}>
-                                        <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Vazgeç</button>
-                                        <button type="submit" className="btn btn-primary" disabled={formData.employeeIds.length === 0} style={{ padding: '0 25px', gap: '10px' }}>
+                                    <div className="modal-actions" style={{ 
+                                        marginTop: 'auto', 
+                                        display: 'flex', 
+                                        justifyContent: 'flex-end', 
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        paddingTop: '16px'
+                                    }}>
+                                        <button 
+                                            type="button" 
+                                            className="btn btn-secondary" 
+                                            style={{ height: '42px', padding: '0 20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} 
+                                            onClick={() => setIsModalOpen(false)}
+                                        >
+                                            Vazgeç
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            className="btn btn-primary" 
+                                            disabled={formData.employeeIds.length === 0} 
+                                            style={{ 
+                                                height: '42px', 
+                                                padding: '0 24px', 
+                                                display: 'inline-flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center', 
+                                                gap: '8px',
+                                                fontSize: '14px',
+                                                fontWeight: 600,
+                                                background: formData.employeeIds.length === 0 ? 'var(--bg-tertiary)' : 'var(--accent-primary)',
+                                                color: formData.employeeIds.length === 0 ? 'var(--text-muted)' : '#ffffff',
+                                                border: formData.employeeIds.length === 0 ? '1px solid var(--border-color)' : 'none',
+                                                boxShadow: formData.employeeIds.length === 0 ? 'none' : '0 2px 8px rgba(20, 184, 166, 0.3)',
+                                                cursor: formData.employeeIds.length === 0 ? 'not-allowed' : 'pointer',
+                                                opacity: formData.employeeIds.length === 0 ? 0.6 : 1
+                                            }}
+                                        >
                                             İşleme Başla <ChevronRight size={18} />
                                         </button>
                                     </div>
                                 </div>
                             </form>
                         </div>
+                    )}
 
-                        {/* Step 2: Individual Entry Form */}
-                        <div style={{ minWidth: '100%', padding: '2px' }}>
-                            {leaveQueue.length > 0 && (
-                                <form onSubmit={handleSubmit}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                        {/* Navigation and Current Employee Header */}
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                                                <div style={{ 
-                                                    width: '40px', 
-                                                    height: '40px', 
-                                                    borderRadius: 'var(--radius-sm)', 
-                                                    background: 'var(--accent-subtle)', 
-                                                    color: 'var(--accent-primary)', 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    justifyContent: 'center', 
-                                                    fontWeight: 700,
-                                                    fontSize: '13px',
-                                                    flexShrink: 0,
-                                                    border: '1px solid rgba(20, 184, 166, 0.2)'
-                                                }}>
-                                                    {getInitials(leaveQueue[leaveQueueIndex].employee?.first_name, leaveQueue[leaveQueueIndex].employee?.last_name)}
+                    {/* Step 2: Individual Entry Form */}
+                    {leaveModalStep === 2 && leaveQueue.length > 0 && (
+                        <div className="fade-in" style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', paddingBottom: '16px' }}>
+                                    {/* Navigation and Current Employee Header Card */}
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'space-between', 
+                                        gap: '15px', 
+                                        width: '100%',
+                                        padding: '12px 16px',
+                                        background: 'var(--bg-tertiary)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--border-color)',
+                                        boxSizing: 'border-box'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                                            <div style={{ 
+                                                width: '42px', 
+                                                height: '42px', 
+                                                borderRadius: 'var(--radius-sm)', 
+                                                background: 'var(--accent-subtle)', 
+                                                color: 'var(--accent-primary)', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center', 
+                                                fontWeight: 700,
+                                                fontSize: '14px',
+                                                flexShrink: 0,
+                                                border: '1px solid rgba(20, 184, 166, 0.25)'
+                                            }}>
+                                                {getInitials(leaveQueue[leaveQueueIndex].employee?.first_name, leaveQueue[leaveQueueIndex].employee?.last_name)}
+                                            </div>
+                                            <div style={{ minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>İşlenen Personel</span>
+                                                    {leaveQueue[leaveQueueIndex].employee?.department && (
+                                                        <span style={{ 
+                                                            fontSize: '10px', 
+                                                            fontWeight: 600, 
+                                                            color: 'var(--text-secondary)', 
+                                                            background: 'var(--bg-secondary)', 
+                                                            padding: '2px 6px', 
+                                                            borderRadius: 'var(--radius-xs)', 
+                                                            border: '1px solid var(--border-color)' 
+                                                        }}>{leaveQueue[leaveQueueIndex].employee.department}</span>
+                                                    )}
                                                 </div>
-                                                <div style={{ minWidth: 0 }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>İşlenen Personel</span>
-                                                        {leaveQueue[leaveQueueIndex].employee?.department && (
-                                                            <span style={{ 
-                                                                fontSize: '10px', 
-                                                                fontWeight: 600, 
-                                                                color: 'var(--text-secondary)', 
-                                                                background: 'var(--bg-tertiary)', 
-                                                                padding: '2px 6px', 
-                                                                borderRadius: 'var(--radius-xs)', 
-                                                                border: '1px solid var(--border-color)' 
-                                                            }}>{leaveQueue[leaveQueueIndex].employee.department}</span>
-                                                        )}
-                                                    </div>
-                                                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                        {leaveQueue[leaveQueueIndex].employee?.first_name} {leaveQueue[leaveQueueIndex].employee?.last_name}
-                                                    </div>
+                                                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {leaveQueue[leaveQueueIndex].employee?.first_name} {leaveQueue[leaveQueueIndex].employee?.last_name}
                                                 </div>
                                             </div>
-
-                                            {!editingLeave && (
-                                                <div style={{ display: 'flex', gap: '4px' }}>
-                                                    <button 
-                                                        type="button"
-                                                        className="btn btn-secondary"
-                                                        disabled={leaveQueueIndex === 0} 
-                                                        onClick={() => setLeaveQueueIndex(prev => prev - 1)}
-                                                        style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                    >
-                                                        <ChevronLeft size={20} />
-                                                    </button>
-                                                    <button 
-                                                        type="button"
-                                                        className="btn btn-secondary"
-                                                        disabled={leaveQueueIndex === leaveQueue.length - 1} 
-                                                        onClick={() => setLeaveQueueIndex(prev => prev + 1)}
-                                                        style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                    >
-                                                        <ChevronRight size={20} />
-                                                    </button>
-                                                </div>
-                                            )}
                                         </div>
 
-                                        {(() => {
-                                            const name = leaveQueue[leaveQueueIndex].type?.toLowerCase() || '';
-                                            let hint = '';
-                                            if (name.includes('yıllık')) {
-                                                const emp = leaveQueue[leaveQueueIndex].employee;
-                                                const start = emp?.start_date ? new Date(emp.start_date) : null;
-                                                const years = start ? Math.floor((new Date() - start) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
-                                                let legalDays = years < 5 ? 14 : (years < 15 ? 20 : 26);
-                                                hint = `Kıdem: ${years} Yıl. Yasal Hak: ${legalDays} Gün`;
-                                            }
-                                            else if (name.includes('evlilik')) hint = 'Yasal Hak: 3 Gün';
-                                            else if (name.includes('ölüm')) hint = 'Yasal Hak: 3 Gün';
-                                            else if (name.includes('babalık')) hint = 'Yasal Hak: 5 Gün';
-                                            else if (name.includes('engelli')) hint = 'Yasal Hak: 10 Gün';
-                                            
-                                            if (hint) return (
-                                                <div style={{ 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    gap: '8px', 
-                                                    padding: '8px 12px', 
-                                                    background: 'var(--accent-subtle)', 
-                                                    border: '1px solid rgba(20, 184, 166, 0.2)', 
-                                                    borderRadius: 'var(--radius-sm)',
-                                                    fontSize: '12px',
-                                                    color: 'var(--text-primary)',
-                                                    fontWeight: 500
-                                                }}>
-                                                    <AlertCircle size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                                                    <span>{hint}</span>
-                                                </div>
-                                            );
-                                            return null;
-                                        })()}
+                                        {!editingLeave && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginRight: '4px' }}>
+                                                    {leaveQueueIndex + 1} / {leaveQueue.length}
+                                                </span>
+                                                <button 
+                                                    type="button"
+                                                    className="btn btn-secondary"
+                                                    disabled={leaveQueueIndex === 0} 
+                                                    onClick={() => setLeaveQueueIndex(prev => prev - 1)}
+                                                    style={{ width: '34px', height: '34px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    title="Önceki personel"
+                                                >
+                                                    <ChevronLeft size={18} />
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    className="btn btn-secondary"
+                                                    disabled={leaveQueueIndex === leaveQueue.length - 1} 
+                                                    onClick={() => setLeaveQueueIndex(prev => prev + 1)}
+                                                    style={{ width: '34px', height: '34px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    title="Sonraki personel"
+                                                >
+                                                    <ChevronRight size={18} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
 
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '16px' }}>
-                                            <CustomSelect 
-                                                label="Giriş Şekli" 
-                                                value={leaveQueue[leaveQueueIndex].leaveUnit || 'daily'} 
-                                                options={[{ value: 'daily', label: 'Günlük' }, { value: 'hourly', label: 'Saatlik' }]} 
-                                                onChange={(val) => updateLeaveQueueField('leaveUnit', val)} 
-                                            />
-                                            <CustomSelect 
-                                                label="İzin Türü *" 
-                                                value={leaveQueue[leaveQueueIndex].type} 
-                                                options={leaveTypes} 
-                                                onChange={(val) => updateLeaveQueueField('type', val)} 
+                                    {(() => {
+                                        const name = leaveQueue[leaveQueueIndex].type?.toLowerCase() || '';
+                                        let hint = '';
+                                        if (name.includes('yıllık')) {
+                                            const emp = leaveQueue[leaveQueueIndex].employee;
+                                            const start = emp?.start_date ? new Date(emp.start_date) : null;
+                                            const years = start ? Math.floor((new Date() - start) / (1000 * 60 * 60 * 24 * 365.25)) : 0;
+                                            let legalDays = years < 5 ? 14 : (years < 15 ? 20 : 26);
+                                            hint = `Kıdem: ${years} Yıl. Yasal Hak: ${legalDays} Gün`;
+                                        }
+                                        else if (name.includes('evlilik')) hint = 'Yasal Hak: 3 Gün';
+                                        else if (name.includes('ölüm')) hint = 'Yasal Hak: 3 Gün';
+                                        else if (name.includes('babalık')) hint = 'Yasal Hak: 5 Gün';
+                                        else if (name.includes('engelli')) hint = 'Yasal Hak: 10 Gün';
+                                        
+                                        if (hint) return (
+                                            <div style={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '8px', 
+                                                padding: '8px 12px', 
+                                                background: 'var(--accent-subtle)', 
+                                                border: '1px solid rgba(20, 184, 166, 0.2)', 
+                                                borderRadius: 'var(--radius-sm)',
+                                                fontSize: '12px',
+                                                color: 'var(--text-primary)',
+                                                fontWeight: 500,
+                                                width: '100%',
+                                                boxSizing: 'border-box'
+                                            }}>
+                                                <AlertCircle size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+                                                <span>{hint}</span>
+                                            </div>
+                                        );
+                                        return null;
+                                    })()}
+
+                                    <div className="form-grid form-grid-2" style={{ width: '100%' }}>
+                                        <CustomSelect 
+                                            label="Giriş Şekli" 
+                                            value={leaveQueue[leaveQueueIndex].leaveUnit || 'daily'} 
+                                            options={[{ value: 'daily', label: 'Günlük' }, { value: 'hourly', label: 'Saatlik' }]} 
+                                            onChange={(val) => updateLeaveQueueField('leaveUnit', val)} 
+                                        />
+                                        <CustomSelect 
+                                            label="İzin Türü" 
+                                            value={leaveQueue[leaveQueueIndex].type} 
+                                            options={leaveTypes} 
+                                            onChange={(val) => updateLeaveQueueField('type', val)} 
+                                            required
+                                        />
+                                    </div>
+
+                                    {leaveQueue[leaveQueueIndex].leaveUnit === 'hourly' ? (
+                                        <div className="form-grid form-grid-2" style={{ width: '100%' }}>
+                                            <div>
+                                                <CustomInput 
+                                                    label="Tarih" 
+                                                    type="date" 
+                                                    value={leaveQueue[leaveQueueIndex].startDate} 
+                                                    onChange={(val) => updateLeaveQueueField('startDate', val)} 
+                                                    required 
+                                                />
+                                                {leaveQueue[leaveQueueIndex].startDate && (() => {
+                                                    const emp = employees.find(e => e.id === parseInt(leaveQueue[leaveQueueIndex].employeeId));
+                                                    const offDaysStr = emp ? emp.off_days : '0';
+                                                    const holidayDates = publicHolidays;
+                                                    const status = checkDateHolidayStatus(leaveQueue[leaveQueueIndex].startDate, offDaysStr, holidayDates);
+                                                    if (!status) return null;
+                                                    return (
+                                                        <div style={{ fontSize: '11px', color: 'var(--warning-primary, #eab308)', marginTop: '-8px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <AlertCircle size={12} />
+                                                            <span>Seçilen Tarih: {status.label}</span>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                            <CustomInput 
+                                                label="Süre (Saat)" 
+                                                type="number" 
+                                                value={leaveQueue[leaveQueueIndex].hours ?? ''} 
+                                                onChange={(val) => updateLeaveQueueField('hours', val)} 
+                                                step="0.5"
+                                                min="0.5"
+                                                max="24"
+                                                required 
                                             />
                                         </div>
-
-                                        {leaveQueue[leaveQueueIndex].leaveUnit === 'hourly' ? (
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    ) : (
+                                        <>
+                                            <div className="form-grid form-grid-3" style={{ width: '100%' }}>
                                                 <div>
                                                     <CustomInput 
-                                                        label="Tarih *" 
+                                                        label="Başlangıç Tarihi" 
                                                         type="date" 
                                                         value={leaveQueue[leaveQueueIndex].startDate} 
                                                         onChange={(val) => updateLeaveQueueField('startDate', val)} 
@@ -1172,195 +1313,174 @@ export default function Leaves() {
                                                         return (
                                                             <div style={{ fontSize: '11px', color: 'var(--warning-primary, #eab308)', marginTop: '-8px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                                 <AlertCircle size={12} />
-                                                                <span>Seçilen Tarih: {status.label}</span>
+                                                                <span>{status.label}</span>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
+                                                <div>
+                                                    <CustomInput 
+                                                        label="Bitiş Tarihi" 
+                                                        type="date" 
+                                                        value={leaveQueue[leaveQueueIndex].endDate} 
+                                                        onChange={(val) => updateLeaveQueueField('endDate', val)} 
+                                                        required 
+                                                    />
+                                                    {leaveQueue[leaveQueueIndex].endDate && (() => {
+                                                        const emp = employees.find(e => e.id === parseInt(leaveQueue[leaveQueueIndex].employeeId));
+                                                        const offDaysStr = emp ? emp.off_days : '0';
+                                                        const holidayDates = publicHolidays;
+                                                        const status = checkDateHolidayStatus(leaveQueue[leaveQueueIndex].endDate, offDaysStr, holidayDates);
+                                                        if (!status) return null;
+                                                        return (
+                                                            <div style={{ fontSize: '11px', color: 'var(--warning-primary, #eab308)', marginTop: '-8px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <AlertCircle size={12} />
+                                                                <span>{status.label}</span>
                                                             </div>
                                                         );
                                                     })()}
                                                 </div>
                                                 <CustomInput 
-                                                    label="Süre (Saat) *" 
+                                                    label="Gün Sayısı" 
                                                     type="number" 
-                                                    value={leaveQueue[leaveQueueIndex].hours ?? ''} 
-                                                    onChange={(val) => updateLeaveQueueField('hours', val)} 
-                                                    step="0.5"
-                                                    min="0.5"
-                                                    max="24"
+                                                    value={leaveQueue[leaveQueueIndex].days} 
+                                                    onChange={(val) => updateLeaveQueueField('days', val)} 
+                                                    min={1}
+                                                    max={365}
                                                     required 
                                                 />
                                             </div>
-                                        ) : (
-                                            <>
-                                                <div className="form-grid form-grid-3">
-                                                    <div>
-                                                        <CustomInput 
-                                                            label="Başlangıç Tarihi *" 
-                                                            type="date" 
-                                                            value={leaveQueue[leaveQueueIndex].startDate} 
-                                                            onChange={(val) => updateLeaveQueueField('startDate', val)} 
-                                                            required 
-                                                        />
-                                                        {leaveQueue[leaveQueueIndex].startDate && (() => {
-                                                            const emp = employees.find(e => e.id === parseInt(leaveQueue[leaveQueueIndex].employeeId));
-                                                            const offDaysStr = emp ? emp.off_days : '0';
-                                                            const holidayDates = publicHolidays;
-                                                            const status = checkDateHolidayStatus(leaveQueue[leaveQueueIndex].startDate, offDaysStr, holidayDates);
-                                                            if (!status) return null;
-                                                            return (
-                                                                <div style={{ fontSize: '11px', color: 'var(--warning-primary, #eab308)', marginTop: '-8px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                    <AlertCircle size={12} />
-                                                                    <span>{status.label}</span>
-                                                                </div>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                    <div>
-                                                        <CustomInput 
-                                                            label="Bitiş Tarihi *" 
-                                                            type="date" 
-                                                            value={leaveQueue[leaveQueueIndex].endDate} 
-                                                            onChange={(val) => updateLeaveQueueField('endDate', val)} 
-                                                            required 
-                                                        />
-                                                        {leaveQueue[leaveQueueIndex].endDate && (() => {
-                                                            const emp = employees.find(e => e.id === parseInt(leaveQueue[leaveQueueIndex].employeeId));
-                                                            const offDaysStr = emp ? emp.off_days : '0';
-                                                            const holidayDates = publicHolidays;
-                                                            const status = checkDateHolidayStatus(leaveQueue[leaveQueueIndex].endDate, offDaysStr, holidayDates);
-                                                            if (!status) return null;
-                                                            return (
-                                                                <div style={{ fontSize: '11px', color: 'var(--warning-primary, #eab308)', marginTop: '-8px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                    <AlertCircle size={12} />
-                                                                    <span>{status.label}</span>
-                                                                </div>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                    <CustomInput 
-                                                        label="Gün Sayısı *" 
-                                                        type="number" 
-                                                        value={leaveQueue[leaveQueueIndex].days} 
-                                                        onChange={(val) => updateLeaveQueueField('days', val)} 
-                                                        min={1}
-                                                        max={365}
-                                                        required 
-                                                    />
-                                                </div>
 
-                                                {leaveQueue[leaveQueueIndex].startDate && leaveQueue[leaveQueueIndex].endDate && (() => {
-                                                    const emp = employees.find(e => e.id === parseInt(leaveQueue[leaveQueueIndex].employeeId));
-                                                    const offDaysStr = emp ? emp.off_days : '0';
-                                                    const holidayDates = publicHolidays;
-                                                    const breakdown = getLeaveBreakdown(leaveQueue[leaveQueueIndex].startDate, leaveQueue[leaveQueueIndex].endDate, offDaysStr, holidayDates);
-                                                    if (!breakdown || (breakdown.offDays === 0 && breakdown.holidays === 0)) return null;
-                                                    return (
-                                                        <div style={{
-                                                            marginTop: '6px',
-                                                            padding: '8px 12px',
-                                                            background: 'rgba(59, 130, 246, 0.08)',
-                                                            border: '1px dashed rgba(59, 130, 246, 0.3)',
-                                                            borderRadius: '8px',
-                                                            fontSize: '12px',
-                                                            color: 'var(--text-secondary)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '8px'
-                                                        }}>
-                                                            <Clock size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                                                            <div>
-                                                                Toplam <strong>{breakdown.totalDays}</strong> takvim gününden;
-                                                                {breakdown.offDays > 0 && <span> <strong>{breakdown.offDays}</strong> gün hafta tatili</span>}
-                                                                {breakdown.offDays > 0 && breakdown.holidays > 0 && <span> ve</span>}
-                                                                {breakdown.holidays > 0 && <span> <strong>{breakdown.holidays}</strong> gün resmi tatil</span>} düşülmüştür.
-                                                                Net kullanılan izin: <strong style={{ color: 'var(--accent-primary)' }}>{breakdown.workingDays} gün</strong>.
-                                                            </div>
+                                            {leaveQueue[leaveQueueIndex].startDate && leaveQueue[leaveQueueIndex].endDate && (() => {
+                                                const emp = employees.find(e => e.id === parseInt(leaveQueue[leaveQueueIndex].employeeId));
+                                                const offDaysStr = emp ? emp.off_days : '0';
+                                                const holidayDates = publicHolidays;
+                                                const breakdown = getLeaveBreakdown(leaveQueue[leaveQueueIndex].startDate, leaveQueue[leaveQueueIndex].endDate, offDaysStr, holidayDates);
+                                                if (!breakdown || (breakdown.offDays === 0 && breakdown.holidays === 0)) return null;
+                                                return (
+                                                    <div style={{
+                                                        marginTop: '6px',
+                                                        padding: '8px 12px',
+                                                        background: 'rgba(59, 130, 246, 0.08)',
+                                                        border: '1px dashed rgba(59, 130, 246, 0.3)',
+                                                        borderRadius: '8px',
+                                                        fontSize: '12px',
+                                                        color: 'var(--text-secondary)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        width: '100%',
+                                                        boxSizing: 'border-box'
+                                                    }}>
+                                                        <Clock size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+                                                        <div>
+                                                            Toplam <strong>{breakdown.totalDays}</strong> takvim gününden;
+                                                            {breakdown.offDays > 0 && <span> <strong>{breakdown.offDays}</strong> gün hafta tatili</span>}
+                                                            {breakdown.offDays > 0 && breakdown.holidays > 0 && <span> ve</span>}
+                                                            {breakdown.holidays > 0 && <span> <strong>{breakdown.holidays}</strong> gün resmi tatil</span>} düşülmüştür.
+                                                            Net kullanılan izin: <strong style={{ color: 'var(--accent-primary)' }}>{breakdown.workingDays} gün</strong>.
                                                         </div>
-                                                    );
-                                                })()}
-                                            </>
-                                        )}
-                                            <div style={{
-                                                display: 'flex', alignItems: 'center', gap: '12px', padding: '0 14px',
-                                                background: leaveQueue[leaveQueueIndex].status === 'approved' ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
-                                                border: `1px solid ${leaveQueue[leaveQueueIndex].status === 'approved' ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-                                                borderRadius: 'var(--radius-sm)', transition: 'background 0.15s ease, border-color 0.15s ease', cursor: 'pointer',
-                                                height: '40px', boxSizing: 'border-box'
-                                            }} onClick={() => updateLeaveQueueField('status', leaveQueue[leaveQueueIndex].status === 'approved' ? 'pending' : 'approved')}>
-                                                <label className="toggle-switch" style={{ flexShrink: 0, transform: 'scale(0.85)', transformOrigin: 'left center' }} onClick={e => e.stopPropagation()}>
-                                                    <input type="checkbox" checked={leaveQueue[leaveQueueIndex].status === 'approved'} onChange={(e) => updateLeaveQueueField('status', e.target.checked ? 'approved' : 'pending')} />
-                                                    <span className="toggle-slider"></span>
-                                                </label>
-                                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                                    <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: 1 }}>İzin Durumu</span>
-                                                    <span style={{ fontSize: '13px', fontWeight: 600, color: leaveQueue[leaveQueueIndex].status === 'approved' ? 'var(--text-primary)' : 'var(--text-secondary)', marginTop: '2px', lineHeight: 1 }}>
-                                                        {leaveQueue[leaveQueueIndex].status === 'approved' ? 'Onaylandı' : 'Bekliyor'}
-                                                    </span>
-                                                </div>
-                                            </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </>
+                                    )}
 
-                                        <div>
-                                            <CustomInput 
-                                                label="Notlar" 
-                                                value={leaveQueue[leaveQueueIndex].notes} 
-                                                onChange={(val) => updateLeaveQueueField('notes', val)} 
-                                                type="textarea" 
-                                                rows={1}
-                                                placeholder="Opsiyonel not..."
-                                                maxLength={300}
-                                            />
-                                        </div>
-
-                                        {error && (
-                                            <div className="alert alert-danger" style={{ padding: '8px 12px', fontSize: '13px' }}>
-                                                <AlertCircle size={16} />
-                                                <span>{error}</span>
-                                            </div>
-                                        )}
-
-                                        <div className="modal-actions" style={{ 
-                                            display: 'flex', 
-                                            justifyContent: 'space-between', 
-                                            alignItems: 'center',
-                                            flexWrap: 'wrap',
-                                            gap: '12px',
-                                            paddingTop: '15px',
-                                            marginTop: 'auto',
-                                            borderTop: '1px solid var(--border-color)',
-                                            position: 'sticky',
-                                            bottom: 0,
-                                            background: 'var(--bg-secondary)',
-                                            zIndex: 10
-                                        }}>
-                                            <div style={{ display: 'flex', gap: '10px' }}>
-                                                {!editingLeave && (
-                                                    <button type="button" className="btn btn-secondary" onClick={() => setLeaveModalStep(1)}>
-                                                        Değiştir
-                                                    </button>
-                                                )}
-                                                {leaveQueue.length > 1 && (
-                                                    <button 
-                                                        type="button" 
-                                                        className="btn btn-ghost" 
-                                                        style={{ color: 'var(--accent-primary)', fontWeight: 600, fontSize: '13px' }}
-                                                        onClick={applyToAll}
-                                                        title="Bu değerleri henüz kaydedilmemiş tüm personellere uygula"
-                                                    >
-                                                        Tümüne Uygula
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <div style={{ display: 'flex', gap: '10px' }}>
-                                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Vazgeç</button>
-                                                <button type="submit" className="btn btn-primary" disabled={saving}>
-                                                    {saving ? 'Kaydediliyor...' : 'Tümünü Kaydet'}
-                                                </button>
-                                            </div>
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 14px',
+                                        background: leaveQueue[leaveQueueIndex].status === 'approved' ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                        border: `1px solid ${leaveQueue[leaveQueueIndex].status === 'approved' ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                                        borderRadius: 'var(--radius-sm)', transition: 'background 0.15s ease, border-color 0.15s ease', cursor: 'pointer',
+                                        width: '100%', boxSizing: 'border-box'
+                                    }} onClick={() => updateLeaveQueueField('status', leaveQueue[leaveQueueIndex].status === 'approved' ? 'pending' : 'approved')}>
+                                        <label className="toggle-switch" style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                                            <input type="checkbox" checked={leaveQueue[leaveQueueIndex].status === 'approved'} onChange={(e) => updateLeaveQueueField('status', e.target.checked ? 'approved' : 'pending')} />
+                                            <span className="toggle-slider"></span>
+                                        </label>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>İzin Durumu</span>
+                                            <span style={{ fontSize: '14px', fontWeight: 600, color: leaveQueue[leaveQueueIndex].status === 'approved' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                                                {leaveQueue[leaveQueueIndex].status === 'approved' ? 'Onaylandı' : 'Bekliyor'}
+                                            </span>
                                         </div>
                                     </div>
-                                </form>
-                            )}
+
+                                    <div style={{ width: '100%' }}>
+                                        <CustomInput 
+                                            label="Notlar" 
+                                            value={leaveQueue[leaveQueueIndex].notes} 
+                                            onChange={(val) => updateLeaveQueueField('notes', val)} 
+                                            type="textarea" 
+                                            rows={2}
+                                            placeholder="Opsiyonel not..."
+                                            maxLength={300}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="alert alert-danger" style={{ padding: '8px 12px', fontSize: '13px', width: '100%', boxSizing: 'border-box' }}>
+                                            <AlertCircle size={16} />
+                                            <span>{error}</span>
+                                        </div>
+                                    )}
+
+                                    <div className="modal-actions step-modal-actions" style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        marginTop: 'auto'
+                                    }}>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            {!editingLeave && (
+                                                <button type="button" className="btn btn-secondary" style={{ height: '42px', padding: '0 16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setLeaveModalStep(1)}>
+                                                    Değiştir
+                                                </button>
+                                            )}
+                                            {leaveQueue.length > 1 && (
+                                                <button 
+                                                    type="button" 
+                                                    className="btn btn-ghost" 
+                                                    style={{ color: 'var(--accent-primary)', fontWeight: 600, fontSize: '13px' }}
+                                                    onClick={applyToAll}
+                                                    title="Bu değerleri henüz kaydedilmemiş tüm personellere uygula"
+                                                >
+                                                    Tümüne Uygula
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <button type="button" className="btn btn-secondary" style={{ height: '42px', padding: '0 20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsModalOpen(false)}>Vazgeç</button>
+                                            <button 
+                                                type="submit" 
+                                                className="btn btn-primary" 
+                                                disabled={saving} 
+                                                style={{ 
+                                                    height: '42px', 
+                                                    padding: '0 28px', 
+                                                    display: 'inline-flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center', 
+                                                    gap: '8px',
+                                                    fontSize: '14px',
+                                                    fontWeight: 600,
+                                                    background: 'var(--accent-primary)',
+                                                    color: '#ffffff',
+                                                    border: 'none',
+                                                    boxShadow: '0 2px 8px rgba(20, 184, 166, 0.3)',
+                                                    cursor: saving ? 'not-allowed' : 'pointer'
+                                                }}
+                                            >
+                                                {saving ? 'Kaydediliyor...' : 'Tümünü Kaydet'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </div>
+                    )}
                 </div>
             </Modal>
 

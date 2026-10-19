@@ -9,7 +9,7 @@ const style = `
     left: var(--sidebar-width);
     right: 0;
     height: 2.5px;
-    z-index: 9998;
+    z-index: 999;
     pointer-events: none;
     transition: opacity 0.2s ease;
 }
@@ -20,6 +20,15 @@ body.is-electron .top-progress-bar {
 
 .sidebar-collapsed .top-progress-bar {
     left: var(--sidebar-collapsed-width);
+}
+
+body:has(.modal-overlay) .top-progress-bar,
+body:has(.modal-center) .top-progress-bar,
+body:has(.modal-drawer) .top-progress-bar,
+body:has([role="dialog"]) .top-progress-bar {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 `
 
@@ -64,6 +73,7 @@ export default function TopProgressBar({ loading: explicitLoading, isGlobal = fa
     useEffect(() => {
         let raf
         let timeout
+        let safetyTimeout
 
         if (active) {
             setProgress(0)
@@ -82,6 +92,19 @@ export default function TopProgressBar({ loading: explicitLoading, isGlobal = fa
                 }
             }
             raf = requestAnimationFrame(tick)
+
+            // Auto-safety: if an operation takes longer than 6s, complete visually so bar never hangs
+            safetyTimeout = setTimeout(() => {
+                setProgress(100)
+                timeout = setTimeout(() => {
+                    setFading(true)
+                    timeout = setTimeout(() => {
+                        setVisible(false)
+                        setProgress(0)
+                        setFading(false)
+                    }, 300)
+                }, 200)
+            }, 6000)
         } else {
             cancelAnimationFrame(raf)
             setProgress(100)
@@ -98,6 +121,7 @@ export default function TopProgressBar({ loading: explicitLoading, isGlobal = fa
         return () => {
             cancelAnimationFrame(raf)
             clearTimeout(timeout)
+            clearTimeout(safetyTimeout)
         }
     }, [active])
 

@@ -19,6 +19,7 @@ import DocumentForm from '../components/forms/DocumentForm'
 import DocumentGeneratorModal from '../components/DocumentGeneratorModal'
 import DocumentPreviewModal from '../components/DocumentPreviewModal'
 import { usePersistentTab } from '../hooks/usePersistentTab'
+import { useToast } from '../context/ToastContext'
 import { formatCurrency, formatDate, getHistoricalBaseSalary, getHistoricalFullSalary, formatDateForInput, formatDateTime, calculateLeaveDays, calculateLeaveEndDate, checkDateHolidayStatus, getLeaveBreakdown, isCreditLeave, isAdditiveAnnual } from '../utils/helpers'
 import { calculateEmployeeMonthlyPayroll } from '../utils/payrollCalculator'
 import PermissionMatrix, { ROLE_PRESETS } from '../components/PermissionMatrix'
@@ -27,7 +28,7 @@ import {
     Banknote, CalendarOff, Clock, Package, FileText, Settings,
     UserCheck, DollarSign, Calendar, CreditCard, User, Briefcase, Wallet,
     Upload, X, ExternalLink, Archive, ArchiveRestore, Folder, ChevronRight, Info, Check, ArrowLeft, Phone,
-    Zap, KeyRound, Mail, Share2, Copy, MessageSquare, Sparkles
+    Zap, KeyRound, Mail, Share2, Copy, MessageSquare, Sparkles, Palmtree, ArrowRightLeft
 } from 'lucide-react'
 
 const paymentTypes = [
@@ -74,10 +75,24 @@ const overtimeTypes = [
 
 const today = () => new Date().toISOString().split('T')[0]
 
+const calculateHoursFromTimes = (startTime, endTime) => {
+    if (!startTime || !endTime) return null
+    const [startH, startM] = startTime.split(':').map(Number)
+    const [endH, endM] = endTime.split(':').map(Number)
+    if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM)) return null
+
+    let diffMinutes = (endH * 60 + endM) - (startH * 60 + startM)
+    if (diffMinutes < 0) {
+        diffMinutes += 24 * 60 // Gece yarısını aşan mesailer (örn: 22:00 -> 02:00)
+    }
+    const rawHours = diffMinutes / 60
+    return Math.round(rawHours * 100) / 100
+}
+
 const emptyForms = {
     salary: { paymentType: 'salary', amount: '', paymentDate: '', status: 'pending', paymentMethod: 'nakit', notes: '' },
     leave: { type: 'annual', status: 'approved', startDate: '', endDate: '', days: 1, notes: '' },
-    overtime: { overtimeType: 'weekday', date: '', hours: '', rate: 0, amount: '', notes: '', useAsLeave: false },
+    overtime: { overtimeType: 'weekday', date: '', startTime: '', endTime: '', hours: '', extraHours: '', rate: 0, amount: '', notes: '', useAsLeave: false },
     assignment: { itemName: '', quantity: 1, assignedDate: '', returnDate: '', status: 'active', notes: '' },
     documents: { category: '', startDate: '', expiryDate: '', fileName: '', filePath: '' },
     salary_history: { amount: '', startDate: '', type: 'raise', description: '' }
@@ -150,6 +165,7 @@ export default function EmployeeDetail() {
     const { currentCompany, companies, companySettings } = useCompany()
     const { updateTabInfo } = useTabs()
     const { user, isAdmin, hasPermission } = useAuth()
+    const { showToast } = useToast()
     const id = paramId || user?.employee_id
     const isPersonnel = user?.role === 'personnel' || user?.role === 'employee'
 
@@ -870,6 +886,27 @@ export default function EmployeeDetail() {
         return 0
     }
 
+    const calculateOvertimeAmount = (type, rate, hoursVal, extraHoursVal) => {
+        const hours = parseFloat(hoursVal) || 0
+        const extraHours = parseFloat(extraHoursVal) || 0
+        const r = parseFloat(rate) || 0
+        if (r <= 0) return ''
+        
+        if (type === 'weekday') {
+            const total = hours * r
+            return total > 0 ? Math.round(total * 100) / 100 : ''
+        } else {
+            // Gün bazlı mesailer (pazar, bayram, gurbet)
+            // Günlük hakediş = gün sayısı * günlük mesai ücreti
+            // Ekstra saat hakedişi = ekstra saat sayısı * (günlük mesai ücreti / 10)
+            const dayTotal = hours * r
+            const extraHourlyRate = r / 10
+            const extraTotal = extraHours * extraHourlyRate
+            const total = dayTotal + extraTotal
+            return total > 0 ? Math.round(total * 100) / 100 : ''
+        }
+    }
+
     const formatDayBalance = (days, customWhpl) => {
         if (!days && days !== 0) return '-'
         const whpl = customWhpl || getWhpl()
@@ -889,12 +926,11 @@ export default function EmployeeDetail() {
             setFormData({ paymentType: 'salary', amount: getDefaultAmount('salary'), paymentDate: today(), salaryMonth: selectedMonth, status: 'paid', paymentMethod: 'nakit', notes: '' })
         } else if (type === 'overtime') {
             const rate = calcOvertimeRate('weekday')
-            setFormData({ overtimeType: 'weekday', date: today(), hours: '', rate, amount: '', notes: '' })
+            setFormData({ overtimeType: 'weekday', date: today(), startTime: '', endTime: '', hours: '', extraHours: '', rate, amount: '', notes: '', useAsLeave: false })
         } else if (type === 'leave') {
             const defaultType = leaveTypes[0]?.value || 'annual';
             const autoDays = 1;
             const startDt = today();
-            const endDt = new Date(startDt);
             endDt.setDate(endDt.getDate() + autoDays - 1);
 
             setFormData({ 
@@ -942,15 +978,43 @@ export default function EmployeeDetail() {
                 notes: strippedNotes 
             })
         } else if (type === 'overtime') {
-            const isHoliday = item.notes && item.notes.includes('[BAYRAM]')
-            const isGurbet = item.notes && item.notes.includes('[GURBET]')
-            const otType = isHoliday ? 'holiday' : (isGurbet ? 'gurbet' : (Math.abs((item.rate || 0) - calcOvertimeRate('weekday')) < 1 ? 'weekday' : 'sunday'))
-            const isUsedAsLeave = item.notes && item.notes.includes('[İZİN OLARAK KULLANILDI]')
-            const strippedNotes = (item.notes || '').replace(/\[İZİN OLARAK KULLANILDI\]/g, '').replace(/\[BAYRAM\]/g, '').replace(/\[GURBET\]/g, '').replace(/\[LID:\d+\]/g, '').trim()
+            const rawNotes = item.notes || ''
+            const isHoliday = rawNotes.includes('[BAYRAM]')
+            const isGurbet = rawNotes.includes('[GURBET]')
+            const isSunday = rawNotes.includes('[PAZAR]') || (!rawNotes.includes('[HAFTA İÇİ]') && !isHoliday && !isGurbet && (Math.abs((item.rate || 0) - calcOvertimeRate('weekday')) >= 1))
+            const otType = isHoliday ? 'holiday' : (isGurbet ? 'gurbet' : (isSunday ? 'sunday' : 'weekday'))
+            const isUsedAsLeave = rawNotes.includes('[İZİN OLARAK KULLANILDI]')
+            
+            let startTime = ''
+            let endTime = ''
+            let extraHours = ''
+            let strippedNotes = rawNotes
+                .replace(/\[İZİN OLARAK KULLANILDI\]/g, '')
+                .replace(/\[BAYRAM\]/g, '')
+                .replace(/\[GURBET\]/g, '')
+                .replace(/\[PAZAR\]/g, '')
+                .replace(/\[HAFTA İÇİ\]/g, '')
+                .replace(/\[LID:\d+\]/g, '')
+                .trim()
+            const timeMatch = strippedNotes.match(/\[(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\]/)
+            if (timeMatch) {
+                startTime = timeMatch[1]
+                endTime = timeMatch[2]
+                strippedNotes = strippedNotes.replace(timeMatch[0], '').trim()
+            }
+            const extraMatch = strippedNotes.match(/\[\+([0-9.]+)\s*Saat\]/i)
+            if (extraMatch) {
+                extraHours = extraMatch[1]
+                strippedNotes = strippedNotes.replace(extraMatch[0], '').trim()
+            }
+
             setFormData({ 
                 overtimeType: otType, 
                 date: formatDateForInput(item.date), 
+                startTime,
+                endTime,
                 hours: item.hours || '', 
+                extraHours,
                 rate: item.rate || 0, 
                 amount: item.amount || '', 
                 notes: strippedNotes,
@@ -1006,14 +1070,41 @@ export default function EmployeeDetail() {
         } else if (key === 'overtimeType') {
             const rate = calcOvertimeRate(value)
             setFormData(prev => {
-                const hours = parseFloat(prev.hours) || 0
-                return { ...prev, overtimeType: value, rate, amount: hours > 0 ? Math.round(hours * rate * 100) / 100 : '' }
+                const hours = value !== 'weekday' && (!prev.hours || prev.hours === '') ? 1 : (parseFloat(prev.hours) || 0)
+                const extraHours = value === 'weekday' ? '' : (prev.extraHours || '')
+                return { 
+                    ...prev, 
+                    overtimeType: value, 
+                    rate, 
+                    hours, 
+                    extraHours,
+                    amount: calculateOvertimeAmount(value, rate, hours, extraHours)
+                }
             })
-        } else if (key === 'hours' && modalType === 'overtime') {
-            const hours = parseFloat(value) || 0
+        } else if ((key === 'startTime' || key === 'endTime') && modalType === 'overtime') {
             setFormData(prev => {
+                const start = key === 'startTime' ? value : (prev.startTime || '')
+                const end = key === 'endTime' ? value : (prev.endTime || '')
+                const calcHours = calculateHoursFromTimes(start, end)
+                const hours = (calcHours !== null && calcHours > 0) ? calcHours : prev.hours
                 const rate = prev.rate || 0
-                return { ...prev, hours: value, amount: hours > 0 ? Math.round(hours * rate * 100) / 100 : '' }
+                return {
+                    ...prev,
+                    [key]: value,
+                    hours: hours,
+                    amount: calculateOvertimeAmount(prev.overtimeType, rate, hours, prev.extraHours)
+                }
+            })
+        } else if ((key === 'hours' || key === 'extraHours') && modalType === 'overtime') {
+            setFormData(prev => {
+                const nextHours = key === 'hours' ? value : prev.hours
+                const nextExtra = key === 'extraHours' ? value : prev.extraHours
+                const rate = prev.rate || 0
+                return { 
+                    ...prev, 
+                    [key]: value, 
+                    amount: calculateOvertimeAmount(prev.overtimeType, rate, nextHours, nextExtra)
+                }
             })
         } else if (modalType === 'leave' && ['startDate', 'endDate', 'days', 'type', 'leaveUnit', 'hours'].includes(key)) {
             setFormData(prev => {
@@ -1622,13 +1713,29 @@ export default function EmployeeDetail() {
         const marker = '[İZİN OLARAK KULLANILDI]'
         const holidayMarker = '[BAYRAM]'
         const gurbetMarker = '[GURBET]'
+        const sundayMarker = '[PAZAR]'
+        const weekdayMarker = '[HAFTA İÇİ]'
         
-        // Ensure markers are in sync
-        finalNotes = finalNotes.replace(holidayMarker, '').replace(gurbetMarker, '').trim()
+        // Clean existing markers
+        finalNotes = finalNotes
+            .replace(holidayMarker, '')
+            .replace(gurbetMarker, '')
+            .replace(sundayMarker, '')
+            .replace(weekdayMarker, '')
+            .replace(/\[\+([0-9.]+)\s*Saat\]/gi, '')
+            .trim()
+
+        const extraH = parseFloat(formData.extraHours)
+        const extraMarker = (extraH && extraH > 0) ? `[+${extraH} Saat]` : ''
+
         if (formData.overtimeType === 'holiday') {
-            finalNotes = (holidayMarker + ' ' + finalNotes).trim()
+            finalNotes = [holidayMarker, extraMarker, finalNotes].filter(Boolean).join(' ').trim()
         } else if (formData.overtimeType === 'gurbet') {
-            finalNotes = (gurbetMarker + ' ' + finalNotes).trim()
+            finalNotes = [gurbetMarker, extraMarker, finalNotes].filter(Boolean).join(' ').trim()
+        } else if (formData.overtimeType === 'sunday') {
+            finalNotes = [sundayMarker, extraMarker, finalNotes].filter(Boolean).join(' ').trim()
+        } else if (formData.overtimeType === 'weekday') {
+            finalNotes = [weekdayMarker, finalNotes].filter(Boolean).join(' ').trim()
         }
         
         const lidMatch = editingItem?.notes?.match(/\[LID:(\d+)\]/)
@@ -1639,6 +1746,11 @@ export default function EmployeeDetail() {
         } else if (!shouldBeUsedAsLeave && isCurrentlyUsedAsLeave) {
             // Remove both markers and LID tags
             finalNotes = finalNotes.replace(marker, '').replace(/\[LID:\d+\]/, '').trim()
+        }
+
+        if (formData.startTime && formData.endTime) {
+            finalNotes = finalNotes.replace(/\[\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}\]/g, '').trim()
+            finalNotes = `[${formData.startTime} - ${formData.endTime}] ${finalNotes}`.trim()
         }
         
         const data = { 
@@ -2130,15 +2242,18 @@ export default function EmployeeDetail() {
     const overtimeColumns = [
         {
             key: 'rate', label: 'Tür', render: (v, row) => {
-                const isHoliday = row.notes && row.notes.includes('[BAYRAM]')
-                const isGurbet = row.notes && row.notes.includes('[GURBET]')
-                const isUsedAsLeave = row.notes && row.notes.includes('[İZİN OLARAK KULLANILDI]')
+                const notes = (row.notes || '').toUpperCase()
+                const isHoliday = notes.includes('[BAYRAM]')
+                const isGurbet = notes.includes('[GURBET]')
+                const isUsedAsLeave = notes.includes('[İZİN OLARAK KULLANILDI]')
                 let typeLabel = 'Hafta İçi'
                 if (isHoliday) {
                     typeLabel = 'Bayram'
                 } else if (isGurbet) {
                     typeLabel = 'Gurbet'
-                } else {
+                } else if (notes.includes('[PAZAR]')) {
+                    typeLabel = 'Pazar'
+                } else if (!notes.includes('[HAFTA İÇİ]')) {
                     let isWeekday = false
                     const oRate = row.rate || 0
                     if (oRate > 0 && oRate < 5) {
@@ -2158,7 +2273,7 @@ export default function EmployeeDetail() {
                 }
                 return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>{typeLabel}</span>
+                        <span style={{ fontWeight: 600 }}>{typeLabel}</span>
                         {isUsedAsLeave && <span className="badge badge-info" style={{ fontSize: '9px' }}>İZİN</span>}
                     </div>
                 )
@@ -2169,23 +2284,43 @@ export default function EmployeeDetail() {
             key: 'hours', 
             label: 'Süre', 
             render: (v, row) => {
-                const isHoliday = row.notes && row.notes.includes('[BAYRAM]')
-                const isGurbet = row.notes && row.notes.includes('[GURBET]')
-                let isWeekday = false
-                const oRate = row.rate || 0
-                if (oRate > 0 && oRate < 5) {
-                    isWeekday = Math.abs(oRate - 1.5) < 0.1
-                } else {
+                const notes = row.notes || ''
+                const isHoliday = notes.includes('[BAYRAM]')
+                const isGurbet = notes.includes('[GURBET]')
+                const isSunday = notes.includes('[PAZAR]') || (!notes.includes('[HAFTA İÇİ]') && !isHoliday && !isGurbet && (() => {
+                    const oRate = row.rate || 0
+                    if (oRate > 0 && oRate < 5) {
+                        return Math.abs(oRate - 1.5) >= 0.1
+                    }
                     const oDateStr = typeof row.date === 'string' ? row.date : new Date(row.date).toISOString()
                     const oMonth = oDateStr.slice(0, 7)
                     const oSalary = getHistoricalFullSalary(employee, oMonth) || employee.salary || 0
                     const oDailyRate = oSalary / 30
                     const oHourlyRate = oDailyRate / 10
                     const oExpectedWeekdayRate = Math.round(oHourlyRate * 1.5 * 100) / 100
-                    isWeekday = Math.abs(oRate - oExpectedWeekdayRate) < (oExpectedWeekdayRate * 0.3)
-                }
-                const isSunday = !isHoliday && !isGurbet && !isWeekday
-                return `${v} ${isSunday || isHoliday || isGurbet ? 'Gün' : 'Saat'}`
+                    return Math.abs(oRate - oExpectedWeekdayRate) >= (oExpectedWeekdayRate * 0.3)
+                })())
+                const isDayBased = isSunday || isHoliday || isGurbet
+                
+                const extraMatch = notes.match(/\[\+([0-9.]+)\s*Saat\]/i)
+                const extraHours = extraMatch ? parseFloat(extraMatch[1]) : 0
+
+                return (
+                    <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+                        {isDayBased ? (
+                            <>
+                                {v || 0} Gün
+                                {extraHours > 0 && (
+                                    <span style={{ color: 'var(--accent-primary)', marginLeft: '4px', fontWeight: '700' }}>
+                                        + {extraHours} Sa
+                                    </span>
+                                )}
+                            </>
+                        ) : (
+                            `${v || 0} Saat`
+                        )}
+                    </span>
+                )
             }
         },
         { key: 'amount', label: 'Tutar', render: (v) => formatCurrency(v) },
@@ -2194,7 +2329,19 @@ export default function EmployeeDetail() {
             if (v === 'talep_reddedildi') return <span className="badge badge-danger">Talep (Reddedildi)</span>;
             return <span className="badge badge-success">Onaylandı</span>;
         }},
-        { key: 'notes', label: 'Not', render: (v) => v ? v.replace(/\[İZİN OLARAK KULLANILDI\]/g, '').replace(/\[BAYRAM\]/g, '').replace(/\[GURBET\]/g, '').replace(/\[LID:\d+\]/g, '').trim() || '-' : '-' }
+        { 
+            key: 'notes', 
+            label: 'Not', 
+            render: (v) => {
+                if (!v) return '-'
+                const cleanDisplay = v
+                    .replace(/\[(PAZAR|BAYRAM|GURBET|HAFTA İÇİ|HAFTA SONU|İZİN OLARAK KULLANILDI)\]/gi, '')
+                    .replace(/\[\+([0-9.]+)\s*Saat\]/gi, '')
+                    .replace(/\[LID:\d+\]/g, '')
+                    .trim()
+                return cleanDisplay || '-'
+            }
+        }
     ]
 
     const assignmentColumns = [
@@ -2921,12 +3068,25 @@ export default function EmployeeDetail() {
                                       {(() => {
                                           const whpl = getWhpl()
                                           const now = new Date()
-                                          const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-                                          const usedThisMonth = leaves.filter(l =>
-                                              l.status === 'approved' &&
-                                              ((l.start_date && (typeof l.start_date === 'string' ? l.start_date : new Date(l.start_date).toISOString()).startsWith(currentMonth)) || 
-                                               (l.end_date && (typeof l.end_date === 'string' ? l.end_date : new Date(l.end_date).toISOString()).startsWith(currentMonth)))
-                                          ).reduce((acc, l) => acc + (l.days || 1), 0)
+                                          const year = now.getFullYear()
+                                          const month = now.getMonth()
+                                          const firstDayOfMonth = new Date(year, month, 1).toISOString().split('T')[0]
+                                          const lastDayOfMonth = new Date(year, month + 1, 0).toISOString().split('T')[0]
+                                          const usedThisMonth = leaves.filter(l => {
+                                              if (l.status !== 'approved') return false
+                                              const s = l.start_date ? (typeof l.start_date === 'string' ? l.start_date.split('T')[0] : new Date(l.start_date).toISOString().split('T')[0]) : ''
+                                              const e = l.end_date ? (typeof l.end_date === 'string' ? l.end_date.split('T')[0] : new Date(l.end_date).toISOString().split('T')[0]) : s
+                                              return s <= lastDayOfMonth && e >= firstDayOfMonth
+                                          }).reduce((acc, l) => {
+                                              const s = l.start_date ? (typeof l.start_date === 'string' ? l.start_date.split('T')[0] : new Date(l.start_date).toISOString().split('T')[0]) : ''
+                                              const e = l.end_date ? (typeof l.end_date === 'string' ? l.end_date.split('T')[0] : new Date(l.end_date).toISOString().split('T')[0]) : s
+                                              if (s >= firstDayOfMonth && e <= lastDayOfMonth) return acc + (l.days || 1)
+                                              const effStart = new Date(s < firstDayOfMonth ? firstDayOfMonth : s)
+                                              const effEnd = new Date(e > lastDayOfMonth ? lastDayOfMonth : e)
+                                              const diffTime = Math.max(0, effEnd.getTime() - effStart.getTime())
+                                              const daysInMonth = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1
+                                              return acc + Math.min(daysInMonth, l.days || daysInMonth)
+                                          }, 0)
                                           return formatDayBalance(usedThisMonth, whpl)
                                       })()}
                                   </div>
@@ -2987,6 +3147,9 @@ export default function EmployeeDetail() {
                             data={combinedLeaves}
                             rowClassName={(row) => isCreditLeave(row) ? 'green-row credit-leave-row' : ''}
                             emptyMessage="Henüz izin kaydı bulunmuyor."
+                            showDateFilter={true}
+                            dateFilterKey="start_date"
+                            dateFilterEndKey="end_date"
                             filters={[
                                 { key: 'type', label: 'İzin Türü', options: leaveTypes },
                                 { key: 'status', label: 'Durum', options: leaveStatuses }
@@ -3072,6 +3235,92 @@ export default function EmployeeDetail() {
                                         onBulkDelete={isPersonnel ? null : (ids) => {
                                             const nonRequestIds = ids.filter(id => typeof id !== 'string' || !id.startsWith('req_'));
                                             if (nonRequestIds.length > 0) handleDeleteClick('overtime', null, nonRequestIds);
+                                        }}
+                                        customBulkActions={isPersonnel ? null : (selectedIds, clearSelection) => {
+                                            const validIds = selectedIds.filter(id => typeof id !== 'string' || !id.startsWith('req_'));
+                                            if (validIds.length === 0) return null;
+
+                                            const selectedItems = monthlyOvertimesList.filter(d => validIds.includes(d.id));
+                                            const hasRegular = selectedItems.some(item => !item.notes || !item.notes.includes('[İZİN OLARAK KULLANILDI]'));
+                                            const hasLeave = selectedItems.some(item => item.notes && item.notes.includes('[İZİN OLARAK KULLANILDI]'));
+
+                                            return (
+                                                <>
+                                                    {hasRegular && (
+                                                        <button 
+                                                            type="button"
+                                                            className="btn-bulk-action primary" 
+                                                            style={{ background: 'var(--accent-primary)', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                            onClick={() => {
+                                                                setConfirmModal({
+                                                                    type: 'bulk_convert_overtime',
+                                                                    title: 'Toplu İzne Dönüştür',
+                                                                    message: `Seçtiğiniz ${validIds.length} adet mesai kaydı personel izin bakiyesine (mesai izni) dönüştürülecektir. Bu kayıtlar nakit mesai tutarından düşülecektir. Onaylıyor musunuz?`,
+                                                                    confirmText: 'İzne Dönüştür',
+                                                                    styleType: 'primary',
+                                                                    onConfirm: async () => {
+                                                                        try {
+                                                                            const targetCompanyId = currentCompany?.id || companySettings?.id || employee?.company_id || null;
+                                                                            const res = await window.electronAPI.convertOvertimesToLeave(validIds, targetCompanyId);
+                                                                            if (res?.success) {
+                                                                                showToast(res.message || `${validIds.length} mesai izne dönüştürüldü.`, 'success');
+                                                                                clearSelection();
+                                                                                await loadEmployeeData();
+                                                                            } else {
+                                                                                showToast(res?.error || 'Mesailer izne dönüştürülemedi.', 'danger');
+                                                                            }
+                                                                        } catch (err) {
+                                                                            showToast(err.message || 'İşlem başarısız.', 'danger');
+                                                                        }
+                                                                        setConfirmModal(null);
+                                                                    }
+                                                                });
+                                                            }}
+                                                            title="Seçili mesaileri izin bakiyesine aktar"
+                                                        >
+                                                            <Palmtree size={15} />
+                                                            İzne Dönüştür
+                                                        </button>
+                                                    )}
+
+                                                    {hasLeave && (
+                                                        <button 
+                                                            type="button"
+                                                            className="btn-bulk-action secondary" 
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                            onClick={() => {
+                                                                setConfirmModal({
+                                                                    type: 'bulk_revert_overtime',
+                                                                    title: 'Ücretli Mesaiye Çevir',
+                                                                    message: `Seçtiğiniz ${validIds.length} adet izinli mesai tekrar normal ücretli mesaiye çevrilecektir. Onaylıyor musunuz?`,
+                                                                    confirmText: 'Ücretliye Çevir',
+                                                                    styleType: 'primary',
+                                                                    onConfirm: async () => {
+                                                                        try {
+                                                                            const targetCompanyId = currentCompany?.id || companySettings?.id || employee?.company_id || null;
+                                                                            const res = await window.electronAPI.revertOvertimesFromLeave(validIds, targetCompanyId);
+                                                                            if (res?.success) {
+                                                                                showToast(res.message || `${validIds.length} mesai ücretli mesaiye geri çevrildi.`, 'success');
+                                                                                clearSelection();
+                                                                                await loadEmployeeData();
+                                                                            } else {
+                                                                                showToast(res?.error || 'İşlem başarısız.', 'danger');
+                                                                            }
+                                                                        } catch (err) {
+                                                                            showToast(err.message || 'İşlem başarısız.', 'danger');
+                                                                        }
+                                                                        setConfirmModal(null);
+                                                                    }
+                                                                });
+                                                            }}
+                                                            title="Seçili izinli mesaileri tekrar normal ücretli mesaiye çevir"
+                                                        >
+                                                            <ArrowRightLeft size={15} />
+                                                            Ücretliye Çevir
+                                                        </button>
+                                                    )}
+                                                </>
+                                            );
                                         }}
                                          actions={isPersonnel ? null : (item) => {
                                              if (item.isRequest) {
@@ -3663,10 +3912,164 @@ export default function EmployeeDetail() {
 
                         {modalType === 'overtime' && (
                             <form onSubmit={handleOvertimeSubmit}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                    <CustomSelect label="Mesai Türü *" value={formData.overtimeType || 'weekday'} options={overtimeTypes} onChange={(val) => updateField('overtimeType', val)} />
-                                    <CustomInput label="Tarih *" type="date" value={formData.date || ''} onChange={(val) => updateField('date', val)} required />
-                                    <CustomInput label={formData.overtimeType === 'weekday' ? 'Süre (Saat) *' : 'Süre (Gün) *'} type="number" value={formData.hours || ''} onChange={(val) => updateField('hours', val)} step="0.5" min={0} max={24} required />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                        <CustomSelect label="Mesai Türü *" value={formData.overtimeType || 'weekday'} options={overtimeTypes} onChange={(val) => updateField('overtimeType', val)} />
+                                        <CustomInput label="Tarih *" type="date" value={formData.date || ''} onChange={(val) => updateField('date', val)} required />
+                                    </div>
+
+                                    {formData.overtimeType === 'weekday' ? (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                            <CustomInput 
+                                                label="Başlangıç Saati" 
+                                                type="time" 
+                                                value={formData.startTime || ''} 
+                                                onChange={(val) => updateField('startTime', val)} 
+                                            />
+                                            <CustomInput 
+                                                label="Bitiş Saati" 
+                                                type="time" 
+                                                value={formData.endTime || ''} 
+                                                onChange={(val) => updateField('endTime', val)} 
+                                            />
+                                            <CustomInput 
+                                                label="Süre (Saat) *" 
+                                                type="number" 
+                                                value={formData.hours || ''} 
+                                                onChange={(val) => updateField('hours', val)} 
+                                                step="0.5" 
+                                                min={0} 
+                                                max={24} 
+                                                placeholder="Otomatik / Elle"
+                                                required 
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+                                            {/* Günlük Süre */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px', alignItems: 'flex-start' }}>
+                                                <CustomInput 
+                                                    label="Süre (Gün) *" 
+                                                    type="number" 
+                                                    value={formData.hours || ''} 
+                                                    onChange={(val) => updateField('hours', val)} 
+                                                    step="0.5" 
+                                                    min={0} 
+                                                    max={31} 
+                                                    className="mb-0"
+                                                    required 
+                                                />
+                                                <div style={{ display: 'flex', gap: '8px', height: '40px', alignItems: 'center' }}>
+                                                    <button 
+                                                        type="button" 
+                                                        className="btn btn-secondary" 
+                                                        style={{ 
+                                                            flex: 1,
+                                                            height: '40px', 
+                                                            padding: '0 8px', 
+                                                            fontSize: '13px', 
+                                                            fontWeight: 600,
+                                                            borderColor: String(formData.hours) === '1' ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                            color: String(formData.hours) === '1' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                            background: String(formData.hours) === '1' ? 'var(--accent-subtle)' : 'transparent',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            whiteSpace: 'nowrap'
+                                                        }}
+                                                        onClick={() => updateField('hours', 1)}
+                                                    >
+                                                        Tam Gün (1)
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        className="btn btn-secondary" 
+                                                        style={{ 
+                                                            flex: 1,
+                                                            height: '40px', 
+                                                            padding: '0 8px', 
+                                                            fontSize: '13px', 
+                                                            fontWeight: 600,
+                                                            borderColor: String(formData.hours) === '0.5' ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                            color: String(formData.hours) === '0.5' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                            background: String(formData.hours) === '0.5' ? 'var(--accent-subtle)' : 'transparent',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            whiteSpace: 'nowrap'
+                                                        }}
+                                                        onClick={() => updateField('hours', 0.5)}
+                                                    >
+                                                        Yarım Gün (0.5)
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Ekstra Mesai (Saat) Uzatması */}
+                                            <div style={{ 
+                                                display: 'grid', 
+                                                gridTemplateColumns: '1.2fr 1fr', 
+                                                gap: '16px', 
+                                                alignItems: 'center', 
+                                                width: '100%',
+                                                padding: '10px 12px',
+                                                background: 'var(--bg-tertiary)',
+                                                borderRadius: 'var(--radius-sm)',
+                                                border: '1px dashed var(--border-color)'
+                                            }}>
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                            + Ekstra Mesai (Saat)
+                                                        </span>
+                                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>(Opsiyonel)</span>
+                                                    </div>
+                                                    <CustomInput 
+                                                        type="number" 
+                                                        value={formData.extraHours || ''} 
+                                                        onChange={(val) => updateField('extraHours', val)} 
+                                                        step="0.5" 
+                                                        min={0} 
+                                                        max={24}
+                                                        placeholder="Örn: 2"
+                                                        className="mb-0"
+                                                    />
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', paddingTop: '16px' }}>
+                                                    {[1, 2, 3, 4].map(h => (
+                                                        <button
+                                                            key={h}
+                                                            type="button"
+                                                            className="btn btn-secondary"
+                                                            style={{
+                                                                padding: '4px 10px',
+                                                                fontSize: '12px',
+                                                                fontWeight: 600,
+                                                                height: '32px',
+                                                                borderColor: String(formData.extraHours) === String(h) ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                color: String(formData.extraHours) === String(h) ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                background: String(formData.extraHours) === String(h) ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                                                            }}
+                                                            onClick={() => updateField('extraHours', String(formData.extraHours) === String(h) ? '' : h)}
+                                                        >
+                                                            +{h} Sa
+                                                        </button>
+                                                    ))}
+                                                    {formData.extraHours ? (
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-ghost"
+                                                            style={{ padding: '4px 8px', fontSize: '12px', height: '32px', color: 'var(--text-muted)' }}
+                                                            onClick={() => updateField('extraHours', '')}
+                                                            title="Ekstra saati kaldır"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    ) : null}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px', marginTop: '16px' }}>

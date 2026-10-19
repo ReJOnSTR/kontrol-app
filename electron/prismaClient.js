@@ -151,7 +151,8 @@ function getGeneratedProvider() {
     return 'postgresql';
 }
 
-const DEFAULT_POSTGRES_URL = 'postgresql://postgres:eyaeaj0djlbjhybz04ma4vrw7otatabf@45.147.47.56:5432/postgres';
+// Remote database credentials must be supplied by the deployment environment.
+const DEFAULT_POSTGRES_URL = process.env.DATABASE_URL || '';
 
 /**
  * Initializes and exports the Prisma Singleton
@@ -171,8 +172,9 @@ function getPrismaClient() {
             } catch (e) {}
 
             const forceSqlite = process.env.FORCE_SQLITE === 'true';
-            let dbUrl = process.env.DATABASE_URL || customDbUrl || DEFAULT_POSTGRES_URL;
+            let dbUrl = process.env.DATABASE_URL || customDbUrl || '';
 
+            if (!dbUrl && !forceSqlite) throw new Error('DATABASE_URL is required. For an isolated local database set FORCE_SQLITE=true.');
             const isPostgres = !forceSqlite && (
                 dbUrl.startsWith('postgres://') ||
                 dbUrl.startsWith('postgresql://') ||
@@ -210,6 +212,8 @@ function getPrismaClient() {
                 }
             }
 
+            prisma = require('./security/scopedPrisma').withTenantScope(prisma);
+
             // Override BigInt serialization
             BigInt.prototype.toJSON = function () {
                 return Number(this);
@@ -223,24 +227,45 @@ function getPrismaClient() {
     return prisma;
 }
 
+async function executeRawSafe(prisma, sql, maxRetries = 2) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await prisma.$executeRawUnsafe(sql);
+        } catch (err) {
+            const isTransient = /EINTR|interrupted|ECONNRESET|ETIMEDOUT|closed unexpectedly/i.test(err?.message || '');
+            if (isTransient && attempt < maxRetries) {
+                await new Promise(r => setTimeout(r, 300 * attempt));
+                continue;
+            }
+            throw err;
+        }
+    }
+}
+
 /**
  * Run DB schema migrations using Prisma's $executeRawUnsafe.
  * Must be called AFTER getPrismaClient() and BEFORE any queries.
  */
 async function runAutoMigrations() {
     const isPostgres = getGeneratedProvider() === 'postgresql' || process.env.USE_POSTGRES === 'true' || (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres'));
+    try {
+        await require('./security/migrations').migrateSecurity(getPrismaClient(), isPostgres);
+    } catch (secMigErr) {
+        log.warn('Security migration notice:', secMigErr.message);
+    }
+
     if (isPostgres) {
         log.info('PostgreSQL connection active, running self-healing column upgrades...');
         try {
             const p = getPrismaClient();
-            await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT;');
-            await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id INT;');
-            await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS employee_id INT;');
-            await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active INT DEFAULT 1;');
-            await p.$executeRawUnsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password INT DEFAULT 0;');
-            await p.$executeRawUnsafe('ALTER TABLE works ADD COLUMN IF NOT EXISTS pdf_settings TEXT;');
-            await p.$executeRawUnsafe('ALTER TABLE works ADD COLUMN IF NOT EXISTS disable_overtime INTEGER DEFAULT 0;');
-            await p.$executeRawUnsafe(`
+            await executeRawSafe(p, 'ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT;');
+            await executeRawSafe(p, 'ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id INT;');
+            await executeRawSafe(p, 'ALTER TABLE users ADD COLUMN IF NOT EXISTS employee_id INT;');
+            await executeRawSafe(p, 'ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active INT DEFAULT 1;');
+            await executeRawSafe(p, 'ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password INT DEFAULT 0;');
+            await executeRawSafe(p, 'ALTER TABLE works ADD COLUMN IF NOT EXISTS pdf_settings TEXT;');
+            await executeRawSafe(p, 'ALTER TABLE works ADD COLUMN IF NOT EXISTS disable_overtime INTEGER DEFAULT 0;');
+            await executeRawSafe(p, `
                 CREATE TABLE IF NOT EXISTS revoked_sessions (
                     session_id VARCHAR(255) PRIMARY KEY,
                     user_id INT,

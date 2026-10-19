@@ -21,7 +21,7 @@ async function migrate() {
     const postgresUrl = process.env.POSTGRES_URL;
     if (!postgresUrl) {
         console.error('Hata: Lütfen POSTGRES_URL ortam değişkenini ayarlayın.');
-        console.error('Örnek: export POSTGRES_URL="postgresql://kullanici:sifre@sunucu:5432/veritabani"');
+        console.error('Örnek: export POSTGRES_URL=''');
         process.exit(1);
     }
 

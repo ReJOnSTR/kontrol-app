@@ -142,7 +142,7 @@ export default function Register() {
             if (verified) {
                 // Record email confirmation in local database
                 if (window.electronAPI?.activateUserByEmail) {
-                    await window.electronAPI.activateUserByEmail({ email: registeredEmail })
+                    await window.electronAPI.activateUserByEmail({ email: registeredEmail, otp: cleanCode })
                 }
                 setIsPendingApproval(true)
             } else {

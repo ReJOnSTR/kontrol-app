@@ -1,6 +1,6 @@
 export const settingsService = {
-    get: () => window.electronAPI.getSettings(),
-    save: (settings) => window.electronAPI.saveSettings(settings),
+    get: () => window.electronAPI.getSettings(Number(localStorage.getItem('aractakip_company'))),
+    save: (settings) => window.electronAPI.saveSettings({ ...settings, companyId: Number(localStorage.getItem('aractakip_company')) }),
     selectFolder: () => window.electronAPI.selectFolder(),
     getCompanyDbSettings: (companyId) => {
         if (window.electronAPI?.getCompanyDbSettings) {
