@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useTabs } from '../context/TabContext'
 import { useAuth } from '../context/AuthContext'
 import { useCompany } from '../context/CompanyContext'
+import NotificationCenter from './NotificationCenter'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
 import { arrayMove, SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -290,6 +291,9 @@ export default function TabBar() {
                             )}
                         </div>
                     )}
+
+                    {/* Notification Center */}
+                    <NotificationCenter />
 
                     {/* User Menu */}
                     <div className="user-menu">

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCompany } from '../context/CompanyContext'
 import { getRouteInfo } from '../config/navigation'
+import NotificationCenter from './NotificationCenter'
 
 export default function PersonnelHeader() {
     const { user, logout } = useAuth()
@@ -52,6 +53,9 @@ export default function PersonnelHeader() {
                         <span style={{ fontWeight: 500 }}>{currentCompany.name}</span>
                     </div>
                 )}
+
+                {/* Notification Center */}
+                <NotificationCenter />
 
                 {/* User Profile Dropdown */}
                 <div className="user-menu" style={{ position: 'relative' }}>

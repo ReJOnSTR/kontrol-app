@@ -744,18 +744,7 @@ export default function DataTable({
             >
                 <div className="toolbar-left">
                     {onToggleArchiveView && (
-                        <div className="view-toggle" style={{
-                            display: 'flex',
-                            background: 'var(--bg-secondary)',
-                            padding: '4px',
-                            borderRadius: '10px',
-                            marginRight: '12px',
-                            border: '1px solid var(--border-color)',
-                            position: 'relative',
-                            width: '180px', // Fixed width for smooth sliding
-                            height: '36px',
-                            alignItems: 'center'
-                        }}>
+                        <div className="view-toggle">
                             {/* Sliding Pill Background */}
                             <div style={{
                                 position: 'absolute',
@@ -871,7 +860,7 @@ export default function DataTable({
                         </button>
                     )}
 
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+                    <div className="toolbar-actions" style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
                         {/* Column Toggle */}
                         <div style={{ position: 'relative' }} ref={columnMenuRef}>
                             <button

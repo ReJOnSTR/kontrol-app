@@ -315,6 +315,10 @@
 
 /* ── RESPONSIVE ── */
 @media (max-width: 860px) {
+    .modern-auth-page {
+        padding: 16px 12px !important;
+        align-items: center;
+    }
     .modern-auth-container {
         grid-template-columns: 1fr;
         max-width: 460px;
@@ -324,7 +328,7 @@
         display: none;
     }
     .auth-form-panel {
-        padding: 32px 24px;
+        padding: 28px 20px;
     }
     .auth-form-grid {
         grid-template-columns: 1fr;

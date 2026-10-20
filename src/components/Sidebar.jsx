@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { moduleMenus, getActiveModule } from '../config/navigation'
 import logoCollapsed from '../assets/logos/Group1.svg'
 import { ChevronRight, ChevronLeft, Crown, Layers } from 'lucide-react'
@@ -44,10 +44,17 @@ function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
 }
 
 export default function Sidebar({ collapsed, onToggle }) {
-    const { openNewTab } = useTabs()
+    const { tabs = [], activateTab, openNewTab } = useTabs() || {}
     const { user, isAdmin, hasPermission } = useAuth()
     const { isImpersonating, isModuleEnabled, isIntegrationEnabled } = useCompany()
     const location = useLocation()
+    const navigate = useNavigate()
+
+    const handleLogoClick = (e) => {
+        e?.preventDefault()
+        const targetPath = user?.role === 'personnel' ? '/personnel-profile' : '/portal'
+        navigate(targetPath)
+    }
 
     const isSuperAdmin = user?.role === 'superadmin'
 
@@ -77,7 +84,12 @@ export default function Sidebar({ collapsed, onToggle }) {
 
     return (
         <aside className={`sidebar ${collapsed ? 'collapsed' : ''} `}>
-            <div className="sidebar-header">
+            <div 
+                className="sidebar-header"
+                onClick={handleLogoClick}
+                style={{ cursor: 'pointer', WebkitAppRegion: 'no-drag' }}
+                title="Ana Portala Git"
+            >
                 <div className="sidebar-logo" style={{ background: 'transparent', boxShadow: 'none', width: '28px', height: '28px' }}>
                     <img src={logoCollapsed} alt="Kontrol Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>

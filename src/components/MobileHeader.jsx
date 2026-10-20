@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { 
     Menu, X, Building2, ChevronDown, User, LogOut, Settings, 
     Crown, Bell, LayoutDashboard, Car, Users, Wallet, Briefcase, 
-    UtensilsCrossed, ArrowRight, Shield, Check
+    UtensilsCrossed, ArrowRight, Shield, Check, Search
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useCompany } from '../context/CompanyContext'
@@ -55,6 +55,7 @@ export default function MobileHeader() {
     const navigate = useNavigate()
 
     const isSuperAdmin = user?.role === 'superadmin'
+    const isPersonnel = user?.role === 'personnel'
 
     // Close drawer on route change
     useEffect(() => {
@@ -77,9 +78,9 @@ export default function MobileHeader() {
 
     const activeModule = (isSuperAdmin && !isImpersonating) 
         ? 'platform' 
-        : getActiveModule(location.pathname, location.search)
+        : (isPersonnel ? 'personnel' : getActiveModule(location.pathname, location.search))
 
-    const isModuleAllowed = (isSuperAdmin && !isImpersonating) ? true : isModuleEnabled(activeModule)
+    const isModuleAllowed = (isSuperAdmin && !isImpersonating) ? true : (isPersonnel ? true : isModuleEnabled(activeModule))
     const activeMenus = isModuleAllowed ? (moduleMenus[activeModule] || []) : []
 
     const filteredMenus = activeMenus.map(group => {
@@ -91,19 +92,25 @@ export default function MobileHeader() {
         return { ...group, items }
     }).filter(group => group.items.length > 0)
 
-    const availableModules = MODULE_LIST.filter(m => {
-        if (m.id === 'portal') return true
-        if (isSuperAdmin && !isImpersonating) return false
-        if (!isModuleEnabled(m.id)) return false
-        if (isAdmin) return true
-        if (m.id === 'fleet') return hasPermission('vehicles', 'can_read')
-        if (m.id === 'finance') return hasPermission('finance', 'can_read')
-        if (m.id === 'meals') return hasPermission('meals', 'can_read')
-        if (m.id === 'hr') return hasPermission('employees', 'can_read')
-        if (m.id === 'works') return hasPermission('works', 'can_read')
-        if (m.id === 'customers') return hasPermission('customers', 'can_read')
-        return false
-    })
+    const availableModules = isPersonnel
+        ? [{ id: 'personnel', label: 'Personel Portalı', icon: User, path: '/personnel-profile' }]
+        : (isSuperAdmin && !isImpersonating)
+            ? [
+                { id: 'portal', label: 'Ana Portal', icon: LayoutDashboard, path: '/portal' },
+                { id: 'platform', label: 'Platform', icon: Crown, path: '/platform-admin' }
+            ]
+            : MODULE_LIST.filter(m => {
+                if (m.id === 'portal') return true
+                if (!isModuleEnabled(m.id)) return false
+                if (isAdmin) return true
+                if (m.id === 'fleet') return hasPermission('vehicles', 'can_read')
+                if (m.id === 'finance') return hasPermission('finance', 'can_read')
+                if (m.id === 'meals') return hasPermission('meals', 'can_read')
+                if (m.id === 'hr') return hasPermission('employees', 'can_read')
+                if (m.id === 'works') return hasPermission('works', 'can_read')
+                if (m.id === 'customers') return hasPermission('customers', 'can_read')
+                return false
+            })
 
     return (
         <div className="mobile-header-wrapper">
@@ -178,6 +185,17 @@ export default function MobileHeader() {
                             )}
                         </div>
                     )}
+
+                    {/* Global Search Button */}
+                    <button
+                        type="button"
+                        className="mobile-search-btn"
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+                        aria-label="Hızlı Ara"
+                        title="Hızlı Ara (Ctrl+K)"
+                    >
+                        <Search size={18} />
+                    </button>
 
                     {/* Notification Center */}
                     <div className="mobile-notification-wrapper">
@@ -276,7 +294,14 @@ export default function MobileHeader() {
 
             <aside className={`mobile-drawer ${drawerOpen ? 'open' : ''}`}>
                 <div className="mobile-drawer-header">
-                    <div className="drawer-brand">
+                    <div 
+                        className="drawer-brand"
+                        onClick={() => {
+                            navigate(user?.role === 'personnel' ? '/personnel-profile' : '/portal');
+                            setDrawerOpen(false);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                    >
                         <img src={logoCollapsed} alt="Kontrol" className="drawer-logo" />
                         <div>
                             <div className="drawer-title">Kontrol</div>

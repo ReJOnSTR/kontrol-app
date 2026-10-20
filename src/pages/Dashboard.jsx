@@ -455,11 +455,11 @@ export default function Dashboard() {
 
                         {/* Upcoming Alerts */}
                         <div className="card">
-                            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                                 <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     Yaklaşan & Gecikmiş İşlemler
                                 </div>
-                                <div style={{ display: 'flex', gap: '10px' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600' }}>
                                         <AlertTriangle size={14} />
                                         Gecikmiş: {allUpcoming.filter(e => getDaysUntil(e.date) < 0).length}

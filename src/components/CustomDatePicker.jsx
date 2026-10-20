@@ -16,10 +16,28 @@ export default function CustomDatePicker({
     const updatePosition = () => {
         if (!isOpen || !ref.current) return
         const rect = ref.current.getBoundingClientRect()
+        
+        const popupWidth = 320
+        const viewportWidth = window.innerWidth
+        let left = rect.left
+
+        // Viewport horizontal clamping
+        if (left + popupWidth > viewportWidth - 10) {
+            left = Math.max(10, viewportWidth - popupWidth - 10)
+        }
+        if (left < 10) left = 10
+
+        // Vertical viewport clamping
+        const estimatedHeight = 370
+        let top = rect.bottom + 6
+        if (top + estimatedHeight > window.innerHeight && rect.top > estimatedHeight) {
+            top = Math.max(10, rect.top - estimatedHeight - 6)
+        }
+
         setPopupStyle({
             position: 'fixed',
-            top: rect.bottom + 6,
-            left: rect.left,
+            top,
+            left,
             zIndex: 99999
         })
     }
@@ -45,11 +63,17 @@ export default function CustomDatePicker({
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (ref.current && !ref.current.contains(e.target)) {
+                const popup = document.querySelector('.date-picker-popup')
+                if (popup && popup.contains(e.target)) return
                 setIsOpen(false)
             }
         }
         document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
+        document.addEventListener('touchstart', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+            document.removeEventListener('touchstart', handleClickOutside)
+        }
     }, [])
 
     const handleApply = () => {
@@ -112,7 +136,12 @@ export default function CustomDatePicker({
             </button>
 
             {isOpen && createPortal(
-                <div className="date-picker-popup" style={popupStyle} onMouseDown={(e) => e.stopPropagation()}>
+                <div 
+                    className="date-picker-popup" 
+                    style={popupStyle} 
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                >
                     <div className="date-presets">
                         {presets.map((preset, index) => (
                             <button
