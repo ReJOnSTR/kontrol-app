@@ -1273,13 +1273,38 @@ textarea,
   .modal-drawer .modal-body .form-group,
   .form-group {
     width: 100% !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 14px !important;
     position: relative !important;
     box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
-  .modal-body .form-group .form-group {
+  .modal-body .form-group .form-group,
+  .form-group .form-group {
     margin-bottom: 0 !important;
+  }
+
+  /* Universal Form Label on Mobile */
+  .form-label,
+  .modal-body .form-label,
+  .modal-body .floating-label-group .form-label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--text-secondary) !important;
+    margin-bottom: 6px !important;
+    position: static !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    width: 100% !important;
+    line-height: 1.4 !important;
+    background: transparent !important;
+    padding: 0 !important;
+    top: auto !important;
+    left: auto !important;
   }
 
   /* Universal Input Enhancements on Mobile */
@@ -1299,43 +1324,44 @@ textarea,
     box-sizing: border-box !important;
     font-size: 16px !important; /* Prevents auto-zoom in iOS Safari */
     border-radius: 10px !important;
+    padding: 10px 14px !important;
+    line-height: normal !important;
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
   }
 
   /* Fixed touch-friendly height for text & date inputs */
   .modal-body .form-input:not(textarea),
   .modal-body .form-select,
   .modal-body .custom-select-trigger,
-  .modal-body input:not([type="checkbox"]):not([type="radio"]) {
-    height: 48px !important;
-    min-height: 48px !important;
-    line-height: normal !important;
+  .modal-body input:not([type="checkbox"]):not([type="radio"]),
+  .form-input:not(textarea),
+  .form-select,
+  .custom-select-trigger {
+    height: 46px !important;
+    min-height: 46px !important;
   }
 
-  /* Floating Label Groups inside Mobile Modals */
+  /* Reset any leftover floating label paddings */
   .modal-body .floating-label-group .form-input:not(textarea),
   .modal-body .floating-label-group .form-select,
-  .modal-body .floating-label-group .custom-select-trigger {
-    padding-top: 18px !important;
-    padding-bottom: 4px !important;
-    padding-left: 12px !important;
-    padding-right: 12px !important;
+  .modal-body .floating-label-group .custom-select-trigger,
+  .floating-label-group .form-input:not(textarea) {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
   }
 
-  .modal-body .floating-label-group .form-label {
-    left: 12px !important;
-    top: 15px !important;
-    font-size: 14px !important;
-    pointer-events: none !important;
-    transition: all 0.15s ease !important;
-    background: transparent !important;
-  }
-
-  .modal-body .floating-label-group.has-value .form-label,
-  .modal-body .floating-label-group:focus-within .form-label {
-    top: 4px !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    color: var(--accent-primary) !important;
+  /* Fix for textareas in mobile modals */
+  .modal-body textarea,
+  .modal-body .form-textarea,
+  .form-textarea {
+    min-height: 90px !important;
+    padding: 10px 14px !important;
+    font-size: 15px !important;
+    border-radius: 10px !important;
   }
 
   /* Fix for textareas in mobile modals */
@@ -2786,6 +2812,19 @@ textarea,
 
 .form-input:focus~.input-icon {
   color: var(--accent-primary);
+}
+
+/* Standard Form Label */
+.form-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
 /* Floating Label */

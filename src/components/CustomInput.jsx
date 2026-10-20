@@ -219,8 +219,8 @@ export default function CustomInput({
     // Check if value exists (using safeValue logic)
     const hasValue = (safeValue !== '') || isDateType
 
-    // Wrapper classes - ensure label floats when focused even before typing
-    const wrapperClass = `form-group ${isFloating ? 'floating-label-group' : ''} ${(hasValue || isFocused) ? 'has-value' : ''} ${className || ''}`
+    // Wrapper classes
+    const wrapperClass = `form-group custom-input-group ${className || ''}`
 
     // Ensure native maxLength doesn't block currency typing with thousands dots & extra decimals
     const inputProps = { ...props }
@@ -233,6 +233,27 @@ export default function CustomInput({
 
     return (
         <div className={wrapperClass}>
+            {/* Label (Placed before input for natural document flow and accessibility) */}
+            {label && (
+                <label className="form-label" htmlFor={inputId}>
+                    <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <span>
+                            {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
+                        </span>
+                        {props.maxLength && !isCurrency && isFocused && (
+                            <span className="char-counter" style={{
+                                fontSize: '10px',
+                                opacity: 0.7,
+                                fontWeight: 'normal',
+                                marginLeft: '8px'
+                            }}>
+                                {(displayValue || '').length}/{props.maxLength}
+                            </span>
+                        )}
+                    </span>
+                </label>
+            )}
+
             {/* Input Element */}
             {type === 'textarea' || multiline ? (
                 <textarea
@@ -245,7 +266,7 @@ export default function CustomInput({
                     onChange={handleChange}
                     onFocus={handleFocus}
                     onBlur={handleBlur}
-                    placeholder={isFloating ? '' : placeholder} // Hide placeholder if floating to avoid clash
+                    placeholder={placeholder}
                     rows={props.rows || 3}
                     style={isInvalid ? { borderColor: 'var(--danger)' } : {}}
                     disabled={disabled}
@@ -265,7 +286,7 @@ export default function CustomInput({
                         onFocus={handleFocus}
                         onBlur={handleBlur}
                         onKeyDown={handleKeyDown}
-                        placeholder={isFloating ? '' : placeholder}
+                        placeholder={placeholder}
                         disabled={disabled}
                         style={{
                             ...(isInvalid ? { borderColor: 'var(--danger)' } : {}),
@@ -311,27 +332,6 @@ export default function CustomInput({
                         </button>
                     )}
                 </div>
-            )}
-
-            {/* Label (After input for CSS peer selector) */}
-            {label && (
-                <label className="form-label" htmlFor={inputId}>
-                    <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                        <span>
-                            {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
-                        </span>
-                        {props.maxLength && !isCurrency && isFocused && (
-                            <span className="char-counter" style={{
-                                fontSize: '10px',
-                                opacity: 0.7,
-                                fontWeight: 'normal',
-                                marginLeft: '8px'
-                            }}>
-                                {(displayValue || '').length}/{props.maxLength}
-                            </span>
-                        )}
-                    </span>
-                </label>
             )}
 
             {/* Error Message */}

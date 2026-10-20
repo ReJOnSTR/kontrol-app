@@ -96,7 +96,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, loading }
 
     return (
         <form onSubmit={handleSubmit(onFormSubmit)}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+            <div className="form-grid-2 vehicle-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
                 {/* LEFT COLUMN: Basic Info */}
                 <div>
                     <div style={{
