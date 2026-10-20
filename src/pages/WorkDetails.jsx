@@ -7,7 +7,7 @@ import CustomSelect from '../components/CustomSelect'
 import CustomInput from '../components/CustomInput'
 import ConfirmModal from '../components/ConfirmModal'
 import { ArrowLeft, Plus, Pencil, Trash2, Calendar, Clock, Truck, User, DollarSign, FileText, Printer, Download, FileDown, Settings, Wallet, ChevronDown, Save, Briefcase, CheckCircle2, AlertCircle, Info, Tag, Layers, RotateCcw, Sliders, ChevronRight, Check, X, Sparkles, Zap } from 'lucide-react'
-import { formatDate, formatCurrency, safeSetLocalStorage, generateUniqueFileName } from '../utils/helpers'
+import { formatDate, formatCurrency, safeSetLocalStorage, generateUniqueFileName, compareVehicleCapacityDesc } from '../utils/helpers'
 import { calculateWorkStats } from '../utils/workCalculations'
 import { workItemSchema } from '../schemas/workSchema'
 import WorkPdfReport from './WorkPdfReport'
@@ -324,7 +324,7 @@ export default function WorkDetails(props) {
                         window.electronAPI.getEmployees(workRes.data.company_id)
                     ])
 
-                    if (vehiclesRes.success) setVehicles(vehiclesRes.data)
+                    if (vehiclesRes.success) setVehicles((vehiclesRes.data || []).sort(compareVehicleCapacityDesc))
                     if (employeesRes.success) setEmployees(employeesRes.data)
                 }
             } else {
@@ -1234,16 +1234,22 @@ export default function WorkDetails(props) {
                 } else if (item.custom_vehicle) {
                     label = item.custom_vehicle
                 }
+                const vObj = item.vehicle || item.vehicles || (item.vehicle_id ? vehicles.find(v => String(v.id) === String(item.vehicle_id)) : null) || {
+                    plate: item.plate || item.custom_vehicle,
+                    model: item.model || item.custom_vehicle,
+                    brand: item.brand
+                }
                 map.set(vehicleKey, {
                     key: vehicleKey,
                     label: label,
+                    vehicle: vObj,
                     count: 0
                 })
             }
             map.get(vehicleKey).count += 1
         })
-        return Array.from(map.values())
-    }, [work?.items])
+        return Array.from(map.values()).sort((a, b) => compareVehicleCapacityDesc(a.vehicle, b.vehicle))
+    }, [work?.items, vehicles])
 
     const vehicleFilteredItems = useMemo(() => {
         const items = work?.items || []
@@ -1264,7 +1270,7 @@ export default function WorkDetails(props) {
     // --- Calculations based on filtered items (shared with PDF report) ---
     const stats = useMemo(() => {
         const items = filteredItems.length > 0 ? filteredItems : (work?.items || [])
-        const calc = calculateWorkStats(items, pazarMultiplier, mesaiMultiplier)
+        const calc = calculateWorkStats(items, pazarMultiplier, mesaiMultiplier, vehicles)
 
         // Date range from filtered items
         let dateRangeText = `${formatDate(work?.start_date)} - ${formatDate(work?.end_date)}`
@@ -1468,7 +1474,21 @@ export default function WorkDetails(props) {
                         }
                     },
                     { label: 'FİŞ NO', key: 'receipt_no' },
-                    { label: 'MAKİNA', key: 'vehicle_id', searchValue: (row) => `${row.plate || ''} ${row.custom_vehicle || ''} ${row.brand || ''} ${row.model || ''}`, render: (val, row) => row.plate || row.custom_vehicle || '-' },
+                    { label: 'MAKİNA', key: 'vehicle_id', searchValue: (row) => `${row.plate || ''} ${row.custom_vehicle || ''} ${row.brand || ''} ${row.model || ''}`, render: (val, row) => row.plate || row.custom_vehicle || '-', sortFn: (a, b) => {
+                        const vA = a.vehicle || a.vehicles || (a.vehicle_id ? vehicles.find(v => String(v.id) === String(a.vehicle_id)) : null) || {
+                            plate: a.plate || a.custom_vehicle,
+                            model: a.model || a.custom_vehicle,
+                            brand: a.brand
+                        };
+                        const vB = b.vehicle || b.vehicles || (b.vehicle_id ? vehicles.find(v => String(v.id) === String(b.vehicle_id)) : null) || {
+                            plate: b.plate || b.custom_vehicle,
+                            model: b.model || b.custom_vehicle,
+                            brand: b.brand
+                        };
+                        const diff = compareVehicleCapacityDesc(vA, vB);
+                        if (diff !== 0) return diff;
+                        return new Date(a.date || 0) - new Date(b.date || 0);
+                    } },
                     { label: 'PERSONEL', key: 'employee_id', searchValue: (row) => `${row.employee_name || ''} ${row.employee_surname || ''} ${row.custom_employee || ''}`, render: (val, row) => row.employee_name ? `${row.employee_name} ${row.employee_surname}` : (row.custom_employee || '-') },
                     {
                         label: 'ÇALIŞMA SÜRESİ', key: 'start_time', render: (val, row) => (

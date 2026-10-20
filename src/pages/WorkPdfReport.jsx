@@ -167,7 +167,7 @@ export default function WorkPdfReport({
     const pazarMultiplier = pazarMultiplierProp ? parseFloat(pazarMultiplierProp) : (work.pazar_multiplier || 1.5);
     const mesaiMultiplier = mesaiMultiplierProp ? parseFloat(mesaiMultiplierProp) : (work.mesai_multiplier || 1.5);
 
-    const calcResult = calculateWorkStats(work.items || [], pazarMultiplier, mesaiMultiplier);
+    const calcResult = calculateWorkStats(work.items || [], pazarMultiplier, mesaiMultiplier, work.vehiclesList || work.vehicles || []);
     const groups = calcResult.groups || [];
     const grandTotalPrice = calcResult.grandTotal || 0;
 

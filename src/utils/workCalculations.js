@@ -1,3 +1,5 @@
+import { compareVehicleCapacityDesc } from './helpers';
+
 /**
  * Shared work price calculation logic.
  * This is the SINGLE SOURCE OF TRUTH for total price calculations.
@@ -113,10 +115,12 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
             uniqueVehicles.add(String(item.vehicle_id))
         } else if (item.custom_vehicle) {
             uniqueVehicles.add(`custom_${item.custom_vehicle}`)
+        } else if (item.plate) {
+            uniqueVehicles.add(`plate_${item.plate}`)
         }
         if (item.employee_id) uniqueEmployees.add(item.employee_id)
 
-        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : 'diger')
+        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : (item.plate ? `plate_${item.plate}` : 'diger'))
         const unitPriceVal = Number(item.unit_price) || 0
         const cleanDesc = (item.description || '').replace(/\[[^\]]*\]\s*/g, '').trim()
 
@@ -160,7 +164,7 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
     let hasAylikWork = false
 
     items.forEach(item => {
-        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : 'diger')
+        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : (item.plate ? `plate_${item.plate}` : 'diger'))
         const { unitPriceVal, cleanDesc } = resolveItemEffectiveInfo(item)
 
         const descUpper = (item.description || '').toUpperCase()
@@ -482,6 +486,23 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
             summaryLines,
             calculatedGrandTotal: groupGrandTotal
         };
+    });
+
+    // Sort calculatedGroups by vehicle capacity: Tonaj (desc) -> Sepet/Metre (desc) -> Diğer
+    calculatedGroups.sort((gA, gB) => {
+        const itemA = gA.items?.[0] || {};
+        const itemB = gB.items?.[0] || {};
+        const vA = itemA.vehicle || itemA.vehicles || (itemA.vehicle_id ? vehiclesMap[String(itemA.vehicle_id)] : null) || {
+            model: itemA.model || gA.machineName || itemA.custom_vehicle,
+            brand: itemA.brand,
+            plate: itemA.plate || gA.machineName
+        };
+        const vB = itemB.vehicle || itemB.vehicles || (itemB.vehicle_id ? vehiclesMap[String(itemB.vehicle_id)] : null) || {
+            model: itemB.model || gB.machineName || itemB.custom_vehicle,
+            brand: itemB.brand,
+            plate: itemB.plate || gB.machineName
+        };
+        return compareVehicleCapacityDesc(vA, vB);
     });
 
     let durationText = '0 Gün'

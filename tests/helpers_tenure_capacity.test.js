@@ -6,6 +6,7 @@ import {
     parseVehicleCapacity,
     compareVehicleCapacityDesc
 } from '../src/utils/helpers'
+import { calculateWorkStats } from '../src/utils/workCalculations'
 
 describe('Working Duration & Tenure Calculations', () => {
     it('returns "-" when startDate is empty or null', () => {
@@ -56,6 +57,9 @@ describe('Vehicle Capacity Parsing & Sorting', () => {
         expect(parseVehicleCapacity('80 Ton Mobil')).toEqual({ type: 'ton', value: '80 Ton', num: 80 })
         expect(parseVehicleCapacity('35 Ton')).toEqual({ type: 'ton', value: '35 Ton', num: 35 })
         expect(parseVehicleCapacity('43 Metre Sepetli')).toEqual({ type: 'metre', value: '43 Metre', num: 43 })
+        expect(parseVehicleCapacity('43 Sepetli')).toEqual({ type: 'metre', value: '43 Metre', num: 43 })
+        expect(parseVehicleCapacity('30 Metre Sepet')).toEqual({ type: 'metre', value: '30 Metre', num: 30 })
+        expect(parseVehicleCapacity({ model: '130 Ton Vinç' })).toEqual({ type: 'ton', value: '130 Ton', num: 130 })
         expect(parseVehicleCapacity('Corolla')).toEqual({ type: 'other', value: 'Corolla', num: null })
     })
 
@@ -75,6 +79,29 @@ describe('Vehicle Capacity Parsing & Sorting', () => {
             '47 Metre',
             '26 Metre',
             'Binek Ford Focus'
+        ])
+    })
+})
+
+describe('Work Calculations Machine Capacity Sorting (Puantaj Raporu)', () => {
+    it('orders groups in calculateWorkStats by tonaj desc -> metre desc -> other', () => {
+        const items = [
+            { id: 1, date: '2026-03-01', plate: '55 SEP 01', model: '30 Metre Sepetli', hours: 1, unit_price: 5000 },
+            { id: 2, date: '2026-03-02', plate: '55 VNC 01', model: '80 Ton', hours: 1, unit_price: 15000 },
+            { id: 3, date: '2026-03-03', plate: '55 BNK 01', model: 'Ford Transit', hours: 1, unit_price: 3000 },
+            { id: 4, date: '2026-03-04', plate: '55 VNC 02', model: '130 Ton', hours: 1, unit_price: 25000 },
+            { id: 5, date: '2026-03-05', plate: '55 SEP 02', model: '43 Metre', hours: 1, unit_price: 8000 }
+        ]
+
+        const stats = calculateWorkStats(items, 1.5, 1.5)
+        const groupMachineNames = stats.groups.map(g => g.machineName)
+
+        expect(groupMachineNames).toEqual([
+            '55 VNC 02 - 130 Ton',
+            '55 VNC 01 - 80 Ton',
+            '55 SEP 02 - 43 Metre',
+            '55 SEP 01 - 30 Metre Sepetli',
+            '55 BNK 01 - Ford Transit'
         ])
     })
 })

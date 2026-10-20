@@ -392,8 +392,8 @@ textarea,
   }
 
   .mobile-logo {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     object-fit: contain;
     flex-shrink: 0;
   }
@@ -623,8 +623,8 @@ textarea,
   }
 
   .drawer-logo {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     object-fit: contain;
     flex-shrink: 0;
   }
@@ -1719,15 +1719,14 @@ textarea,
 .sidebar-header {
   display: flex;
   align-items: center;
-  /* Use fixed 18px to center a 24px logo in 60px and avoid ANY move during transition */
-  padding-left: 18px;
-  padding-right: 18px;
+  /* Fixed 16px centers a 28px logo in 60px collapsed sidebar (16 + 28 + 16 = 60px) */
+  padding-left: 16px;
+  padding-right: 16px;
   border-bottom: 1px solid var(--border-color);
   height: 40px;
   box-sizing: border-box;
   position: relative;
   white-space: nowrap;
-  /* No padding transition = No logo movement */
 }
 
 .sidebar.collapsed .sidebar-header {
@@ -1735,15 +1734,13 @@ textarea,
 }
 
 .sidebar-logo {
-  width: 24px;
-  height: 24px;
-  background: var(--accent-gradient);
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
 }
 
 .sidebar-logo svg {

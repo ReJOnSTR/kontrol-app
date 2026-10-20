@@ -78,7 +78,7 @@ export default function Sidebar({ collapsed, onToggle }) {
     return (
         <aside className={`sidebar ${collapsed ? 'collapsed' : ''} `}>
             <div className="sidebar-header">
-                <div className="sidebar-logo" style={{ background: 'transparent', boxShadow: 'none', width: '24px', height: '24px' }}>
+                <div className="sidebar-logo" style={{ background: 'transparent', boxShadow: 'none', width: '28px', height: '28px' }}>
                     <img src={logoCollapsed} alt="Kontrol Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
                 {!collapsed && <span className="sidebar-title">Kontrol</span>}

@@ -217,20 +217,34 @@ export function getVehicleStatusInfo(status) {
 
 export function parseVehicleCapacity(model) {
     if (!model) return { type: 'other', value: null, num: null }
-    const str = String(model).trim()
+    let str = ''
+    if (typeof model === 'object') {
+        str = String(model.model || model.machineName || model.rawMachineName || model.name || model.custom_vehicle || model.plate || '').trim()
+    } else {
+        str = String(model).trim()
+    }
+    if (!str) return { type: 'other', value: null, num: null }
     
-    // Check Ton (e.g., "80 Ton", "110 TON", "35 Ton")
-    const tonMatch = str.match(/(\d+(?:[.,]\d+)?)\s*(?:ton|tn)/i)
+    // Check Ton (e.g., "80 Ton", "110 TON", "35 Ton", "80tn")
+    const tonMatch = str.match(/(\d+(?:[.,]\d+)?)\s*(?:ton|tn)\b/i)
     if (tonMatch) {
         const num = parseFloat(tonMatch[1].replace(',', '.'))
         return { type: 'ton', value: `${tonMatch[1]} Ton`, num }
     }
     
-    // Check Metre (e.g., "26 Metre", "43 Metre", "30 mt")
-    const metreMatch = str.match(/(\d+(?:[.,]\d+)?)\s*(?:metre|meter|mt|\bm\b)/i)
+    // Check Metre / Sepet (e.g., "26 Metre", "43 Metre", "30 mt", "43 Metre Sepetli", "30 Sepetli", "Sepet 26")
+    const metreMatch = str.match(/(?:(\d+(?:[.,]\d+)?)\s*(?:metre|meter|mt|\bm\b|sepet(?:li)?)|sepet(?:li)?\s*(\d+(?:[.,]\d+)?))/i)
     if (metreMatch) {
-        const num = parseFloat(metreMatch[1].replace(',', '.'))
-        return { type: 'metre', value: `${metreMatch[1]} Metre`, num }
+        const rawNum = metreMatch[1] || metreMatch[2]
+        if (rawNum) {
+            const num = parseFloat(rawNum.replace(',', '.'))
+            return { type: 'metre', value: `${rawNum} Metre`, num }
+        }
+    }
+
+    // Check if it mentions "sepet" without a specific number
+    if (/(?:sepet|platform)/i.test(str)) {
+        return { type: 'metre', value: 'Sepetli', num: 0 }
     }
     
     return { type: 'other', value: str, num: null }
@@ -241,8 +255,8 @@ export function compareVehicleCapacityDesc(a, b) {
     if (!a) return 1
     if (!b) return -1
 
-    const capA = parseVehicleCapacity(a.model)
-    const capB = parseVehicleCapacity(b.model)
+    const capA = parseVehicleCapacity(a)
+    const capB = parseVehicleCapacity(b)
 
     // Rank: 1 = Ton, 2 = Metre, 3 = Diğer / Standart
     const getRank = (type) => {
@@ -271,10 +285,14 @@ export function compareVehicleCapacityDesc(a, b) {
     }
 
     // Aynı kapasitedeyse veya standart modellerse marka ve plakaya göre
-    const brandDiff = (a.brand || '').localeCompare(b.brand || '', 'tr')
+    const brandA = typeof a === 'object' ? (a.brand || '') : ''
+    const brandB = typeof b === 'object' ? (b.brand || '') : ''
+    const brandDiff = brandA.localeCompare(brandB, 'tr')
     if (brandDiff !== 0) return brandDiff
 
-    return (a.plate || '').localeCompare(b.plate || '', 'tr')
+    const plateA = typeof a === 'object' ? (a.plate || a.machineName || a.name || '') : String(a)
+    const plateB = typeof b === 'object' ? (b.plate || b.machineName || b.name || '') : String(b)
+    return plateA.localeCompare(plateB, 'tr')
 }
 
 /**
