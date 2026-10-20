@@ -678,6 +678,113 @@ textarea,
     cursor: pointer;
   }
 
+  /* Drawer Company Section */
+  .drawer-company-section {
+    padding: 12px 14px 10px 14px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+  }
+
+  .drawer-company-selector {
+    position: relative;
+    margin-top: 6px;
+  }
+
+  .drawer-company-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .drawer-company-trigger:active {
+    background: var(--bg-card-hover);
+    border-color: var(--accent-primary);
+  }
+
+  .drawer-company-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .drawer-company-icon {
+    color: var(--accent-primary);
+    flex-shrink: 0;
+  }
+
+  .drawer-company-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  .drawer-company-chevron {
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .drawer-company-chevron.rotate {
+    transform: rotate(180deg);
+  }
+
+  .drawer-company-list {
+    margin-top: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 180px;
+    overflow-y: auto;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+
+  .drawer-company-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 12.5px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s;
+  }
+
+  .drawer-company-item:active {
+    background: var(--bg-tertiary);
+  }
+
+  .drawer-company-item.active {
+    background: var(--accent-subtle);
+    color: var(--accent-primary);
+    font-weight: 600;
+  }
+
+  .drawer-company-item .check-icon {
+    margin-left: auto;
+    color: var(--accent-primary);
+  }
+
   .drawer-modules-section {
     padding: 12px 14px;
     border-bottom: 1px solid var(--border-color);
@@ -1114,32 +1221,46 @@ textarea,
   }
 
   .modal-body {
-    padding: 16px !important;
+    padding: 16px 16px max(24px, env(safe-area-inset-bottom, 24px)) 16px !important;
     background: var(--bg-secondary) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    max-height: calc(92dvh - 130px) !important;
+    max-height: calc(92dvh - 120px) !important;
     box-sizing: border-box !important;
   }
 
-  /* Universal Form Input & Grid Auto-Collapse in Modals and Mobile Views */
-  .modal-body form,
-  .modal-body form > div,
-  .modal-body [style*="gridTemplateColumns"],
-  .modal-body [style*="grid-template-columns"],
+  /* Universal 1-Column Auto-Collapse for all Form Rows & Grids in Modals */
+  .modal-drawer .modal-body .form-row,
+  .modal-drawer .modal-body .form-grid-2,
+  .modal-drawer .modal-body .form-grid-3,
+  .modal-drawer .modal-body .form-grid-4,
+  .modal-drawer .modal-body .grid-2,
+  .modal-drawer .modal-body .grid-3,
+  .modal-center .modal-body .form-row,
+  .modal .modal-body .form-row,
+  .modal .modal-body .form-grid,
+  .modal .modal-body .form-grid-2,
+  .modal .modal-body .form-grid-3,
+  .modal .modal-body .form-grid-4,
+  .modal .modal-body [style*="grid-template-columns"],
+  .modal .modal-body [style*="gridTemplateColumns"],
+  .modal .modal-body [style*="grid-template"],
   .modal-body .form-row,
-  .modal-body .form-grid-2,
-  .modal-body .form-grid-3,
-  .modal-body .form-grid-4,
-  .modal-body .grid-2,
-  .modal-body .grid-3,
-  .form-grid-2,
-  .form-grid-3,
-  .form-grid-4,
-  .overtime-filter-row,
   .form-row {
+    display: flex !important;
+    flex-direction: column !important;
     grid-template-columns: 1fr !important;
     gap: 12px !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+  }
+
+  .modal-body .form-row > *,
+  .modal-body [style*="grid-template-columns"] > *,
+  .modal-body [style*="gridTemplateColumns"] > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
   }
 
   .modal-body form [style*="display: flex"][style*="gap"],
@@ -1147,14 +1268,99 @@ textarea,
     flex-wrap: wrap !important;
   }
 
+  /* Form groups in modal */
+  .modal-body .form-group,
+  .modal-drawer .modal-body .form-group,
+  .form-group {
+    width: 100% !important;
+    margin-bottom: 12px !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+  }
+
+  .modal-body .form-group .form-group {
+    margin-bottom: 0 !important;
+  }
+
+  /* Universal Input Enhancements on Mobile */
   .modal-body input,
   .modal-body select,
   .modal-body textarea,
+  .modal-body .form-input,
+  .modal-body .form-select,
+  .modal-body .custom-select-trigger,
   .modal-body .custom-input-wrapper,
-  .modal-body .custom-select-container {
+  .modal-body .custom-select-container,
+  .form-input,
+  .form-select,
+  .custom-select-trigger {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    font-size: 16px !important; /* Prevents auto-zoom in iOS Safari */
+    border-radius: 10px !important;
+  }
+
+  /* Fixed touch-friendly height for text & date inputs */
+  .modal-body .form-input:not(textarea),
+  .modal-body .form-select,
+  .modal-body .custom-select-trigger,
+  .modal-body input:not([type="checkbox"]):not([type="radio"]) {
+    height: 48px !important;
+    min-height: 48px !important;
+    line-height: normal !important;
+  }
+
+  /* Floating Label Groups inside Mobile Modals */
+  .modal-body .floating-label-group .form-input:not(textarea),
+  .modal-body .floating-label-group .form-select,
+  .modal-body .floating-label-group .custom-select-trigger {
+    padding-top: 18px !important;
+    padding-bottom: 4px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .modal-body .floating-label-group .form-label {
+    left: 12px !important;
+    top: 15px !important;
+    font-size: 14px !important;
+    pointer-events: none !important;
+    transition: all 0.15s ease !important;
+    background: transparent !important;
+  }
+
+  .modal-body .floating-label-group.has-value .form-label,
+  .modal-body .floating-label-group:focus-within .form-label {
+    top: 4px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: var(--accent-primary) !important;
+  }
+
+  /* Fix for textareas in mobile modals */
+  .modal-body textarea,
+  .modal-body .form-textarea {
+    min-height: 84px !important;
+    padding-top: 20px !important;
+    font-size: 15px !important;
+    border-radius: 10px !important;
+  }
+
+  /* CustomSelect Trigger in Mobile Modal */
+  .modal-body .custom-select-trigger {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    user-select: none !important;
+  }
+
+  .modal-body .custom-select-trigger .value-text,
+  .modal-body .custom-select-trigger .placeholder {
+    font-size: 15px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 
   /* UNIFIED FOOTER & BUTTONS */
@@ -4361,39 +4567,41 @@ body:has(.modal-overlay) .desktop-title-bar {
   max-height: calc(100vh - 48px);
 }
 
-/* 4. Çekmece İçi Akıllı Form Grid & Düzenleme */
-.modal-drawer .modal-body .form-row,
-.modal-drawer .modal-body .form-grid-2,
-.modal-drawer .modal-body .grid-2 {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  width: 100%;
-}
+/* 4. Çekmece İçi Akıllı Form Grid & Düzenleme (Masaüstü) */
+@media (min-width: 769px) {
+  .modal-drawer .modal-body .form-row,
+  .modal-drawer .modal-body .form-grid-2,
+  .modal-drawer .modal-body .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    width: 100%;
+  }
 
-.modal-drawer .modal-body .form-grid-3,
-.modal-drawer .modal-body .grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  width: 100%;
-}
+  .modal-drawer .modal-body .form-grid-3,
+  .modal-drawer .modal-body .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    width: 100%;
+  }
 
-.modal-drawer.modal-sm .modal-body .form-row,
-.modal-drawer.modal-sm .modal-body .form-grid-2,
-.modal-drawer.modal-sm .modal-body .form-grid-3,
-.modal-drawer.modal-sm .modal-body .grid-2,
-.modal-drawer.modal-sm .modal-body .grid-3 {
-  grid-template-columns: 1fr;
-}
+  .modal-drawer.modal-sm .modal-body .form-row,
+  .modal-drawer.modal-sm .modal-body .form-grid-2,
+  .modal-drawer.modal-sm .modal-body .form-grid-3,
+  .modal-drawer.modal-sm .modal-body .grid-2,
+  .modal-drawer.modal-sm .modal-body .grid-3 {
+    grid-template-columns: 1fr;
+  }
 
-.modal-drawer .modal-body .form-group {
-  margin-bottom: 14px;
-  width: 100%;
-}
+  .modal-drawer .modal-body .form-group {
+    margin-bottom: 14px;
+    width: 100%;
+  }
 
-.modal-drawer .modal-body .form-group:last-child {
-  margin-bottom: 0;
+  .modal-drawer .modal-body .form-group:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .modal-drag-indicator {

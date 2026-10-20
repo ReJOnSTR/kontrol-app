@@ -50,14 +50,15 @@ export default function CustomSelect({
         // Smart width: auto-expand for table filters so long company/role names are readable
         const isCompact = className.includes('filter-select-custom') || className.includes('page-select-custom')
         const isPageSelect = className.includes('page-select-custom')
-        const popupMinWidth = isPageSelect ? rect.width : Math.max(rect.width, 220)
-        const popupMaxWidth = 360
+        const popupMinWidth = isPageSelect ? rect.width : Math.min(Math.max(rect.width, 220), window.innerWidth - 24)
+        const popupMaxWidth = Math.min(360, window.innerWidth - 24)
 
         // Prevent overflow beyond right edge of viewport
         let left = rect.left
         if (left + popupMinWidth > window.innerWidth - 12) {
             left = Math.max(12, window.innerWidth - popupMinWidth - 12)
         }
+        if (left < 12) left = 12
 
         setDropdownStyle({
             position: 'fixed',
@@ -104,7 +105,11 @@ export default function CustomSelect({
         }
 
         document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
+        document.addEventListener('touchstart', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+            document.removeEventListener('touchstart', handleClickOutside)
+        }
     }, [])
 
     const handleSelect = (optValue) => {
@@ -193,7 +198,12 @@ export default function CustomSelect({
                 )}
 
                 {isOpen && createPortal(
-                    <div className={`custom-select-dropdown placement-${placement}`} style={{ ...dropdownStyle, maxHeight: '250px', overflowY: 'auto' }}>
+                    <div 
+                        className={`custom-select-dropdown placement-${placement}`} 
+                        style={{ ...dropdownStyle, maxHeight: '250px', overflowY: 'auto' }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                    >
                         {!required && placeholder && !searchTerm && !hidePlaceholderOption && !className.includes('filter-select-custom') && !className.includes('page-select-custom') && (
                             <div
                                 className={`custom-select-option ${!value ? 'selected' : ''}`}

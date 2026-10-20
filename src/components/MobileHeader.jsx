@@ -135,57 +135,6 @@ export default function MobileHeader() {
                 </div>
 
                 <div className="mobile-header-right">
-                    {/* Company Switcher */}
-                    {!(isSuperAdmin && !isImpersonating) && (
-                        <div className="mobile-company-selector">
-                            <button
-                                type="button"
-                                className="mobile-company-btn"
-                                onClick={() => {
-                                    setShowCompanyMenu(!showCompanyMenu)
-                                    setShowUserMenu(false)
-                                }}
-                            >
-                                <Building2 size={15} />
-                                <span className="mobile-company-name">
-                                    {currentCompany?.name || 'Şirket'}
-                                </span>
-                                <ChevronDown size={13} />
-                            </button>
-
-                            {showCompanyMenu && (
-                                <>
-                                    <div 
-                                        className="mobile-dropdown-backdrop"
-                                        onClick={() => setShowCompanyMenu(false)}
-                                    />
-                                    <div className="mobile-dropdown-menu company-dropdown">
-                                        <div className="mobile-dropdown-header">Şirket Değiştir</div>
-                                        {companies.length === 0 ? (
-                                            <div className="mobile-dropdown-empty">Şirket bulunamadı</div>
-                                        ) : (
-                                            companies.map(c => (
-                                                <button
-                                                    key={c.id}
-                                                    type="button"
-                                                    className={`mobile-dropdown-item ${currentCompany?.id === c.id ? 'active' : ''}`}
-                                                    onClick={() => {
-                                                        selectCompany(c)
-                                                        setShowCompanyMenu(false)
-                                                    }}
-                                                >
-                                                    <Building2 size={16} />
-                                                    <span className="company-text">{c.name}</span>
-                                                    {currentCompany?.id === c.id && <Check size={14} className="check-icon" />}
-                                                </button>
-                                            ))
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
-
                     {/* Global Search Button */}
                     <button
                         type="button"
@@ -317,6 +266,46 @@ export default function MobileHeader() {
                         <X size={20} />
                     </button>
                 </div>
+
+                {/* Company Switcher in Menu (Mobile) */}
+                {!(isSuperAdmin && !isImpersonating) && companies.length > 0 && (
+                    <div className="drawer-company-section">
+                        <div className="drawer-section-title">Şirket</div>
+                        <div className="drawer-company-selector">
+                            <button
+                                type="button"
+                                className="drawer-company-trigger"
+                                onClick={() => setShowCompanyMenu(!showCompanyMenu)}
+                            >
+                                <div className="drawer-company-info">
+                                    <Building2 size={16} className="drawer-company-icon" />
+                                    <span className="drawer-company-name">{currentCompany?.name || 'Şirket Seçin'}</span>
+                                </div>
+                                <ChevronDown size={15} className={`drawer-company-chevron ${showCompanyMenu ? 'rotate' : ''}`} />
+                            </button>
+
+                            {showCompanyMenu && (
+                                <div className="drawer-company-list">
+                                    {companies.map(c => (
+                                        <button
+                                            key={c.id}
+                                            type="button"
+                                            className={`drawer-company-item ${currentCompany?.id === c.id ? 'active' : ''}`}
+                                            onClick={() => {
+                                                selectCompany(c)
+                                                setShowCompanyMenu(false)
+                                            }}
+                                        >
+                                            <Building2 size={15} />
+                                            <span>{c.name}</span>
+                                            {currentCompany?.id === c.id && <Check size={14} className="check-icon" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Module Quick Nav Chips */}
                 <div className="drawer-modules-section">
