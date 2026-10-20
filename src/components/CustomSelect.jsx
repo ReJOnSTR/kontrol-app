@@ -47,16 +47,31 @@ export default function CustomSelect({
         }
         setPlacement(newPlacement)
 
-        // Smart width: auto-expand for table filters so long company/role names are readable
+        // Smart width: form selects in modals/pages should match trigger width!
         const isCompact = className.includes('filter-select-custom') || className.includes('page-select-custom')
         const isPageSelect = className.includes('page-select-custom')
-        const popupMinWidth = isPageSelect ? rect.width : Math.min(Math.max(rect.width, 220), window.innerWidth - 24)
-        const popupMaxWidth = Math.min(360, window.innerWidth - 24)
+
+        let popupWidth, popupMinWidth, popupMaxWidth
+        if (isPageSelect) {
+            popupMinWidth = rect.width
+            popupMaxWidth = rect.width
+            popupWidth = `${rect.width}px`
+        } else if (isCompact) {
+            popupMinWidth = Math.min(Math.max(rect.width, 180), window.innerWidth - 24)
+            popupMaxWidth = Math.min(360, window.innerWidth - 24)
+            popupWidth = 'max-content'
+        } else {
+            // Form select in modal or page - match trigger width
+            popupWidth = `${Math.min(rect.width, window.innerWidth - 24)}px`
+            popupMinWidth = `${Math.min(Math.max(rect.width, 240), window.innerWidth - 24)}px`
+            popupMaxWidth = `${window.innerWidth - 24}px`
+        }
 
         // Prevent overflow beyond right edge of viewport
+        const targetWidth = isCompact ? (typeof popupMinWidth === 'number' ? popupMinWidth : 200) : rect.width
         let left = rect.left
-        if (left + popupMinWidth > window.innerWidth - 12) {
-            left = Math.max(12, window.innerWidth - popupMinWidth - 12)
+        if (left + targetWidth > window.innerWidth - 12) {
+            left = Math.max(12, window.innerWidth - targetWidth - 12)
         }
         if (left < 12) left = 12
 
@@ -65,9 +80,9 @@ export default function CustomSelect({
             top: newPlacement === 'bottom' ? rect.bottom + 4 : 'auto',
             bottom: newPlacement === 'top' ? (window.innerHeight - rect.top) + 4 : 'auto',
             left: left,
-            minWidth: `${popupMinWidth}px`,
-            maxWidth: `${popupMaxWidth}px`,
-            width: 'max-content',
+            minWidth: typeof popupMinWidth === 'number' ? `${popupMinWidth}px` : popupMinWidth,
+            maxWidth: typeof popupMaxWidth === 'number' ? `${popupMaxWidth}px` : popupMaxWidth,
+            width: popupWidth,
             zIndex: 99999
         })
     }

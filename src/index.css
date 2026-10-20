@@ -1076,13 +1076,62 @@ textarea,
     min-height: 34px !important;
   }
 
+  /* Bulk Selection Floating Dock on Mobile */
   .bulk-selection-overlay {
-    left: 8px !important;
-    right: 8px !important;
-    bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    transform: none !important; /* CRITICAL: Override desktop translateX(-50%) to prevent off-screen shifting */
+    bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
     padding: 10px 14px !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
     flex-wrap: wrap !important;
     gap: 8px !important;
+    background: rgba(22, 22, 26, 0.96) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.55), 0 0 1px rgba(255, 255, 255, 0.15) !important;
+    z-index: 1000 !important;
+    box-sizing: border-box !important;
+  }
+
+  .bulk-selection-overlay .bulk-count {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    white-space: nowrap !important;
+  }
+
+  .bulk-selection-overlay .bulk-divider {
+    display: none !important;
+  }
+
+  .bulk-selection-overlay .bulk-actions {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    justify-content: flex-end !important;
+    flex: 1 1 auto !important;
+  }
+
+  .bulk-selection-overlay .btn-bulk-action {
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 6px 12px !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    border-radius: 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    white-space: nowrap !important;
   }
 
   /* Command Palette Mobile */
@@ -1364,21 +1413,19 @@ textarea,
     border-radius: 10px !important;
   }
 
-  /* Fix for textareas in mobile modals */
-  .modal-body textarea,
-  .modal-body .form-textarea {
-    min-height: 84px !important;
-    padding-top: 20px !important;
-    font-size: 15px !important;
-    border-radius: 10px !important;
+  /* CustomSelect Trigger and Options in Mobile Modal */
+  .modal-body .custom-select,
+  .modal-drawer .custom-select,
+  .custom-select:not(.page-select-custom):not(.filter-select-custom) {
+    width: 100% !important;
   }
 
-  /* CustomSelect Trigger in Mobile Modal */
   .modal-body .custom-select-trigger {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
     user-select: none !important;
+    width: 100% !important;
   }
 
   .modal-body .custom-select-trigger .value-text,
@@ -1387,6 +1434,12 @@ textarea,
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
+  }
+
+  .custom-select-option {
+    padding: 12px 14px !important;
+    font-size: 15px !important;
+    min-height: 44px !important;
   }
 
   /* UNIFIED FOOTER & BUTTONS */
@@ -3372,15 +3425,40 @@ textarea,
   border-color: var(--border-light) !important;
 }
 
+/* All form selects take full width by default */
+.custom-select:not(.page-select-custom):not(.filter-select-custom),
+.modal-body .custom-select,
+.modal-drawer .custom-select,
+.modal .custom-select {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.custom-select:not(.page-select-custom):not(.filter-select-custom) .input-wrapper,
+.modal-body .custom-select .input-wrapper {
+  width: 100% !important;
+  position: relative;
+}
+
 .custom-select-trigger {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
-  padding-right: 28px;
+  height: 40px;
+  min-height: 40px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 14px;
   cursor: pointer;
   position: relative;
+  box-sizing: border-box;
+  transition: all var(--transition-fast);
 }
 
 .custom-select-trigger:hover {
@@ -3397,19 +3475,23 @@ textarea,
   color: var(--text-muted);
 }
 
+.custom-select-trigger .value-text {
+  color: var(--text-primary);
+  font-weight: 400;
+}
+
 .custom-select-trigger .chevron {
   color: var(--text-muted);
   transition: transform 0.2s ease;
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 13px;
-  height: 13px;
+  position: static;
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
 }
 
 .custom-select-trigger .chevron.rotate {
-  transform: translateY(-50%) rotate(180deg);
+  transform: rotate(180deg);
 }
 
 .custom-select-dropdown {
@@ -3419,10 +3501,10 @@ textarea,
   right: 0;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-  z-index: 100;
-  max-height: 220px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 10000;
+  max-height: 250px;
   overflow-y: auto;
   animation: dropdownIn 0.12s ease;
 }
@@ -3459,19 +3541,21 @@ textarea,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 7px 10px;
+  padding: 10px 14px;
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 13.5px;
+  min-height: 38px;
   cursor: pointer;
   transition: background 0.1s;
+  box-sizing: border-box;
 }
 
 .custom-select-option:first-child {
-  border-radius: 7px 7px 0 0;
+  border-radius: 9px 9px 0 0;
 }
 
 .custom-select-option:last-child {
-  border-radius: 0 0 7px 7px;
+  border-radius: 0 0 9px 9px;
 }
 
 .custom-select-option:hover {
@@ -3481,6 +3565,7 @@ textarea,
 .custom-select-option.selected {
   background: var(--accent-subtle);
   color: var(--accent-primary);
+  font-weight: 500;
 }
 
 .custom-select-option svg {

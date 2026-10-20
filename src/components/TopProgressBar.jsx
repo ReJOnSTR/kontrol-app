@@ -22,6 +22,16 @@ body.is-electron .top-progress-bar {
     left: var(--sidebar-collapsed-width);
 }
 
+@media (max-width: 768px) {
+    .top-progress-bar {
+        left: 0 !important;
+        right: 0 !important;
+        top: 56px !important;
+        height: 3px !important;
+        z-index: 1005 !important;
+    }
+}
+
 body:has(.modal-overlay) .top-progress-bar,
 body:has(.modal-center) .top-progress-bar,
 body:has(.modal-drawer) .top-progress-bar,
@@ -137,13 +147,14 @@ export default function TopProgressBar({ loading: explicitLoading, isGlobal = fa
             <style>{style}</style>
             <div
                 className="top-progress-bar"
-                style={{ opacity: fading ? 0 : 0.4 }}
+                style={{ opacity: fading ? 0 : 1 }}
             >
                 <div
                     style={{
                         height: '100%',
                         width: `${progress}%`,
-                        background: 'var(--text-muted)',
+                        background: 'var(--accent-primary, #6366f1)',
+                        boxShadow: '0 0 8px var(--accent-primary, #6366f1)',
                         transition: progress === 100
                             ? 'width 0.3s ease-out'
                             : 'width 0.15s linear',
