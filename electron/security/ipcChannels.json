@@ -140,6 +140,7 @@
   "files:select": "selectFile",
   "files:save": "saveFile",
   "files:open": "openFile",
+  "files:uploadBase64": "uploadFileBase64",
   "documents:add": "addDocument",
   "documents:update": "updateDocument",
   "documents:getByCompany": "getAllDocuments",

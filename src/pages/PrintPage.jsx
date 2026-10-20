@@ -26,7 +26,9 @@ export default function PrintPage() {
                         }
                         return parsed;
                     });
-                    document.title = parsed.isEmployeeReport ? 'Personel Raporları' : (parsed.isWorkReport ? 'Puantaj Raporu' : 'Araç Raporları')
+                    document.title = parsed.isEmployeeReport
+                        ? (parsed.reportType === 'payroll' ? `Maaş Tablosu ${parsed.selectedPayrollMonth || ''}`.trim() : 'Personel Raporları')
+                        : (parsed.isWorkReport ? 'Puantaj Raporu' : 'Araç Raporları')
                 } catch (e) {
                     console.error('Failed to parse print data', e)
                 }
@@ -383,20 +385,31 @@ export default function PrintPage() {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                     zoom: 0.88 !important;
+                }
+                .report-print-container,
+                .pdf-report-container {
                     page-break-after: always !important;
+                    break-after: page !important;
                     box-sizing: border-box !important;
                 }
-                .report-print-container table {
+                .pdf-report-container:last-child {
+                    page-break-after: auto !important;
+                    break-after: auto !important;
+                }
+                .report-print-container table,
+                .pdf-report-container table {
                     width: 100% !important;
                     border-collapse: collapse !important;
                 }
-                .report-print-container th {
-                    background-color: #eee !important;
+                .report-print-container th,
+                .pdf-report-container th {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
-                .report-print-container tr {
+                .report-print-container tr,
+                .pdf-report-container tr {
                     page-break-inside: avoid !important;
+                    break-inside: avoid !important;
                 }
                 `}
             </style>
@@ -409,6 +422,8 @@ export default function PrintPage() {
                     dateRange={dateRange}
                     companyName={companyName}
                     reportType={reportType}
+                    selectedPayrollMonth={data.selectedPayrollMonth}
+                    pageBreakMode={data.pageBreakMode || 'auto'}
                     isPreview={false}
                 />
             ) : (
@@ -419,6 +434,7 @@ export default function PrintPage() {
                     dateRange={dateRange}
                     companyName={companyName}
                     reportType={reportType}
+                    pageBreakMode={data.pageBreakMode || 'auto'}
                     isPreview={false}
                 />
             )}

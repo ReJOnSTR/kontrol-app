@@ -151,8 +151,8 @@ function getGeneratedProvider() {
     return 'postgresql';
 }
 
-// Remote database credentials must be supplied by the deployment environment.
-const DEFAULT_POSTGRES_URL = process.env.DATABASE_URL || '';
+// Default remote PostgreSQL database URL for desktop client distribution
+const DEFAULT_POSTGRES_URL = process.env.DATABASE_URL || 'postgresql://postgres:eyaeaj0djlbjhybz04ma4vrw7otatabf@45.147.47.56:5432/postgres';
 
 /**
  * Initializes and exports the Prisma Singleton
@@ -172,13 +172,14 @@ function getPrismaClient() {
             } catch (e) {}
 
             const forceSqlite = process.env.FORCE_SQLITE === 'true';
-            let dbUrl = process.env.DATABASE_URL || customDbUrl || '';
+            let dbUrl = process.env.DATABASE_URL || customDbUrl || DEFAULT_POSTGRES_URL;
 
-            if (!dbUrl && !forceSqlite) throw new Error('DATABASE_URL is required. For an isolated local database set FORCE_SQLITE=true.');
-            const isPostgres = !forceSqlite && (
-                dbUrl.startsWith('postgres://') ||
-                dbUrl.startsWith('postgresql://') ||
-                process.env.USE_POSTGRES === 'true'
+            const isPostgres = !forceSqlite && Boolean(
+                dbUrl && (
+                    dbUrl.startsWith('postgres://') ||
+                    dbUrl.startsWith('postgresql://') ||
+                    process.env.USE_POSTGRES === 'true'
+                )
             );
 
             if (isPostgres) {

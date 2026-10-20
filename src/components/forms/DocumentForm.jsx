@@ -4,6 +4,7 @@ import CustomInput from '../CustomInput'
 import CustomSelect from '../CustomSelect'
 import { useCompany } from '../../context/CompanyContext'
 import { formatDateForInput } from '../../utils/helpers'
+import { resolveDroppedFile } from '../../utils/fileUploadHelper'
 
 export default function DocumentForm({ onSubmit, onCancel, loading, initialType = 'other', options, targetType = 'employee' }) {
     const { currentCompany } = useCompany()
@@ -152,34 +153,16 @@ export default function DocumentForm({ onSubmit, onCancel, loading, initialType 
 
         const newItems = []
         for (const file of files) {
-            let filePath = getFilePath(file)
-
-            // Web fallback: upload file to /api/upload if no native path
-            if (!filePath && typeof window !== 'undefined' && !window.electronAPI?.openFolder) {
-                try {
-                    const base64 = await readFileAsBase64(file)
-                    const token = localStorage.getItem('token') || localStorage.getItem('aractakip_token') || sessionStorage.getItem('token')
-                    const uploadRes = await fetch('/api/upload', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                        },
-                        body: JSON.stringify({
-                            fileName: file.name,
-                            fileData: base64,
-                            mimeType: file.type,
-                            companyId: currentCompany?.id || null,
-                            category: defaultCat
-                        })
-                    })
-                    const data = await uploadRes.json()
-                    if (data?.success && data?.fileName) {
-                        filePath = data.fileName
-                    }
-                } catch (err) {
-                    console.error('Web drop upload error:', err)
-                }
+            let filePath = null
+            try {
+                const resolved = await resolveDroppedFile(file, {
+                    companyId: currentCompany?.id,
+                    category: defaultCat,
+                    module: targetType === 'employee' ? 'employees' : 'vehicles'
+                })
+                filePath = resolved?.path || null
+            } catch (err) {
+                console.error('Dropped file resolution failed:', err)
             }
 
             if (!filePath) {

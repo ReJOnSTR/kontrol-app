@@ -11,7 +11,9 @@ export async function exportElementToCleanPdf(containerElement, filename = 'Rapo
     }
 
     // 1. Locate the best target element for export
-    const target = containerElement.querySelector('.pdf-pages-container') ||
+    const target = (containerElement.matches?.('.pdf-pages-container') ? containerElement : null) ||
+                   containerElement.querySelector('.pdf-pages-container') ||
+                   (containerElement.matches?.('.pdf-report-container') ? containerElement : null) ||
                    containerElement.querySelector('.pdf-report-container') ||
                    containerElement.querySelector('.print-body') ||
                    containerElement;

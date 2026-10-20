@@ -1032,3 +1032,15 @@ export function generateUniqueFileName(prefix, middleParts = [], ext = 'pdf') {
     
     return `${parts.join('_')}_${timeStamp}.${ext}`;
 }
+
+export function formatMonthName(monthStr) {
+    if (!monthStr) return '';
+    try {
+        const [year, month] = monthStr.split('-');
+        const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+        const name = date.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    } catch {
+        return monthStr;
+    }
+}

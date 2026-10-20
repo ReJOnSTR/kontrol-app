@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Trash2, Eye } from 'lucide-react';
+import { Upload, FileText, Trash2, Eye, Loader2 } from 'lucide-react';
 import DocumentPreviewModal from './DocumentPreviewModal';
+import { resolveDroppedFile } from '../utils/fileUploadHelper';
 
 export default function FileAttachmentInput({ value, onChange, label = "Belge / Dosya" }) {
     const [isDragging, setIsDragging] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [previewDoc, setPreviewDoc] = useState(null);
 
     const handleSelectFile = async () => {
@@ -63,16 +65,25 @@ export default function FileAttachmentInput({ value, onChange, label = "Belge / 
         setIsDragging(false);
     };
 
-    const handleDrop = (e) => {
+    const handleDrop = async (e) => {
         e.preventDefault();
         e.stopPropagation();
         setIsDragging(false);
-        const files = Array.from(e.dataTransfer.files);
+        const files = Array.from(e.dataTransfer.files || []);
         if (files.length > 0) {
             const file = files[0];
-            const path = file.path || file.name;
-            const name = file.name;
-            onChange({ path, name });
+            setIsUploading(true);
+            try {
+                const resolved = await resolveDroppedFile(file);
+                if (resolved && resolved.path) {
+                    onChange({ path: resolved.path, name: resolved.name });
+                }
+            } catch (err) {
+                console.error("Failed to process dropped file:", err);
+                alert("Dosya işlenirken bir hata oluştu: " + (err.message || 'Bilinmeyen hata'));
+            } finally {
+                setIsUploading(false);
+            }
         }
     };
 
@@ -165,10 +176,10 @@ export default function FileAttachmentInput({ value, onChange, label = "Belge / 
                 </div>
             ) : (
                 <div
-                    onClick={handleSelectFile}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
+                    onClick={isUploading ? undefined : handleSelectFile}
+                    onDragOver={isUploading ? undefined : handleDragOver}
+                    onDragLeave={isUploading ? undefined : handleDragLeave}
+                    onDrop={isUploading ? undefined : handleDrop}
                     style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -178,20 +189,32 @@ export default function FileAttachmentInput({ value, onChange, label = "Belge / 
                         borderRadius: '12px',
                         border: isDragging ? '2px dashed var(--accent-primary)' : '1px dashed var(--border-color)',
                         background: isDragging ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
-                        cursor: 'pointer',
+                        cursor: isUploading ? 'wait' : 'pointer',
                         transition: 'all 0.2s ease',
-                        textAlign: 'center'
+                        textAlign: 'center',
+                        opacity: isUploading ? 0.7 : 1
                     }}
-                    onMouseEnter={e => { if (!isDragging) e.currentTarget.style.borderColor = 'var(--accent-primary)' }}
-                    onMouseLeave={e => { if (!isDragging) e.currentTarget.style.borderColor = 'var(--border-color)' }}
+                    onMouseEnter={e => { if (!isDragging && !isUploading) e.currentTarget.style.borderColor = 'var(--accent-primary)' }}
+                    onMouseLeave={e => { if (!isDragging && !isUploading) e.currentTarget.style.borderColor = 'var(--border-color)' }}
                 >
-                    <Upload size={24} style={{ color: isDragging ? 'var(--accent-primary)' : 'var(--text-muted)', marginBottom: '8px' }} />
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                        Dosya yüklemek için tıklayın veya sürükleyin
-                    </span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        PDF, PNG, JPG, JPEG (Maks 15MB)
-                    </span>
+                    {isUploading ? (
+                        <>
+                            <Loader2 size={24} className="animate-spin" style={{ color: 'var(--accent-primary)', marginBottom: '8px' }} />
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                                Dosya işleniyor ve yükleniyor...
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <Upload size={24} style={{ color: isDragging ? 'var(--accent-primary)' : 'var(--text-muted)', marginBottom: '8px' }} />
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                                Dosya yüklemek için tıklayın veya sürükleyin
+                            </span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                PDF, PNG, JPG, JPEG (Maks 15MB)
+                            </span>
+                        </>
+                    )}
                 </div>
             )}
 

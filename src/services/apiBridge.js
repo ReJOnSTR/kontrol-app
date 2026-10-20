@@ -79,6 +79,45 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                 return (file) => file?.path || null;
             }
 
+            if (prop === 'uploadFileBase64') {
+                return async ({ fileName, fileData, companyId, module, entityId, category }) => {
+                    try {
+                        const token = localStorage.getItem('token') || localStorage.getItem('aractakip_token') || sessionStorage.getItem('token');
+                        let currentCompanyId = companyId;
+                        if (!currentCompanyId) {
+                            try {
+                                const stored = JSON.parse(localStorage.getItem('aractakip_company') || 'null');
+                                currentCompanyId = Number(typeof stored === 'object' ? stored?.id : stored) || null;
+                            } catch (e) {}
+                        }
+
+                        const uploadRes = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            },
+                            body: JSON.stringify({
+                                fileName,
+                                fileData,
+                                companyId: currentCompanyId,
+                                module: module || 'documents',
+                                entityId: entityId || null,
+                                category: category || null
+                            })
+                        });
+
+                        const data = await uploadRes.json();
+                        if (data.success && data.fileName) {
+                            return { success: true, fileName: data.fileName, path: data.fileName };
+                        }
+                        return { success: false, error: data.error || 'Yükleme başarısız' };
+                    } catch (err) {
+                        return { success: false, error: err.message };
+                    }
+                };
+            }
+
             // Web file picker & auto-upload with hierarchical folder routing
             if (prop === 'selectFile') {
                 return (options = {}) => new Promise((resolve) => {

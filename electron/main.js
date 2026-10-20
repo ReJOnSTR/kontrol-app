@@ -1097,22 +1097,33 @@ ipcMain.handle('employeeDocuments:create', async (event, data) => {
             fs.mkdirSync(filesDir, { recursive: true })
         }
 
-        const sourcePath = typeof data.filePath === 'object' && data.filePath !== null ? data.filePath.path : data.filePath
-        if (!sourcePath) {
-            return { success: false, error: 'Dosya yolu bulunamadı.' }
+        let sourcePath = typeof data.filePath === 'object' && data.filePath !== null ? data.filePath.path : data.filePath
+        let fileName;
+        const ext = path.extname(sourcePath || (typeof data.filePath === 'object' ? data.filePath?.name : '') || '') || '.bin'
+
+        if (sourcePath && fs.existsSync(sourcePath) && path.dirname(sourcePath) === filesDir) {
+            fileName = path.basename(sourcePath)
+        } else if (sourcePath && !sourcePath.includes('/') && !sourcePath.includes('\\') && fs.existsSync(path.join(filesDir, sourcePath))) {
+            fileName = sourcePath
+        } else if (sourcePath && fs.existsSync(sourcePath)) {
+            fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
+            const destPath = path.join(filesDir, fileName)
+            await copyOrCloneFile(sourcePath, destPath)
+            syncFileToCloud(destPath, fileName).catch(err => {
+                console.warn('[employeeDocuments:create Cloud Sync Notice]:', err.message);
+            });
+        } else if (data.filePath?.fileData || data.fileData) {
+            const rawData = data.filePath?.fileData || data.fileData
+            fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
+            const destPath = path.join(filesDir, fileName)
+            const buffer = Buffer.from(rawData.replace(/^data:[^;]*;base64,/, ''), 'base64')
+            fs.writeFileSync(destPath, buffer)
+            syncFileToCloud(destPath, fileName).catch(err => {
+                console.warn('[employeeDocuments:create Cloud Sync Notice]:', err.message);
+            });
+        } else {
+            return { success: false, error: `Dosya bulunamadı veya okunamadı: ${sourcePath || 'Belirtilmedi'}` }
         }
-
-        const ext = path.extname(sourcePath || '')
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
-        const destPath = path.join(filesDir, fileName)
-
-        // Copy file
-        await copyOrCloneFile(sourcePath, destPath)
-
-        // Asynchronously upload to Supabase Storage in background for cross-device availability
-        syncFileToCloud(destPath, fileName).catch(err => {
-            console.warn('[employeeDocuments:create Cloud Sync Notice]:', err.message);
-        });
 
         // Save to DB with the NEW path (the filename in our storage)
         const result = await db.addEmployeeDocument({
@@ -2093,6 +2104,34 @@ ipcMain.handle('files:save', async (event, sourcePath) => {
     }
 })
 
+ipcMain.handle('files:uploadBase64', async (event, payload = {}) => {
+    try {
+        const { fileName: origFileName, fileData } = payload;
+        if (!fileData) throw new Error('Dosya verisi bulunamadı.');
+        const userDataPath = app.getPath('userData')
+        const filesDir = path.join(userDataPath, 'files')
+        if (!fs.existsSync(filesDir)) {
+            fs.mkdirSync(filesDir, { recursive: true })
+        }
+
+        const ext = path.extname(origFileName || '') || '.bin'
+        const savedFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
+        const destPath = path.join(filesDir, savedFileName)
+
+        const buffer = Buffer.from(fileData.replace(/^data:[^;]*;base64,/, ''), 'base64')
+        fs.writeFileSync(destPath, buffer)
+
+        syncFileToCloud(destPath, savedFileName).catch(err => {
+            console.warn('[files:uploadBase64 Cloud Sync Notice]:', err.message);
+        });
+
+        return { success: true, fileName: savedFileName, path: destPath, relativePath: savedFileName }
+    } catch (error) {
+        console.error('File uploadBase64 error:', error)
+        return { success: false, error: error.message }
+    }
+})
+
 ipcMain.handle('files:open', async (event, fileName) => {
     if (!fileName) return
     const userDataPath = app.getPath('userData')
@@ -2130,18 +2169,33 @@ ipcMain.handle('documents:add', async (event, data) => {
             fs.mkdirSync(filesDir, { recursive: true })
         }
 
-        const sourcePath = typeof data.filePath === 'object' && data.filePath !== null ? data.filePath.path : data.filePath
-        const ext = path.extname(sourcePath || '')
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
-        const destPath = path.join(filesDir, fileName)
+        let sourcePath = typeof data.filePath === 'object' && data.filePath !== null ? data.filePath.path : data.filePath
+        let fileName;
+        const ext = path.extname(sourcePath || (typeof data.filePath === 'object' ? data.filePath?.name : '') || '') || '.bin'
 
-        // Copy file
-        await copyOrCloneFile(sourcePath, destPath)
-
-        // Asynchronously upload to Supabase Storage in background for cross-device availability
-        syncFileToCloud(destPath, fileName).catch(err => {
-            console.warn('[documents:add Cloud Sync Notice]:', err.message);
-        });
+        if (sourcePath && fs.existsSync(sourcePath) && path.dirname(sourcePath) === filesDir) {
+            fileName = path.basename(sourcePath)
+        } else if (sourcePath && !sourcePath.includes('/') && !sourcePath.includes('\\') && fs.existsSync(path.join(filesDir, sourcePath))) {
+            fileName = sourcePath
+        } else if (sourcePath && fs.existsSync(sourcePath)) {
+            fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
+            const destPath = path.join(filesDir, fileName)
+            await copyOrCloneFile(sourcePath, destPath)
+            syncFileToCloud(destPath, fileName).catch(err => {
+                console.warn('[documents:add Cloud Sync Notice]:', err.message);
+            });
+        } else if (data.filePath?.fileData || data.fileData) {
+            const rawData = data.filePath?.fileData || data.fileData
+            fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
+            const destPath = path.join(filesDir, fileName)
+            const buffer = Buffer.from(rawData.replace(/^data:[^;]*;base64,/, ''), 'base64')
+            fs.writeFileSync(destPath, buffer)
+            syncFileToCloud(destPath, fileName).catch(err => {
+                console.warn('[documents:add Cloud Sync Notice]:', err.message);
+            });
+        } else {
+            return { success: false, error: `Dosya bulunamadı veya okunamadı: ${sourcePath || 'Belirtilmedi'}` }
+        }
 
         // Add to DB
         const result = await db.addDocument({

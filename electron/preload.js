@@ -50,6 +50,7 @@ ipcRenderer.invoke = (channel, ...args) => {
 };
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    isElectron: true,
     // Auth
     logout: () => ipcRenderer.invoke('auth:logout'),
     register: (userData) => ipcRenderer.invoke('auth:register', userData),
@@ -268,6 +269,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectFile: (options) => ipcRenderer.invoke('files:select', options),
     saveFile: (sourcePath) => ipcRenderer.invoke('files:save', sourcePath),
     openFile: (fileName) => ipcRenderer.invoke('files:open', fileName),
+    uploadFileBase64: (payload) => ipcRenderer.invoke('files:uploadBase64', payload),
     getPathForFile: (file) => {
         try {
             if (webUtils && typeof webUtils.getPathForFile === 'function') {

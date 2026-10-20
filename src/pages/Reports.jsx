@@ -8,6 +8,7 @@ import { FileText, Printer, Building2, Download, Eye, Calendar, Layers, Settings
 import { formatDate, formatCurrency, getVehicleTypeLabel, getMaintenanceTypeLabel, getInsuranceTypeLabel, vehicleTypes, generateUniqueFileName, parseVehicleCapacity, compareVehicleCapacityDesc } from '../utils/helpers'
 import { useReactToPrint } from 'react-to-print'
 import { usePersistentTab } from '../hooks/usePersistentTab'
+import { exportElementToCleanPdf } from '../utils/pdfCleanExport'
 import * as XLSX from 'xlsx'
 
 export default function Reports() {
@@ -23,6 +24,7 @@ export default function Reports() {
     const [reportDataList, setReportDataList] = useState([]) // Array of { vehicle, data }
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [loadingReport, setLoadingReport] = useState(false)
+    const [generatingPdf, setGeneratingPdf] = useState(false)
     const [reportType, setReportType] = useState('detail') // 'detail' or 'list'
     const [activeTab, setActiveTab] = usePersistentTab('Reports', 'all')
     const [seenTypes, setSeenTypes] = useState(new Set())
@@ -52,8 +54,10 @@ export default function Reports() {
         end: ''
     })
 
+    const [pageBreakMode, setPageBreakMode] = useState('auto') // 'auto' or 'fit_page'
     const [sidebarCollapsed, setSidebarCollapsed] = useState({
         reportType: false,
+        pageLayout: false,
         contentSelection: false,
         dateFilter: false
     })
@@ -67,7 +71,8 @@ export default function Reports() {
             listConfig: listConfig,
             dateRange: dateRange,
             companyName: currentCompany.name,
-            reportType: reportType
+            reportType: reportType,
+            pageBreakMode: pageBreakMode
         }
         localStorage.setItem('printData', JSON.stringify(printData))
         
@@ -84,72 +89,87 @@ export default function Reports() {
         }, 3000);
     }
 
-    // Handle PDF download - no extra window, preserving high ton to low ton, high metre to low metre order
+    // Handle PDF download - direct high-resolution clean export from rendered preview
     const handlePdfDownload = async () => {
-        const processedReportList = getProcessedReportList()
-        const printData = {
-            reports: processedReportList,
-            config: config,
-            listConfig: listConfig,
-            dateRange: dateRange,
-            companyName: currentCompany.name,
-            reportType: reportType,
-            isPdfSave: true
-        }
-        localStorage.setItem('printData', JSON.stringify(printData))
-        
-        const getReportPeriodText = (range) => {
-            if (range?.start) {
-                const d = new Date(range.start);
-                if (!isNaN(d.getTime())) {
-                    const m = d.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
-                    return m.charAt(0).toUpperCase() + m.slice(1);
-                }
+        setGeneratingPdf(true)
+        try {
+            const processedReportList = getProcessedReportList()
+            const printData = {
+                reports: processedReportList,
+                config: config,
+                listConfig: listConfig,
+                dateRange: dateRange,
+                companyName: currentCompany.name,
+                reportType: reportType,
+                pageBreakMode: pageBreakMode,
+                isPdfSave: true
             }
-            const now = new Date();
-            const m = now.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
-            return m.charAt(0).toUpperCase() + m.slice(1);
-        };
-
-        const monthStr = getReportPeriodText(dateRange);
-        const companyStr = currentCompany?.name || '';
-        const defaultFileName = generateUniqueFileName('Is_Raporu', [companyStr, monthStr], 'pdf');
-
-        const isElectronApp = typeof window !== 'undefined' && Boolean(
-            window.electronAPI?.isElectron ||
-            (window.electronAPI?.saveReportPdf && !window.electronAPI?.isMock)
-        )
-
-        if (isElectronApp && window.electronAPI?.saveReportPdf) {
-            try {
-                const result = await window.electronAPI.saveReportPdf('/print', { defaultPath: defaultFileName })
-                if (result && !result.success && !result.canceled) {
-                    alert('PDF Kaydedilirken Hata: ' + result.error)
+            localStorage.setItem('printData', JSON.stringify(printData))
+            
+            const getReportPeriodText = (range) => {
+                if (range?.start) {
+                    const d = new Date(range.start);
+                    if (!isNaN(d.getTime())) {
+                        const m = d.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+                        return m.charAt(0).toUpperCase() + m.slice(1);
+                    }
                 }
-                if (result?.success) {
-                    setIsModalOpen(false)
-                }
-            } catch (e) {
-                console.warn('PDF save failed:', e)
-            }
-        } else {
-            // Web browser mode: clean direct PDF export
-            try {
-                const previewEl = document.querySelector('.report-preview-pane') || 
-                                  document.querySelector('.report-print-container') ||
-                                  document.querySelector('.print-body');
+                const now = new Date();
+                const m = now.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+                return m.charAt(0).toUpperCase() + m.slice(1);
+            };
+
+            const monthStr = getReportPeriodText(dateRange);
+            const companyStr = currentCompany?.name || '';
+            const defaultFileName = generateUniqueFileName('Is_Raporu', [companyStr, monthStr], 'pdf');
+
+            const isElectronApp = typeof window !== 'undefined' && Boolean(
+                window.electronAPI?.isElectron ||
+                (window.electronAPI?.saveReportPdf && !window.electronAPI?.isMock)
+            );
+
+            // 1. Locate the rendered report preview container in the DOM
+            const previewEl = document.querySelector('.pdf-pages-container') ||
+                              document.querySelector('.pdf-report-container') ||
+                              document.querySelector('.report-preview-pane') || 
+                              document.querySelector('.report-print-container') ||
+                              document.querySelector('.print-body');
+
+            if (!isElectronApp) {
+                // In web browser: directly download high-quality A4 PDF from the rendered preview
                 if (previewEl) {
-                    const { exportElementToCleanPdf } = await import('../utils/pdfCleanExport');
                     await exportElementToCleanPdf(previewEl, defaultFileName, false);
                 } else if (window.electronAPI?.saveReportPdf) {
                     await window.electronAPI.saveReportPdf('#/print', { defaultPath: defaultFileName });
                 } else {
                     handlePrint();
                 }
-            } catch (err) {
-                console.error('Web PDF Export failed:', err);
-                handlePrint();
+            } else {
+                // In native Electron: try saveReportPdf to open native save dialog
+                let saved = false;
+                if (window.electronAPI?.saveReportPdf) {
+                    try {
+                        const result = await window.electronAPI.saveReportPdf('/print', { defaultPath: defaultFileName });
+                        if (result && !result.success && !result.canceled) {
+                            console.warn('Native PDF save reported error:', result.error);
+                        } else if (result?.success) {
+                            saved = true;
+                            setIsModalOpen(false);
+                        }
+                    } catch (e) {
+                        console.warn('Electron saveReportPdf failed, attempting in-page fallback:', e);
+                    }
+                }
+                // Fallback to client-side clean export if native dialog failed or wasn't available
+                if (!saved && previewEl) {
+                    await exportElementToCleanPdf(previewEl, defaultFileName, false);
+                }
             }
+        } catch (err) {
+            console.error('PDF Export failed:', err);
+            alert('PDF İndirilirken bir hata oluştu: ' + (err.message || err));
+        } finally {
+            setGeneratingPdf(false);
         }
     }
 
@@ -636,10 +656,15 @@ export default function Reports() {
                             <button className="btn btn-success" onClick={handleExcelExport} style={{ marginRight: 'auto' }}>
                                 <Download size={16} /> Excel'e Aktar
                             </button>
-                            <button className="btn btn-primary" onClick={handlePdfDownload} style={{ gap: '6px' }}>
-                                <FileDown size={16} /> PDF İndir
+                            <button 
+                                className="btn btn-primary" 
+                                onClick={handlePdfDownload} 
+                                disabled={generatingPdf} 
+                                style={{ gap: '6px' }}
+                            >
+                                <FileDown size={16} /> {generatingPdf ? 'PDF Hazırlanıyor...' : 'PDF İndir'}
                             </button>
-                            <button className="btn btn-primary" onClick={handlePrint} style={{ gap: '6px' }}>
+                            <button className="btn btn-primary" onClick={handlePrint} disabled={generatingPdf} style={{ gap: '6px' }}>
                                 <Printer size={16} /> Yazdır
                             </button>
                         </>
@@ -679,6 +704,65 @@ export default function Reports() {
                                             <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: reportType === 'detail' ? '5px solid var(--accent-primary)' : '2px solid var(--border-light)', background: 'var(--bg-primary)', transition: 'all 0.15s', flexShrink: 0 }} />
                                             <span style={{ fontSize: '13px', fontWeight: reportType === 'detail' ? 600 : 400, color: reportType === 'detail' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>Detaylı Araç Raporu</span>
                                         </label>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Sayfa Düzeni ve Sığdırma */}
+                            <div style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                <div 
+                                    onClick={() => setSidebarCollapsed(prev => ({ ...prev, pageLayout: !prev.pageLayout }))}
+                                    style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Layers size={14} style={{ color: 'var(--text-muted)' }} />
+                                        <h4 style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sayfa Düzeni ve Sığdırma</h4>
+                                    </div>
+                                    <ChevronDown 
+                                        size={14} 
+                                        style={{ 
+                                            color: 'var(--text-muted)', 
+                                            transform: sidebarCollapsed.pageLayout ? 'rotate(-90deg)' : 'none', 
+                                            transition: 'transform 0.2s ease' 
+                                        }} 
+                                    />
+                                </div>
+                                {!sidebarCollapsed.pageLayout && (
+                                    <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <button
+                                            type="button"
+                                            className={`btn ${pageBreakMode === 'auto' ? 'btn-primary' : 'btn-secondary'}`}
+                                            onClick={() => setPageBreakMode('auto')}
+                                            style={{ 
+                                                fontSize: '11.5px', 
+                                                padding: '8px 12px', 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center',
+                                                borderRadius: '6px'
+                                            }}
+                                            title="Taşan satırları otomatik olarak sonraki A4 sayfalarına böler"
+                                        >
+                                            <span style={{ fontWeight: 600 }}>Çoklu Sayfa (Otomatik)</span>
+                                            <span style={{ fontSize: '10px', opacity: 0.8 }}>Doğal Akış</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`btn ${pageBreakMode === 'fit_page' ? 'btn-primary' : 'btn-secondary'}`}
+                                            onClick={() => setPageBreakMode('fit_page')}
+                                            style={{ 
+                                                fontSize: '11.5px', 
+                                                padding: '8px 12px', 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center',
+                                                borderRadius: '6px'
+                                            }}
+                                            title="Tüm raporu otomatik ölçekleyerek tek 1 A4 sayfasına sığdırır"
+                                        >
+                                            <span style={{ fontWeight: 600 }}>1 Sayfaya Sığdır</span>
+                                            <span style={{ fontSize: '10px', opacity: 0.8 }}>Otomatik Ölçek</span>
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -813,7 +897,7 @@ export default function Reports() {
                         </div>
 
                         {/* Right: Live Preview */}
-                        <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg-tertiary)', padding: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.03)' }}>
+                        <div className="report-preview-pane" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg-tertiary)', padding: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.03)' }}>
                             {loadingReport ? (
                                 <div style={{ color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>
                                     <div className="spinner"></div> {/* Assuming a spinner class exists, if not it just won't show anything besides text */}
@@ -828,6 +912,7 @@ export default function Reports() {
                                         dateRange={dateRange}
                                         companyName={currentCompany.name}
                                         reportType={reportType}
+                                        pageBreakMode={pageBreakMode}
                                         isPreview={true}
                                     />
                                 </div>
