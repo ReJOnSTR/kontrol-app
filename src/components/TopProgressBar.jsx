@@ -135,12 +135,11 @@ export default function TopProgressBar({ loading: explicitLoading, isGlobal = fa
         }
     }, [active])
 
-    // Avoid duplicate DOM rendering if global bar is already active in MainLayout
-    if (!isGlobal && hasGlobalBar) {
+    // Only the global bar in MainLayout should render the visual DOM bar.
+    // Non-global instances only forward their loading state to loadingManager.
+    if (!isGlobal || !visible) {
         return null
     }
-
-    if (!visible) return null
 
     return (
         <>

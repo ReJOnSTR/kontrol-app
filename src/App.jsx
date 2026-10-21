@@ -102,14 +102,10 @@ function PageLoader() {
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth()
 
-    return (
-        <>
-            <TopProgressBar loading={loading} />
-            {!loading && !user && <Navigate to="/login" replace />}
-            {!loading && user?.mustChangePassword && <Navigate to="/change-password" replace />}
-            {!loading && user && !user.mustChangePassword && children}
-        </>
-    )
+    if (loading) return null
+    if (!user) return <Navigate to="/login" replace />
+    if (user?.mustChangePassword) return <Navigate to="/change-password" replace />
+    return children
 }
 
 function AdminRoute({ children }) {
