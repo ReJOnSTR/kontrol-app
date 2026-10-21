@@ -29,7 +29,8 @@ function install(ipcMain, getPrisma) {
         if (!['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.doc', '.docx', '.xls', '.xlsx', '.csv'].includes(ext)) forbidden('Desteklenmeyen dosya türü.');
         if (fs.statSync(source).size > 20 * 1024 * 1024) forbidden('Dosya 20 MB sınırını aşıyor.');
         const mod = segment(selection.module || 'documents');
-        const name = `company_${Number(selection.companyId)}/${mod}/${crypto.randomUUID()}${ext}`;
+        const companyId = Number(selection.companyId) || actor.companyId || actor.companyIds?.[0] || 1;
+        const name = `company_${companyId}/${mod}/${crypto.randomUUID()}${ext}`;
         await authorizeFile(actor, name, getPrisma(), true);
         const target = safePath(root(), name);
         fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -71,7 +72,7 @@ function install(ipcMain, getPrisma) {
                 if (method === 'selectFile' && result?.filePaths) {
                     let choices = selected.get(event.sender.id);
                     if (!choices) { choices = new Map(); selected.set(event.sender.id, choices); event.sender.once('destroyed', () => selected.delete(event.sender.id)); }
-                    for (const name of result.filePaths) choices.set(name, { ...checked[0], expires: Date.now() + 15 * 60 * 1000 });
+                    for (const name of result.filePaths) choices.set(name, { ...(checked[0] || {}), companyId: checked[0]?.companyId || actor?.companyId || actor?.companyIds?.[0], expires: Date.now() + 15 * 60 * 1000 });
                 }
                 return result;
             };

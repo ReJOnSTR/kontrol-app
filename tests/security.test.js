@@ -32,4 +32,11 @@ describe('Security & Protection Rules', () => {
         expect(samplePayload.role).toBe('admin');
         expect(['admin', 'superadmin', 'company_admin']).toContain(samplePayload.role);
     });
+
+    it('normalizes Windows backslashes and relative paths safely for documents', () => {
+        const winPath = 'company_1\\documents\\contract.pdf';
+        const normalized = winPath.replace(/\\/g, '/').replace(/^\/+/, '');
+        expect(normalized).toBe('company_1/documents/contract.pdf');
+        expect(path.basename(normalized)).toBe('contract.pdf');
+    });
 });

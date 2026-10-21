@@ -6,7 +6,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import DataTable from '../components/DataTable'
 import CustomInput from '../components/CustomInput'
 import { formatDate } from '../utils/helpers'
-import { Plus, Pencil, Trash2, Building2, Upload, X, Loader2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Building2, Upload, X, Loader2, FileText } from 'lucide-react'
 
 export default function Companies() {
     const { user } = useAuth()
@@ -89,7 +89,13 @@ export default function Companies() {
     const handleSelectSignature = async () => {
         setError('')
         try {
-            const result = await window.electronAPI.selectFile()
+            const currentCid = formData.id || currentCompany?.id
+            const result = await window.electronAPI.selectFile({ 
+                companyId: currentCid, 
+                module: 'companies', 
+                category: 'signatures',
+                accept: '.png,.jpg,.jpeg,.webp,.pdf' 
+            })
             if (!result || result.canceled || (Array.isArray(result) && result.length === 0)) return
             const filePath = Array.isArray(result) ? result[0] : result.filePaths?.[0]
             if (!filePath) return
@@ -119,7 +125,13 @@ export default function Companies() {
     const handleSelectStamp = async () => {
         setError('')
         try {
-            const result = await window.electronAPI.selectFile()
+            const currentCid = formData.id || currentCompany?.id
+            const result = await window.electronAPI.selectFile({ 
+                companyId: currentCid, 
+                module: 'companies', 
+                category: 'stamps',
+                accept: '.png,.jpg,.jpeg,.webp,.pdf' 
+            })
             if (!result || result.canceled || (Array.isArray(result) && result.length === 0)) return
             const filePath = Array.isArray(result) ? result[0] : result.filePaths?.[0]
             if (!filePath) return
@@ -414,7 +426,14 @@ export default function Companies() {
                                 </div>
                             ) : stampPreview ? (
                                 <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <img src={stampPreview} alt="Kaşe" style={{ maxHeight: '60px', maxWidth: '100%', objectFit: 'contain', marginBottom: '8px', borderRadius: '4px' }} />
+                                    {(formData.stampPath?.toLowerCase().endsWith('.pdf') || (typeof stampPreview === 'string' && stampPreview.startsWith('data:application/pdf'))) ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
+                                            <FileText size={20} style={{ color: 'var(--accent-primary)' }} />
+                                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>PDF Kaşe</span>
+                                        </div>
+                                    ) : (
+                                        <img src={stampPreview} alt="Kaşe" style={{ maxHeight: '60px', maxWidth: '100%', objectFit: 'contain', marginBottom: '8px', borderRadius: '4px' }} />
+                                    )}
                                     <button 
                                         type="button" 
                                         className="btn btn-secondary btn-sm" 
@@ -461,7 +480,14 @@ export default function Companies() {
                                 </div>
                             ) : signaturePreview ? (
                                 <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <img src={signaturePreview} alt="İmza" style={{ maxHeight: '60px', maxWidth: '100%', objectFit: 'contain', marginBottom: '8px', borderRadius: '4px' }} />
+                                    {(formData.signaturePath?.toLowerCase().endsWith('.pdf') || (typeof signaturePreview === 'string' && signaturePreview.startsWith('data:application/pdf'))) ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
+                                            <FileText size={20} style={{ color: 'var(--accent-primary)' }} />
+                                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>PDF İmza</span>
+                                        </div>
+                                    ) : (
+                                        <img src={signaturePreview} alt="İmza" style={{ maxHeight: '60px', maxWidth: '100%', objectFit: 'contain', marginBottom: '8px', borderRadius: '4px' }} />
+                                    )}
                                     <button 
                                         type="button" 
                                         className="btn btn-secondary btn-sm" 

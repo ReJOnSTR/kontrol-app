@@ -147,14 +147,13 @@ export default function TopProgressBar({ loading: explicitLoading, isGlobal = fa
             <style>{style}</style>
             <div
                 className="top-progress-bar"
-                style={{ opacity: fading ? 0 : 1 }}
+                style={{ opacity: fading ? 0 : 0.4 }}
             >
                 <div
                     style={{
                         height: '100%',
                         width: `${progress}%`,
-                        background: 'var(--accent-primary, #6366f1)',
-                        boxShadow: '0 0 8px var(--accent-primary, #6366f1)',
+                        background: 'var(--text-muted)',
                         transition: progress === 100
                             ? 'width 0.3s ease-out'
                             : 'width 0.15s linear',

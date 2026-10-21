@@ -165,17 +165,26 @@ fs.mkdirSync(filesDir, { recursive: true });
 
 app.use('/uploads', requireSession, async (req, res) => {
     try {
-        const name = decodeURIComponent(req.path).replace(/^\/+/, '');
-        const target = safePath(filesDir, name);
-        await authorizeFile(req.actor, name, getPrismaClient());
+        const rawPath = decodeURIComponent(req.path).replace(/^\/+/, '');
+        const cleanName = path.basename(rawPath);
+        await authorizeFile(req.actor, rawPath, getPrismaClient());
+        let target = safePath(filesDir, rawPath);
+        if (!fs.existsSync(target) && fs.existsSync(safePath(filesDir, cleanName))) {
+            target = safePath(filesDir, cleanName);
+        }
         if (!fs.existsSync(target)) {
-            const result = await require('./electron/services/supabase.service').downloadFromStorage(name);
+            let result = await require('./electron/services/supabase.service').downloadFromStorage(rawPath);
+            if (!result?.success && rawPath !== cleanName) {
+                result = await require('./electron/services/supabase.service').downloadFromStorage(cleanName);
+            }
             const buffer = result?.buffer || result?.data;
             if (!result?.success || !buffer) return res.sendStatus(404);
             fs.mkdirSync(path.dirname(target), { recursive: true });
             fs.writeFileSync(target, buffer);
         }
-        res.setHeader('Cache-Control', 'private, no-store');
+        const ext = path.extname(target).toLowerCase();
+        res.setHeader('Content-Type', extensions[ext] || 'application/octet-stream');
+        res.setHeader('Cache-Control', 'private, max-age=3600');
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.sendFile(target);
     } catch (error) { res.status(error.status || 400).json({ success: false, error: 'Belgeye erişilemiyor.' }); }
@@ -187,7 +196,10 @@ app.post('/api/upload', requireSession, async (req, res) => {
         const { fileName, fileData, companyId, module, entityId, category } = req.body;
         const ext = path.extname(fileName || '').toLowerCase();
         if (!extensions[ext] || typeof fileData !== 'string') return res.status(400).json({ success: false, error: 'İzin verilmeyen dosya biçimi.' });
-        const cid = Number(companyId);
+        let cid = Number(companyId);
+        if (!Number.isSafeInteger(cid) || cid <= 0) {
+            cid = Number(req.actor.companyId || req.actor.companyIds?.[0]);
+        }
         if (!Number.isSafeInteger(cid) || cid <= 0) throw new Error('Şirket seçilmelidir.');
         const mod = segment(module || 'documents');
         let folder = `company_${cid}/${mod}/`;
@@ -198,8 +210,12 @@ app.post('/api/upload', requireSession, async (req, res) => {
         const target = safePath(filesDir, name);
         const buffer = Buffer.from(fileData.replace(/^data:[^;]*;base64,/, ''), 'base64');
         if (!buffer.length || buffer.length > 20 * 1024 * 1024) return res.status(400).json({ success: false, error: 'Dosya boyutu 1 bayt–20 MB arasında olmalıdır.' });
-        const signatures = { '.pdf': '%PDF-', '.png': '\x89PNG', '.jpg': '\xff\xd8\xff', '.jpeg': '\xff\xd8\xff', '.docx': 'PK', '.xlsx': 'PK', '.doc': '\xd0\xcf\x11\xe0', '.xls': '\xd0\xcf\x11\xe0', '.webp': 'RIFF' };
-        if (signatures[ext] && !buffer.subarray(0, Buffer.byteLength(signatures[ext], 'latin1')).equals(Buffer.from(signatures[ext], 'latin1'))) throw new Error('Dosya içeriği uzantıyla eşleşmiyor.');
+        const signatures = { '.png': '\x89PNG', '.jpg': '\xff\xd8\xff', '.jpeg': '\xff\xd8\xff', '.docx': 'PK', '.xlsx': 'PK', '.doc': '\xd0\xcf\x11\xe0', '.xls': '\xd0\xcf\x11\xe0', '.webp': 'RIFF' };
+        if (ext === '.pdf') {
+            if (!buffer.subarray(0, 1024).toString('latin1').includes('%PDF-')) throw new Error('Dosya içeriği geçerli bir PDF değil.');
+        } else if (signatures[ext] && !buffer.subarray(0, Buffer.byteLength(signatures[ext], 'latin1')).equals(Buffer.from(signatures[ext], 'latin1'))) {
+            throw new Error('Dosya içeriği uzantıyla eşleşmiyor.');
+        }
         const company = await getPrismaClient().companies.findUnique({ where: { id: cid }, select: { storage_limit_mb: true } });
         if (!company) throw new Error('Şirket bulunamadı.');
         const sizeOf = dir => fs.existsSync(dir) ? fs.readdirSync(dir, { withFileTypes: true }).reduce((n, e) => n + (e.isSymbolicLink() ? 0 : e.isDirectory() ? sizeOf(path.join(dir, e.name)) : fs.statSync(path.join(dir, e.name)).size), 0) : 0;
@@ -414,13 +430,45 @@ const rpcMap = {
     updateDocument: db.updateDocument,
     deleteDocument: db.deleteDocument,
     readDocumentData: async (fileName) => {
+        if (!fileName) return { success: false, error: 'Dosya adı belirtilmedi.' };
         const actor = require('./electron/security/context').context()?.actor;
-        const target = safePath(filesDir, fileName);
-        await authorizeFile(actor, fileName, getPrismaClient());
+        const rawPath = String(fileName).replace(/\\/g, '/').replace(/^\/+/, '');
+        const cleanName = path.basename(rawPath);
+        await authorizeFile(actor, rawPath, getPrismaClient());
+        let target = safePath(filesDir, rawPath);
+        if (!fs.existsSync(target) && fs.existsSync(safePath(filesDir, cleanName))) {
+            target = safePath(filesDir, cleanName);
+        }
         let buffer;
-        if (fs.existsSync(target)) buffer = fs.readFileSync(target);
-        else { const result = await require('./electron/services/supabase.service').downloadFromStorage(fileName); if (result?.success) buffer = result.buffer || result.data; }
-        return buffer ? { success: true, data: buffer.toString('base64'), fileName: path.basename(fileName), path: fileName, ext: path.extname(fileName) } : { success: false, error: 'Belge bulunamadı.' };
+        if (fs.existsSync(target)) {
+            buffer = fs.readFileSync(target);
+        } else {
+            let result = await require('./electron/services/supabase.service').downloadFromStorage(rawPath);
+            if (!result?.success && rawPath !== cleanName) {
+                result = await require('./electron/services/supabase.service').downloadFromStorage(cleanName);
+            }
+            if (result?.success) {
+                buffer = result.buffer || result.data;
+                try {
+                    fs.mkdirSync(path.dirname(target), { recursive: true });
+                    fs.writeFileSync(target, buffer);
+                } catch (e) {}
+            }
+        }
+        if (!buffer) return { success: false, error: 'Belge bulunamadı.' };
+        const ext = path.extname(target || cleanName).toLowerCase();
+        const mimeType = extensions[ext] || 'application/octet-stream';
+        const base64Str = buffer.toString('base64');
+        return {
+            success: true,
+            data: `data:${mimeType};base64,${base64Str}`,
+            rawBase64: base64Str,
+            mimeType,
+            type: mimeType,
+            fileName: cleanName,
+            path: rawPath,
+            ext
+        };
     },
 
     // Dashboard & Common

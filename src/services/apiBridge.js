@@ -86,8 +86,14 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                         let currentCompanyId = companyId;
                         if (!currentCompanyId) {
                             try {
-                                const stored = JSON.parse(localStorage.getItem('aractakip_company') || 'null');
+                                const stored = JSON.parse(localStorage.getItem('aractakip_company') || localStorage.getItem('company') || 'null');
                                 currentCompanyId = Number(typeof stored === 'object' ? stored?.id : stored) || null;
+                            } catch (e) {}
+                        }
+                        if (!currentCompanyId) {
+                            try {
+                                const u = JSON.parse(localStorage.getItem('user') || 'null');
+                                currentCompanyId = Number(u?.company_id || u?.companyId) || null;
                             } catch (e) {}
                         }
 
@@ -131,8 +137,14 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                     let currentCompanyId = options?.companyId;
                     if (!currentCompanyId) {
                         try {
-                            const stored = JSON.parse(localStorage.getItem('aractakip_company') || 'null');
+                            const stored = JSON.parse(localStorage.getItem('aractakip_company') || localStorage.getItem('company') || 'null');
                             currentCompanyId = Number(typeof stored === 'object' ? stored?.id : stored) || null;
+                        } catch (e) {}
+                    }
+                    if (!currentCompanyId) {
+                        try {
+                            const u = JSON.parse(localStorage.getItem('user') || 'null');
+                            currentCompanyId = Number(u?.company_id || u?.companyId) || null;
                         } catch (e) {}
                     }
 

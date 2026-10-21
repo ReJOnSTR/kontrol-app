@@ -46,14 +46,36 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
     }, [doc])
 
     const [pdfBlobUrl, setPdfBlobUrl] = useState(null)
+    const [fetchedData, setFetchedData] = useState(null)
 
-    const fileName = doc?.name || doc?.file_name || doc?.fileName || 'Belge'
+    const fullRelPath = String(doc?.path || doc?.file_path || doc?.fileName || doc?.file_name || doc?.name || '').replace(/\\/g, '/').replace(/^[\\/]+/, '').replace(/^uploads[\\/]/, '')
+    const cleanFileName = fullRelPath.split('/').pop() || doc?.name || doc?.file_name || doc?.fileName || 'Belge'
+    const fileName = doc?.name || doc?.file_name || doc?.fileName || cleanFileName
     const ext = (fileName.substring(fileName.lastIndexOf('.')).toLowerCase()) || doc?.ext || ''
-    const cleanFileName = String(doc?.path || doc?.file_path || doc?.name || doc?.fileName || doc?.file_name || '').split(/[\\/]/).pop()
-    const pdfUrl = cleanFileName ? `/uploads/${encodeURIComponent(cleanFileName)}` : null
-    const publicCloudUrl = cleanFileName ? `https://supabase.kontrol-app.com/storage/v1/object/public/documents/${encodeURIComponent(cleanFileName)}` : null
+    const pdfUrl = fullRelPath ? `/uploads/${fullRelPath.split('/').map(encodeURIComponent).join('/')}` : null
+    const publicCloudUrl = fullRelPath ? `https://supabase.kontrol-app.com/storage/v1/object/public/documents/${fullRelPath.split('/').map(encodeURIComponent).join('/')}` : null
 
-    const isNotFound = Boolean(doc?.notFound && !doc?.data && !doc?.url && !cleanFileName)
+    const activeDocData = doc?.data || fetchedData
+    const isNotFound = Boolean(doc?.notFound && !activeDocData && !doc?.url && !cleanFileName)
+
+    // Auto-fetch file bytes if not supplied directly
+    useEffect(() => {
+        if (!doc) {
+            setFetchedData(null)
+            return
+        }
+        if (!doc.data && fullRelPath && window.electronAPI?.readDocumentData) {
+            let active = true
+            window.electronAPI.readDocumentData(fullRelPath).then(res => {
+                if (active && res && res.success && res.data) {
+                    setFetchedData(res.data)
+                }
+            }).catch(() => {})
+            return () => { active = false }
+        } else {
+            setFetchedData(null)
+        }
+    }, [doc, fullRelPath])
 
     // Convert PDF base64 to Blob URL for fast & lightweight rendering
     useEffect(() => {
@@ -63,12 +85,12 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
         }
 
         let createdBlobUrl = null
-        if (doc.data && typeof doc.data === 'string') {
-            if (doc.data.startsWith('blob:') || doc.data.startsWith('http://') || doc.data.startsWith('https://')) {
-                createdBlobUrl = doc.data
+        if (activeDocData && typeof activeDocData === 'string') {
+            if (activeDocData.startsWith('blob:') || activeDocData.startsWith('http://') || activeDocData.startsWith('https://')) {
+                createdBlobUrl = activeDocData
             } else {
                 try {
-                    const base64Clean = doc.data.includes(',') ? doc.data.split(',')[1] : doc.data
+                    const base64Clean = activeDocData.includes(',') ? activeDocData.split(',')[1] : activeDocData
                     const binaryStr = atob(base64Clean.trim())
                     const bytes = new Uint8Array(binaryStr.length)
                     for (let i = 0; i < binaryStr.length; i++) {
@@ -95,7 +117,7 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
                 try { URL.revokeObjectURL(createdBlobUrl) } catch (e) {}
             }
         }
-    }, [doc, publicCloudUrl, pdfUrl])
+    }, [doc, activeDocData, publicCloudUrl, pdfUrl])
 
     // Aggressive Canvas Bitmap Cleanup on unmount (frees 150-300MB uncompressed pixels)
     useEffect(() => {
@@ -113,37 +135,37 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
     const formattedPdfSource = React.useMemo(() => {
         if (!doc) return null
         if (pdfBlobUrl) return pdfBlobUrl
-        if (doc.data) {
-            if (typeof doc.data === 'string') {
-                if (doc.data.startsWith('data:application/pdf')) return doc.data
-                if (doc.data.startsWith('http://') || doc.data.startsWith('https://') || doc.data.startsWith('blob:')) return doc.data
-                if (doc.data.startsWith('data:')) {
-                    return doc.data.replace(/^data:[^;]+;base64,/, 'data:application/pdf;base64,')
+        if (activeDocData) {
+            if (typeof activeDocData === 'string') {
+                if (activeDocData.startsWith('data:application/pdf')) return activeDocData
+                if (activeDocData.startsWith('http://') || activeDocData.startsWith('https://') || activeDocData.startsWith('blob:')) return activeDocData
+                if (activeDocData.startsWith('data:')) {
+                    return activeDocData.replace(/^data:[^;]+;base64,/, 'data:application/pdf;base64,')
                 }
-                return `data:application/pdf;base64,${doc.data.trim()}`
+                return `data:application/pdf;base64,${activeDocData.trim()}`
             }
         }
         if (doc.url) return doc.url
         if (publicCloudUrl) return publicCloudUrl
         if (pdfUrl) return pdfUrl
         return null
-    }, [doc, pdfBlobUrl, publicCloudUrl, pdfUrl])
+    }, [doc, activeDocData, pdfBlobUrl, publicCloudUrl, pdfUrl])
 
     const formattedImageSource = React.useMemo(() => {
         if (!doc) return null
-        if (doc.data) {
-            if (typeof doc.data === 'string') {
-                if (doc.data.startsWith('data:image/') || doc.data.startsWith('http://') || doc.data.startsWith('https://') || doc.data.startsWith('blob:')) return doc.data
+        if (activeDocData) {
+            if (typeof activeDocData === 'string') {
+                if (activeDocData.startsWith('data:image/') || activeDocData.startsWith('http://') || activeDocData.startsWith('https://') || activeDocData.startsWith('blob:')) return activeDocData
                 const cleanExt = (ext.replace('.', '') || 'png').toLowerCase()
                 const mimeExt = cleanExt === 'jpg' ? 'jpeg' : cleanExt
-                return `data:image/${mimeExt};base64,${doc.data.trim()}`
+                return `data:image/${mimeExt};base64,${activeDocData.trim()}`
             }
         }
         if (doc.url) return doc.url
         if (publicCloudUrl) return publicCloudUrl
         if (pdfUrl) return pdfUrl
         return null
-    }, [doc, ext, pdfUrl, publicCloudUrl])
+    }, [doc, activeDocData, ext, pdfUrl, publicCloudUrl])
 
     const isPdf = ext === '.pdf' || doc?.data?.startsWith('data:application/pdf') || doc?.file_type?.toLowerCase() === '.pdf' || (cleanFileName && cleanFileName.toLowerCase().endsWith('.pdf'))
     const isImage = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.avif'].includes(ext) || doc?.data?.startsWith('data:image/')
