@@ -10,7 +10,7 @@ import { Plus, Pencil, Trash2, Building2, Upload, X, Loader2, FileText } from 'l
 
 export default function Companies() {
     const { user } = useAuth()
-    const { companies, createCompany, updateCompany, deleteCompany, refreshCompanies } = useCompany()
+    const { companies, currentCompany, createCompany, updateCompany, deleteCompany, refreshCompanies } = useCompany()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingCompany, setEditingCompany] = useState(null)
     const [formData, setFormData] = useState({
@@ -89,7 +89,7 @@ export default function Companies() {
     const handleSelectSignature = async () => {
         setError('')
         try {
-            const currentCid = formData.id || currentCompany?.id
+            const currentCid = editingCompany?.id || formData.id || currentCompany?.id || user?.company_id || user?.companyId
             const result = await window.electronAPI.selectFile({ 
                 companyId: currentCid, 
                 module: 'companies', 
@@ -125,7 +125,7 @@ export default function Companies() {
     const handleSelectStamp = async () => {
         setError('')
         try {
-            const currentCid = formData.id || currentCompany?.id
+            const currentCid = editingCompany?.id || formData.id || currentCompany?.id || user?.company_id || user?.companyId
             const result = await window.electronAPI.selectFile({ 
                 companyId: currentCid, 
                 module: 'companies', 
