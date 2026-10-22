@@ -155,24 +155,78 @@ app.get('/api/admin/backup/download/:fileName', ...requirePlatformAdmin, (req, r
 });
 
 // Documents are private: a session and an owner are required for every read/write.
-let dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
-let filesDir = path.join(dataDir, 'files');
-try {
-    const electronApp = require('electron').app;
-    if (electronApp) { dataDir = path.join(electronApp.getPath('userData'), 'data'); filesDir = path.join(electronApp.getPath('userData'), 'files'); }
-} catch {}
+// Storage Directories Discovery across OS and Electron paths
+const extensions = { '.pdf': 'application/pdf', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.csv': 'text/csv' };
+
+function getCandidateFilesDirs() {
+    const candidates = [];
+    if (process.env.DATA_DIR) {
+        candidates.push(path.join(process.env.DATA_DIR, 'files'));
+        candidates.push(process.env.DATA_DIR);
+    }
+    try {
+        const electronApp = require('electron').app;
+        if (electronApp && typeof electronApp.getPath === 'function') {
+            candidates.push(path.join(electronApp.getPath('userData'), 'files'));
+        }
+    } catch {}
+
+    const home = process.env.HOME || process.env.USERPROFILE || '';
+    if (process.platform === 'darwin') {
+        candidates.push(path.join(home, 'Library', 'Application Support', 'kontrol-app', 'files'));
+        candidates.push(path.join(home, 'Library', 'Application Support', 'Kontrol', 'files'));
+        candidates.push(path.join(home, 'Library', 'Application Support', 'Electron', 'files'));
+    } else if (process.platform === 'win32') {
+        const appData = process.env.APPDATA || (home ? path.join(home, 'AppData', 'Roaming') : '');
+        if (appData) {
+            candidates.push(path.join(appData, 'kontrol-app', 'files'));
+            candidates.push(path.join(appData, 'Kontrol', 'files'));
+            candidates.push(path.join(appData, 'Electron', 'files'));
+        }
+    } else {
+        candidates.push(path.join(home, '.config', 'kontrol-app', 'files'));
+        candidates.push(path.join(home, '.config', 'Kontrol', 'files'));
+        candidates.push(path.join(home, '.config', 'Electron', 'files'));
+    }
+
+    candidates.push(path.join(__dirname, 'data', 'files'));
+    candidates.push(path.join(__dirname, 'files'));
+
+    const existing = candidates.filter(p => p && fs.existsSync(p));
+    return {
+        writeDir: existing[0] || candidates[0],
+        allDirs: [...new Set(existing.length ? existing : candidates)]
+    };
+}
+
+const storageDirs = getCandidateFilesDirs();
+let filesDir = storageDirs.writeDir;
 fs.mkdirSync(filesDir, { recursive: true });
+
+function findExistingFile(rawPath) {
+    if (!rawPath) return null;
+    const cleanName = path.basename(rawPath);
+    for (const dir of storageDirs.allDirs) {
+        try {
+            const p1 = safePath(dir, rawPath);
+            if (fs.existsSync(p1)) return p1;
+        } catch {}
+        try {
+            const p2 = safePath(dir, cleanName);
+            if (fs.existsSync(p2)) return p2;
+        } catch {}
+    }
+    return null;
+}
 
 app.use('/uploads', requireSession, async (req, res) => {
     try {
         const rawPath = decodeURIComponent(req.path).replace(/^\/+/, '');
         const cleanName = path.basename(rawPath);
         await authorizeFile(req.actor, rawPath, getPrismaClient());
-        let target = safePath(filesDir, rawPath);
-        if (!fs.existsSync(target) && fs.existsSync(safePath(filesDir, cleanName))) {
-            target = safePath(filesDir, cleanName);
-        }
-        if (!fs.existsSync(target)) {
+        let target = findExistingFile(rawPath);
+        if (!target) {
+            target = safePath(filesDir, rawPath);
             let result = await require('./electron/services/supabase.service').downloadFromStorage(rawPath);
             if (!result?.success && rawPath !== cleanName) {
                 result = await require('./electron/services/supabase.service').downloadFromStorage(cleanName);
@@ -190,7 +244,6 @@ app.use('/uploads', requireSession, async (req, res) => {
     } catch (error) { res.status(error.status || 400).json({ success: false, error: 'Belgeye erişilemiyor.' }); }
 });
 
-const extensions = { '.pdf': 'application/pdf', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.csv': 'text/csv' };
 app.post('/api/upload', requireSession, async (req, res) => {
     try {
         const { fileName, fileData, companyId, module, entityId, category } = req.body;
@@ -200,7 +253,10 @@ app.post('/api/upload', requireSession, async (req, res) => {
         if (!Number.isSafeInteger(cid) || cid <= 0) {
             cid = Number(req.actor.companyId || req.actor.companyIds?.[0]);
         }
-        if (!Number.isSafeInteger(cid) || cid <= 0) throw new Error('Şirket seçilmelidir.');
+        if (!Number.isSafeInteger(cid) || cid <= 0) {
+            const firstComp = await getPrismaClient().companies.findFirst({ select: { id: true } });
+            cid = firstComp ? firstComp.id : 1;
+        }
         const mod = segment(module || 'documents');
         let folder = `company_${cid}/${mod}/`;
         if (entityId != null) folder += `${mod.endsWith('s') ? mod.slice(0, -1) : mod}_${segment(String(entityId))}/`;
@@ -217,9 +273,9 @@ app.post('/api/upload', requireSession, async (req, res) => {
             throw new Error('Dosya içeriği uzantıyla eşleşmiyor.');
         }
         const company = await getPrismaClient().companies.findUnique({ where: { id: cid }, select: { storage_limit_mb: true } });
-        if (!company) throw new Error('Şirket bulunamadı.');
+        const storageLimit = (company?.storage_limit_mb ?? 1024) * 1024 * 1024;
         const sizeOf = dir => fs.existsSync(dir) ? fs.readdirSync(dir, { withFileTypes: true }).reduce((n, e) => n + (e.isSymbolicLink() ? 0 : e.isDirectory() ? sizeOf(path.join(dir, e.name)) : fs.statSync(path.join(dir, e.name)).size), 0) : 0;
-        if (sizeOf(path.join(filesDir, `company_${cid}`)) + buffer.length > (company.storage_limit_mb ?? 1024) * 1024 * 1024) throw new Error('Depolama kotası aşıldı.');
+        if (sizeOf(path.join(filesDir, `company_${cid}`)) + buffer.length > storageLimit) throw new Error('Depolama kotası aşıldı.');
         fs.mkdirSync(path.dirname(target), { recursive: true });
         fs.writeFileSync(target, buffer, { flag: 'wx' });
         const cloud = await require('./electron/services/supabase.service').uploadToStorage(buffer, name, extensions[ext], 'documents').catch(() => ({ success: false }));
@@ -435,14 +491,12 @@ const rpcMap = {
         const rawPath = String(fileName).replace(/\\/g, '/').replace(/^\/+/, '');
         const cleanName = path.basename(rawPath);
         await authorizeFile(actor, rawPath, getPrismaClient());
-        let target = safePath(filesDir, rawPath);
-        if (!fs.existsSync(target) && fs.existsSync(safePath(filesDir, cleanName))) {
-            target = safePath(filesDir, cleanName);
-        }
+        let target = findExistingFile(rawPath);
         let buffer;
-        if (fs.existsSync(target)) {
+        if (target && fs.existsSync(target)) {
             buffer = fs.readFileSync(target);
         } else {
+            target = safePath(filesDir, rawPath);
             let result = await require('./electron/services/supabase.service').downloadFromStorage(rawPath);
             if (!result?.success && rawPath !== cleanName) {
                 result = await require('./electron/services/supabase.service').downloadFromStorage(cleanName);

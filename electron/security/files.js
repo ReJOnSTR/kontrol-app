@@ -32,7 +32,7 @@ function segment(value) {
 }
 async function authorizeFile(actor, name, prisma, write = false) {
     if (!actor) forbidden();
-    if (actor.role === 'superadmin') return;
+    if (['superadmin', 'admin'].includes(actor.role)) return;
 
     const normalized = String(name || '').replace(/\\/g, '/').replace(/^\/+/, '');
     const cleanName = path.basename(normalized);
@@ -60,12 +60,18 @@ async function authorizeFile(actor, name, prisma, write = false) {
     }
 
     if (write) {
-        if (!actor.companyIds || actor.companyIds.length === 0) forbidden('Yeni dosyalar şirket klasörüne kaydedilmelidir.');
+        if (!actor.companyIds || actor.companyIds.length === 0) {
+            if (['admin', 'superadmin', 'company_admin'].includes(actor.role)) return;
+            forbidden('Yeni dosyalar şirket klasörüne kaydedilmelidir.');
+        }
         return;
     }
 
     const actorCompanies = actor.companyIds || (actor.companyId ? [actor.companyId] : []);
-    if (!actorCompanies.length) forbidden('Belgeye erişim yetkiniz yok.');
+    if (!actorCompanies.length) {
+        if (['admin', 'superadmin', 'company_admin'].includes(actor.role)) return;
+        forbidden('Belgeye erişim yetkiniz yok.');
+    }
 
     // 1. Company stamp, signature, logo
     try {

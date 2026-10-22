@@ -234,55 +234,55 @@ function createRpcMap() {
             if (!fileName) return { success: false, error: 'No fileName provided' };
             const relativePath = String(fileName).replace(/^\/+/, '');
             const cleanName = path.basename(relativePath);
+            const ext = path.extname(cleanName).toLowerCase();
+            const mimeTypes = { '.pdf': 'application/pdf', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.csv': 'text/csv' };
+            const mimeType = mimeTypes[ext] || 'application/octet-stream';
+
             const filePath = path.join(filesDir, relativePath);
             const flatFilePath = path.join(filesDir, cleanName);
-            const ext = path.extname(cleanName).toLowerCase();
+
+            let buffer = null;
+            let resolvedPath = relativePath;
 
             if (fs.existsSync(filePath)) {
-                return {
-                    success: true,
-                    data: fs.readFileSync(filePath).toString('base64'),
-                    fileName: cleanName,
-                    path: relativePath,
-                    ext: ext
-                };
-            }
-
-            if (fs.existsSync(flatFilePath)) {
-                return {
-                    success: true,
-                    data: fs.readFileSync(flatFilePath).toString('base64'),
-                    fileName: cleanName,
-                    path: cleanName,
-                    ext: ext
-                };
-            }
-
-            try {
-                const { downloadFromStorage, getStoragePublicUrl } = require('./services/supabase.service');
-                let res = await downloadFromStorage(relativePath);
-                if (!res.success && relativePath !== cleanName) {
-                    res = await downloadFromStorage(cleanName);
-                }
-
-                const buf = res.buffer || res.data;
-                if (res.success && buf) {
-                    const targetDir = path.dirname(filePath);
-                    if (!fs.existsSync(targetDir)) {
-                        fs.mkdirSync(targetDir, { recursive: true });
+                buffer = fs.readFileSync(filePath);
+            } else if (fs.existsSync(flatFilePath)) {
+                buffer = fs.readFileSync(flatFilePath);
+                resolvedPath = cleanName;
+            } else {
+                try {
+                    const { downloadFromStorage, getStoragePublicUrl } = require('./services/supabase.service');
+                    let res = await downloadFromStorage(relativePath);
+                    if (!res.success && relativePath !== cleanName) {
+                        res = await downloadFromStorage(cleanName);
                     }
-                    fs.writeFileSync(filePath, buf);
-                    return {
-                        success: true,
-                        data: buf.toString('base64'),
-                        fileName: cleanName,
-                        path: relativePath,
-                        url: getStoragePublicUrl(cleanName, 'documents'),
-                        ext: ext
-                    };
+
+                    const buf = res.buffer || res.data;
+                    if (res.success && buf) {
+                        const targetDir = path.dirname(filePath);
+                        if (!fs.existsSync(targetDir)) {
+                            fs.mkdirSync(targetDir, { recursive: true });
+                        }
+                        fs.writeFileSync(filePath, buf);
+                        buffer = buf;
+                    }
+                } catch (e) {
+                    console.error('[readDocumentData Storage Error]:', e.message);
                 }
-            } catch (e) {
-                console.error('[readDocumentData Storage Error]:', e.message);
+            }
+
+            if (buffer) {
+                const b64 = buffer.toString('base64');
+                return {
+                    success: true,
+                    data: `data:${mimeType};base64,${b64}`,
+                    rawBase64: b64,
+                    mimeType,
+                    type: mimeType,
+                    fileName: cleanName,
+                    path: resolvedPath,
+                    ext: ext
+                };
             }
             return { success: false, error: 'Belge bulunamadı' };
         },

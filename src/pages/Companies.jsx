@@ -70,14 +70,20 @@ export default function Companies() {
         setIsModalOpen(true)
 
         if (company.signature_path) {
-            window.electronAPI.readDocumentData(company.signature_path).then(res => {
-                if (res.success) setSignaturePreview(res.data)
-            })
+            if (company.signature_path.toLowerCase().endsWith('.pdf')) {
+                setSignaturePreview('pdf')
+            }
+            window.electronAPI?.readDocumentData?.(company.signature_path).then(res => {
+                if (res?.success) setSignaturePreview(res.data)
+            }).catch(e => console.warn('Signature preview load notice:', e.message))
         }
         if (company.stamp_path) {
-            window.electronAPI.readDocumentData(company.stamp_path).then(res => {
-                if (res.success) setStampPreview(res.data)
-            })
+            if (company.stamp_path.toLowerCase().endsWith('.pdf')) {
+                setStampPreview('pdf')
+            }
+            window.electronAPI?.readDocumentData?.(company.stamp_path).then(res => {
+                if (res?.success) setStampPreview(res.data)
+            }).catch(e => console.warn('Stamp preview load notice:', e.message))
         }
     }
 
@@ -104,14 +110,19 @@ export default function Companies() {
             const savedName = await window.electronAPI.saveFile(filePath)
             if (savedName) {
                 setFormData(prev => ({ ...prev, signaturePath: savedName }))
-                const previewRes = await window.electronAPI.readDocumentData(savedName)
-                if (previewRes.success) {
-                    setSignaturePreview(previewRes.data)
-                } else {
-                    setError('İmza görseli yüklenemedi: ' + (previewRes.error || 'Önizleme alınamadı'))
+                if (savedName.toLowerCase().endsWith('.pdf')) {
+                    setSignaturePreview('pdf')
+                }
+                try {
+                    const previewRes = await window.electronAPI.readDocumentData(savedName)
+                    if (previewRes?.success) {
+                        setSignaturePreview(previewRes.data)
+                    }
+                } catch (pErr) {
+                    console.warn('[Signature Preview Notice]:', pErr.message)
                 }
             } else {
-                setError('İmza dosyası diske kaydedilemedi.')
+                setError('İmza dosyası kaydedilemedi.')
             }
         } catch (err) {
             console.error('Signature select error:', err)
@@ -140,14 +151,19 @@ export default function Companies() {
             const savedName = await window.electronAPI.saveFile(filePath)
             if (savedName) {
                 setFormData(prev => ({ ...prev, stampPath: savedName }))
-                const previewRes = await window.electronAPI.readDocumentData(savedName)
-                if (previewRes.success) {
-                    setStampPreview(previewRes.data)
-                } else {
-                    setError('Kaşe görseli yüklenemedi: ' + (previewRes.error || 'Önizleme alınamadı'))
+                if (savedName.toLowerCase().endsWith('.pdf')) {
+                    setStampPreview('pdf')
+                }
+                try {
+                    const previewRes = await window.electronAPI.readDocumentData(savedName)
+                    if (previewRes?.success) {
+                        setStampPreview(previewRes.data)
+                    }
+                } catch (pErr) {
+                    console.warn('[Stamp Preview Notice]:', pErr.message)
                 }
             } else {
-                setError('Kaşe dosyası diske kaydedilemedi.')
+                setError('Kaşe dosyası kaydedilemedi.')
             }
         } catch (err) {
             console.error('Stamp select error:', err)
@@ -426,7 +442,7 @@ export default function Companies() {
                                 </div>
                             ) : stampPreview ? (
                                 <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    {(formData.stampPath?.toLowerCase().endsWith('.pdf') || (typeof stampPreview === 'string' && stampPreview.startsWith('data:application/pdf'))) ? (
+                                    {(formData.stampPath?.toLowerCase().endsWith('.pdf') || stampPreview === 'pdf' || (typeof stampPreview === 'string' && stampPreview.startsWith('data:application/pdf'))) ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
                                             <FileText size={20} style={{ color: 'var(--accent-primary)' }} />
                                             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>PDF Kaşe</span>
@@ -480,7 +496,7 @@ export default function Companies() {
                                 </div>
                             ) : signaturePreview ? (
                                 <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    {(formData.signaturePath?.toLowerCase().endsWith('.pdf') || (typeof signaturePreview === 'string' && signaturePreview.startsWith('data:application/pdf'))) ? (
+                                    {(formData.signaturePath?.toLowerCase().endsWith('.pdf') || signaturePreview === 'pdf' || (typeof signaturePreview === 'string' && signaturePreview.startsWith('data:application/pdf'))) ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
                                             <FileText size={20} style={{ color: 'var(--accent-primary)' }} />
                                             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>PDF İmza</span>
