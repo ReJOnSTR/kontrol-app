@@ -39,7 +39,7 @@ function actionFor(method) {
 }
 function assertCompany(actor, id) {
     if (!Number.isSafeInteger(Number(id)) || Number(id) <= 0) forbidden('Geçerli şirket kimliği gereklidir.');
-    if (actor.role !== 'superadmin' && !actor.companyIds.includes(Number(id))) forbidden('Şirkete erişim yetkiniz yok.');
+    if (!['superadmin', 'admin'].includes(actor?.role) && !actor?.companyIds?.includes(Number(id))) forbidden('Şirkete erişim yetkiniz yok.');
 }
 async function authorize(method, args, actor, prisma) {
     if (PUBLIC.has(method)) return args;
@@ -99,10 +99,12 @@ async function authorize(method, args, actor, prisma) {
         if (Array.isArray(p) && p.find(x => x.module === module)?.scope === 'OWN') actor.ownScope = true;
     }
     // Raw SQL settings services must not trust tenant/user IDs in object arguments.
-    for (const arg of args) {
-        if (!arg || typeof arg !== 'object' || Array.isArray(arg)) continue;
-        if (arg.companyId != null) assertCompany(actor, arg.companyId);
-        if (arg.company_id != null) assertCompany(actor, arg.company_id);
+    if (!['readDocumentData', 'selectFile', 'saveFile', 'openFile', 'openDocument', 'downloadFile'].includes(method)) {
+        for (const arg of args) {
+            if (!arg || typeof arg !== 'object' || Array.isArray(arg)) continue;
+            if (arg.companyId != null) assertCompany(actor, arg.companyId);
+            if (arg.company_id != null) assertCompany(actor, arg.company_id);
+        }
     }
     return args;
 }

@@ -102,13 +102,18 @@ export default function Companies() {
                 category: 'signatures',
                 accept: '.png,.jpg,.jpeg,.webp,.pdf' 
             })
+            if (result?.error) {
+                setError('Dosya seçilemedi: ' + result.error)
+                return
+            }
             if (!result || result.canceled || (Array.isArray(result) && result.length === 0)) return
             const filePath = Array.isArray(result) ? result[0] : result.filePaths?.[0]
             if (!filePath) return
 
             setSignatureLoading(true)
-            const savedName = await window.electronAPI.saveFile(filePath)
-            if (savedName) {
+            const saveRes = await window.electronAPI.saveFile(filePath)
+            const savedName = typeof saveRes === 'string' ? saveRes : (saveRes?.fileName || saveRes?.filePath || saveRes?.path)
+            if (savedName && typeof savedName === 'string') {
                 setFormData(prev => ({ ...prev, signaturePath: savedName }))
                 if (savedName.toLowerCase().endsWith('.pdf')) {
                     setSignaturePreview('pdf')
@@ -122,7 +127,7 @@ export default function Companies() {
                     console.warn('[Signature Preview Notice]:', pErr.message)
                 }
             } else {
-                setError('İmza dosyası kaydedilemedi.')
+                setError(saveRes?.error || 'İmza dosyası kaydedilemedi.')
             }
         } catch (err) {
             console.error('Signature select error:', err)
@@ -143,13 +148,18 @@ export default function Companies() {
                 category: 'stamps',
                 accept: '.png,.jpg,.jpeg,.webp,.pdf' 
             })
+            if (result?.error) {
+                setError('Dosya seçilemedi: ' + result.error)
+                return
+            }
             if (!result || result.canceled || (Array.isArray(result) && result.length === 0)) return
             const filePath = Array.isArray(result) ? result[0] : result.filePaths?.[0]
             if (!filePath) return
 
             setStampLoading(true)
-            const savedName = await window.electronAPI.saveFile(filePath)
-            if (savedName) {
+            const saveRes = await window.electronAPI.saveFile(filePath)
+            const savedName = typeof saveRes === 'string' ? saveRes : (saveRes?.fileName || saveRes?.filePath || saveRes?.path)
+            if (savedName && typeof savedName === 'string') {
                 setFormData(prev => ({ ...prev, stampPath: savedName }))
                 if (savedName.toLowerCase().endsWith('.pdf')) {
                     setStampPreview('pdf')
@@ -163,7 +173,7 @@ export default function Companies() {
                     console.warn('[Stamp Preview Notice]:', pErr.message)
                 }
             } else {
-                setError('Kaşe dosyası kaydedilemedi.')
+                setError(saveRes?.error || 'Kaşe dosyası kaydedilemedi.')
             }
         } catch (err) {
             console.error('Stamp select error:', err)
