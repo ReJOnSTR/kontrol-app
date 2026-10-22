@@ -157,6 +157,7 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                         }
 
                         const filePaths = [];
+                        let lastError = null;
                         for (const file of files) {
                             try {
                                 const base64 = await new Promise((res, rej) => {
@@ -187,16 +188,19 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                                 const data = await uploadRes.json();
                                 if (data.success && data.fileName) {
                                     filePaths.push(data.fileName);
+                                } else if (data.error) {
+                                    lastError = data.error;
                                 }
                             } catch (e) {
                                 console.error('[Web File Upload Error]:', e);
+                                lastError = e.message;
                             }
                         }
 
                         if (filePaths.length > 0) {
                             resolve({ canceled: false, filePaths });
                         } else {
-                            resolve({ canceled: true, filePaths: [] });
+                            resolve({ canceled: !lastError, error: lastError, filePaths: [] });
                         }
                     };
 

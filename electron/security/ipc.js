@@ -36,6 +36,12 @@ function install(ipcMain, getPrisma) {
         fs.mkdirSync(path.dirname(target), { recursive: true });
         fs.copyFileSync(source, target, fs.constants.COPYFILE_EXCL);
         selections.delete(source);
+        try {
+            const { syncFileToCloud } = require('../services/documentSync.service');
+            syncFileToCloud(target, name).catch(err => {
+                console.warn('[saveSelected Cloud Sync Notice]:', err?.message);
+            });
+        } catch (e) {}
         return name;
     }
     ipcMain.handle = (channel, handler) => register(channel, async (event, envelope, ...args) => {
