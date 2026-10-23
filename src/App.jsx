@@ -390,18 +390,13 @@ function App() {
     useEffect(() => {
         if (isPrintRoute) return
 
-        // Startup security check
+        // Startup security check using local cache
         const isFreshStart = !sessionStorage.getItem('aractakip_session_active')
         const storedUser = localStorage.getItem('aractakip_user')
         
         if (storedUser && lockSettings.enabled && isFreshStart) {
             setIsLocked(true)
             localStorage.setItem('aractakip_locked', 'true')
-        }
-
-        // Mark session as active so subsequent refreshes don't lock unless idle
-        if (storedUser) {
-            sessionStorage.setItem('aractakip_session_active', 'true')
         }
     }, [lockSettings.enabled, isPrintRoute])
 
@@ -419,12 +414,21 @@ function App() {
 
     useEffect(() => {
         if (userPreferences?.lock) {
+            const lockPref = userPreferences.lock
             setLockSettings(prev => ({
                 ...prev,
-                ...userPreferences.lock
+                ...lockPref
             }))
+
+            // Ensure startup lock triggers if cloud preference has lock enabled on fresh start
+            const isFreshStart = !sessionStorage.getItem('aractakip_session_active')
+            const storedUser = localStorage.getItem('aractakip_user') || user
+            if (storedUser && lockPref.enabled && isFreshStart && !isPrintRoute) {
+                setIsLocked(true)
+                localStorage.setItem('aractakip_locked', 'true')
+            }
         }
-    }, [userPreferences])
+    }, [userPreferences, user, isPrintRoute])
 
     useEffect(() => {
         if (isPrintRoute) return
@@ -438,6 +442,7 @@ function App() {
     const handleUnlock = () => {
         setIsLocked(false)
         localStorage.removeItem('aractakip_locked')
+        sessionStorage.setItem('aractakip_session_active', 'true')
         resetIdle()
     }
 

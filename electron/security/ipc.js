@@ -51,8 +51,18 @@ function install(ipcMain, getPrisma) {
             if (!method) forbidden('Bu IPC işlemi dış erişime kapalı.');
             const token = envelope?.__authToken;
             const fn = async (...checked) => {
-                const actor = require('./context').context()?.actor;
-                if (['readDocumentData', 'getSettings', 'saveSettings'].includes(method)) return require('../../server').rpcMap[method](...checked);
+                if (['readDocumentData', 'getSettings', 'saveSettings'].includes(method)) {
+                    try {
+                        const srv = require('../../server');
+                        if (srv?.rpcMap?.[method]) return await srv.rpcMap[method](...checked);
+                    } catch (e) {
+                        // Fallback to standalone electron rpcMap in packaged builds
+                    }
+                    try {
+                        const localRpc = require('../rpcMap').createRpcMap();
+                        if (localRpc?.[method]) return await localRpc[method](...checked);
+                    } catch (e2) {}
+                }
                 if (['openFile', 'openDocument', 'downloadFile', 'saveFile', 'addDocument'].includes(method)) {
                     if (method === 'saveFile') return saveSelected(event, checked[0], actor);
                     if (method === 'addDocument') {

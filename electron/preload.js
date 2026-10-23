@@ -209,7 +209,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getCompanyDbSettings: (companyId) => ipcRenderer.invoke('companySettings:get', companyId),
     saveCompanyDbSettings: (companyId, settings) => ipcRenderer.invoke('companySettings:save', { companyId, settings }),
     getUserPreferences: (userId) => ipcRenderer.invoke('userPreferences:get', userId),
-    saveUserPreferences: (userId, preferences) => ipcRenderer.invoke('userPreferences:save', { userId, preferences }),
+    saveUserPreferences: (userIdOrData, preferences) => ipcRenderer.invoke('userPreferences:save', typeof userIdOrData === 'object' && userIdOrData !== null ? userIdOrData : { userId: userIdOrData, preferences }),
 
     // Public Holidays
     getPublicHolidays: (companyId) => ipcRenderer.invoke('settings:getPublicHolidays', companyId),

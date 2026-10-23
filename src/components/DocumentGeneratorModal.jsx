@@ -5,8 +5,10 @@ import StampSignaturePreview, { STAMP_DEFAULTS } from './StampSignaturePreview'
 import { FileText, Download, Check, ArrowLeft, Stamp } from 'lucide-react'
 import { documentTemplates } from '../utils/documentTemplates'
 import { formatDate, formatDateForInput, generateUniqueFileName } from '../utils/helpers'
+import { useAuth } from '../context/AuthContext'
 
 export default function DocumentGeneratorModal({ isOpen, onClose, employee, company, onSuccess }) {
+    const { userPreferences, updateUserPreferences } = useAuth()
     const [selectedTemplate, setSelectedTemplate] = useState(documentTemplates[0])
     const [placeholders, setPlaceholders] = useState({})
     const [content, setContent] = useState('')
@@ -16,8 +18,8 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
     const [step, setStep] = useState('edit')
     const [stampSettings, setStampSettings] = useState(() => {
         try {
-            const saved = localStorage.getItem('lastStampSettings')
-            return saved ? { ...STAMP_DEFAULTS, ...JSON.parse(saved) } : STAMP_DEFAULTS
+            const saved = userPreferences?.stampSettings || JSON.parse(localStorage.getItem('lastStampSettings') || 'null')
+            return saved ? { ...STAMP_DEFAULTS, ...saved } : STAMP_DEFAULTS
         } catch (e) {
             return STAMP_DEFAULTS
         }
@@ -25,8 +27,28 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
     const [generatingMode, setGeneratingMode] = useState(null) // 'silent' | 'download' | null
 
     useEffect(() => {
-        localStorage.setItem('lastStampSettings', JSON.stringify(stampSettings))
-    }, [stampSettings])
+        if (userPreferences?.stampSettings) {
+            const serverStr = JSON.stringify(userPreferences.stampSettings)
+            const currentStr = JSON.stringify(stampSettings)
+            if (serverStr !== currentStr) {
+                setStampSettings(prev => ({ ...prev, ...userPreferences.stampSettings }))
+            }
+        }
+    }, [userPreferences?.stampSettings])
+
+    const handleStampSettingsChange = (newSettings) => {
+        setStampSettings(newSettings)
+        try {
+            localStorage.setItem('lastStampSettings', JSON.stringify(newSettings))
+        } catch (_) {}
+        if (updateUserPreferences) {
+            const currentStr = JSON.stringify(userPreferences?.stampSettings || null)
+            const newStr = JSON.stringify(newSettings)
+            if (currentStr !== newStr) {
+                updateUserPreferences({ stampSettings: newSettings })
+            }
+        }
+    }
 
     useEffect(() => {
         if (selectedTemplate && employee && company) {
@@ -394,7 +416,7 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
                         }}
                         company={company}
                         settings={stampSettings}
-                        onChange={setStampSettings}
+                        onChange={handleStampSettingsChange}
                     />
                 </div>
             )}

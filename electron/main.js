@@ -2440,11 +2440,18 @@ ipcMain.handle('documents:readData', async (event, fileName) => {
                 let fetchedFromCloud = false;
                 try {
                     const { downloadFromStorage } = require('./services/supabase.service');
-                    const storageRes = await downloadFromStorage(cleanName, 'documents');
+                    const relativePath = String(fileName).replace(/\\/g, '/').replace(/^\/+/, '');
+                    let storageRes = await downloadFromStorage(relativePath, 'documents');
+                    let targetRel = relativePath;
+                    if ((!storageRes || !storageRes.success || !storageRes.buffer) && relativePath !== cleanName) {
+                        storageRes = await downloadFromStorage(cleanName, 'documents');
+                        targetRel = cleanName;
+                    }
                     if (storageRes && storageRes.success && storageRes.buffer) {
                         const filesDir = path.join(userDataPath, 'files');
-                        if (!fs.existsSync(filesDir)) fs.mkdirSync(filesDir, { recursive: true });
-                        const cachedPath = path.join(filesDir, cleanName);
+                        const cachedPath = path.join(filesDir, targetRel);
+                        const targetDir = path.dirname(cachedPath);
+                        if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
                         fs.writeFileSync(cachedPath, storageRes.buffer);
                         filePath = cachedPath;
                         fetchedFromCloud = true;

@@ -15,14 +15,20 @@ function safePath(root, name) {
     if (parts.some(p => !p || p === '.' || p === '..' || p.startsWith('.'))) forbidden('Geçersiz dosya yolu.');
     const base = path.resolve(root);
     const target = path.resolve(base, normalized);
-    if (!target.startsWith(base + path.sep)) forbidden('Geçersiz dosya yolu.');
+    const isWin = process.platform === 'win32';
+    const basePrefix = isWin ? (base + path.sep).toLowerCase() : (base + path.sep);
+    const targetCheck = isWin ? target.toLowerCase() : target;
+    if (!targetCheck.startsWith(basePrefix)) forbidden('Geçersiz dosya yolu.');
     // A symlink in any existing parent must not escape the storage root.
     let existing = target;
     while (!fs.existsSync(existing) && existing !== base) existing = path.dirname(existing);
     if (fs.existsSync(base) && fs.existsSync(existing)) {
         const realBase = fs.realpathSync(base);
         const real = fs.realpathSync(existing);
-        if (real !== realBase && !real.startsWith(realBase + path.sep)) forbidden('Geçersiz dosya yolu.');
+        const rCheck = isWin ? real.toLowerCase() : real;
+        const rbCheck = isWin ? realBase.toLowerCase() : realBase;
+        const rbPrefix = isWin ? (realBase + path.sep).toLowerCase() : (realBase + path.sep);
+        if (rCheck !== rbCheck && !rCheck.startsWith(rbPrefix)) forbidden('Geçersiz dosya yolu.');
     }
     return target;
 }
@@ -32,7 +38,13 @@ function segment(value) {
 }
 async function authorizeFile(actor, name, prisma, write = false) {
     if (!actor) forbidden();
-    if (['superadmin', 'admin'].includes(actor.role)) return;
+    if (['superadmin', 'admin', 'company_admin'].includes(actor.role)) {
+        if (actor.role === 'company_admin') {
+            const match = /^company_(\d+)\//.exec(String(name || '').replace(/\\/g, '/').replace(/^\/+/, ''));
+            if (match && !actor.companyIds?.includes(Number(match[1]))) forbidden('Şirkete erişim yetkiniz yok.');
+        }
+        return;
+    }
 
     const normalized = String(name || '').replace(/\\/g, '/').replace(/^\/+/, '');
     const cleanName = path.basename(normalized);
