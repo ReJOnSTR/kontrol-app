@@ -105,39 +105,35 @@ export default function MaintenanceForm({ initialData, onSubmit, onCancel, vehic
             </div>
 
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="date"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Tarih"
-                                type="date"
-                                required={true}
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.date?.message}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="cost"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Maliyet (₺)"
-                                format="currency"
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="0.00"
-                                error={errors.cost?.message}
-                                maxLength={12}
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="date"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Tarih"
+                            type="date"
+                            required={true}
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.date?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="cost"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Maliyet (₺)"
+                            format="currency"
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="0.00"
+                            error={errors.cost?.message}
+                            maxLength={12}
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-group">

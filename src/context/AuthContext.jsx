@@ -383,9 +383,11 @@ export function AuthProvider({ children }) {
                 const actionKeyMap = {
                     can_create: [`${moduleOrAction}_create`, `${moduleOrAction}_add`],
                     can_update: [`${moduleOrAction}_edit`, `${moduleOrAction}_update`],
+                    can_edit: [`${moduleOrAction}_edit`, `${moduleOrAction}_update`],
                     can_delete: [`${moduleOrAction}_delete`],
                     can_export: [`${moduleOrAction}_export`],
-                    can_view_prices: [`${moduleOrAction}_view_prices`]
+                    can_view_prices: [`${moduleOrAction}_view_prices`],
+                    can_view: [`${moduleOrAction}_view`]
                 };
                 const candidateKeys = actionKeyMap[action] || [`${moduleOrAction}_${action}`];
                 for (const key of candidateKeys) {

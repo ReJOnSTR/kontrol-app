@@ -142,37 +142,33 @@ export default function InspectionForm({ initialData, onSubmit, onCancel, vehicl
             </div>
 
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="inspectionDate"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label={labelDate}
-                                type="date"
-                                required={true}
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.inspectionDate?.message}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="nextInspection"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label={labelNextDate}
-                                type="date"
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.nextInspection?.message}
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="inspectionDate"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label={labelDate}
+                            type="date"
+                            required={true}
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.inspectionDate?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="nextInspection"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label={labelNextDate}
+                            type="date"
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.nextInspection?.message}
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-group">

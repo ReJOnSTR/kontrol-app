@@ -265,7 +265,7 @@ export default function MainPortal() {
         if (m.id === 'finance') return hasPermission('finance', 'can_read')
         if (m.id === 'meals') return hasPermission('meals', 'can_read')
         if (m.id === 'hr') return hasPermission('employees', 'can_read')
-        if (m.id === 'works') return hasPermission('works', 'can_read')
+        if (m.id === 'ops' || m.id === 'works') return hasPermission('works', 'can_read')
         if (m.id === 'customers') return hasPermission('customers', 'can_read')
         if (m.id === 'platform') return user?.role === 'superadmin'
         return true

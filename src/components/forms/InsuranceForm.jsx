@@ -147,57 +147,51 @@ export default function InsuranceForm({ initialData, onSubmit, onCancel, vehicle
                         />
                     )}
                 />
-                <div className="form-group">
-                    <Controller
-                        name="policyNo"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Poliçe No"
-                                value={field.value}
-                                onChange={field.onChange}
-                                format="uppercase"
-                                error={errors.policyNo?.message}
-                                maxLength={50}
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="policyNo"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Poliçe No"
+                            value={field.value}
+                            onChange={field.onChange}
+                            format="uppercase"
+                            error={errors.policyNo?.message}
+                            maxLength={50}
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="startDate"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Başlangıç Tarihi"
-                                type="date"
-                                required={true}
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.startDate?.message}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="endDate"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Bitiş Tarihi"
-                                type="date"
-                                required={true}
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.endDate?.message}
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="startDate"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Başlangıç Tarihi"
+                            type="date"
+                            required={true}
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.startDate?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="endDate"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Bitiş Tarihi"
+                            type="date"
+                            required={true}
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.endDate?.message}
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-group">

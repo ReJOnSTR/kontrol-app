@@ -11,7 +11,7 @@ export default function SearchableSelect({
     className = '',
     required = false,
     error,
-    floatingLabel = true,
+    floatingLabel = false,
     icon: Icon
 }) {
     const [isOpen, setIsOpen] = useState(false)
@@ -114,7 +114,7 @@ export default function SearchableSelect({
                 <div
                     className={`custom-select-trigger form-input ${isOpen ? 'open' : ''} ${error ? 'input-error' : ''} ${Icon ? 'has-icon' : ''}`}
                     onClick={toggleOpen}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: '44px', paddingLeft: Icon ? '40px' : '14px' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', height: '40px', minHeight: '40px', paddingLeft: Icon ? '40px' : '14px' }}
                 >
                      {isOpen ? (
                         <input

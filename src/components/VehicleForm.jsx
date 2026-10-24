@@ -168,42 +168,36 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, loading }
                     </div>
 
                     <div className="form-row">
-                        <div className="form-group">
-                            <Controller
-                                name="brand"
-                                control={control}
-                                render={({ field }) => (
-                                    <CustomInput
-                                        label="Marka"
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        format="title"
-                                        placeholder="Örn: Ford"
-                                        floatingLabel={true}
-                                        error={errors.brand?.message}
-                                        maxLength={50}
-                                    />
-                                )}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <Controller
-                                name="model"
-                                control={control}
-                                render={({ field }) => (
-                                    <CustomInput
-                                        label="Model"
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        format="title"
-                                        placeholder="Örn: Focus"
-                                        floatingLabel={true}
-                                        error={errors.model?.message}
-                                        maxLength={50}
-                                    />
-                                )}
-                            />
-                        </div>
+                        <Controller
+                            name="brand"
+                            control={control}
+                            render={({ field }) => (
+                                <CustomInput
+                                    label="Marka"
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    format="title"
+                                    placeholder="Örn: Ford"
+                                    error={errors.brand?.message}
+                                    maxLength={50}
+                                />
+                            )}
+                        />
+                        <Controller
+                            name="model"
+                            control={control}
+                            render={({ field }) => (
+                                <CustomInput
+                                    label="Model"
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    format="title"
+                                    placeholder="Örn: Focus"
+                                    error={errors.model?.message}
+                                    maxLength={50}
+                                />
+                            )}
+                        />
                     </div>
                 </div>
 
@@ -224,44 +218,38 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, loading }
                     </div>
 
                     <div className="form-row">
-                        <div className="form-group">
-                            <Controller
-                                name="year"
-                                control={control}
-                                render={({ field }) => (
-                                    <CustomInput
-                                        label="Yıl"
-                                        type="number"
-                                        min={1900}
-                                        max={new Date().getFullYear() + 1}
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        placeholder="2024"
-                                        floatingLabel={true}
-                                        error={errors.year?.message}
-                                    />
-                                )}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <Controller
-                                name="km"
-                                control={control}
-                                render={({ field }) => (
-                                    <CustomInput
-                                        label="Kilometre"
-                                        type="number"
-                                        min={0}
-                                        max={2000000}
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        placeholder="0"
-                                        floatingLabel={true}
-                                        error={errors.km?.message}
-                                    />
-                                )}
-                            />
-                        </div>
+                        <Controller
+                            name="year"
+                            control={control}
+                            render={({ field }) => (
+                                <CustomInput
+                                    label="Yıl"
+                                    type="number"
+                                    min={1900}
+                                    max={new Date().getFullYear() + 1}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="2024"
+                                    error={errors.year?.message}
+                                />
+                            )}
+                        />
+                        <Controller
+                            name="km"
+                            control={control}
+                            render={({ field }) => (
+                                <CustomInput
+                                    label="Kilometre"
+                                    type="number"
+                                    min={0}
+                                    max={2000000}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="0"
+                                    error={errors.km?.message}
+                                />
+                            )}
+                        />
                     </div>
 
                     <div className="form-group">

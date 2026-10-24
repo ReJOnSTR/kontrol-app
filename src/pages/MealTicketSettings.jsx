@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useCompany } from '../context/CompanyContext'
+import { useAuth } from '../context/AuthContext'
 import TopProgressBar from '../components/TopProgressBar'
 import DataTable from '../components/DataTable'
 import Modal from '../components/Modal'
@@ -9,6 +10,8 @@ import { Save, CircleDollarSign, Pencil, Trash2 } from 'lucide-react'
 
 export default function MealTicketSettings() {
     const { currentCompany } = useCompany()
+    const { isAdmin, hasPermission } = useAuth()
+    const canEditSettings = isAdmin || hasPermission('meals_settings') || hasPermission('meals', 'can_update')
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [pricePerPerson, setPricePerPerson] = useState(0)
@@ -187,12 +190,14 @@ export default function MealTicketSettings() {
                     <h1 className="page-title">Ücret Ayarları</h1>
                     <p className="page-subtitle">Kişi başı yemek ücreti ve maliyet hesaplama</p>
                 </div>
-                <div className="header-actions">
-                    <button className="btn btn-primary" onClick={openCreate}>
-                        <Pencil size={15} style={{ marginRight: '6px' }} />
-                        Yeni Fiyat Ekle
-                    </button>
-                </div>
+                {canEditSettings && (
+                    <div className="header-actions">
+                        <button className="btn btn-primary" onClick={openCreate}>
+                            <Pencil size={15} style={{ marginRight: '6px' }} />
+                            Yeni Fiyat Ekle
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Stat Card */}
@@ -218,7 +223,7 @@ export default function MealTicketSettings() {
                 searchable={false}
                 paginated={true}
                 pageSize={10}
-                actions={(item) => (
+                actions={canEditSettings ? (item) => (
                     <div style={{ display: 'flex', gap: '8px' }}>
                         {item.status === 'active' ? (
                             <button title="Düzenle / Güncelle" onClick={openEditActive}><Pencil size={16} /></button>
@@ -229,7 +234,7 @@ export default function MealTicketSettings() {
                             </>
                         )}
                     </div>
-                )}
+                ) : undefined}
             />
 
             {/* Edit Modal */}

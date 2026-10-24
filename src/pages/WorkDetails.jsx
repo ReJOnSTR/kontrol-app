@@ -1296,8 +1296,11 @@ export default function WorkDetails(props) {
             {/* Executive Detail Header */}
             <div className="detail-header-card">
                 <div className="detail-header-top">
-                    <button type="button" className="detail-back-btn" onClick={() => navigate('/works')}>
-                        <ArrowLeft size={14} /> İşler & Operasyon
+                    <button type="button" className="detail-back-btn" onClick={() => navigate('/works')} title="İşler & Operasyon listesine dön">
+                        <span className="detail-back-icon">
+                            <ArrowLeft size={13} />
+                        </span>
+                        <span className="detail-back-text">İşler & Operasyon</span>
                     </button>
                     <div className="detail-header-top-right">
                         <span className={`badge badge-${getStatusColor(work.status)}`}>

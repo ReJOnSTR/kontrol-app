@@ -20,7 +20,8 @@ import {
     ChevronDown,
     ChevronUp,
     SlidersHorizontal,
-    Sparkles
+    Sparkles,
+    UtensilsCrossed
 } from 'lucide-react'
 
 export const MODULE_DEFINITIONS = [
@@ -115,6 +116,19 @@ export const MODULE_DEFINITIONS = [
             { key: 'settings_users', label: 'Kullanıcı & Yetki Yönetimi', description: 'Şirket kullanıcıları açma ve yetkilendirme' },
             { key: 'settings_audit', label: 'Güvenlik & Denetim (Audit) Logları', description: 'Kim ne zaman ne yaptı loglarını inceleme' }
         ]
+    },
+    { 
+        key: 'meals', 
+        label: 'Yemek Fişi Takibi', 
+        description: 'Günlük yemek fişleri, kişi sayısı takibi ve yemek raporları',
+        icon: UtensilsCrossed,
+        color: '#ef4444',
+        actions: [
+            { key: 'meals_create', label: 'Yeni Fiş Girişi', description: 'Günlük yemek katılım fişi kaydetme' },
+            { key: 'meals_edit', label: 'Fiş Düzenleme', description: 'Kayıtlı yemek fişlerini güncelleme' },
+            { key: 'meals_delete', label: 'Fiş Silme', description: 'Yemek fişlerini sistemden silme yetkisi' },
+            { key: 'meals_settings', label: 'Ücret & Fiyat Ayarları', description: 'Kişi başı günlük yemek ücret tarifesini belirleme' }
+        ]
     }
 ]
 
@@ -158,6 +172,12 @@ export const ROLE_PRESETS = [
             finance_checks: true,
             finance_view_all: true,
             finance_delete: true,
+
+            meals: 'editor',
+            meals_create: true,
+            meals_edit: true,
+            meals_delete: true,
+            meals_settings: true,
 
             reports: 'editor',
             reports_financial: true,
@@ -210,6 +230,12 @@ export const ROLE_PRESETS = [
             finance_view_all: false,
             finance_delete: false,
 
+            meals: 'editor',
+            meals_create: true,
+            meals_edit: true,
+            meals_delete: false,
+            meals_settings: false,
+
             reports: 'viewer',
             reports_financial: false,
             reports_operational: true,
@@ -260,6 +286,12 @@ export const ROLE_PRESETS = [
             finance_checks: true,
             finance_view_all: true,
             finance_delete: false,
+
+            meals: 'editor',
+            meals_create: true,
+            meals_edit: true,
+            meals_delete: false,
+            meals_settings: true,
 
             reports: 'editor',
             reports_financial: true,
@@ -312,6 +344,12 @@ export const ROLE_PRESETS = [
             finance_view_all: false,
             finance_delete: false,
 
+            meals: 'none',
+            meals_create: false,
+            meals_edit: false,
+            meals_delete: false,
+            meals_settings: false,
+
             reports: 'viewer',
             reports_financial: false,
             reports_operational: true,
@@ -363,6 +401,12 @@ export const ROLE_PRESETS = [
             finance_view_all: true,
             finance_delete: false,
 
+            meals: 'viewer',
+            meals_create: false,
+            meals_edit: false,
+            meals_delete: false,
+            meals_settings: false,
+
             reports: 'viewer',
             reports_financial: true,
             reports_operational: true,
@@ -413,6 +457,12 @@ export const ROLE_PRESETS = [
             finance_checks: false,
             finance_view_all: false,
             finance_delete: false,
+
+            meals: 'none',
+            meals_create: false,
+            meals_edit: false,
+            meals_delete: false,
+            meals_settings: false,
 
             reports: 'none',
             reports_financial: false,
@@ -472,14 +522,8 @@ export default function PermissionMatrix({
             onLevelChange(k, v)
         })
     }
-
     return (
-        <div className="permission-matrix-split-container" style={{
-            display: 'grid',
-            gridTemplateColumns: '275px 1fr',
-            gap: '14px',
-            alignItems: 'stretch'
-        }}>
+        <div className="permission-matrix-split-container">
             {/* Left Column: Role Preset Cards */}
             <div style={{
                 background: 'var(--bg-secondary)',

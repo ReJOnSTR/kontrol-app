@@ -11,7 +11,7 @@ export default function CustomMultiSelect({
     className = '',
     required = false,
     error,
-    floatingLabel = true,
+    floatingLabel = false,
     icon: Icon,
     disabled = false,
     style
@@ -109,7 +109,8 @@ export default function CustomMultiSelect({
                         opacity: disabled ? 0.6 : 1,
                         background: disabled ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
                         paddingLeft: Icon ? '40px' : '14px',
-                        minHeight: '44px',
+                        height: '40px',
+                        minHeight: '40px',
                         userSelect: 'none'
                     }}
                 >

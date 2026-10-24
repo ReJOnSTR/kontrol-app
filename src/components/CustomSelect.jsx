@@ -11,7 +11,7 @@ export default function CustomSelect({
     className = '',
     required = false,
     error,
-    floatingLabel = true,
+    floatingLabel = false,
     icon: Icon,
     disabled = false,
     style,

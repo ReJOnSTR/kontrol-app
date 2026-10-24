@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useCompany } from '../context/CompanyContext'
+import { useAuth } from '../context/AuthContext'
 import TopProgressBar from '../components/TopProgressBar'
 import DataTable from '../components/DataTable'
 import Modal from '../components/Modal'
@@ -10,7 +11,12 @@ import { UtensilsCrossed, Users, CalendarDays, Plus, Pencil, Trash2, Settings, T
 
 export default function MealTickets() {
     const { currentCompany } = useCompany()
+    const { isAdmin, hasPermission } = useAuth()
     const [searchParams, setSearchParams] = useSearchParams()
+
+    const canCreate = isAdmin || hasPermission('meals_create', 'can_create') || hasPermission('meals', 'can_create')
+    const canEdit = isAdmin || hasPermission('meals_edit', 'can_update') || hasPermission('meals', 'can_update')
+    const canDelete = isAdmin || hasPermission('meals_delete', 'can_delete') || hasPermission('meals', 'can_delete')
     const [tickets, setTickets] = useState([])
     const [stats, setStats] = useState({ totalThisMonth: 0, todayCount: 0, ticketCountThisMonth: 0, pricePerPerson: 0, totalCostThisMonth: 0 })
     const [loading, setLoading] = useState(true)
@@ -242,16 +248,18 @@ export default function MealTickets() {
                     <h1 className="page-title">Yemek Fişleri</h1>
                     <p className="page-subtitle">Günlük yemek katılım takibi ve fiş yönetimi</p>
                 </div>
-                <div className="header-actions">
-                    <button
-                        className="btn btn-primary"
-                        onClick={openCreateModal}
-                        disabled={loading || !currentCompany}
-                    >
-                        <Plus size={18} />
-                        Yeni Fiş
-                    </button>
-                </div>
+                {canCreate && (
+                    <div className="header-actions">
+                        <button
+                            className="btn btn-primary"
+                            onClick={openCreateModal}
+                            disabled={loading || !currentCompany}
+                        >
+                            <Plus size={18} />
+                            Yeni Fiş
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Stats */}
@@ -313,17 +321,17 @@ export default function MealTickets() {
                 searchKeys={['date', 'notes']}
                 emptyMessage={currentCompany ? "Henüz yemek fişi bulunmuyor." : "Lütfen bir şirket seçin."}
                 showSearch={true}
-                showCheckboxes={true}
-                onBulkDelete={handleBulkDeleteClick}
-                onBulkArchive={handleBulkArchive}
+                showCheckboxes={canDelete}
+                onBulkDelete={canDelete ? handleBulkDeleteClick : undefined}
+                onBulkArchive={canEdit ? handleBulkArchive : undefined}
                 isArchiveView={showArchived}
                 onToggleArchiveView={setShowArchived}
                 showDateFilter={true}
                 dateFilterKey="date"
                 actions={(item) => (
                     <>
-                        <button title="Düzenle" onClick={() => openEditModal(item)}><Pencil size={16} /></button>
-                        <button title="Sil" className="danger" onClick={() => handleDeleteClick(item)}><Trash2 size={16} /></button>
+                        {canEdit && <button title="Düzenle" onClick={() => openEditModal(item)}><Pencil size={16} /></button>}
+                        {canDelete && <button title="Sil" className="danger" onClick={() => handleDeleteClick(item)}><Trash2 size={16} /></button>}
                     </>
                 )}
             />

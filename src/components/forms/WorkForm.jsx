@@ -77,120 +77,108 @@ export default function WorkForm({ initialData, onSubmit, onCancel, loading, cus
     return (
         <form onSubmit={handleSubmit(onSubmit)}>
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="title"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="İş Başlığı"
-                                required={true}
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.title?.message}
-                                placeholder="Örn: Vinç Kiralama"
-                                maxLength={100}
-                                format="title"
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="customerId"
-                        control={control}
-                        render={({ field }) => (
-                            <SearchableSelect
-                                label="Müşteri / Cari Seçimi"
-                                className="form-select-custom"
-                                value={field.value}
-                                onChange={(val) => {
-                                    field.onChange(val);
-                                    // Update the legacy customer text field to match the selected customer's name
-                                    const selectedCustomer = customers.find(c => String(c.id) === String(val))
-                                    if(selectedCustomer) {
-                                        reset(formValues => ({ ...formValues, customer: selectedCustomer.name }))
-                                    }
-                                }}
-                                options={customers.map(c => ({ value: c.id, label: c.name }))}
-                                placeholder="Arama yapın..."
-                                error={errors.customerId?.message}
-                                disabled={disableCustomerSelect}
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="title"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="İş Başlığı"
+                            required={true}
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.title?.message}
+                            placeholder="Örn: Vinç Kiralama"
+                            maxLength={100}
+                            format="title"
+                        />
+                    )}
+                />
+                <Controller
+                    name="customerId"
+                    control={control}
+                    render={({ field }) => (
+                        <SearchableSelect
+                            label="Müşteri / Cari Seçimi"
+                            className="form-select-custom"
+                            value={field.value}
+                            onChange={(val) => {
+                                field.onChange(val);
+                                // Update the legacy customer text field to match the selected customer's name
+                                const selectedCustomer = customers.find(c => String(c.id) === String(val))
+                                if(selectedCustomer) {
+                                    reset(formValues => ({ ...formValues, customer: selectedCustomer.name }))
+                                }
+                            }}
+                            options={customers.map(c => ({ value: c.id, label: c.name }))}
+                            placeholder="Arama yapın..."
+                            error={errors.customerId?.message}
+                            disabled={disableCustomerSelect}
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="status"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomSelect
-                                label="Durum"
-                                className="form-select-custom"
-                                value={field.value}
-                                onChange={field.onChange}
-                                options={statusOptions}
-                                error={errors.status?.message}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="location"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Konum / Adres"
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="İşin yapılacağı yer"
-                                error={errors.location?.message}
-                                maxLength={200}
-                                format="title"
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="status"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomSelect
+                            label="Durum"
+                            className="form-select-custom"
+                            value={field.value}
+                            onChange={field.onChange}
+                            options={statusOptions}
+                            error={errors.status?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="location"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Konum / Adres"
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="İşin yapılacağı yer"
+                            error={errors.location?.message}
+                            maxLength={200}
+                            format="title"
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="work_start_time"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Standart Mesai Başlangıç"
-                                type="time"
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.work_start_time?.message}
-                                disabled={watchDisableOvertime}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="work_end_time"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Standart Mesai Bitiş"
-                                type="time"
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.work_end_time?.message}
-                                disabled={watchDisableOvertime}
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="work_start_time"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Standart Mesai Başlangıç"
+                            type="time"
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.work_start_time?.message}
+                            disabled={watchDisableOvertime}
+                        />
+                    )}
+                />
+                <Controller
+                    name="work_end_time"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Standart Mesai Bitiş"
+                            type="time"
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.work_end_time?.message}
+                            disabled={watchDisableOvertime}
+                        />
+                    )}
+                />
             </div>
 
             <div style={{

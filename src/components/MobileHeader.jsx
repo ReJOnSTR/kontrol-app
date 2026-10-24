@@ -34,12 +34,13 @@ function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
     if (path.startsWith('/finance') || path === '/checks') return hasPermission('finance', 'can_read')
     if (path.startsWith('/meal')) return hasPermission('meals', 'can_read')
     if (path === '/payroll' || path === '/salary') return hasPermission('employees_view_salary') || hasPermission('employees', 'can_read')
-    if (path.startsWith('/employees') || path === '/leaves' || path === '/overtimes' || path === '/personel-dashboard') return hasPermission('employees', 'can_read')
+    if (path.startsWith('/employees') || path === '/leaves' || path === '/overtimes' || path === '/personel-dashboard' || path === '/approvals' || path === '/employee-reports') return hasPermission('employees', 'can_read')
     if (path.startsWith('/works')) return hasPermission('works', 'can_read')
     if (path.startsWith('/customers')) return hasPermission('customers', 'can_read')
     if (path.startsWith('/vehicles') || path === '/maintenance' || path === '/inspections' || path === '/periodic-inspections' || path === '/insurance' || path === '/services' || path === '/assignments' || path === '/arvento-tracking') {
         return hasPermission('vehicles', 'can_read')
     }
+    if (path === '/reports') return hasPermission('reports', 'can_read')
     return true
 }
 

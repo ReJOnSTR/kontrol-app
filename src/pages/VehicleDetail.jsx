@@ -936,8 +936,11 @@ export default function VehicleDetail() {
             {/* Executive Detail Header */}
             <div className="detail-header-card">
                 <div className="detail-header-top">
-                    <button type="button" className="detail-back-btn" onClick={() => navigate('/vehicles')}>
-                        <ArrowLeft size={14} /> Araçlar
+                    <button type="button" className="detail-back-btn" onClick={() => navigate('/vehicles')} title="Araçlar listesine dön">
+                        <span className="detail-back-icon">
+                            <ArrowLeft size={13} />
+                        </span>
+                        <span className="detail-back-text">Araçlar</span>
                     </button>
                     <div className="detail-header-top-right">
                         <span className={`badge badge-${statusInfo.color}`}>{statusInfo.label}</span>

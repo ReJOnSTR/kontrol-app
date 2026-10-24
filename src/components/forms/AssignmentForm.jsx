@@ -85,110 +85,98 @@ export default function AssignmentForm({ initialData, onSubmit, onCancel, vehicl
                 )}
             />
 
-            <div className="form-row">
-                <div className="form-group" style={{ flex: 2 }}>
-                    <Controller
-                        name="itemName"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Malzeme/Demirbaş Adı"
-                                required={true}
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.itemName?.message}
-                                maxLength={100}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group" style={{ flex: 1 }}>
-                    <Controller
-                        name="quantity"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Adet"
-                                format="numeric"
-                                min={1}
-                                max={9999}
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.quantity?.message}
-                                maxLength={4}
-                            />
-                        )}
-                    />
-                </div>
+            <div className="form-row" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                <Controller
+                    name="itemName"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Malzeme/Demirbaş Adı"
+                            required={true}
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.itemName?.message}
+                            maxLength={100}
+                        />
+                    )}
+                />
+                <Controller
+                    name="quantity"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Adet"
+                            format="numeric"
+                            min={1}
+                            max={9999}
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.quantity?.message}
+                            maxLength={4}
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="assignedTo"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Sorumlu Kişi (Opsiyonel)"
-                                value={field.value}
-                                onChange={field.onChange}
-                                format="title"
-                                error={errors.assignedTo?.message}
-                                maxLength={100}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="department"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Departman"
-                                value={field.value}
-                                onChange={field.onChange}
-                                format="title"
-                                error={errors.department?.message}
-                                maxLength={50}
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="assignedTo"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Sorumlu Kişi (Opsiyonel)"
+                            value={field.value}
+                            onChange={field.onChange}
+                            format="title"
+                            error={errors.assignedTo?.message}
+                            maxLength={100}
+                        />
+                    )}
+                />
+                <Controller
+                    name="department"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Departman"
+                            value={field.value}
+                            onChange={field.onChange}
+                            format="title"
+                            error={errors.department?.message}
+                            maxLength={50}
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="startDate"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Başlangıç Tarihi"
-                                type="date"
-                                required={true}
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.startDate?.message}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="endDate"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Bitiş Tarihi"
-                                type="date"
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.endDate?.message}
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="startDate"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Başlangıç Tarihi"
+                            type="date"
+                            required={true}
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.startDate?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="endDate"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Bitiş Tarihi"
+                            type="date"
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.endDate?.message}
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-group">

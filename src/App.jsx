@@ -305,10 +305,10 @@ function AppRoutes() {
                         <Route path="/platform/health" element={<SuperAdminRoute><PlatformAdmin section="health" /></SuperAdminRoute>} />
                         <Route path="/platform/logs" element={<SuperAdminRoute><PlatformAdmin section="logs" /></SuperAdminRoute>} />
                         <Route path="/platform/backups" element={<SuperAdminRoute><PlatformAdmin section="backups" /></SuperAdminRoute>} />
-                        <Route path="/approvals" element={<ApprovalCenter />} />
+                        <Route path="/approvals" element={<PermissionRoute module="employees"><ApprovalCenter /></PermissionRoute>} />
                         <Route path="/personnel-portal" element={<Navigate to="/personnel-profile" replace />} />
-                        <Route path="/reports" element={<Reports />} />
-                        <Route path="/employee-reports" element={<EmployeeReports />} />
+                        <Route path="/reports" element={<PermissionRoute module="reports"><Reports /></PermissionRoute>} />
+                        <Route path="/employee-reports" element={<PermissionRoute module="employees"><EmployeeReports /></PermissionRoute>} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/personnel-profile" element={<EmployeeDetail />} />
                     </Route>

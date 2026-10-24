@@ -141,121 +141,109 @@ export default function TransactionForm({ initialData, onSubmit, onCancel, loadi
             )}
 
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="amount"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Tutar (₺)"
-                                format="currency"
-                                required={true}
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="0.00"
-                                error={errors.amount?.message}
-                                maxLength={14}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="date"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="İşlem Tarihi"
-                                type="date"
-                                required={true}
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.date?.message}
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="amount"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Tutar (₺)"
+                            format="currency"
+                            required={true}
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="0.00"
+                            error={errors.amount?.message}
+                            maxLength={14}
+                        />
+                    )}
+                />
+                <Controller
+                    name="date"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="İşlem Tarihi"
+                            type="date"
+                            required={true}
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.date?.message}
+                        />
+                    )}
+                />
             </div>
 
             {!onlyCheck && (
                 <div className="form-row">
-                    <div className="form-group">
-                        <Controller
-                            name="method"
-                            control={control}
-                            render={({ field }) => {
-                                const availableMethods = hideCheck
-                                    ? transactionMethods.filter(m => m.value !== 'CHECK')
-                                    : transactionMethods
+                    <Controller
+                        name="method"
+                        control={control}
+                        render={({ field }) => {
+                            const availableMethods = hideCheck
+                                ? transactionMethods.filter(m => m.value !== 'CHECK')
+                                : transactionMethods
 
-                                return (
-                                    <CustomSelect
-                                        label="Ödeme Yöntemi"
-                                        required={true}
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        options={availableMethods}
-                                        placeholder="Seçiniz"
-                                        error={errors.method?.message}
-                                    />
-                                )
-                            }}
-                        />
-                    </div>
-                    <div className="form-group">
-                        <Controller
-                            name="description"
-                            control={control}
-                            render={({ field }) => (
-                                <CustomInput
-                                    label="Açıklama"
+                            return (
+                                <CustomSelect
+                                    label="Ödeme Yöntemi"
+                                    required={true}
                                     value={field.value}
                                     onChange={field.onChange}
-                                    placeholder="İşlem detayı vb."
-                                    error={errors.description?.message}
-                                    maxLength={250}
+                                    options={availableMethods}
+                                    placeholder="Seçiniz"
+                                    error={errors.method?.message}
                                 />
-                            )}
-                        />
-                    </div>
+                            )
+                        }}
+                    />
+                    <Controller
+                        name="description"
+                        control={control}
+                        render={({ field }) => (
+                            <CustomInput
+                                label="Açıklama"
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="İşlem detayı vb."
+                                error={errors.description?.message}
+                                maxLength={250}
+                            />
+                        )}
+                    />
                 </div>
             )}
 
             {(onlyCheck || selectedMethod === 'CHECK') && (
                 <div className="form-row">
-                    <div className="form-group">
-                        <Controller
-                            name="checkNumber"
-                            control={control}
-                            render={({ field }) => (
-                                <CustomInput
-                                    label="Çek Numarası"
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    format="uppercase"
-                                    placeholder="Opsiyonel"
-                                    error={errors.checkNumber?.message}
-                                    maxLength={50}
-                                />
-                            )}
-                        />
-                    </div>
-                    <div className="form-group">
-                        <Controller
-                            name="checkDueDate"
-                            control={control}
-                            render={({ field }) => (
-                                <CustomInput
-                                    label="Vade Tarihi"
-                                    type="date"
-                                    required={true}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    error={errors.checkDueDate?.message}
-                                />
-                            )}
-                        />
-                    </div>
+                    <Controller
+                        name="checkNumber"
+                        control={control}
+                        render={({ field }) => (
+                            <CustomInput
+                                label="Çek Numarası"
+                                value={field.value}
+                                onChange={field.onChange}
+                                format="uppercase"
+                                placeholder="Opsiyonel"
+                                error={errors.checkNumber?.message}
+                                maxLength={50}
+                            />
+                        )}
+                    />
+                    <Controller
+                        name="checkDueDate"
+                        control={control}
+                        render={({ field }) => (
+                            <CustomInput
+                                label="Vade Tarihi"
+                                type="date"
+                                required={true}
+                                value={field.value}
+                                onChange={field.onChange}
+                                error={errors.checkDueDate?.message}
+                            />
+                        )}
+                    />
                 </div>
             )}
 

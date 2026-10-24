@@ -16,6 +16,8 @@ export default function CustomInput({
     floatingLabel, // Extract floatingLabel so it's not in ...props
     disabled,
     maxDecimals = 6,
+    icon,
+    showPasswordToggle = true,
     ...props
 }) {
     const generatedId = useId()
@@ -274,6 +276,22 @@ export default function CustomInput({
                 />
             ) : (
                 <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
+                    {icon && (
+                        <span className="input-leading-icon" style={{
+                            position: 'absolute',
+                            left: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--text-muted)',
+                            pointerEvents: 'none',
+                            zIndex: 2
+                        }}>
+                            {icon}
+                        </span>
+                    )}
                     <input
                         id={inputId}
                         required={required}
@@ -290,8 +308,10 @@ export default function CustomInput({
                         disabled={disabled}
                         style={{
                             ...(isInvalid ? { borderColor: 'var(--danger)' } : {}),
+                            ...(icon ? { paddingLeft: '38px' } : {}),
                             ...(isCurrency ? { paddingRight: '36px' } : {}), // Make room for TL symbol
-                            ...(type === 'password' ? { paddingRight: '40px' } : {}) // Make room for Eye icon
+                            ...(type === 'password' && showPasswordToggle ? { paddingRight: '40px' } : {}), // Make room for Eye icon
+                            ...(props.style || {})
                         }}
                         {...inputProps}
                     />
@@ -299,6 +319,8 @@ export default function CustomInput({
                         <span style={{
                             position: 'absolute',
                             right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
                             color: 'var(--text-muted)',
                             fontWeight: '600',
                             fontSize: '11px',
@@ -308,25 +330,39 @@ export default function CustomInput({
                             TL
                         </span>
                     )}
-                    {type === 'password' && (
+                    {type === 'password' && showPasswordToggle && (
                         <button
                             type="button"
                             className="password-toggle-btn"
-                            onClick={() => !disabled && setShowPassword(!showPassword)}
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                if (!disabled) setShowPassword(!showPassword)
+                            }}
                             disabled={disabled}
+                            tabIndex="-1"
                             style={{
                                 position: 'absolute',
-                                right: '12px',
-                                background: 'none',
+                                right: '8px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'transparent',
                                 border: 'none',
                                 cursor: disabled ? 'not-allowed' : 'pointer',
-                                color: 'var(--text-secondary)',
+                                color: 'var(--text-muted)',
                                 display: 'flex',
                                 alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '28px',
+                                height: '28px',
                                 padding: 0,
-                                opacity: disabled ? 0.5 : 1
+                                borderRadius: '6px',
+                                transition: 'all 0.15s ease',
+                                opacity: disabled ? 0.5 : 1,
+                                zIndex: 3
                             }}
-                            title={showPassword ? "Gizle" : "Göster"}
+                            title={showPassword ? "Şifreyi Gizle" : "Şifreyi Göster"}
+                            aria-label={showPassword ? "Şifreyi Gizle" : "Şifreyi Göster"}
                         >
                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>

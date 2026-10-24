@@ -103,74 +103,66 @@ export default function ServiceForm({ initialData, onSubmit, onCancel, vehicles,
             </div>
 
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="date"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Tarih"
-                                type="date"
-                                required={true}
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.date?.message}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="serviceName"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Servis Yeri / Firma"
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="Örn: Oto Koç, Sanayi..."
-                                error={errors.serviceName?.message}
-                                maxLength={100}
-                                format="title"
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="date"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Tarih"
+                            type="date"
+                            required={true}
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.date?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="serviceName"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Servis Yeri / Firma"
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Örn: Oto Koç, Sanayi..."
+                            error={errors.serviceName?.message}
+                            maxLength={100}
+                            format="title"
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-row">
-                <div className="form-group">
-                    <Controller
-                        name="km"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="KM"
-                                format="numeric"
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.km?.message}
-                                maxLength={10}
-                            />
-                        )}
-                    />
-                </div>
-                <div className="form-group">
-                    <Controller
-                        name="cost"
-                        control={control}
-                        render={({ field }) => (
-                            <CustomInput
-                                label="Maliyet (₺)"
-                                format="currency"
-                                value={field.value}
-                                onChange={field.onChange}
-                                error={errors.cost?.message}
-                                maxLength={12}
-                            />
-                        )}
-                    />
-                </div>
+                <Controller
+                    name="km"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="KM"
+                            format="numeric"
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.km?.message}
+                            maxLength={10}
+                        />
+                    )}
+                />
+                <Controller
+                    name="cost"
+                    control={control}
+                    render={({ field }) => (
+                        <CustomInput
+                            label="Maliyet (₺)"
+                            format="currency"
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.cost?.message}
+                            maxLength={12}
+                        />
+                    )}
+                />
             </div>
 
             <div className="form-group">

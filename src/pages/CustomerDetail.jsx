@@ -852,8 +852,11 @@ export default function CustomerDetail() {
             {/* Executive Detail Header */}
             <div className="detail-header-card">
                 <div className="detail-header-top">
-                    <button type="button" className="detail-back-btn" onClick={() => navigate('/customers')}>
-                        <ArrowLeft size={14} /> Müşteriler
+                    <button type="button" className="detail-back-btn" onClick={() => navigate('/customers')} title="Müşteriler listesine dön">
+                        <span className="detail-back-icon">
+                            <ArrowLeft size={13} />
+                        </span>
+                        <span className="detail-back-text">Müşteriler</span>
                     </button>
                     <div className="detail-header-top-right">
                         <button className="btn btn-secondary detail-edit-btn" onClick={() => setIsEditModalOpen(true)}>
