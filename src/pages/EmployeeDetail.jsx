@@ -4054,128 +4054,188 @@ export default function EmployeeDetail() {
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-                                            {/* Günlük Süre */}
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px', alignItems: 'flex-start' }}>
-                                                <CustomInput 
-                                                    label="Süre (Gün) *" 
-                                                    type="number" 
-                                                    value={formData.hours || ''} 
-                                                    onChange={(val) => updateField('hours', val)} 
-                                                    step="0.5" 
-                                                    min={0} 
-                                                    max={31} 
-                                                    className="mb-0"
-                                                    required 
-                                                />
-                                                <div style={{ display: 'flex', gap: '8px', height: '40px', alignItems: 'center' }}>
-                                                    <button 
-                                                        type="button" 
-                                                        className="btn btn-secondary" 
-                                                        style={{ 
-                                                            flex: 1,
-                                                            height: '40px', 
-                                                            padding: '0 8px', 
-                                                            fontSize: '13px', 
-                                                            fontWeight: 600,
-                                                            borderColor: String(formData.hours) === '1' ? 'var(--accent-primary)' : 'var(--border-color)',
-                                                            color: String(formData.hours) === '1' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                                            background: String(formData.hours) === '1' ? 'var(--accent-subtle)' : 'transparent',
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            whiteSpace: 'nowrap'
-                                                        }}
-                                                        onClick={() => updateField('hours', 1)}
-                                                    >
-                                                        Tam Gün (1)
-                                                    </button>
-                                                    <button 
-                                                        type="button" 
-                                                        className="btn btn-secondary" 
-                                                        style={{ 
-                                                            flex: 1,
-                                                            height: '40px', 
-                                                            padding: '0 8px', 
-                                                            fontSize: '13px', 
-                                                            fontWeight: 600,
-                                                            borderColor: String(formData.hours) === '0.5' ? 'var(--accent-primary)' : 'var(--border-color)',
-                                                            color: String(formData.hours) === '0.5' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                                            background: String(formData.hours) === '0.5' ? 'var(--accent-subtle)' : 'transparent',
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            whiteSpace: 'nowrap'
-                                                        }}
-                                                        onClick={() => updateField('hours', 0.5)}
-                                                    >
-                                                        Yarım Gün (0.5)
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Ekstra Mesai (Saat) Uzatması */}
-                                            <div style={{ 
-                                                display: 'grid', 
-                                                gridTemplateColumns: '1.2fr 1fr', 
-                                                gap: '16px', 
-                                                alignItems: 'center', 
-                                                width: '100%',
-                                                padding: '10px 12px',
-                                                background: 'var(--bg-tertiary)',
-                                                borderRadius: 'var(--radius-sm)',
-                                                border: '1px dashed var(--border-color)'
-                                            }}>
-                                                <div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                                                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                            + Ekstra Mesai (Saat)
-                                                        </span>
-                                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>(Opsiyonel)</span>
-                                                    </div>
+                                                {/* Günlük Süre */}
+                                                <div style={{ 
+                                                    display: 'grid', 
+                                                    gridTemplateColumns: 'minmax(140px, 1fr) minmax(210px, 1.2fr)', 
+                                                    gap: '12px', 
+                                                    alignItems: 'end', 
+                                                    width: '100%' 
+                                                }}>
                                                     <CustomInput 
+                                                        label="Süre (Gün) *" 
                                                         type="number" 
-                                                        value={formData.extraHours || ''} 
-                                                        onChange={(val) => updateField('extraHours', val)} 
+                                                        value={formData.hours || ''} 
+                                                        onChange={(val) => updateField('hours', val)} 
                                                         step="0.5" 
                                                         min={0} 
-                                                        max={24}
-                                                        placeholder="Örn: 2"
+                                                        max={31} 
                                                         className="mb-0"
+                                                        required 
                                                     />
+                                                    <div>
+                                                        <label style={{ 
+                                                            display: 'block', 
+                                                            fontSize: '12px', 
+                                                            fontWeight: 500, 
+                                                            color: 'var(--text-secondary)', 
+                                                            marginBottom: '6px',
+                                                            lineHeight: 1.2
+                                                        }}>
+                                                            Hızlı Seçim
+                                                        </label>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', height: '42px' }}>
+                                                            <button 
+                                                                type="button" 
+                                                                className="btn" 
+                                                                style={{ 
+                                                                    flex: 1,
+                                                                    height: '42px', 
+                                                                    padding: '0 8px', 
+                                                                    fontSize: '12.5px', 
+                                                                    fontWeight: 600,
+                                                                    borderRadius: 'var(--radius-md, 8px)',
+                                                                    borderColor: String(formData.hours) === '1' ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                    borderWidth: '1.5px',
+                                                                    borderStyle: 'solid',
+                                                                    color: String(formData.hours) === '1' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                    background: String(formData.hours) === '1' ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    gap: '6px',
+                                                                    whiteSpace: 'nowrap',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                                onClick={() => updateField('hours', 1)}
+                                                            >
+                                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+                                                                Tam Gün (1)
+                                                            </button>
+                                                            <button 
+                                                                type="button" 
+                                                                className="btn" 
+                                                                style={{ 
+                                                                    flex: 1,
+                                                                    height: '42px', 
+                                                                    padding: '0 8px', 
+                                                                    fontSize: '12.5px', 
+                                                                    fontWeight: 600,
+                                                                    borderRadius: 'var(--radius-md, 8px)',
+                                                                    borderColor: String(formData.hours) === '0.5' ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                    borderWidth: '1.5px',
+                                                                    borderStyle: 'solid',
+                                                                    color: String(formData.hours) === '0.5' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                    background: String(formData.hours) === '0.5' ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    gap: '6px',
+                                                                    whiteSpace: 'nowrap',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                                onClick={() => updateField('hours', 0.5)}
+                                                            >
+                                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+                                                                Yarım Gün (0.5)
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', paddingTop: '16px' }}>
-                                                    {[1, 2, 3, 4].map(h => (
-                                                        <button
-                                                            key={h}
-                                                            type="button"
-                                                            className="btn btn-secondary"
-                                                            style={{
-                                                                padding: '4px 10px',
-                                                                fontSize: '12px',
-                                                                fontWeight: 600,
-                                                                height: '32px',
-                                                                borderColor: String(formData.extraHours) === String(h) ? 'var(--accent-primary)' : 'var(--border-color)',
-                                                                color: String(formData.extraHours) === String(h) ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                                                background: String(formData.extraHours) === String(h) ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
-                                                            }}
-                                                            onClick={() => updateField('extraHours', String(formData.extraHours) === String(h) ? '' : h)}
-                                                        >
-                                                            +{h} Sa
-                                                        </button>
-                                                    ))}
-                                                    {formData.extraHours ? (
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-ghost"
-                                                            style={{ padding: '4px 8px', fontSize: '12px', height: '32px', color: 'var(--text-muted)' }}
-                                                            onClick={() => updateField('extraHours', '')}
-                                                            title="Ekstra saati kaldır"
-                                                        >
-                                                            ✕
-                                                        </button>
-                                                    ) : null}
+
+                                                {/* Ekstra Mesai (Saat) Uzatması */}
+                                                <div style={{ 
+                                                    display: 'grid', 
+                                                    gridTemplateColumns: 'minmax(140px, 1fr) minmax(210px, 1.2fr)', 
+                                                    gap: '12px', 
+                                                    alignItems: 'end', 
+                                                    width: '100%',
+                                                    padding: '12px',
+                                                    background: 'var(--bg-tertiary)',
+                                                    borderRadius: 'var(--radius-md, 10px)',
+                                                    border: '1px dashed var(--border-color)'
+                                                }}>
+                                                    <div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', lineHeight: 1.2 }}>
+                                                            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                                + Ekstra Mesai (Saat)
+                                                            </span>
+                                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>(Opsiyonel)</span>
+                                                        </div>
+                                                        <CustomInput 
+                                                            type="number" 
+                                                            value={formData.extraHours || ''} 
+                                                            onChange={(val) => updateField('extraHours', val)} 
+                                                            step="0.5" 
+                                                            min={0} 
+                                                            max={24}
+                                                            placeholder="Örn: 2"
+                                                            className="mb-0"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ 
+                                                            display: 'block', 
+                                                            fontSize: '12px', 
+                                                            fontWeight: 500, 
+                                                            color: 'var(--text-secondary)', 
+                                                            marginBottom: '6px',
+                                                            lineHeight: 1.2
+                                                        }}>
+                                                            Hızlı Saat
+                                                        </label>
+                                                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', height: '42px' }}>
+                                                            {[1, 2, 3, 4].map(h => (
+                                                                <button
+                                                                    key={h}
+                                                                    type="button"
+                                                                    className="btn"
+                                                                    style={{
+                                                                        flex: 1,
+                                                                        height: '42px',
+                                                                        padding: '0 4px',
+                                                                        fontSize: '12px',
+                                                                        fontWeight: 600,
+                                                                        borderRadius: 'var(--radius-sm, 6px)',
+                                                                        borderColor: String(formData.extraHours) === String(h) ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                        borderWidth: '1.5px',
+                                                                        borderStyle: 'solid',
+                                                                        color: String(formData.extraHours) === String(h) ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                        background: String(formData.extraHours) === String(h) ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        whiteSpace: 'nowrap',
+                                                                        cursor: 'pointer',
+                                                                        transition: 'all 0.15s ease'
+                                                                    }}
+                                                                    onClick={() => updateField('extraHours', String(formData.extraHours) === String(h) ? '' : h)}
+                                                                >
+                                                                    +{h} Sa
+                                                                </button>
+                                                            ))}
+                                                            {formData.extraHours ? (
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-ghost"
+                                                                    style={{ 
+                                                                        height: '42px', 
+                                                                        padding: '0 8px', 
+                                                                        fontSize: '13px', 
+                                                                        color: 'var(--danger)',
+                                                                        borderRadius: 'var(--radius-sm, 6px)' 
+                                                                    }}
+                                                                    onClick={() => updateField('extraHours', '')}
+                                                                    title="Ekstra saati kaldır"
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
                                         </div>
                                     )}
                                 </div>

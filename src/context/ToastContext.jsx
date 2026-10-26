@@ -105,70 +105,84 @@ export function ToastProvider({ children }) {
         <ToastContext.Provider value={stableToast}>
             {children}
 
-            {/* Floating Toast Notification Container */}
+            {/* Floating Toast Notification Container (Sağ Alt Köşe) */}
             {toasts.length > 0 && (
-                <div style={{
-                    position: 'fixed',
-                    top: '20px',
-                    right: '20px',
-                    zIndex: 999999,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    maxWidth: '420px',
-                    width: 'calc(100vw - 40px)',
-                    pointerEvents: 'none'
-                }}>
-                    {toasts.map(t => {
-                        const styleInfo = getToastColors(t.type)
-                        return (
-                            <div
-                                key={t.id}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '12px 16px',
-                                    background: 'var(--bg-secondary, #1e293b)',
-                                    backgroundColor: styleInfo.bg,
-                                    border: `1px solid ${styleInfo.border}`,
-                                    borderRadius: '12px',
-                                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
-                                    backdropFilter: 'blur(12px)',
-                                    WebkitBackdropFilter: 'blur(12px)',
-                                    color: 'var(--text-primary, #f8fafc)',
-                                    fontSize: '13.5px',
-                                    fontWeight: 500,
-                                    lineHeight: 1.4,
-                                    pointerEvents: 'auto',
-                                    animation: 'drawerSlideIn 0.2s ease-out'
-                                }}
-                            >
-                                {styleInfo.icon}
-                                <span style={{ flex: 1, wordBreak: 'break-word' }}>{t.message}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => removeToast(t.id)}
+                <>
+                    <style>{`
+                        @keyframes toastSlideUp {
+                            from {
+                                opacity: 0;
+                                transform: translateY(16px) scale(0.96);
+                            }
+                            to {
+                                opacity: 1;
+                                transform: translateY(0) scale(1);
+                            }
+                        }
+                    `}</style>
+                    <div style={{
+                        position: 'fixed',
+                        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+                        right: '24px',
+                        zIndex: 999999,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        maxWidth: '420px',
+                        width: 'calc(100vw - 48px)',
+                        pointerEvents: 'none'
+                    }}>
+                        {toasts.map(t => {
+                            const styleInfo = getToastColors(t.type)
+                            return (
+                                <div
+                                    key={t.id}
                                     style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        padding: '4px',
-                                        cursor: 'pointer',
-                                        color: 'var(--text-muted, #94a3b8)',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        justifyContent: 'center',
-                                        borderRadius: '6px',
-                                        flexShrink: 0
+                                        gap: '12px',
+                                        padding: '12px 16px',
+                                        background: 'var(--bg-secondary, #1e293b)',
+                                        backgroundColor: styleInfo.bg,
+                                        border: `1px solid ${styleInfo.border}`,
+                                        borderRadius: '12px',
+                                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
+                                        backdropFilter: 'blur(12px)',
+                                        WebkitBackdropFilter: 'blur(12px)',
+                                        color: 'var(--text-primary, #f8fafc)',
+                                        fontSize: '13.5px',
+                                        fontWeight: 500,
+                                        lineHeight: 1.4,
+                                        pointerEvents: 'auto',
+                                        animation: 'toastSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
                                     }}
-                                    title="Kapat"
                                 >
-                                    <X size={15} />
-                                </button>
-                            </div>
-                        )
-                    })}
-                </div>
+                                    {styleInfo.icon}
+                                    <span style={{ flex: 1, wordBreak: 'break-word' }}>{t.message}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => removeToast(t.id)}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            padding: '4px',
+                                            cursor: 'pointer',
+                                            color: 'var(--text-muted, #94a3b8)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: '6px',
+                                            flexShrink: 0
+                                        }}
+                                        title="Kapat"
+                                    >
+                                        <X size={15} />
+                                    </button>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </>
             )}
         </ToastContext.Provider>
     )
