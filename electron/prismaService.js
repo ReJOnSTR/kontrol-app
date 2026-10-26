@@ -56,5 +56,8 @@ module.exports = {
     ...require('./services/platform.service'),
 
     // Arvento Tracking API
-    ...arventoService
+    ...arventoService,
+
+    // Global Search
+    ...require('./services/search.service')
 };

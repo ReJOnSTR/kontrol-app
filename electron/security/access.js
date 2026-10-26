@@ -82,6 +82,10 @@ async function authorize(method, args, actor, prisma) {
         }
     } else if (method === 'getActiveAnnouncements') {
         assertCompany(actor, args[0]?.companyId || args[0]);
+    } else if (method === 'searchGlobal') {
+        const targetCid = args[0] || actor.companyIds?.[0] || null;
+        if (targetCid) assertCompany(actor, targetCid);
+        args[0] = targetCid;
     } else if (method === 'createRequest') {
         args[0] = { ...args[0], createdById: actor.id, ...(actor.role === 'personnel' ? { employeeId: actor.employee_id } : {}) };
     } else if (method === 'getRequests' && actor.role === 'personnel') {

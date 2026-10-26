@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Search, Car, User, Building2, X, Command } from 'lucide-react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Search, Car, User, Building2, X, Command, ArrowRight } from 'lucide-react'
 import { useTabs } from '../context/TabContext'
 import { useCompany } from '../context/CompanyContext'
 
@@ -7,12 +8,27 @@ export default function CommandPalette() {
     const [isOpen, setIsOpen] = useState(false)
     const [query, setQuery] = useState('')
     const [results, setResults] = useState([])
+    const [filterType, setFilterType] = useState('all') // 'all' | 'vehicle' | 'employee' | 'customer'
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [loading, setLoading] = useState(false)
     
     const { currentCompany } = useCompany()
     const { openNewTab } = useTabs()
+    const navigate = useNavigate()
     const inputRef = useRef(null)
+
+    // Helper to extract reliable company ID
+    const getActiveCompanyId = () => {
+        if (currentCompany?.id) return currentCompany.id
+        try {
+            const stored = localStorage.getItem('aractakip_company') || localStorage.getItem('company')
+            if (stored) {
+                const parsed = JSON.parse(stored)
+                return typeof parsed === 'object' ? parsed?.id : Number(stored)
+            }
+        } catch (_) {}
+        return Number(localStorage.getItem('aractakip_company')) || null
+    }
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -40,38 +56,70 @@ export default function CommandPalette() {
 
     useEffect(() => {
         if (isOpen) {
-            inputRef.current?.focus()
+            setTimeout(() => inputRef.current?.focus(), 50)
             document.body.style.overflow = 'hidden'
         } else {
             document.body.style.overflow = ''
             setQuery('')
             setResults([])
+            setFilterType('all')
+            setSelectedIndex(0)
         }
     }, [isOpen])
 
     useEffect(() => {
         const performSearch = async () => {
-            if (query.length < 2) {
+            const cleanQuery = query.trim()
+            if (cleanQuery.length < 1) {
                 setResults([])
+                setLoading(false)
                 return
             }
             setLoading(true)
             try {
-                const res = await window.electronAPI.searchGlobal(currentCompany?.id, query)
-                if (res.success) {
-                    setResults(res.data)
-                    setSelectedIndex(0)
+                const targetCompanyId = getActiveCompanyId()
+                if (window.electronAPI?.searchGlobal) {
+                    const res = await window.electronAPI.searchGlobal(targetCompanyId, cleanQuery)
+                    if (res && res.success && Array.isArray(res.data)) {
+                        setResults(res.data)
+                        setSelectedIndex(0)
+                    } else {
+                        setResults([])
+                    }
+                } else {
+                    setResults([])
                 }
             } catch (err) {
-                console.error(err)
+                console.error('[CommandPalette] Search error:', err)
+                setResults([])
             } finally {
                 setLoading(false)
             }
         }
 
-        const timer = setTimeout(performSearch, 300)
+        const timer = setTimeout(performSearch, 200)
         return () => clearTimeout(timer)
     }, [query, currentCompany])
+
+    // Filter results based on active category tab
+    const filteredResults = useMemo(() => {
+        if (filterType === 'all') return results
+        return results.filter(item => item.type === filterType)
+    }, [results, filterType])
+
+    // Counts for tabs
+    const counts = useMemo(() => {
+        return {
+            all: results.length,
+            vehicle: results.filter(r => r.type === 'vehicle').length,
+            employee: results.filter(r => r.type === 'employee').length,
+            customer: results.filter(r => r.type === 'customer').length
+        }
+    }, [results])
+
+    useEffect(() => {
+        setSelectedIndex(0)
+    }, [filterType])
 
     useEffect(() => {
         // Auto-scroll selected item into view
@@ -95,20 +143,30 @@ export default function CommandPalette() {
         if (item.type === 'customer') path = `/customers/${item.id}`
         
         if (path) {
-            openNewTab(path, false, label)
             setIsOpen(false)
+            try {
+                if (openNewTab) openNewTab(path, false, label)
+            } catch (_) {}
+            navigate(path)
         }
     }
 
     const handleKeyDown = (e) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault()
-            setSelectedIndex(prev => (prev + 1) % results.length)
+            if (filteredResults.length > 0) {
+                setSelectedIndex(prev => (prev + 1) % filteredResults.length)
+            }
         } else if (e.key === 'ArrowUp') {
             e.preventDefault()
-            setSelectedIndex(prev => (prev - 1 + results.length) % results.length)
+            if (filteredResults.length > 0) {
+                setSelectedIndex(prev => (prev - 1 + filteredResults.length) % filteredResults.length)
+            }
         } else if (e.key === 'Enter') {
-            handleSelect(results[selectedIndex])
+            e.preventDefault()
+            if (filteredResults[selectedIndex]) {
+                handleSelect(filteredResults[selectedIndex])
+            }
         }
     }
 
@@ -118,42 +176,116 @@ export default function CommandPalette() {
         <div className="command-palette-overlay" onClick={() => setIsOpen(false)}>
             <div className="command-palette-container" onClick={e => e.stopPropagation()}>
                 <div className="command-palette-header">
-                    <Search size={20} className="text-muted" />
+                    <Search size={19} className="command-palette-search-icon" />
                     <input
                         ref={inputRef}
                         type="text"
-                        placeholder="Araç plakası, personel adı veya müşteri arayın..."
+                        placeholder="Araç plakası, marka/model, personel veya müşteri ara..."
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
                         className="command-palette-input"
+                        autoComplete="off"
+                        spellCheck="false"
                     />
-                    {query.length > 0 && results.length > 0 && (
-                        <div className="command-palette-results-label">
-                            {results.length} sonuç
-                        </div>
+                    {query.length > 0 && (
+                        <button
+                            type="button"
+                            className="command-palette-clear-btn"
+                            onClick={() => {
+                                setQuery('')
+                                setResults([])
+                                inputRef.current?.focus()
+                            }}
+                            title="Temizle"
+                        >
+                            <X size={15} />
+                        </button>
                     )}
-                    <div className="command-palette-esc">ESC</div>
+                    <button
+                        type="button"
+                        className="command-palette-close-btn"
+                        onClick={() => setIsOpen(false)}
+                        title="Kapat (ESC)"
+                    >
+                        <span className="esc-text">ESC</span>
+                        <X size={16} className="close-icon" />
+                    </button>
+                </div>
+
+                {/* Filter Category Tabs */}
+                <div className="command-palette-tabs">
+                    <button
+                        type="button"
+                        className={`command-palette-tab ${filterType === 'all' ? 'active' : ''}`}
+                        onClick={() => setFilterType('all')}
+                    >
+                        <span>Tümü</span>
+                        {results.length > 0 && <span className="tab-count">{counts.all}</span>}
+                    </button>
+                    <button
+                        type="button"
+                        className={`command-palette-tab ${filterType === 'vehicle' ? 'active' : ''}`}
+                        onClick={() => setFilterType('vehicle')}
+                    >
+                        <Car size={14} />
+                        <span>Araçlar</span>
+                        {counts.vehicle > 0 && <span className="tab-count">{counts.vehicle}</span>}
+                    </button>
+                    <button
+                        type="button"
+                        className={`command-palette-tab ${filterType === 'employee' ? 'active' : ''}`}
+                        onClick={() => setFilterType('employee')}
+                    >
+                        <User size={14} />
+                        <span>Personeller</span>
+                        {counts.employee > 0 && <span className="tab-count">{counts.employee}</span>}
+                    </button>
+                    <button
+                        type="button"
+                        className={`command-palette-tab ${filterType === 'customer' ? 'active' : ''}`}
+                        onClick={() => setFilterType('customer')}
+                    >
+                        <Building2 size={14} />
+                        <span>Müşteriler</span>
+                        {counts.customer > 0 && <span className="tab-count">{counts.customer}</span>}
+                    </button>
                 </div>
 
                 <div className="command-palette-content">
                     {loading && (
-                        <div className="command-palette-loading">Aranıyor...</div>
+                        <div className="command-palette-loading">
+                            <div className="loading-spinner-small" />
+                            <span>Aranıyor...</span>
+                        </div>
                     )}
 
-                    {!loading && query.length > 0 && results.length === 0 && (
-                        <div className="command-palette-empty">Sonuç bulunamadı.</div>
+                    {!loading && query.trim().length > 0 && filteredResults.length === 0 && (
+                        <div className="command-palette-empty">
+                            <Search size={28} className="empty-icon" />
+                            <div className="empty-title">Sonuç bulunamadı</div>
+                            <div className="empty-desc">
+                                "{query}" için {filterType === 'vehicle' ? 'araç' : filterType === 'employee' ? 'personel' : filterType === 'customer' ? 'müşteri' : ''} kaydı bulunamadı.
+                            </div>
+                        </div>
                     )}
 
-                    {!loading && query.length === 0 && (
+                    {!loading && query.trim().length === 0 && (
                         <div className="command-palette-hint">
-                            <Command size={16} />
-                            <span>Hızlıca arama yapmak için yazmaya başlayın</span>
+                            <div className="hint-header">
+                                <Command size={18} />
+                                <span>Hızlı Arama ve Gezinme</span>
+                            </div>
+                            <div className="hint-tips">
+                                <span className="hint-tip"><strong>Araçlar:</strong> Plaka (örn. 34 ABC 123), marka veya model</span>
+                                <span className="hint-tip"><strong>Personeller:</strong> Ad, soyad, telefon veya TC Kimlik</span>
+                                <span className="hint-tip"><strong>Müşteriler:</strong> Şirket/Müşteri adı veya telefon</span>
+                            </div>
                         </div>
                     )}
 
                     <div className="command-palette-results">
-                        {results.map((item, index) => (
+                        {filteredResults.map((item, index) => (
                             <div
                                 key={`${item.type}-${item.id}`}
                                 className={`command-palette-item ${index === selectedIndex ? 'active' : ''}`}
@@ -161,18 +293,21 @@ export default function CommandPalette() {
                                 onClick={() => handleSelect(item)}
                             >
                                 <div className={`command-palette-icon-wrapper ${item.type}`}>
-                                    {item.icon === 'Car' && <Car size={18} />}
-                                    {item.icon === 'User' && <User size={18} />}
-                                    {item.icon === 'Building2' && <Building2 size={18} />}
+                                    {item.type === 'vehicle' && <Car size={18} />}
+                                    {item.type === 'employee' && <User size={18} />}
+                                    {item.type === 'customer' && <Building2 size={18} />}
                                 </div>
                                 <div className="command-palette-item-info">
                                     <div className="title">{item.title}</div>
                                     <div className="subtitle">{item.subtitle}</div>
                                 </div>
-                                <div className="command-palette-item-type">
-                                    {item.type === 'vehicle' && 'Araç'}
-                                    {item.type === 'employee' && 'Personel'}
-                                    {item.type === 'customer' && 'Müşteri'}
+                                <div className="command-palette-item-meta">
+                                    <span className={`command-palette-item-type badge-${item.type}`}>
+                                        {item.type === 'vehicle' && 'Araç'}
+                                        {item.type === 'employee' && 'Personel'}
+                                        {item.type === 'customer' && 'Müşteri'}
+                                    </span>
+                                    <ArrowRight size={14} className="action-arrow" />
                                 </div>
                             </div>
                         ))}
@@ -181,7 +316,7 @@ export default function CommandPalette() {
 
                 <div className="command-palette-footer">
                     <div className="footer-item">
-                        <span className="key">↵</span> Seç
+                        <span className="key">↵</span> Seç / Git
                     </div>
                     <div className="footer-item">
                         <span className="key">↓↑</span> Gezin

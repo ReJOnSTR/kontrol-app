@@ -1199,65 +1199,14 @@ ipcMain.handle('employeeDocuments:update', async (event, data) => {
 
 // Global Search
 ipcMain.handle('global:search', async (event, companyId, query) => {
-    if (!query || query.length < 2) return { success: true, data: [] }
     try {
-        const q = query.toLocaleLowerCase('tr-TR').replace(/\s/g, '')
-        const [vehiclesRes, employeesRes, customersRes] = await Promise.all([
-            db.getVehicles(companyId, false).catch(() => ({ success: false })),
-            db.getEmployees(companyId, false).catch(() => ({ success: false })),
-            db.getCustomers(companyId, 0).catch(() => ({ success: false }))
-        ])
-
-        const results = []
-        const vehicles = (vehiclesRes && vehiclesRes.success) ? (vehiclesRes.data || []) : []
-        const employees = (employeesRes && employeesRes.success) ? (employeesRes.data || []) : []
-        const customers = (customersRes && customersRes.success) ? (customersRes.data || []) : []
-
-        // Search Vehicles
-        if (Array.isArray(vehicles)) {
-            vehicles.forEach(v => {
-                if (!v) return
-                const plate = (v.plate?.toLocaleLowerCase('tr-TR') || '').replace(/\s/g, '')
-                const brand = (v.brand?.toLocaleLowerCase('tr-TR') || '').replace(/\s/g, '')
-                const model = (v.model?.toLocaleLowerCase('tr-TR') || '').replace(/\s/g, '')
-                if (plate.includes(q) || brand.includes(q) || model.includes(q)) {
-                    results.push({ id: v.id, type: 'vehicle', title: v.plate, subtitle: `${v.brand || ''} ${v.model || ''}`, icon: 'Car' })
-                }
-            })
+        if (!query || typeof query !== 'string' || query.trim().length < 1) {
+            return { success: true, data: [] }
         }
-
-        // Search Employees
-        if (Array.isArray(employees)) {
-            employees.forEach(e => {
-                if (!e) return
-                const firstName = e.first_name?.toLocaleLowerCase('tr-TR') || ''
-                const lastName = e.last_name?.toLocaleLowerCase('tr-TR') || ''
-                const fullName = `${firstName}${lastName}`.replace(/\s/g, '')
-                const phone = (e.phone?.toLocaleLowerCase('tr-TR') || '').replace(/\s/g, '')
-                const pos = (e.position?.toLocaleLowerCase('tr-TR') || '').replace(/\s/g, '')
-                if (fullName.includes(q) || phone.includes(q) || pos.includes(q)) {
-                    results.push({ id: e.id, type: 'employee', title: `${e.first_name} ${e.last_name}`, subtitle: e.position || 'Personel', icon: 'User' })
-                }
-            })
-        }
-
-        // Search Customers
-        if (Array.isArray(customers)) {
-            customers.forEach(c => {
-                if (!c) return
-                const name = (c.name?.toLocaleLowerCase('tr-TR') || '').replace(/\s/g, '')
-                const phone = (c.phone?.toLocaleLowerCase('tr-TR') || '').replace(/\s/g, '')
-                const company = (c.tax_office?.toLocaleLowerCase('tr-TR') || '').replace(/\s/g, '')
-                if (name.includes(q) || phone.includes(q) || company.includes(q)) {
-                    results.push({ id: c.id, type: 'customer', title: c.name, subtitle: c.phone || 'Müşteri', icon: 'Building2' })
-                }
-            })
-        }
-
-        return { success: true, data: results.slice(0, 15) }
+        return await db.searchGlobal(companyId, query)
     } catch (error) {
         console.error('Global search error:', error)
-        return { success: false, error: error.message }
+        return { success: false, error: error.message, data: [] }
     }
 })
 

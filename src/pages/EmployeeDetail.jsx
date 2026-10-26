@@ -190,6 +190,44 @@ const getPasswordStrength = (pass) => {
     return { score: 4, text: 'Çok Güçlü & Güvenli', color: '#10b981' };
 };
 
+function CopyableInfoRow({ label, value, onCopy, mono = false }) {
+    const [copied, setCopied] = useState(false);
+    const hasValue = value && value !== '-';
+
+    const handleCopy = async (e) => {
+        if (e) e.stopPropagation();
+        if (!hasValue) return;
+        await onCopy(value, label);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="copyable-info-field">
+            <div className="copyable-info-label">{label}</div>
+            <div 
+                className={`copyable-info-val-box ${hasValue ? 'can-copy' : ''}`}
+                onClick={hasValue ? handleCopy : undefined}
+                title={hasValue ? `${label} kopyalamak için tıklayın` : undefined}
+            >
+                <div className={`copyable-info-text ${mono ? 'is-mono' : ''}`}>
+                    {value || '-'}
+                </div>
+                {hasValue && (
+                    <button
+                        type="button"
+                        className={`copyable-action-btn ${copied ? 'is-copied' : ''}`}
+                        onClick={handleCopy}
+                        aria-label={`${label} kopyala`}
+                    >
+                        {copied ? <Check size={13} /> : <Copy size={13} />}
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function EmployeeDetail() {
     const { id: paramId } = useParams()
     const navigate = useNavigate()
@@ -200,6 +238,28 @@ export default function EmployeeDetail() {
     const { showToast } = useToast()
     const id = paramId || user?.employee_id
     const isPersonnel = user?.role === 'personnel' || user?.role === 'employee'
+
+    const handleCopyInfoField = async (text, label) => {
+        if (!text || text === '-') return
+        try {
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text)
+            } else {
+                const ta = document.createElement('textarea')
+                ta.value = text
+                ta.style.position = 'fixed'
+                ta.style.left = '-9999px'
+                document.body.appendChild(ta)
+                ta.select()
+                document.execCommand('copy')
+                document.body.removeChild(ta)
+            }
+            showToast(`${label} panoya kopyalandı`, 'success')
+        } catch (err) {
+            console.error('Kopyalama hatası:', err)
+            showToast('Kopyalama başarısız oldu', 'error')
+        }
+    }
 
     const [employee, setEmployee] = useState(null)
     const [activeTab, setActiveTab ] = usePersistentTab('EmployeeDetail', 'salary')
@@ -2535,8 +2595,14 @@ export default function EmployeeDetail() {
                                     </span>
                                 )}
                                 {employee.phone && (
-                                    <span className="detail-chip">
+                                    <span 
+                                        className="detail-chip is-clickable"
+                                        onClick={() => handleCopyInfoField(employee.phone, 'Telefon Numarası')}
+                                        title="Telefon numarasını kopyalamak için tıklayın"
+                                        style={{ cursor: 'pointer' }}
+                                    >
                                         <Phone size={13} /> {employee.phone}
+                                        <Copy size={11} style={{ opacity: 0.6, marginLeft: '4px' }} />
                                     </span>
                                 )}
                                 {employee.start_date && (
@@ -2559,60 +2625,67 @@ export default function EmployeeDetail() {
                         <User size={13} /> Kişisel Bilgiler
                     </div>
                     <div className="detail-inner-grid-2">
-                        <div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>TC Kimlik No</div>
-                            <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{employee.tc_no || '-'}</div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>Doğum Tarihi</div>
-                            <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                                {employee.birth_date ? (
-                                    <>
-                                        {(() => {
-                                            const today = new Date();
-                                            const bDay = new Date(employee.birth_date);
-                                            const isBirthday = today.getMonth() === bDay.getMonth() && today.getDate() === bDay.getDate();
-                                            
-                                            if (isBirthday) {
-                                                return (
-                                                    <span style={{ 
-                                                        background: 'linear-gradient(135deg, #ff7e2e, #0ea5e9, #a855f7)',
-                                                        WebkitBackgroundClip: 'text',
-                                                        backgroundClip: 'text',
-                                                        WebkitTextFillColor: 'transparent',
-                                                        color: 'transparent',
-                                                        fontWeight: '700',
-                                                        display: 'inline-block'
-                                                    }}>
-                                                        {formatDate(employee.birth_date)}
-                                                    </span>
-                                                )
-                                            }
-                                            
-                                            return (
-                                                <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>
-                                                    {formatDate(employee.birth_date)}
-                                                </span>
-                                            )
-                                        })()}
-                                        <span style={{ opacity: 0.6, fontSize: '12px', marginLeft: '6px' }}>
-                                            ({Math.floor((new Date() - new Date(employee.birth_date)) / (1000 * 60 * 60 * 24 * 365.25))} yaş)
-                                        </span>
-                                    </>
-                                ) : '-'}
+                        <CopyableInfoRow
+                            label="TC Kimlik No"
+                            value={employee.tc_no}
+                            onCopy={handleCopyInfoField}
+                            mono={true}
+                        />
+                        <div className="copyable-info-field">
+                            <div className="copyable-info-label">Doğum Tarihi</div>
+                            <div className="copyable-info-val-box">
+                                <div className="copyable-info-text">
+                                    {employee.birth_date ? (
+                                        <>
+                                            {(() => {
+                                                const today = new Date();
+                                                const bDay = new Date(employee.birth_date);
+                                                const isBirthday = today.getMonth() === bDay.getMonth() && today.getDate() === bDay.getDate();
+                                                
+                                                if (isBirthday) {
+                                                    return (
+                                                        <span style={{ 
+                                                            background: 'linear-gradient(135deg, #ff7e2e, #0ea5e9, #a855f7)',
+                                                            WebkitBackgroundClip: 'text',
+                                                            backgroundClip: 'text',
+                                                            WebkitTextFillColor: 'transparent',
+                                                            color: 'transparent',
+                                                            fontWeight: '700',
+                                                            display: 'inline-block'
+                                                        }}>
+                                                            {formatDate(employee.birth_date)}
+                                                        </span>
+                                                    )
+                                                }
+                                                return <span>{formatDate(employee.birth_date)}</span>;
+                                            })()}
+                                            <span style={{ opacity: 0.6, fontSize: '12px', marginLeft: '6px' }}>
+                                                ({Math.floor((new Date() - new Date(employee.birth_date)) / (1000 * 60 * 60 * 24 * 365.25))} yaş)
+                                            </span>
+                                        </>
+                                    ) : '-'}
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>Telefon</div>
-                            <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{employee.phone || '-'}</div>
-                        </div>
+                        <CopyableInfoRow
+                            label="Telefon"
+                            value={employee.phone}
+                            onCopy={handleCopyInfoField}
+                        />
                         <div style={{ overflow: 'hidden' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>E-posta</div>
-                            <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-all' }}>{employee.email || '-'}</div>
+                            <CopyableInfoRow
+                                label="E-posta"
+                                value={employee.email}
+                                onCopy={handleCopyInfoField}
+                            />
                         </div>
                         <div style={{ gridColumn: '1 / -1' }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>IBAN</div>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.5px' }}>{employee.iban || '-'}</div>
+                            <CopyableInfoRow
+                                label="IBAN"
+                                value={employee.iban}
+                                onCopy={handleCopyInfoField}
+                                mono={true}
+                            />
                         </div>
                     </div>
                 </div>

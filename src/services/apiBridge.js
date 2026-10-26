@@ -22,7 +22,8 @@ const PASSIVE_RPC_METHODS = new Set([
     'arventoGetStatus',
     'arventoGetDailyReport',
     'arventoGetAlarms',
-    'arventoGetInfo'
+    'arventoGetInfo',
+    'searchGlobal'
 ]);
 
 if (typeof window !== 'undefined' && !window.electronAPI) {
