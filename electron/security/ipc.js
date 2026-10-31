@@ -51,6 +51,7 @@ function install(ipcMain, getPrisma) {
             if (!method) forbidden('Bu IPC işlemi dış erişime kapalı.');
             const token = envelope?.__authToken;
             const fn = async (...checked) => {
+                const actor = require('./context').context()?.actor;
                 if (['readDocumentData', 'getSettings', 'saveSettings'].includes(method)) {
                     try {
                         const srv = require('../../server');

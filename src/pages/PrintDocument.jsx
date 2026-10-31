@@ -910,9 +910,9 @@ export default function PrintDocument() {
         };
     }, []);
 
-    const downloadPdfDirectly = () => {
+    const downloadPdfDirectly = async (customFileName = null, silentUpload = false) => {
         const el = document.querySelector('.print-pages-container') || document.querySelector('.a4-page') || document.body;
-        const filename = `Belge_${new Date().toISOString().split('T')[0]}.pdf`;
+        const filename = customFileName || `Belge_${new Date().toISOString().split('T')[0]}.pdf`;
 
         const opt = {
             margin: [0, 0, 0, 0],
@@ -923,8 +923,52 @@ export default function PrintDocument() {
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         };
 
-        html2pdf().set(opt).from(el).save();
+        try {
+            if (silentUpload && window.electronAPI?.uploadFileBase64) {
+                const dataUri = await html2pdf().set(opt).from(el).outputPdf('datauristring');
+                const upRes = await window.electronAPI.uploadFileBase64({
+                    fileName: filename,
+                    fileData: dataUri,
+                    module: 'employees'
+                });
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        type: upRes?.success ? 'pdf:complete' : 'pdf:error',
+                        fileName: upRes?.fileName || filename,
+                        error: upRes?.error
+                    }, '*');
+                }
+                return;
+            }
+
+            await html2pdf().set(opt).from(el).save();
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'pdf:complete', fileName: 'İndirildi' }, '*');
+            }
+        } catch (err) {
+            console.error('PrintDocument PDF export error:', err);
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'pdf:error', error: err.message }, '*');
+            }
+        }
     };
+
+    useEffect(() => {
+        if (!data) return;
+        const searchParams = new URLSearchParams(window.location.search);
+        const hashQuery = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+        const hashParams = new URLSearchParams(hashQuery);
+        const shouldAutoDownload = searchParams.get('autoDownload') === '1' || hashParams.get('autoDownload') === '1';
+        const customFileName = hashParams.get('fileName') || searchParams.get('fileName') || null;
+        const isSilentUpload = hashParams.get('silentUpload') === '1' || searchParams.get('silentUpload') === '1';
+
+        if (shouldAutoDownload) {
+            const timer = setTimeout(() => {
+                downloadPdfDirectly(customFileName, isSilentUpload);
+            }, 600);
+            return () => clearTimeout(timer);
+        }
+    }, [data]);
 
     if (!data) return <div className="print-loading">Veriler yükleniyor...</div>;
 

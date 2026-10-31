@@ -88,17 +88,27 @@ async function createInspection(data) {
 async function updateInspection(data) {
     try {
         const { id, vehicleId, filePath, fileData, fileName, ...rest } = data;
-        const result = await prisma.inspections.update({
-            where: { id: parseInt(id) },
-            data: {
-                type: rest.type,
-                inspection_date: new Date(rest.date || rest.inspectionDate),
-                next_inspection: rest.validUntil || rest.nextInspection ? new Date(rest.validUntil || rest.nextInspection) : null,
-                result: rest.result || null,
-                cost: rest.cost ? parseFloat(rest.cost) : 0,
-                notes: rest.notes || null
-            }
-        });
+        const updateData = {};
+        if (rest.type !== undefined) updateData.type = rest.type;
+        if (rest.date !== undefined || rest.inspectionDate !== undefined) {
+            updateData.inspection_date = new Date(rest.date || rest.inspectionDate);
+        }
+        if (rest.validUntil !== undefined || rest.nextInspection !== undefined) {
+            const nextVal = rest.validUntil || rest.nextInspection;
+            updateData.next_inspection = nextVal ? new Date(nextVal) : null;
+        }
+        if (rest.result !== undefined) updateData.result = rest.result || null;
+        if (rest.cost !== undefined) updateData.cost = rest.cost ? parseFloat(rest.cost) : 0;
+        if (rest.notes !== undefined) updateData.notes = rest.notes || null;
+
+        const result = Object.keys(updateData).length > 0
+            ? await prisma.inspections.update({
+                where: { id: parseInt(id) },
+                data: updateData
+            })
+            : await prisma.inspections.findUnique({ where: { id: parseInt(id) } });
+
+        if (!result) return { success: false, error: 'Kayıt bulunamadı' };
 
         if (filePath !== undefined || fileData !== undefined) {
             const { syncOperationDocument } = require('./operationSync.helper');
@@ -108,8 +118,8 @@ async function updateInspection(data) {
                 fileData,
                 fileName,
                 type: rest.type || result.type,
-                date: rest.date || rest.inspectionDate,
-                validUntil: rest.validUntil || rest.nextInspection
+                date: rest.date || rest.inspectionDate || result.inspection_date,
+                validUntil: rest.validUntil || rest.nextInspection || result.next_inspection
             });
         }
 
@@ -214,18 +224,25 @@ async function createInsurance(data) {
 async function updateInsurance(data) {
     try {
         const { id, vehicleId, filePath, fileData, fileName, ...rest } = data;
-        const result = await prisma.insurances.update({
-            where: { id: parseInt(id) },
-            data: {
-                type: rest.type,
-                policy_no: rest.policyNo || null,
-                company: rest.company || null,
-                start_date: new Date(rest.startDate),
-                end_date: rest.endDate ? new Date(rest.endDate) : new Date(rest.startDate),
-                premium: rest.premium ? parseFloat(rest.premium) : 0,
-                notes: rest.notes || null
-            }
-        });
+        const updateData = {};
+        if (rest.type !== undefined) updateData.type = rest.type;
+        if (rest.policyNo !== undefined) updateData.policy_no = rest.policyNo || null;
+        if (rest.company !== undefined) updateData.company = rest.company || null;
+        if (rest.startDate !== undefined) updateData.start_date = new Date(rest.startDate);
+        if (rest.endDate !== undefined || rest.startDate !== undefined) {
+            updateData.end_date = rest.endDate ? new Date(rest.endDate) : (rest.startDate ? new Date(rest.startDate) : undefined);
+        }
+        if (rest.premium !== undefined) updateData.premium = rest.premium ? parseFloat(rest.premium) : 0;
+        if (rest.notes !== undefined) updateData.notes = rest.notes || null;
+
+        const result = Object.keys(updateData).length > 0
+            ? await prisma.insurances.update({
+                where: { id: parseInt(id) },
+                data: updateData
+            })
+            : await prisma.insurances.findUnique({ where: { id: parseInt(id) } });
+
+        if (!result) return { success: false, error: 'Kayıt bulunamadı' };
 
         if (filePath !== undefined || fileData !== undefined) {
             const { syncOperationDocument } = require('./operationSync.helper');
@@ -235,8 +252,8 @@ async function updateInsurance(data) {
                 fileData,
                 fileName,
                 type: rest.type || result.type,
-                startDate: rest.startDate,
-                endDate: rest.endDate
+                startDate: rest.startDate || result.start_date,
+                endDate: rest.endDate || result.end_date
             });
         }
 
@@ -300,28 +317,10 @@ async function getAllAssignments(companyId, isArchived) {
 
 async function createAssignment(data) {
     try {
+        const { filePath, fileData, fileName, ...rest } = data;
         const result = await prisma.assignments.create({
             data: {
-                vehicle_id: data.vehicleId,
-                item_name: data.itemName || 'Araç Zimmeti',
-                quantity: data.quantity ? parseInt(data.quantity) : 1,
-                assigned_to: data.assignedTo || data.employeeName || null,
-                department: data.department || null,
-                start_date: new Date(data.startDate),
-                end_date: data.endDate ? new Date(data.endDate) : null,
-                notes: data.notes || null
-            }
-        });
-        return { success: true, data: result };
-    } catch (error) { return { success: false, error: error.message }; }
-}
-
-async function updateAssignment(data) {
-    try {
-        const { id, vehicleId, ...rest } = data;
-        const result = await prisma.assignments.update({
-            where: { id: parseInt(id) },
-            data: {
+                vehicle_id: parseInt(rest.vehicleId),
                 item_name: rest.itemName || 'Araç Zimmeti',
                 quantity: rest.quantity ? parseInt(rest.quantity) : 1,
                 assigned_to: rest.assignedTo || rest.employeeName || null,
@@ -331,6 +330,58 @@ async function updateAssignment(data) {
                 notes: rest.notes || null
             }
         });
+
+        if (filePath || fileData) {
+            const { syncOperationDocument } = require('./operationSync.helper');
+            await syncOperationDocument('assignment', result.id, {
+                vehicleId: rest.vehicleId,
+                filePath,
+                fileData,
+                fileName,
+                startDate: rest.startDate,
+                endDate: rest.endDate
+            });
+        }
+
+        return { success: true, data: result };
+    } catch (error) { return { success: false, error: error.message }; }
+}
+
+async function updateAssignment(data) {
+    try {
+        const { id, vehicleId, filePath, fileData, fileName, ...rest } = data;
+        const updateData = {};
+        if (rest.itemName !== undefined) updateData.item_name = rest.itemName || 'Araç Zimmeti';
+        if (rest.quantity !== undefined) updateData.quantity = rest.quantity ? parseInt(rest.quantity) : 1;
+        if (rest.assignedTo !== undefined || rest.employeeName !== undefined) {
+            updateData.assigned_to = rest.assignedTo || rest.employeeName || null;
+        }
+        if (rest.department !== undefined) updateData.department = rest.department || null;
+        if (rest.startDate !== undefined) updateData.start_date = new Date(rest.startDate);
+        if (rest.endDate !== undefined) updateData.end_date = rest.endDate ? new Date(rest.endDate) : null;
+        if (rest.notes !== undefined) updateData.notes = rest.notes || null;
+
+        const result = Object.keys(updateData).length > 0
+            ? await prisma.assignments.update({
+                where: { id: parseInt(id) },
+                data: updateData
+            })
+            : await prisma.assignments.findUnique({ where: { id: parseInt(id) } });
+
+        if (!result) return { success: false, error: 'Kayıt bulunamadı' };
+
+        if (filePath !== undefined || fileData !== undefined) {
+            const { syncOperationDocument } = require('./operationSync.helper');
+            await syncOperationDocument('assignment', result.id, {
+                vehicleId: vehicleId || result.vehicle_id,
+                filePath,
+                fileData,
+                fileName,
+                startDate: rest.startDate || result.start_date,
+                endDate: rest.endDate || result.end_date
+            });
+        }
+
         return { success: true, data: result };
     } catch (error) { return { success: false, error: error.message }; }
 }
@@ -345,6 +396,8 @@ async function deleteAssignment(id, companyId = null) {
         if (companyId && item.vehicles?.company_id !== parseInt(companyId)) {
             return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
         }
+        const { deleteOperationDocument } = require('./operationSync.helper');
+        await deleteOperationDocument('assignment', id);
         await prisma.assignments.delete({ where: { id: parseInt(id) } });
         return { success: true };
     } catch (error) { return { success: false, error: error.message }; }
@@ -388,6 +441,7 @@ async function createService(data) {
             data: {
                 vehicle_id: parseInt(rest.vehicleId),
                 type: rest.type,
+                service_name: rest.serviceName || rest.service_name || null,
                 description: rest.description || null,
                 date: new Date(rest.date),
                 cost: rest.cost ? parseFloat(rest.cost) : 0,
@@ -416,17 +470,25 @@ async function createService(data) {
 async function updateService(data) {
     try {
         const { id, vehicleId, filePath, fileData, fileName, ...rest } = data;
-        const result = await prisma.services.update({
-            where: { id: parseInt(id) },
-            data: {
-                type: rest.type,
-                description: rest.description || null,
-                date: new Date(rest.date),
-                cost: rest.cost ? parseFloat(rest.cost) : 0,
-                km: rest.km ? parseInt(rest.km) : null,
-                notes: rest.notes || null
-            }
-        });
+        const updateData = {};
+        if (rest.type !== undefined) updateData.type = rest.type;
+        if (rest.serviceName !== undefined || rest.service_name !== undefined) {
+            updateData.service_name = rest.serviceName || rest.service_name || null;
+        }
+        if (rest.description !== undefined) updateData.description = rest.description || null;
+        if (rest.date !== undefined) updateData.date = new Date(rest.date);
+        if (rest.cost !== undefined) updateData.cost = rest.cost ? parseFloat(rest.cost) : 0;
+        if (rest.km !== undefined) updateData.km = rest.km ? parseInt(rest.km) : null;
+        if (rest.notes !== undefined) updateData.notes = rest.notes || null;
+
+        const result = Object.keys(updateData).length > 0
+            ? await prisma.services.update({
+                where: { id: parseInt(id) },
+                data: updateData
+            })
+            : await prisma.services.findUnique({ where: { id: parseInt(id) } });
+
+        if (!result) return { success: false, error: 'Kayıt bulunamadı' };
 
         if (filePath !== undefined || fileData !== undefined) {
             const { syncOperationDocument } = require('./operationSync.helper');
@@ -435,7 +497,7 @@ async function updateService(data) {
                 filePath,
                 fileData,
                 fileName,
-                date: rest.date
+                date: rest.date || result.date
             });
         }
 

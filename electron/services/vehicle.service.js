@@ -295,29 +295,34 @@ async function createMaintenance(data) {
 
 async function updateMaintenance(data) {
     try {
-        const { id, filePath, fileData, fileName, ...rest } = data;
-        const result = await prisma.maintenances.update({
-            where: { id: parseInt(id) },
-            data: {
-                type: rest.type,
-                description: rest.description || null,
-                date: new Date(rest.date),
-                cost: rest.cost ? parseFloat(rest.cost) : 0,
-                next_km: rest.nextKm ? parseInt(rest.nextKm) : null,
-                next_date: rest.nextDate ? new Date(rest.nextDate) : null,
-                notes: rest.notes || null
-            }
-        });
+        const { id, vehicleId, filePath, fileData, fileName, ...rest } = data;
+        const updateData = {};
+        if (rest.type !== undefined) updateData.type = rest.type;
+        if (rest.description !== undefined) updateData.description = rest.description || null;
+        if (rest.date !== undefined) updateData.date = new Date(rest.date);
+        if (rest.cost !== undefined) updateData.cost = rest.cost ? parseFloat(rest.cost) : 0;
+        if (rest.nextKm !== undefined) updateData.next_km = rest.nextKm ? parseInt(rest.nextKm) : null;
+        if (rest.nextDate !== undefined) updateData.next_date = rest.nextDate ? new Date(rest.nextDate) : null;
+        if (rest.notes !== undefined) updateData.notes = rest.notes || null;
+
+        const result = Object.keys(updateData).length > 0
+            ? await prisma.maintenances.update({
+                where: { id: parseInt(id) },
+                data: updateData
+            })
+            : await prisma.maintenances.findUnique({ where: { id: parseInt(id) } });
+
+        if (!result) return { success: false, error: 'Kayıt bulunamadı' };
 
         if (filePath !== undefined || fileData !== undefined) {
             const { syncOperationDocument } = require('./operationSync.helper');
             await syncOperationDocument('maintenance', result.id, {
-                vehicleId: rest.vehicleId || result.vehicle_id,
+                vehicleId: vehicleId || rest.vehicleId || result.vehicle_id,
                 filePath,
                 fileData,
                 fileName,
-                date: rest.date,
-                nextDate: rest.nextDate
+                date: rest.date || result.date,
+                nextDate: rest.nextDate || result.next_date
             });
         }
 

@@ -650,6 +650,7 @@ export default function Reports() {
                     onClose={closeModal}
                     title={selectedVehicles.length > 1 ? `${selectedVehicles.length} Araç İçin Toplu Rapor` : `Rapor: ${selectedVehicles[0].plate}`}
                     size="fullscreen"
+                    bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
                     footer={
                         <>
                             <button className="btn btn-secondary" onClick={closeModal}>Kapat</button>
@@ -670,9 +671,9 @@ export default function Reports() {
                         </>
                     }
                 >
-                    <div style={{ display: 'flex', gap: '0', height: '100%', background: 'var(--bg-primary)', overflow: 'hidden' }}>
+                    <div className="report-modal-split" style={{ display: 'flex', gap: '0', height: '100%', flex: 1, minHeight: 0, background: 'var(--bg-primary)', overflow: 'hidden' }}>
                         {/* Left: Configuration - Sticky Sidebar */}
-                        <div style={{ width: '280px', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '0', flexShrink: 0, overflowY: 'auto', background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-color)' }}>
+                        <div className="report-modal-sidebar" style={{ width: '280px', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '0', flexShrink: 0, overflowY: 'auto', background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-color)' }}>
                             {/* Report Type */}
                             <div style={{ borderBottom: '1px solid var(--border-color)' }}>
                                 <div 

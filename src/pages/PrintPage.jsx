@@ -83,9 +83,16 @@ export default function PrintPage() {
 
         try {
             await exportElementToCleanPdf(el, filename, isLandscape);
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'pdf:complete', fileName: 'İndirildi' }, '*');
+            }
         } catch (err) {
             console.error('PDF Export Error:', err);
-            window.print();
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'pdf:error', error: err.message }, '*');
+            } else {
+                window.print();
+            }
         }
     };
 

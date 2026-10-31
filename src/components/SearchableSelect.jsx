@@ -41,12 +41,24 @@ export default function SearchableSelect({
         }
         setPlacement(newPlacement)
 
+        const viewportWidth = window.innerWidth
+        const maxWidth = viewportWidth - 24
+        const width = Math.min(Math.max(rect.width, 220), maxWidth)
+        let left = rect.left
+        if (left + width > viewportWidth - 12) {
+            left = Math.max(12, viewportWidth - width - 12)
+        }
+        if (left < 12) {
+            left = 12
+        }
+
         setDropdownStyle({
             position: 'fixed',
             top: newPlacement === 'bottom' ? rect.bottom + 6 : 'auto',
             bottom: newPlacement === 'top' ? (window.innerHeight - rect.top) + 6 : 'auto',
-            left: rect.left,
-            width: rect.width,
+            left,
+            width,
+            maxWidth: 'calc(100vw - 24px)',
             zIndex: 99999
         })
     }
@@ -75,7 +87,11 @@ export default function SearchableSelect({
         }
 
         document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
+        document.addEventListener('touchstart', handleClickOutside, { passive: true })
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+            document.removeEventListener('touchstart', handleClickOutside)
+        }
     }, [])
 
     useEffect(() => {

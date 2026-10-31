@@ -13,6 +13,7 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
     const [placeholders, setPlaceholders] = useState({})
     const [content, setContent] = useState('')
     const [title, setTitle] = useState('')
+    const [isCustomEdited, setIsCustomEdited] = useState(false)
     const [isGenerating, setIsGenerating] = useState(false)
     const [progress, setProgress] = useState({ current: 0, total: 0 })
     // 'edit' | 'stamp-preview'
@@ -69,11 +70,30 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
             })
             setPlaceholders(initialPlaceholders)
             setTitle(selectedTemplate.title)
+            setIsCustomEdited(false)
         }
     }, [selectedTemplate, company])
 
+    const handlePlaceholderChange = (key, newVal) => {
+        const oldVal = placeholders[key]
+        setPlaceholders(prev => ({ ...prev, [key]: newVal }))
+        if (isCustomEdited) {
+            const oldDisplay = key.toLowerCase().includes('date') && oldVal ? formatDate(oldVal) : (oldVal || `[${key}]`)
+            const newDisplay = key.toLowerCase().includes('date') && newVal ? formatDate(newVal) : (newVal || `[${key}]`)
+            setContent(prev => {
+                if (prev.includes(`{{${key}}}`)) {
+                    return prev.replace(new RegExp(`{{${key}}}`, 'g'), newDisplay)
+                }
+                if (oldDisplay && prev.includes(oldDisplay)) {
+                    return prev.split(oldDisplay).join(newDisplay)
+                }
+                return prev
+            })
+        }
+    }
+
     useEffect(() => {
-        if (selectedTemplate) {
+        if (selectedTemplate && !isCustomEdited) {
             let newContent = selectedTemplate.content
             Object.entries(placeholders).forEach(([key, value]) => {
                 const displayValue = key.toLowerCase().includes('date') && value ? formatDate(value) : value
@@ -81,7 +101,7 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
             })
             setContent(newContent)
         }
-    }, [placeholders, selectedTemplate])
+    }, [placeholders, selectedTemplate, isCustomEdited])
 
     useEffect(() => {
         if (!isOpen) {
@@ -151,7 +171,8 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
             } else if (outputMode === 'folder' || outputMode === 'archive') {
                 // 2. INDIVIDUAL PDF PER EMPLOYEE (Saved to folder or archived to employee profile)
                 let targetFolder = null
-                if (outputMode === 'folder') {
+                const isNativeElectron = Boolean(window.electronAPI?.isElectron)
+                if (outputMode === 'folder' && isNativeElectron && window.electronAPI?.selectFolder) {
                     const selectFolderRes = await window.electronAPI.selectFolder()
                     const folderPath = selectFolderRes?.filePath || (selectFolderRes?.filePaths && selectFolderRes.filePaths[0])
                     if (!selectFolderRes || !folderPath) {
@@ -190,14 +211,14 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
 
                     const savePath = targetFolder ? (targetFolder.endsWith('/') || targetFolder.endsWith('\\') ? `${targetFolder}${fileName}` : `${targetFolder}/${fileName}`) : null
                     const res = await window.electronAPI.saveReportPdf('/print-document', {
-                        silent: true,
+                        silent: outputMode === 'archive' || Boolean(targetFolder),
                         targetFilePath: savePath,
                         defaultPath: fileName
                     })
 
                     if (res && res.success && res.filePath) {
                         successCount++
-                        if (outputMode === 'archive') {
+                        if (outputMode === 'archive' && res.filePath !== 'İndirildi') {
                             await window.electronAPI.createEmployeeDocument({
                                 employeeId: emp.id,
                                 fileName: fileName,
@@ -422,8 +443,8 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
                     </div>
 
                     {/* Şablon Seçimi & Değişkenler */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div className="doc-generator-split" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
+                        <div className="doc-generator-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <label className="form-label" style={{ fontWeight: 600, fontSize: '13px' }}>Şablon Seçin</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -474,7 +495,7 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
                                             label={p.label}
                                             type={p.type || 'text'}
                                             value={placeholders[p.key] || ''}
-                                            onChange={(val) => setPlaceholders(prev => ({ ...prev, [p.key]: val }))}
+                                            onChange={(val) => handlePlaceholderChange(p.key, val)}
                                             maxLength={200}
                                             style={{ marginBottom: 0 }}
                                         />
@@ -518,7 +539,10 @@ export default function BulkDocumentGeneratorModal({ isOpen, onClose, selectedEm
                                 />
                                 <textarea
                                     value={content}
-                                    onChange={(e) => setContent(e.target.value)}
+                                    onChange={(e) => {
+                                        setIsCustomEdited(true)
+                                        setContent(e.target.value)
+                                    }}
                                     placeholder="Belge içeriğini buraya yazabilir ve düzenleyebilirsiniz..."
                                     maxLength={10000}
                                     style={{

@@ -144,7 +144,21 @@ async function syncOperationDocument(relatedType, relatedId, data) {
         startDate = data.startDate ? new Date(data.startDate) : null;
         endDate = data.endDate ? new Date(data.endDate) : null;
         fileNamePrefix = `${plate}_${isKasko ? 'Kasko_Policesi' : 'Trafik_Sigortasi_Policesi'}`;
+    } else if (relatedType === 'assignment') {
+        category = 'Zimmet';
+        folderName = null;
+        startDate = data.startDate ? new Date(data.startDate) : null;
+        endDate = data.endDate ? new Date(data.endDate) : null;
+        fileNamePrefix = `${plate}_Zimmet_Belgesi`;
     }
+
+    const modelMap = {
+        inspection: 'inspections',
+        insurance: 'insurances',
+        service: 'services',
+        maintenance: 'maintenances'
+    };
+    const modelName = modelMap[relatedType] || null;
 
     // Look for existing document linked to this operation
     const existingDoc = await prisma.documents.findFirst({
@@ -172,7 +186,7 @@ async function syncOperationDocument(relatedType, relatedId, data) {
         }
         
         // Also clear file_path inside operation record
-        const prismaModel = prisma[relatedType === 'inspection' ? 'inspections' : (relatedType === 'insurance' ? 'insurances' : (relatedType === 'service' ? 'services' : 'maintenances'))];
+        const prismaModel = modelName ? prisma[modelName] : null;
         if (prismaModel) {
             await prismaModel.update({
                 where: { id: parseInt(relatedId) },
@@ -188,10 +202,9 @@ async function syncOperationDocument(relatedType, relatedId, data) {
         // Base64 file payload
         savedFileName = await saveBase64File(fileName || `${fileNamePrefix}_upload`, fileData);
     } else if (filePath) {
-        // Local absolute file path from PC Web
-        const isAbsolutePath = path.isAbsolute(filePath) || filePath.includes('/') || filePath.includes('\\');
+        // Local absolute file path from desktop vs relative path already inside filesDir
         const filesDir = getFilesDir();
-        const isAlreadySaved = !isAbsolutePath || filePath.startsWith(filesDir);
+        const isAlreadySaved = !path.isAbsolute(filePath) || filePath.startsWith(filesDir) || fs.existsSync(path.join(filesDir, filePath));
 
         if (!isAlreadySaved) {
             const ext = path.extname(filePath);
@@ -249,7 +262,7 @@ async function syncOperationDocument(relatedType, relatedId, data) {
     }
 
     // Also update the operation record itself with the relative file_path
-    const prismaModel = prisma[relatedType === 'inspection' ? 'inspections' : (relatedType === 'insurance' ? 'insurances' : (relatedType === 'service' ? 'services' : 'maintenances'))];
+    const prismaModel = modelName ? prisma[modelName] : null;
     if (prismaModel) {
         await prismaModel.update({
             where: { id: parseInt(relatedId) },

@@ -24,11 +24,17 @@ export default function SignaturePadModal({ isOpen, onClose, onSave, initialSign
     const initCanvas = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        if (rect.width > 0 && rect.height > 0) {
+            canvas.width = Math.round(rect.width * dpr);
+            canvas.height = Math.round(rect.height * dpr);
+        }
         const ctx = canvas.getContext('2d');
         
         // Clear canvas with transparent background
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.5 * dpr;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = '#0f172a'; // Deep slate blue/black for signature

@@ -93,13 +93,14 @@ export default function Modal({
     if (!isOpen) return null
 
     const isSm = size === 'sm' || size === 'small'
-    const isCenter = placement === 'center' || (isSm && placement !== 'drawer')
+    const isFullscreen = size === 'fullscreen' || size === 'full'
+    const isCenter = placement === 'center' || ((isSm || isFullscreen) && placement !== 'drawer')
     const overlayClass = `modal-overlay ${isCenter ? 'modal-overlay-center' : 'modal-overlay-drawer'}`
     const sizeClass = isSm ? 'modal-sm'
         : (size === 'md' || size === 'medium') ? 'modal-md'
         : (size === 'lg' || size === 'large') ? 'modal-lg'
         : size === 'xl' ? 'modal-xl'
-        : (size === 'fullscreen' || size === 'full') ? 'modal-fullscreen'
+        : isFullscreen ? 'modal-fullscreen'
         : 'modal-default'
     const modalClass = `modal ${isCenter ? 'modal-center' : 'modal-drawer'} ${sizeClass}`
 

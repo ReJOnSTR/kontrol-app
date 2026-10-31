@@ -402,28 +402,20 @@ export default function Insurance() {
     const handleBatchSaveItem = async (vehicleId, data) => {
         const payload = {
             companyId: currentCompany.id,
-            vehicleId: vehicleId,
+            vehicleId: parseInt(vehicleId),
             type: data.type,
-            insuranceCompany: data.insuranceCompany,
-            policyNumber: data.policyNumber,
+            company: data.company || data.insuranceCompany || null,
+            policyNo: data.policyNo || data.policyNumber || null,
             startDate: data.startDate,
             endDate: data.endDate,
-            cost: data.cost ? parseFloat(data.cost) : null,
-            notes: data.notes
+            premium: (data.premium ?? data.cost) ? parseFloat(data.premium ?? data.cost) : 0,
+            notes: data.notes,
+            filePath: data.filePath
         }
 
         const result = await window.electronAPI.createInsurance(payload)
 
         if (result.success) {
-            if (data.filePath) {
-                await window.electronAPI.addDocument({
-                    vehicleId: vehicleId,
-                    relatedType: 'insurance',
-                    relatedId: result.data.id,
-                    filePath: data.filePath
-                })
-            }
-            
             const res = await window.electronAPI.getAllInsurances(currentCompany.id, showArchived ? 1 : 0)
             if (res.success) setInsurances(res.data)
             
@@ -563,9 +555,10 @@ export default function Insurance() {
             <ConfirmModal
                 isOpen={!!confirmModal}
                 onClose={() => setConfirmModal(null)}
-                onConfirm={handleConfirmDelete}
+                onConfirm={confirmModal?.onConfirm || handleConfirmDelete}
                 title={confirmModal?.title}
                 message={confirmModal?.message}
+                confirmText={confirmModal?.confirmText}
             />
 
             <DocumentPreviewModal

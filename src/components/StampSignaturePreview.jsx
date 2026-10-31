@@ -162,14 +162,23 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
     }, [ss.placementMode, previewOnly])
 
     // --- Drag handler ---
+    const getPointerCoords = (ev) => {
+        if (ev.touches && ev.touches.length > 0) {
+            return { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
+        }
+        return { x: ev.clientX, y: ev.clientY }
+    }
+
     const startDrag = (e, which) => {
-        e.preventDefault()
+        if (e.cancelable) e.preventDefault()
         e.stopPropagation()
-        const sx = e.clientX, sy = e.clientY
+        const { x: sx, y: sy } = getPointerCoords(e)
         const ox = ss[which + 'OffsetX'] ?? 0, oy = ss[which + 'OffsetY'] ?? 0
         const onMove = (ev) => {
-            const nextX = ox + (ev.clientX - sx) / zoomScale
-            const nextY = oy + (ev.clientY - sy) / zoomScale
+            if (ev.cancelable) ev.preventDefault()
+            const { x: cx, y: cy } = getPointerCoords(ev)
+            const nextX = ox + (cx - sx) / zoomScale
+            const nextY = oy + (cy - sy) / zoomScale
             
             if (ss.placementMode === 'free') {
                 onChange({
@@ -188,19 +197,25 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
         const onUp = () => {
             document.removeEventListener('mousemove', onMove)
             document.removeEventListener('mouseup', onUp)
+            document.removeEventListener('touchmove', onMove)
+            document.removeEventListener('touchend', onUp)
         }
         document.addEventListener('mousemove', onMove)
         document.addEventListener('mouseup', onUp)
+        document.addEventListener('touchmove', onMove, { passive: false })
+        document.addEventListener('touchend', onUp)
     }
 
     // --- Resize handler ---
     const startResize = (e, which) => {
-        e.preventDefault()
+        if (e.cancelable) e.preventDefault()
         e.stopPropagation()
-        const sx = e.clientX, sy = e.clientY
+        const { x: sx, y: sy } = getPointerCoords(e)
         const startSize = ss[which + 'Size'] ?? 80
         const onMove = (ev) => {
-            const delta = ((ev.clientX - sx) + (ev.clientY - sy)) / 2 / zoomScale
+            if (ev.cancelable) ev.preventDefault()
+            const { x: cx, y: cy } = getPointerCoords(ev)
+            const delta = ((cx - sx) + (cy - sy)) / 2 / zoomScale
             onChange({
                 ...settings,
                 [which + 'Size']: Math.max(20, Math.min(260, Math.round(startSize + delta))),
@@ -209,9 +224,13 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
         const onUp = () => {
             document.removeEventListener('mousemove', onMove)
             document.removeEventListener('mouseup', onUp)
+            document.removeEventListener('touchmove', onMove)
+            document.removeEventListener('touchend', onUp)
         }
         document.addEventListener('mousemove', onMove)
         document.addEventListener('mouseup', onUp)
+        document.addEventListener('touchmove', onMove, { passive: false })
+        document.addEventListener('touchend', onUp)
     }
 
     // Use fixed container height so that dragging offsets does not push layout or cause 2-page overflow
@@ -240,6 +259,7 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                     alt={which}
                     draggable={false}
                     onMouseDown={!previewOnly ? (e) => startDrag(e, which) : undefined}
+                    onTouchStart={!previewOnly ? (e) => startDrag(e, which) : undefined}
                     style={{
                         ...centerStyle,
                         width: `${size}px`,
@@ -249,6 +269,7 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                         cursor: !previewOnly ? 'move' : 'default',
                         zIndex,
                         userSelect: 'none',
+                        touchAction: !previewOnly ? 'none' : 'auto',
                         pointerEvents: !previewOnly ? 'auto' : 'none',
                     }}
                 />
@@ -272,18 +293,20 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                         <div
                             key={which + '-resize'}
                             onMouseDown={(e) => startResize(e, which)}
+                            onTouchStart={(e) => startResize(e, which)}
                             title="Boyutlandır"
                             style={{
                                 position: 'absolute',
                                 top:  ss.placementMode === 'free' ? `${Math.round(oy + size / 2)}px` : `calc(50% + ${oy}px + ${size / 2}px)`,
                                 left: ss.placementMode === 'free' ? `${Math.round(ox + size / 2)}px` : `calc(50% + ${ox}px + ${size / 2}px)`,
                                 transform: 'translate(-50%, -50%)',
-                                width: '14px',
-                                height: '14px',
+                                width: '16px',
+                                height: '16px',
                                 background: color,
                                 border: '2px solid white',
                                 borderRadius: '3px',
                                 cursor: 'nwse-resize',
+                                touchAction: 'none',
                                 zIndex: zIndex + 4,
                                 boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
                             }}
@@ -313,11 +336,11 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
     }
 
     return (
-        <div style={{
+        <div className="stamp-preview-layout" style={{
             display: 'flex',
             gap: previewOnly ? 0 : '16px',
             height: '100%',
-            minHeight: '620px',
+            minHeight: '500px',
             width: '100%',
             flex: 1,
             overflow: 'hidden'
@@ -325,7 +348,7 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
             
             {/* ── LEFT PANEL: CONFIGURATION ── */}
             {!previewOnly && (
-                <div style={{
+                <div className="stamp-preview-sidebar" style={{
                     width: '330px',
                 flexShrink: 0,
                 background: 'var(--bg-secondary)',
@@ -657,7 +680,7 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
             )}
 
             {/* ── RIGHT PANEL: INTERACTIVE A4 PREVIEW ── */}
-            <div style={{
+            <div className="stamp-preview-main" style={{
                 flexGrow: 1,
                 width: previewOnly ? '100%' : 'auto',
                 height: '100%',
@@ -671,16 +694,18 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
             }}>
                 {/* ── TOP TOOLBAR: Pinned Header ── */}
                 <div style={{
-                    height: '52px',
+                    minHeight: '52px',
+                    height: 'auto',
                     display: 'flex',
+                    flexWrap: 'wrap',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '0 20px',
+                    padding: '8px 16px',
                     background: '#13151a',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                     flexShrink: 0,
                     zIndex: 10,
-                    gap: '16px'
+                    gap: '10px'
                 }}>
                     {/* Left: Document info or Page selector */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -887,7 +912,7 @@ export default function StampSignaturePreview({ docData, company, settings, onCh
                         borderRadius: '3px',
                         background: '#ffffff'
                     }}>
-                        <div style={scaledDocStyle}>
+                        <div className="a4-preview-sheet" style={scaledDocStyle}>
 
                         {isContract ? (
                             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: `${A4H - PAD * 2}px` }}>

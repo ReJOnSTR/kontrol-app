@@ -9,7 +9,7 @@ import CustomSelect from '../components/CustomSelect'
 import CustomInput from '../components/CustomInput'
 
 import { formatDate, getVehicleTypeLabel } from '../utils/helpers'
-import { Plus, Check, Truck, Pencil, Trash2, Calendar, FileText, LayoutList, Building2 } from 'lucide-react'
+import { Plus, Check, Truck, Pencil, Trash2, Calendar, FileText, LayoutList, Building2, Eye } from 'lucide-react'
 import { usePersistentTab } from '../hooks/usePersistentTab'
 import DocumentPreviewModal from '../components/DocumentPreviewModal'
 import AssignmentForm from '../components/forms/AssignmentForm'
@@ -207,8 +207,10 @@ export default function Assignments() {
     const activeColumns = [
         { key: 'vehicle_plate', label: 'Araç Plaka' },
         { key: 'model', label: 'Araç Model' },
-        { key: 'driver_name', label: 'Sürücü Adı' },
-        { key: 'driver_phone', label: 'Telefon' },
+        { key: 'item_name', label: 'Malzeme / Demirbaş', render: (value) => value || '-' },
+        { key: 'quantity', label: 'Adet', render: (value) => value ?? 1 },
+        { key: 'assigned_to', label: 'Sorumlu Kişi', render: (value) => value || '-' },
+        { key: 'department', label: 'Departman', render: (value) => value || '-' },
         {
             key: 'start_date',
             label: 'Başlangıç Tarihi',
@@ -232,7 +234,10 @@ export default function Assignments() {
     const archivedColumns = [
         { key: 'vehicle_plate', label: 'Araç Plaka' },
         { key: 'model', label: 'Araç Model' },
-        { key: 'driver_name', label: 'Sürücü Adı' },
+        { key: 'item_name', label: 'Malzeme / Demirbaş', render: (value) => value || '-' },
+        { key: 'quantity', label: 'Adet', render: (value) => value ?? 1 },
+        { key: 'assigned_to', label: 'Sorumlu Kişi', render: (value) => value || '-' },
+        { key: 'department', label: 'Departman', render: (value) => value || '-' },
         {
             key: 'start_date',
             label: 'Başlangıç Tarihi',
@@ -331,6 +336,7 @@ export default function Assignments() {
             if (res.success) {
                 setPreviewDoc({
                     id: doc.id,
+                    related_id: doc.related_id,
                     name: doc.file_name,
                     path: doc.file_path,
                     data: res.data
@@ -338,6 +344,7 @@ export default function Assignments() {
             } else {
                 setPreviewDoc({
                     id: doc.id,
+                    related_id: doc.related_id,
                     name: doc.file_name,
                     path: doc.file_path,
                     notFound: true,
@@ -349,6 +356,7 @@ export default function Assignments() {
             if (!result.success) {
                 setPreviewDoc({
                     id: doc.id,
+                    related_id: doc.related_id,
                     name: doc.file_name,
                     path: doc.file_path,
                     notFound: true,
@@ -395,24 +403,20 @@ export default function Assignments() {
     const handleBatchSaveItem = async (vehicleId, data) => {
         const payload = {
             companyId: currentCompany.id,
-            vehicleId: vehicleId,
-            employeeId: parseInt(data.employeeId),
-            assignedDate: data.assignedDate,
-            notes: data.notes
+            vehicleId: parseInt(vehicleId),
+            itemName: data.itemName || 'Araç Zimmeti',
+            quantity: parseInt(data.quantity) || 1,
+            assignedTo: data.assignedTo || null,
+            department: data.department || null,
+            startDate: data.startDate,
+            endDate: data.endDate || null,
+            notes: data.notes || null,
+            filePath: data.filePath
         }
 
         const result = await window.electronAPI.createAssignment(payload)
 
         if (result.success) {
-            if (data.filePath) {
-                await window.electronAPI.addDocument({
-                    vehicleId: vehicleId,
-                    relatedType: 'assignment',
-                    relatedId: result.data.id,
-                    filePath: data.filePath
-                })
-            }
-            
             const assignmentsRes = await window.electronAPI.getAllAssignments(currentCompany.id, showArchived ? 1 : 0)
             if (assignmentsRes.success) setAssignments(assignmentsRes.data)
             
@@ -475,7 +479,7 @@ export default function Assignments() {
                 showDateFilter={true}
                 dateFilterKey="start_date"
                 dateFilterEndKey="end_date"
-                searchKeys={['vehicle_plate', 'model', 'driver_name', 'driver_phone', 'notes']}
+                searchKeys={['vehicle_plate', 'model', 'item_name', 'assigned_to', 'department', 'notes']}
                 filters={[
                     {
                         key: 'status',
@@ -530,9 +534,10 @@ export default function Assignments() {
             <ConfirmModal
                 isOpen={!!confirmModal}
                 onClose={() => setConfirmModal(null)}
-                onConfirm={handleConfirmDelete}
+                onConfirm={confirmModal?.onConfirm || handleConfirmDelete}
                 title={confirmModal?.title}
                 message={confirmModal?.message}
+                confirmText={confirmModal?.confirmText}
             />
 
             <DocumentPreviewModal

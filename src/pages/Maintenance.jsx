@@ -367,6 +367,7 @@ export default function Maintenance() {
             if (res.success) {
                 setPreviewDoc({
                     id: doc.id,
+                    related_id: doc.related_id,
                     name: doc.file_name,
                     path: doc.file_path,
                     data: res.data
@@ -374,6 +375,7 @@ export default function Maintenance() {
             } else {
                 setPreviewDoc({
                     id: doc.id,
+                    related_id: doc.related_id,
                     name: doc.file_name,
                     path: doc.file_path,
                     notFound: true,
@@ -385,6 +387,7 @@ export default function Maintenance() {
             if (!result.success) {
                 setPreviewDoc({
                     id: doc.id,
+                    related_id: doc.related_id,
                     name: doc.file_name,
                     path: doc.file_path,
                     notFound: true,
@@ -432,29 +435,21 @@ export default function Maintenance() {
     const handleBatchSaveItem = async (vehicleId, data) => {
         const payload = {
             companyId: currentCompany.id,
-            vehicleId: vehicleId,
+            vehicleId: parseInt(vehicleId),
             type: data.type,
             description: data.description,
             date: data.date,
-            cost: data.cost ? parseFloat(data.cost) : null,
+            cost: data.cost ? parseFloat(data.cost) : 0,
             km: data.km ? parseInt(data.km) : null,
             nextKm: data.nextKm ? parseInt(data.nextKm) : null,
             nextDate: data.nextDate || null,
-            notes: data.notes
+            notes: data.notes,
+            filePath: data.filePath
         }
 
         const result = await window.electronAPI.createMaintenance(payload)
 
         if (result.success) {
-            if (data.filePath) {
-                await window.electronAPI.addDocument({
-                    vehicleId: vehicleId,
-                    relatedType: 'maintenance',
-                    relatedId: result.data.id,
-                    filePath: data.filePath
-                })
-            }
-            
             const res = await window.electronAPI.getAllMaintenances(currentCompany.id, showArchived ? 1 : 0)
             if (res.success) setMaintenances(res.data)
             
@@ -587,9 +582,10 @@ export default function Maintenance() {
             <ConfirmModal
                 isOpen={!!confirmModal}
                 onClose={() => setConfirmModal(null)}
-                onConfirm={handleConfirmDelete}
+                onConfirm={confirmModal?.onConfirm || handleConfirmDelete}
                 title={confirmModal?.title}
                 message={confirmModal?.message}
+                confirmText={confirmModal?.confirmText}
             />
 
             <DocumentPreviewModal

@@ -192,7 +192,7 @@ export default function ReportRenderer({
                                                 {listConfig?.brand && <td style={tdStyle}>{report.vehicle.brand}</td>}
                                                 {listConfig?.model && <td style={tdStyle}>{report.vehicle.model}</td>}
                                                 {listConfig?.year && <td style={tdStyle}>{report.vehicle.year}</td>}
-                                                {listConfig?.km && <td style={tdStyle}>{report.vehicle.kilometers ? `${report.vehicle.kilometers} km` : '-'}</td>}
+                                                {listConfig?.km && <td style={tdStyle}>{(report.vehicle.km ?? report.vehicle.kilometers) ? `${report.vehicle.km ?? report.vehicle.kilometers} km` : '-'}</td>}
                                                 {listConfig?.status && <td style={tdStyle}>{report.vehicle.status === 'active' ? 'Aktif' : report.vehicle.status === 'maintenance' ? 'Bakımda' : 'Pasif'}</td>}
                                             </tr>
                                         );
@@ -357,7 +357,7 @@ export default function ReportRenderer({
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '2px' }}>KM</div>
-                                        <div style={{ fontSize: '13px' }}>{report.vehicle.kilometers ? `${report.vehicle.kilometers} km` : '-'}</div>
+                                        <div style={{ fontSize: '13px' }}>{(report.vehicle.km ?? report.vehicle.kilometers) ? `${report.vehicle.km ?? report.vehicle.kilometers} km` : '-'}</div>
                                     </div>
                                 </div>
                             )}
@@ -416,10 +416,10 @@ export default function ReportRenderer({
                                                 <tbody>
                                                     {report.maintenances.map((item, i) => (
                                                         <tr key={i}>
-                                                            <td style={tdStyle}>{formatDate(item.maintenance_date)}</td>
-                                                            <td style={tdStyle}>{getMaintenanceTypeLabel(item.maintenance_type)}</td>
+                                                            <td style={tdStyle}>{formatDate(item.date || item.maintenance_date)}</td>
+                                                            <td style={tdStyle}>{getMaintenanceTypeLabel(item.type || item.maintenance_type)}</td>
                                                             <td style={tdStyle}>{item.description || '-'}</td>
-                                                            <td style={tdStyle}>{item.kilometers ? `${item.kilometers} km` : '-'}</td>
+                                                            <td style={tdStyle}>{(item.next_km ?? item.kilometers) ? `${item.next_km ?? item.kilometers} km` : '-'}</td>
                                                             <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.cost)}</td>
                                                         </tr>
                                                     ))}
@@ -456,8 +456,8 @@ export default function ReportRenderer({
                                                 <tbody>
                                                     {report.services.map((item, i) => (
                                                         <tr key={i}>
-                                                            <td style={tdStyle}>{formatDate(item.service_date)}</td>
-                                                            <td style={tdStyle}>{item.service_name || '-'}</td>
+                                                            <td style={tdStyle}>{formatDate(item.date || item.service_date)}</td>
+                                                            <td style={tdStyle}>{item.service_name || item.type || '-'}</td>
                                                             <td style={tdStyle}>{item.description || '-'}</td>
                                                             <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.cost)}</td>
                                                         </tr>
@@ -496,17 +496,17 @@ export default function ReportRenderer({
                                                 <tbody>
                                                     {report.insurances.map((item, i) => (
                                                         <tr key={i}>
-                                                            <td style={tdStyle}>{getInsuranceTypeLabel(item.insurance_type)}</td>
-                                                            <td style={tdStyle}>{item.company_name || '-'}</td>
+                                                            <td style={tdStyle}>{getInsuranceTypeLabel(item.type || item.insurance_type)}</td>
+                                                            <td style={tdStyle}>{item.company || item.company_name || '-'}</td>
                                                             <td style={tdStyle}>{item.policy_no || '-'}</td>
                                                             <td style={tdStyle}>{formatDate(item.end_date)}</td>
-                                                            <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.cost)}</td>
+                                                            <td style={{ ...tdStyle, textAlign: 'right' }}>{formatCurrency(item.premium ?? item.cost)}</td>
                                                         </tr>
                                                     ))}
                                                     <tr style={totalRowStyle}>
                                                         <td colSpan={4} style={{ ...tdStyle, textAlign: 'right' }}>TOPLAM:</td>
                                                         <td style={{ ...tdStyle, textAlign: 'right' }}>
-                                                            {formatCurrency(report.insurances.reduce((sum, item) => sum + (item.cost || 0), 0))}
+                                                            {formatCurrency(report.insurances.reduce((sum, item) => sum + ((item.premium ?? item.cost) || 0), 0))}
                                                         </td>
                                                     </tr>
                                                 </tbody>

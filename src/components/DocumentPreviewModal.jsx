@@ -193,9 +193,7 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (!doc) return
-            if (e.key === 'Escape') {
-                onClose()
-            } else if (e.key === '+' || e.key === '=') {
+            if (e.key === '+' || e.key === '=') {
                 handleZoomIn()
             } else if (e.key === '-' || e.key === '_') {
                 handleZoomOut()
@@ -378,7 +376,7 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
             footer={footer}
             bodyStyle={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}
         >
-            <div style={{ display: 'flex', flexDirection: 'column', height: '75vh', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
                 {isNotFound ? (
                     <div style={{
                         flex: 1,
@@ -750,8 +748,8 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
                                 alt={fileName}
                                 draggable={false}
                                 style={{
-                                    maxWidth: '85vw',
-                                    maxHeight: '68vh',
+                                    maxWidth: '100%',
+                                    maxHeight: '100%',
                                     objectFit: 'contain',
                                     borderRadius: '8px',
                                     boxShadow: '0 20px 40px rgba(0, 0, 0, 0.7)',

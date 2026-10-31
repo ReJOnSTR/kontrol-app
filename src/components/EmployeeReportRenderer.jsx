@@ -596,7 +596,7 @@ export default function EmployeeReportRenderer({
 
                             {/* Employee Info Grid (First page of employee) */}
                             {page.showProfile && (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${config?.remainingLeaves !== false ? 5 : 4}, 1fr)`, gap: '12px', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
                                     <div>
                                         <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '2px' }}>AD SOYAD</div>
                                         <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{report.employee.first_name} {report.employee.last_name}</div>
@@ -618,12 +618,14 @@ export default function EmployeeReportRenderer({
                                             </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '2px' }}>KALAN İZİN</div>
-                                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#2563eb' }}>
-                                            {formatDayBalance(calculateRemainingLeaves(report.employee, report.leaves))}
+                                    {config?.remainingLeaves !== false && (
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '2px' }}>KALAN İZİN</div>
+                                            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#2563eb' }}>
+                                                {formatDayBalance(calculateRemainingLeaves(report.employee, report.leaves))}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 
@@ -755,16 +757,16 @@ export default function EmployeeReportRenderer({
                                             <table style={tableStyle}>
                                                 <thead>
                                                     <tr style={thRowStyle}>
-                                                        <th style={thStyle}>BELGE ADI</th>
-                                                        <th style={thStyle}>BELGE NO</th>
+                                                        <th style={thStyle}>KATEGORİ / TÜR</th>
+                                                        <th style={thStyle}>DOSYA / BELGE ADI</th>
                                                         <th style={thStyle}>GEÇERLİLİK TARİHİ</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {report.documents.map((item, i) => (
                                                         <tr key={i}>
-                                                            <td style={tdStyle}>{item.category || item.name}</td>
-                                                            <td style={tdStyle}>{item.document_no || '-'}</td>
+                                                            <td style={tdStyle}>{item.category || item.name || '-'}</td>
+                                                            <td style={tdStyle}>{item.file_name || item.document_no || '-'}</td>
                                                             <td style={tdStyle}>{item.expiry_date ? formatDate(item.expiry_date) : 'Süresiz'}</td>
                                                         </tr>
                                                     ))}

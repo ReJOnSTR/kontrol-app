@@ -284,6 +284,26 @@ export default function EmployeeReports() {
                     { header: 'Tutar', value: i => i.net_salary || i.amount }
                 ])
             }
+
+            if (config.assignments) {
+                const allAssignments = processedReportList.flatMap(r => (r.assignments || []).map(i => ({ ...i, employeeName: `${r.employee.first_name} ${r.employee.last_name}` })))
+                addSheet('Zimmetler', allAssignments, [
+                    { header: 'Personel', value: i => i.employeeName },
+                    { header: 'Ekipman', value: i => i.item_name || '-' },
+                    { header: 'Veriliş Tarihi', value: i => formatDate(i.assign_date) },
+                    { header: 'Durum', value: i => i.return_date ? 'İade Edildi' : 'Zimmetli' }
+                ])
+            }
+
+            if (config.documents) {
+                const allDocuments = processedReportList.flatMap(r => (r.documents || []).map(i => ({ ...i, employeeName: `${r.employee.first_name} ${r.employee.last_name}` })))
+                addSheet('Belgeler', allDocuments, [
+                    { header: 'Personel', value: i => i.employeeName },
+                    { header: 'Kategori', value: i => i.category || i.name || '-' },
+                    { header: 'Dosya Adı', value: i => i.file_name || i.document_no || '-' },
+                    { header: 'Geçerlilik Tarihi', value: i => i.expiry_date ? formatDate(i.expiry_date) : 'Süresiz' }
+                ])
+            }
         }
 
         const companyStr = currentCompany?.name || '';
@@ -570,6 +590,7 @@ export default function EmployeeReports() {
                     onClose={() => setIsModalOpen(false)}
                     title={selectedEmployees.length > 1 ? `${selectedEmployees.length} Personel İçin Toplu Rapor` : `Rapor: ${selectedEmployees[0].first_name} ${selectedEmployees[0].last_name}`}
                     size="fullscreen"
+                    bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
                     footer={
                         <>
                             <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Kapat</button>
@@ -590,9 +611,9 @@ export default function EmployeeReports() {
                         </>
                     }
                 >
-                    <div style={{ display: 'flex', gap: '0', height: '100%', background: 'var(--bg-primary)', overflow: 'hidden' }}>
+                    <div className="report-modal-split" style={{ display: 'flex', gap: '0', height: '100%', flex: 1, minHeight: 0, background: 'var(--bg-primary)', overflow: 'hidden' }}>
                         {/* Configuration Sidebar */}
-                        <div style={{ width: '280px', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '0', flexShrink: 0, overflowY: 'auto', background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-color)' }}>
+                        <div className="report-modal-sidebar" style={{ width: '280px', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '0', flexShrink: 0, overflowY: 'auto', background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-color)' }}>
                             
                             {/* Report Type */}
                             <div style={{ borderBottom: '1px solid var(--border-color)' }}>

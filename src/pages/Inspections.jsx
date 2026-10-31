@@ -405,27 +405,19 @@ export default function Inspections() {
     const handleBatchSaveItem = async (vehicleId, data) => {
         const payload = {
             companyId: currentCompany.id,
-            vehicleId: vehicleId,
+            vehicleId: parseInt(vehicleId),
             type: 'traffic',
             inspectionDate: data.inspectionDate,
-            expiryDate: data.expiryDate,
-            cost: data.cost ? parseFloat(data.cost) : null,
+            nextInspection: data.nextInspection || data.expiryDate || null,
+            cost: data.cost ? parseFloat(data.cost) : 0,
             result: data.result,
-            notes: data.notes
+            notes: data.notes,
+            filePath: data.filePath
         }
 
         const result = await window.electronAPI.createInspection(payload)
 
         if (result.success) {
-            if (data.filePath) {
-                await window.electronAPI.addDocument({
-                    vehicleId: vehicleId,
-                    relatedType: 'inspection',
-                    relatedId: result.data.id,
-                    filePath: data.filePath
-                })
-            }
-            
             const res = await window.electronAPI.getAllInspections(currentCompany.id, 'traffic', showArchived ? 1 : 0)
             if (res.success) setInspections(res.data)
             
@@ -563,9 +555,10 @@ export default function Inspections() {
             <ConfirmModal
                 isOpen={!!confirmModal}
                 onClose={() => setConfirmModal(null)}
-                onConfirm={handleConfirmDelete}
+                onConfirm={confirmModal?.onConfirm || handleConfirmDelete}
                 title={confirmModal?.title}
                 message={confirmModal?.message}
+                confirmText={confirmModal?.confirmText}
             />
 
             <DocumentPreviewModal

@@ -111,9 +111,7 @@ async function authorizeFile(actor, name, prisma, write = false) {
         ['insurances', 'vehicles', { vehicles: { company_id: { in: actorCompanies } } }],
         ['maintenances', 'vehicles', { vehicles: { company_id: { in: actorCompanies } } }],
         ['inspections', 'vehicles', { vehicles: { company_id: { in: actorCompanies } } }],
-        ['assignments', 'vehicles', { vehicles: { company_id: { in: actorCompanies } } }],
-        ['salaries', 'employees', { employees: { company_id: { in: actorCompanies } } }],
-        ['services', 'vehicles', { company_id: { in: actorCompanies } }]
+        ['services', 'vehicles', { vehicles: { company_id: { in: actorCompanies } } }]
     ];
 
     for (const [model, module, scope] of checks) {

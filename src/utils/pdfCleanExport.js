@@ -5,7 +5,7 @@ import html2pdf from 'html2pdf.js';
  * Operates directly on the live on-screen element (avoiding off-screen blank canvas bugs),
  * temporarily applies print-clean styling, captures exact A4 dimensions, and downloads directly.
  */
-export async function exportElementToCleanPdf(containerElement, filename = 'Rapor.pdf', isLandscape = false) {
+export async function exportElementToCleanPdf(containerElement, filename = 'Rapor.pdf', isLandscape = false, options = {}) {
     if (!containerElement) {
         throw new Error('PDF için içerik elementi bulunamadı.');
     }
@@ -71,6 +71,9 @@ export async function exportElementToCleanPdf(containerElement, filename = 'Rapo
             }
         };
 
+        if (options?.outputDataUri) {
+            return await html2pdf().set(opt).from(target).outputPdf('datauristring');
+        }
         await html2pdf().set(opt).from(target).save();
     } finally {
         // 4. Restore original state

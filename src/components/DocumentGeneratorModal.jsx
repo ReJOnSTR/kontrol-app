@@ -13,6 +13,7 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
     const [placeholders, setPlaceholders] = useState({})
     const [content, setContent] = useState('')
     const [title, setTitle] = useState('')
+    const [isCustomEdited, setIsCustomEdited] = useState(false)
     const [isGenerating, setIsGenerating] = useState(false)
     // 'edit' | 'stamp-preview'
     const [step, setStep] = useState('edit')
@@ -82,8 +83,27 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
             })
             setPlaceholders(initialPlaceholders)
             setTitle(selectedTemplate.title)
+            setIsCustomEdited(false)
         }
     }, [selectedTemplate, employee, company])
+
+    const handlePlaceholderChange = (key, newVal) => {
+        const oldVal = placeholders[key]
+        setPlaceholders(prev => ({ ...prev, [key]: newVal }))
+        if (isCustomEdited) {
+            const oldDisplay = key.toLowerCase().includes('date') && oldVal ? formatDate(oldVal) : (oldVal || `[${key}]`)
+            const newDisplay = key.toLowerCase().includes('date') && newVal ? formatDate(newVal) : (newVal || `[${key}]`)
+            setContent(prev => {
+                if (prev.includes(`{{${key}}}`)) {
+                    return prev.replace(new RegExp(`{{${key}}}`, 'g'), newDisplay)
+                }
+                if (oldDisplay && prev.includes(oldDisplay)) {
+                    return prev.split(oldDisplay).join(newDisplay)
+                }
+                return prev
+            })
+        }
+    }
 
     useEffect(() => {
         if (placeholders.startDate && placeholders.endDate && 'days' in placeholders) {
@@ -93,14 +113,14 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
                 const diffTime = end - start
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
                 if (placeholders.days !== diffDays.toString()) {
-                    setPlaceholders(prev => ({ ...prev, days: diffDays.toString() }))
+                    handlePlaceholderChange('days', diffDays.toString())
                 }
             }
         }
     }, [placeholders.startDate, placeholders.endDate])
 
     useEffect(() => {
-        if (selectedTemplate) {
+        if (selectedTemplate && !isCustomEdited) {
             let newContent = selectedTemplate.content
             Object.entries(placeholders).forEach(([key, value]) => {
                 const displayValue = key.toLowerCase().includes('date') && value ? formatDate(value) : value
@@ -108,7 +128,7 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
             })
             setContent(newContent)
         }
-    }, [placeholders, selectedTemplate])
+    }, [placeholders, selectedTemplate, isCustomEdited])
 
     // Reset step when modal closes
     useEffect(() => {
@@ -145,10 +165,9 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
 
             const result = await window.electronAPI.saveReportPdf('/print-document', { silent: isSilent, defaultPath: defaultFileName })
             if (result && result.success && result.filePath) {
-                if (isSilent) {
+                if (isSilent && result.filePath !== 'İndirildi') {
                     const ext = 'pdf'
-                    const baseName = result.filePath.split('/').pop().split('\\').pop()
-                    const docName = baseName || `${docTitleStr}.pdf`
+                    const docName = defaultFileName || `${docTitleStr}.pdf`
                     
                     try {
                         const createResult = await window.electronAPI.createEmployeeDocument({
@@ -189,7 +208,7 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
 
     if (!employee || !company) return null
 
-    const hasStampOrSig = company.stamp_path || company.signature_path
+    const hasStampOrSig = company.stamp_path || company.signature_path || employee?.signature_path || employee?.signaturePath
 
     const modalFooter = step === 'edit' ? (
         <>
@@ -276,9 +295,9 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
             footer={modalFooter}
         >
             {step === 'edit' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '24px' }}>
+                <div className="doc-generator-split" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '24px' }}>
                     {/* Sol Panel: Şablon Seçimi */}
-                    <div style={{ borderRight: '1px solid var(--border-color)', paddingRight: '20px' }}>
+                    <div className="doc-generator-sidebar" style={{ borderRight: '1px solid var(--border-color)', paddingRight: '20px' }}>
                         <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.5px' }}>
                             Şablon Seçin
                         </div>
@@ -330,7 +349,7 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
                                     label={p.label}
                                     type={p.type || 'text'}
                                     value={placeholders[p.key] || ''}
-                                    onChange={(val) => setPlaceholders(prev => ({ ...prev, [p.key]: val }))}
+                                    onChange={(val) => handlePlaceholderChange(p.key, val)}
                                     maxLength={200}
                                     style={{ marginBottom: 0 }}
                                 />
@@ -377,7 +396,10 @@ export default function DocumentGeneratorModal({ isOpen, onClose, employee, comp
                                 />
                                 <textarea
                                     value={content}
-                                    onChange={(e) => setContent(e.target.value)}
+                                    onChange={(e) => {
+                                        setIsCustomEdited(true)
+                                        setContent(e.target.value)
+                                    }}
                                     maxLength={10000}
                                     style={{
                                         width: '100%',

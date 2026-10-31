@@ -58,7 +58,7 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
             }
 
             if (prop === 'getAppVersion') {
-                return async () => typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.13.148';
+                return async () => typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.13.166';
             }
 
             if (prop === 'openExternal') {
@@ -240,14 +240,28 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
             // Web saveAsPdf / saveReportPdf (seamless in-page export without opening new windows or tabs)
             if (prop === 'saveReportPdf') {
                 return async (route, options) => {
+                    const fileName = options?.defaultPath || 'Rapor.pdf';
+                    const isSilentUpload = Boolean(options?.silent && !options?.targetFilePath);
                     const el = document.querySelector('.report-print-container') ||
                                document.querySelector('.pdf-pages-container') || 
                                document.querySelector('.print-body');
                     if (el) {
                         try {
                             const { exportElementToCleanPdf } = await import('../utils/pdfCleanExport');
-                            const fileName = options?.defaultPath || 'Rapor.pdf';
                             const isLandscape = Boolean(options?.landscape);
+                            if (isSilentUpload && window.electronAPI?.uploadFileBase64) {
+                                const dataUri = await exportElementToCleanPdf(el, fileName, isLandscape, { outputDataUri: true });
+                                if (dataUri) {
+                                    const upRes = await window.electronAPI.uploadFileBase64({
+                                        fileName,
+                                        fileData: dataUri,
+                                        module: 'employees'
+                                    });
+                                    if (upRes?.success && upRes.fileName) {
+                                        return { success: true, isWeb: true, filePath: upRes.fileName };
+                                    }
+                                }
+                            }
                             await exportElementToCleanPdf(el, fileName, isLandscape);
                             return { success: true, isWeb: true, filePath: 'İndirildi' };
                         } catch (err) {
@@ -307,13 +321,14 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                                 cleanup();
                                 resolve({ success: true, isWeb: true, filePath: 'İndirildi' });
                             }
-                        }, 8000);
+                        }, 12000);
 
                         try {
                             const rawRoute = route || '/print';
                             const cleanHash = rawRoute.startsWith('#') ? rawRoute : `#${rawRoute.startsWith('/') ? '' : '/'}${rawRoute}`;
                             const separator = cleanHash.includes('?') ? '&' : '?';
-                            iframe.src = `${cleanHash}${separator}autoDownload=1`;
+                            const extraParams = `autoDownload=1&fileName=${encodeURIComponent(fileName)}${isSilentUpload ? '&silentUpload=1' : ''}`;
+                            iframe.src = `${cleanHash}${separator}${extraParams}`;
                             document.body.appendChild(iframe);
                         } catch (e) {
                             cleanup();
