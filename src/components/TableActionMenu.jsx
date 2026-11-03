@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreHorizontal, ChevronRight, Eye } from 'lucide-react'
+import { getUiScale } from '../utils/helpers'
 
 /**
  * Recursively extracts action buttons from React elements, Fragments, and arrays
@@ -72,12 +73,13 @@ export default function TableActionMenu({
 
         // Right-align with the trigger button to prevent right-edge overflow
         const right = Math.max(10, window.innerWidth - rect.right)
+        const scale = getUiScale()
 
         setDropdownStyle({
             position: 'fixed',
-            top: placement === 'bottom' ? `${rect.bottom + 4}px` : 'auto',
-            bottom: placement === 'top' ? `${window.innerHeight - rect.top + 4}px` : 'auto',
-            right: `${right}px`,
+            top: placement === 'bottom' ? `${Math.round(rect.bottom + 4)}px` : 'auto',
+            bottom: placement === 'top' ? `${Math.round(window.innerHeight - rect.top + 4)}px` : 'auto',
+            right: `${Math.round(right)}px`,
             left: 'auto',
             minWidth: '160px',
             maxWidth: '260px',

@@ -7,7 +7,7 @@ import DataTable from '../components/DataTable'
 import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
 import WorkForm from '../components/forms/WorkForm'
-import { Plus, CheckCircle, Clock, AlertCircle, Calendar, Pencil, Trash2, MapPin, Truck, User, ArrowRight, Archive, ArchiveRestore } from 'lucide-react'
+import { Plus, CheckCircle, Clock, AlertCircle, Calendar, Pencil, Trash2, MapPin, Truck, User, ArrowRight, Archive, ArchiveRestore, X } from 'lucide-react'
 import { formatDate, formatCurrency, getWorkStatusLabel, getWorkStatusColor } from '../utils/helpers'
 import { dataCache } from '../utils/dataCache'
 
@@ -25,12 +25,29 @@ export default function Works() {
     const [saving, setSaving] = useState(false)
     const [confirmModal, setConfirmModal] = useState(null)
     const [showArchived, setShowArchived] = useState(false)
+    const [selectedIds, setSelectedIds] = useState([])
 
     // Permissions
     const canViewPrices = isAdmin || hasPermission('works_view_prices') || hasPermission('works', 'can_view_prices')
     const canCreate = isAdmin || hasPermission('works_create', 'can_create') || hasPermission('works', 'can_create')
     const canEdit = isAdmin || hasPermission('works_edit', 'can_update') || hasPermission('works', 'can_update')
     const canDelete = isAdmin || hasPermission('works_delete', 'can_delete') || hasPermission('works', 'can_delete')
+
+    const selectedWorks = useMemo(() => works.filter(w => selectedIds.includes(w.id)), [works, selectedIds])
+    const selectedTotal = useMemo(() => selectedWorks.reduce((s, w) => s + (Number(w.total_price) || 0), 0), [selectedWorks])
+    const selectedStats = useMemo(() => {
+        if (!selectedIds || selectedIds.length === 0) return null
+        const pending = selectedWorks.filter(w => w.status === 'pending').length
+        const inProgress = selectedWorks.filter(w => w.status === 'in_progress').length
+        const completed = selectedWorks.filter(w => w.status === 'completed' || w.status === 'paid').length
+        return {
+            total: selectedWorks.length,
+            pending,
+            inProgress,
+            completed,
+            totalVolume: selectedTotal
+        }
+    }, [selectedWorks, selectedIds, selectedTotal])
 
     useEffect(() => {
         if (searchParams.get('action') === 'new') {
@@ -270,20 +287,26 @@ export default function Works() {
                 if (items.length > 0) {
                     let gunCount = 0;
                     let saatCount = 0;
+                    let aylikCount = 0;
                     items.forEach(item => {
-                        const isH = (item.description || '').toUpperCase().includes('[SAATLİK]') || item.pricingType === 'hourly';
+                        const desc = (item.description || '').toUpperCase();
+                        const isH = desc.includes('[SAATLİK]') || item.pricingType === 'hourly';
+                        const isA = desc.includes('[AYLIK]') || item.pricingType === 'monthly';
                         const h = Number(item.hours) || 0;
                         if (isH) saatCount += h;
+                        else if (isA && (items.length === 1 || !item.start_time)) aylikCount += (h || 1);
                         else gunCount += h;
                     });
+                    if (aylikCount > 0 && gunCount === 0 && saatCount === 0) return `${aylikCount} Aylık`;
                     if (gunCount > 0 && saatCount > 0) return `${gunCount} Gün + ${saatCount} Saat`;
                     if (saatCount > 0) return `${saatCount} Saat`;
                     if (gunCount > 0) return `${gunCount} Gün`;
                 }
                 const isHourly = row.is_hourly;
+                const isMonthly = row.is_monthly || (row.description || '').toUpperCase().includes('[AYLIK]');
                 const displayVal = row.total_hours || v || 0;
                 if (!displayVal) return '-';
-                return `${displayVal} ${isHourly ? 'Saat' : 'Gün'}`;
+                return `${displayVal} ${isHourly ? 'Saat' : (isMonthly ? 'Aylık' : 'Gün')}`;
             }
         },
         {
@@ -313,40 +336,95 @@ export default function Works() {
 
             {/* Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-                <div className="stat-card">
+                <div className="stat-card" style={selectedStats ? { border: '1.5px solid var(--warning)' } : undefined}>
                     <div className="stat-icon warning">
                         <Clock />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{stats.inProgress}</div>
-                        <div className="stat-label">Devam Eden</div>
+                        <div className="stat-value">
+                            {selectedStats ? (
+                                <>
+                                    <span style={{ color: 'var(--warning)' }}>{selectedStats.inProgress}</span>
+                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}> / {stats.inProgress}</span>
+                                </>
+                            ) : (
+                                stats.inProgress
+                            )}
+                        </div>
+                        <div className="stat-label">{selectedStats ? 'Seçilen Devam Eden' : 'Devam Eden'}</div>
                     </div>
                 </div>
-                <div className="stat-card">
+
+                <div className="stat-card" style={selectedStats ? { border: '1.5px solid var(--border-color)' } : undefined}>
                     <div className="stat-icon neutral">
                         <AlertCircle />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{stats.pending}</div>
-                        <div className="stat-label">Bekleyen</div>
+                        <div className="stat-value">
+                            {selectedStats ? (
+                                <>
+                                    <span>{selectedStats.pending}</span>
+                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}> / {stats.pending}</span>
+                                </>
+                            ) : (
+                                stats.pending
+                            )}
+                        </div>
+                        <div className="stat-label">{selectedStats ? 'Seçilen Bekleyen' : 'Bekleyen'}</div>
                     </div>
                 </div>
-                <div className="stat-card">
+
+                <div className="stat-card" style={selectedStats ? { border: '1.5px solid var(--success)' } : undefined}>
                     <div className="stat-icon success">
                         <CheckCircle />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{stats.completed}</div>
-                        <div className="stat-label">Tamamlanan</div>
+                        <div className="stat-value">
+                            {selectedStats ? (
+                                <>
+                                    <span style={{ color: 'var(--success)' }}>{selectedStats.completed}</span>
+                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}> / {stats.completed}</span>
+                                </>
+                            ) : (
+                                stats.completed
+                            )}
+                        </div>
+                        <div className="stat-label">{selectedStats ? 'Seçilen Tamamlanan' : 'Tamamlanan'}</div>
                     </div>
                 </div>
-                <div className="stat-card">
+
+                <div className="stat-card" style={selectedStats ? { border: '1.5px solid var(--accent-primary)', background: 'var(--accent-subtle)' } : undefined}>
                     <div className="stat-icon primary">
                         <Calendar />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{stats.total}</div>
-                        <div className="stat-label">Toplam İş</div>
+                        <div className="stat-value">
+                            {selectedStats ? (
+                                canViewPrices ? (
+                                    <span style={{ color: 'var(--accent-primary)', fontSize: '20px' }}>
+                                        {formatCurrency(selectedStats.totalVolume)}
+                                    </span>
+                                ) : (
+                                    <>
+                                        <span style={{ color: 'var(--accent-primary)' }}>{selectedStats.total}</span>
+                                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}> / {stats.total}</span>
+                                    </>
+                                )
+                            ) : (
+                                stats.total
+                            )}
+                        </div>
+                        <div className="stat-label">
+                            {selectedStats 
+                                ? (canViewPrices ? `Seçilen (${selectedStats.total} İş)` : 'Seçilen Toplam')
+                                : 'Toplam İş'
+                            }
+                        </div>
+                        {selectedStats && canViewPrices && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                +KDV: {formatCurrency(Math.round(selectedStats.totalVolume * 1.20))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -371,7 +449,8 @@ export default function Works() {
                 ]}
                 emptyMessage="Henüz iş kaydı bulunamadı"
                 showSearch={true}
-                showCheckboxes={canDelete}
+                showCheckboxes={true}
+                onSelectionChange={setSelectedIds}
                 showDateFilter={true}
                 dateFilterKey="start_date"
                 dateFilterEndKey="end_date"

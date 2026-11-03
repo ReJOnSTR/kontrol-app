@@ -20,13 +20,13 @@
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
 
-  /* Accent - Teal/Cyan instead of Purple */
-  --accent-primary: #14b8a6;
-  --accent-secondary: #2dd4bf;
-  --accent-primary-glass: rgba(255, 255, 255, 0.05);
-  --accent-gradient: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-  --accent-glow: rgba(20, 184, 166, 0.35);
-  --accent-subtle: rgba(20, 184, 166, 0.1);
+  /* Accent - Refined Royal Blue (Modern, Clean, SaaS Standard) */
+  --accent-primary: #3b82f6;
+  --accent-secondary: #2563eb;
+  --accent-primary-glass: rgba(59, 130, 246, 0.08);
+  --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --accent-glow: rgba(59, 130, 246, 0.25);
+  --accent-subtle: rgba(59, 130, 246, 0.12);
   --primary: var(--accent-primary);
   --primary-bg: var(--accent-subtle);
 
@@ -52,6 +52,7 @@
   --sidebar-width: 220px;
   --sidebar-collapsed-width: 60px;
   --header-height: 52px;
+  --ui-scale: 1;
 
   /* Border Radius */
   --radius-xs: 6px;
@@ -113,6 +114,7 @@ html,
 body,
 #root {
   height: 100%;
+  min-height: calc(100vh / var(--ui-scale, 1));
 }
 
 body {
@@ -150,7 +152,8 @@ body {
 
 .app-layout {
   display: flex;
-  height: 100vh;
+  height: calc(100vh / var(--ui-scale, 1));
+  min-height: calc(100vh / var(--ui-scale, 1));
   margin-top: 0;
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -158,7 +161,8 @@ body {
 
 /* Electron masaüstü modu: TitleBar (38px) için üst boşluk */
 body.is-electron .app-layout {
-  height: calc(100vh - 38px);
+  height: calc((100vh / var(--ui-scale, 1)) - 38px);
+  min-height: calc((100vh / var(--ui-scale, 1)) - 38px);
   margin-top: 38px;
 }
 
@@ -476,7 +480,7 @@ textarea,
   }
 
   .mobile-search-btn:active {
-    transform: scale(0.95);
+    transform: none !important;
     background: var(--bg-secondary);
   }
 
@@ -511,7 +515,8 @@ textarea,
     inset: 0;
     z-index: 950;
     background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(2px);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   .mobile-dropdown-menu,
@@ -620,7 +625,8 @@ textarea,
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(4px);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     z-index: 1100;
     animation: fadeIn 0.2s ease;
   }
@@ -1187,7 +1193,8 @@ textarea,
     align-items: flex-end !important;
     justify-content: center !important;
     background: rgba(0, 0, 0, 0.7) !important;
-    backdrop-filter: blur(8px) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     z-index: 9999 !important;
   }
 
@@ -1328,9 +1335,9 @@ textarea,
     display: flex !important;
     flex-direction: column !important;
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
+    gap: 14px !important;
     width: 100% !important;
-    margin-bottom: 0 !important;
+    margin-bottom: 16px !important;
   }
 
   .modal-body .form-row:not(.keep-grid-mobile) > *,
@@ -1778,7 +1785,7 @@ textarea,
   border-color: var(--accent-primary);
   color: var(--text-primary);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12), 0 0 12px var(--accent-subtle);
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .detail-back-btn:hover .detail-back-icon {
@@ -1797,7 +1804,7 @@ textarea,
 }
 
 .detail-back-btn:active {
-  transform: translateY(0) scale(0.97);
+  transform: none !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
@@ -2766,11 +2773,9 @@ textarea,
   border-radius: var(--radius-sm);
   border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
   text-decoration: none;
   white-space: nowrap;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .btn svg {
@@ -2778,8 +2783,14 @@ textarea,
   flex-shrink: 0;
 }
 
+button:active,
 .btn:active {
-  transform: scale(0.96);
+  transform: none !important;
+}
+
+button:hover,
+.btn:hover {
+  transform: none;
 }
 
 .btn:disabled {
@@ -2866,6 +2877,16 @@ textarea,
 .form-group {
   margin-bottom: 16px;
   position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.custom-input-group,
+.custom-select {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group.mb-0 {
@@ -3294,18 +3315,22 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
 
 .form-grid-1 {
   grid-template-columns: 1fr;
+  margin-bottom: 16px;
 }
 
 .form-grid-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
 }
 
 .form-grid-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 16px;
 }
 
 .form-grid-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 16px;
 }
 
 .form-row {
@@ -3313,6 +3338,16 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
+  margin-bottom: 16px;
+}
+
+.form-row:last-child,
+.form-grid:last-child,
+.form-grid-1:last-child,
+.form-grid-2:last-child,
+.form-grid-3:last-child,
+.form-grid-4:last-child {
+  margin-bottom: 0;
 }
 
 .form-group .form-group,
@@ -3709,6 +3744,9 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
+  width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 10px;
@@ -3717,6 +3755,26 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   max-height: 250px;
   overflow-y: auto;
   animation: dropdownIn 0.12s ease;
+}
+
+.custom-select.filter-select-custom .custom-select-dropdown {
+  width: max-content;
+  min-width: 100%;
+  max-width: 320px;
+  right: auto;
+  left: 0;
+}
+
+.custom-select.is-open,
+.custom-select:focus-within {
+  position: relative;
+  z-index: 100;
+}
+
+.custom-select.is-open .input-wrapper,
+.custom-select:focus-within .input-wrapper {
+  position: relative;
+  z-index: 100;
 }
 
 .custom-select-dropdown.placement-top {
@@ -3846,10 +3904,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.15) 0%, rgba(20, 184, 166, 0.08) 100%);
-  border: 1px solid rgba(20, 184, 166, 0.3);
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-glow);
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .selection-count {
@@ -3857,7 +3915,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   font-weight: 600;
   color: var(--accent-primary);
   padding-right: 12px;
-  border-right: 1px solid rgba(20, 184, 166, 0.3);
+  border-right: 1px solid var(--border-color);
 }
 
 .btn-delete {
@@ -3878,12 +3936,12 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
 
 .btn-delete:hover {
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  transform: translateY(-1px);
+  transform: none;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
 .btn-delete:active {
-  transform: translateY(0);
+  transform: none !important;
 }
 
 .btn-clear {
@@ -4684,8 +4742,8 @@ body.is-electron:not(:has(.tab-bar)) {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   display: flex;
   align-items: center;
   justify-content: flex-end; /* Sağ tarafa yaslar (Floating Slide-over Panel) */
@@ -4695,11 +4753,10 @@ body.is-electron:not(:has(.tab-bar)) {
   transition: background 0.2s ease;
 }
 
-/* Modal / Çekmece açıkken sekmeler barını bulanıklaştır, ancak en üstteki "Kontrol" başlık çubuğunu net ve görünür tut */
+/* Modal / Çekmece açıkken sekmeler barı tıklanamaz olsun */
 body:has(.modal-overlay) .tab-bar {
-  filter: blur(5px);
+  filter: none !important;
   pointer-events: none;
-  transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
 }
 
@@ -4718,7 +4775,7 @@ body:has(.modal-overlay) .desktop-title-bar {
     left: 0;
     right: 0;
     bottom: 0;
-    height: 100vh;
+    height: calc(100vh / var(--ui-scale, 1));
     padding: 10px 16px 12px 16px;
     align-items: stretch;
     justify-content: flex-end;
@@ -4732,7 +4789,7 @@ body:has(.modal-overlay) .desktop-title-bar {
     left: 0;
     right: 0;
     bottom: 0;
-    height: calc(100vh - 38px);
+    height: calc((100vh / var(--ui-scale, 1)) - 38px);
     padding: 10px 16px 12px 16px;
     align-items: stretch;
     justify-content: flex-end;
@@ -4751,7 +4808,8 @@ body:has(.modal-overlay) .desktop-title-bar {
   body:not(.is-electron) .modal-overlay:has(.modal-center),
   body:not(.is-electron) .modal-overlay:has(.modal-sm) {
     top: 0;
-    height: 100vh;
+    bottom: 0;
+    height: calc(100vh / var(--ui-scale, 1));
     justify-content: center;
     align-items: center;
     padding: 24px;
@@ -4762,7 +4820,8 @@ body:has(.modal-overlay) .desktop-title-bar {
   body.is-electron .modal-overlay:has(.modal-center),
   body.is-electron .modal-overlay:has(.modal-sm) {
     top: 38px;
-    height: calc(100vh - 38px);
+    bottom: 0;
+    height: calc((100vh / var(--ui-scale, 1)) - 38px);
     justify-content: center;
     align-items: center;
     padding: 24px;
@@ -4792,9 +4851,9 @@ body:has(.modal-overlay) .desktop-title-bar {
   border: 1px solid var(--border-color);
   border-radius: 20px;
   width: 100%;
-  max-width: 880px; /* Sıkışık olmayan, ferah ve geniş form düzeni (Görseldeki gibi) */
-  height: calc(100vh - 48px);
-  max-height: calc(100vh - 48px);
+  max-width: min(calc(100vw - 36px), calc(880px / var(--ui-scale, 1))); /* Sıkışık olmayan, ferah ve geniş form düzeni */
+  height: calc((100vh / var(--ui-scale, 1)) - 48px);
+  max-height: calc((100vh / var(--ui-scale, 1)) - 48px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -4839,25 +4898,26 @@ body:has(.modal-overlay) .desktop-title-bar {
 /* =========================================================
    DİNAMİK MODAL & ÇEKMECE BOYUTLARI (ADAPTIVE SIZE SCALE)
    Duruma ve içeriğe göre dengeli, boşluk bırakmayan genişlikler
+   (Arayüz ölçeklenirken modal pencerelerin fiziksel boyutu korunur)
    ========================================================= */
 
 /* 1. Sağdan Açılan Çekmeceler (Drawers) */
 .modal-drawer.modal-sm {
-  max-width: 460px;
+  max-width: min(calc(100vw - 36px), calc(460px / var(--ui-scale, 1)));
 }
 
 .modal-drawer.modal-md,
 .modal-drawer.modal-default,
 .modal-drawer:not(.modal-sm):not(.modal-lg):not(.modal-xl):not(.modal-fullscreen) {
-  max-width: 590px;
+  max-width: min(calc(100vw - 36px), calc(590px / var(--ui-scale, 1)));
 }
 
 .modal-drawer.modal-lg {
-  max-width: 760px;
+  max-width: min(calc(100vw - 36px), calc(760px / var(--ui-scale, 1)));
 }
 
 .modal-drawer.modal-xl {
-  max-width: 960px;
+  max-width: min(calc(100vw - 36px), calc(960px / var(--ui-scale, 1)));
 }
 
 .modal-drawer.modal-fullscreen {
@@ -4867,21 +4927,21 @@ body:has(.modal-overlay) .desktop-title-bar {
 
 /* 2. Ortada Açılan Dialoglar (Center Modals) */
 .modal-center.modal-sm {
-  max-width: 440px;
+  max-width: min(calc(100vw - 48px), calc(440px / var(--ui-scale, 1)));
 }
 
 .modal-center.modal-md,
 .modal-center.modal-default,
 .modal-center:not(.modal-sm):not(.modal-lg):not(.modal-xl):not(.modal-fullscreen) {
-  max-width: 580px;
+  max-width: min(calc(100vw - 48px), calc(580px / var(--ui-scale, 1)));
 }
 
 .modal-center.modal-lg {
-  max-width: 780px;
+  max-width: min(calc(100vw - 48px), calc(780px / var(--ui-scale, 1)));
 }
 
 .modal-center.modal-xl {
-  max-width: 980px;
+  max-width: min(calc(100vw - 48px), calc(980px / var(--ui-scale, 1)));
 }
 
 .modal-center.modal-fullscreen {
@@ -4890,15 +4950,15 @@ body:has(.modal-overlay) .desktop-title-bar {
 }
 
 /* 3. Genel Yedek Sınıflar */
-.modal-sm { max-width: 460px; }
-.modal-md, .modal-default { max-width: 590px; }
-.modal-lg { max-width: 760px; }
-.modal-xl { max-width: 960px; }
+.modal-sm { max-width: min(calc(100vw - 48px), calc(460px / var(--ui-scale, 1))); }
+.modal-md, .modal-default { max-width: min(calc(100vw - 48px), calc(590px / var(--ui-scale, 1))); }
+.modal-lg { max-width: min(calc(100vw - 48px), calc(760px / var(--ui-scale, 1))); }
+.modal-xl { max-width: min(calc(100vw - 48px), calc(960px / var(--ui-scale, 1))); }
 .modal-fullscreen {
   max-width: calc(100vw - 36px);
   width: calc(100vw - 36px);
-  height: calc(100vh - 48px);
-  max-height: calc(100vh - 48px);
+  height: calc((100vh / var(--ui-scale, 1)) - 48px);
+  max-height: calc((100vh / var(--ui-scale, 1)) - 48px);
 }
 
 /* 4. Çekmece & Modal İçi Akıllı Form Grid & Düzenleme (Masaüstü) */
@@ -4911,6 +4971,7 @@ body:has(.modal-overlay) .desktop-title-bar {
     gap: 14px;
     width: 100%;
     align-items: start;
+    margin-bottom: 16px;
   }
 
   .modal-body .form-grid-3,
@@ -4920,6 +4981,7 @@ body:has(.modal-overlay) .desktop-title-bar {
     gap: 14px;
     width: 100%;
     align-items: start;
+    margin-bottom: 16px;
   }
 
   .modal.modal-sm .modal-body .form-row,
@@ -4933,14 +4995,16 @@ body:has(.modal-overlay) .desktop-title-bar {
   .modal-drawer.modal-sm .modal-body .grid-2,
   .modal-drawer.modal-sm .modal-body .grid-3 {
     grid-template-columns: 1fr;
+    margin-bottom: 16px;
   }
 
   .modal-body .form-group {
-    margin-bottom: 14px;
+    margin-bottom: 16px;
     width: 100%;
     box-sizing: border-box;
   }
 
+  .modal-body .form-row:last-child,
   .modal-body .form-group:last-child {
     margin-bottom: 0;
   }
@@ -6133,6 +6197,17 @@ body:has(.modal-overlay) .desktop-title-bar {
   opacity: 0.9;
 }
 
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Bulk Selection Overlay */
 .bulk-selection-overlay {
   position: fixed;
@@ -6199,7 +6274,7 @@ body:has(.modal-overlay) .desktop-title-bar {
 
 .btn-bulk-action.primary:hover {
   filter: brightness(1.1);
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .btn-bulk-action.danger {
@@ -6209,7 +6284,7 @@ body:has(.modal-overlay) .desktop-title-bar {
 
 .btn-bulk-action.danger:hover {
   background: #dc2626;
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .btn-bulk-action.secondary {
@@ -7189,7 +7264,7 @@ body:has(.modal-overlay) .desktop-title-bar {
 
 .toggle-icon-container.active {
   color: var(--accent-primary);
-  filter: drop-shadow(0 0 4px rgba(20, 184, 166, 0.25));
+  filter: drop-shadow(0 0 4px var(--accent-glow));
 }
 
 .premium-theme-toggle .active-bg {
@@ -7211,6 +7286,86 @@ body:has(.modal-overlay) .desktop-title-bar {
 
 .premium-theme-toggle.dark .toggle-icon-container.light { color: var(--text-muted); }
 .premium-theme-toggle.light .toggle-icon-container.dark { color: var(--text-muted); }
+
+/* ============================================
+   UI SCALE & DENSITY CONTROLS (Appearance)
+   ============================================ */
+.scale-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-glow);
+  letter-spacing: 0.5px;
+}
+
+.scale-preset-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.scale-preset-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.scale-preset-card:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-light);
+  transform: none;
+}
+
+.scale-preset-card.active {
+  background: var(--accent-subtle);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.scale-preset-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scale-preset-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.scale-preset-card.active .scale-preset-sub {
+  color: var(--accent-secondary);
+}
+
+.scale-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-secondary);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  width: 100%;
+}
+
+.scale-range-slider {
+  height: 6px;
+  border-radius: 3px;
+}
 
 /* ============================================
    CALENDAR REDESIGN (Premium Glass)
@@ -7379,8 +7534,9 @@ body:has(.modal-overlay) .desktop-title-bar {
 .command-palette-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(10px) saturate(180%);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -8184,7 +8340,7 @@ body:has(.modal-overlay) .desktop-title-bar {
 }
 
 .map-control-btn:hover {
-  transform: translateY(-2px);
+  transform: none;
   background: var(--bg-card-hover);
   border-color: var(--border-light);
   color: var(--accent-primary);
@@ -9385,7 +9541,7 @@ body:has(.modal-overlay) .desktop-title-bar {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 9999;
-  width: 440px;
+  width: min(calc(100vw - 32px), calc(440px / var(--ui-scale, 1)));
   max-width: calc(100vw - 32px);
   max-height: 85vh;
   background: var(--bg-secondary);
@@ -10085,14 +10241,14 @@ body.map-fullscreen-active .app-layout {
 body.map-fullscreen-active .main-content {
   padding: 0 !important;
   margin: 0 !important;
-  height: 100vh !important;
+  height: calc(100vh / var(--ui-scale, 1)) !important;
   width: 100vw !important;
 }
 
 body.map-fullscreen-active .page-content {
   padding: 0 !important;
   margin: 0 !important;
-  height: 100vh !important;
+  height: calc(100vh / var(--ui-scale, 1)) !important;
 }
 
 body.map-fullscreen-active .tracking-map-wrapper {
@@ -10100,7 +10256,7 @@ body.map-fullscreen-active .tracking-map-wrapper {
   inset: 0 !important;
   z-index: 99999 !important;
   width: 100vw !important;
-  height: 100vh !important;
+  height: calc(100vh / var(--ui-scale, 1)) !important;
   border-radius: 0 !important;
   border: none !important;
 }
@@ -10461,7 +10617,7 @@ body.map-fullscreen-active .tracking-map-wrapper {
   background: var(--bg-primary);
   border-color: var(--accent-primary);
   color: var(--accent-primary);
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .auth-strength-container {
@@ -10602,7 +10758,7 @@ body.map-fullscreen-active .tracking-map-wrapper {
 
 .auth-btn-copy:hover {
   opacity: 0.92;
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .auth-btn-copy.copied {
@@ -10634,7 +10790,7 @@ body.map-fullscreen-active .tracking-map-wrapper {
 }
 
 .btn-whatsapp-share:hover {
-  transform: translateY(-1px);
+  transform: none;
   box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
 }
 
@@ -10657,7 +10813,7 @@ body.map-fullscreen-active .tracking-map-wrapper {
 .btn-sms-share:hover {
   background: var(--bg-tertiary);
   border-color: var(--text-secondary);
-  transform: translateY(-1px);
+  transform: none;
 }
 
 @media (max-width: 640px) {

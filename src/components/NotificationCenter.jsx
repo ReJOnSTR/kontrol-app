@@ -9,21 +9,32 @@ import {
     User,
     ClipboardCheck,
     Wallet,
-    Sliders
+    Sliders,
+    ExternalLink
 } from 'lucide-react'
 import { useCompany } from '../context/CompanyContext'
 import { useAuth } from '../context/AuthContext'
 import { getDaysUntil, formatDate, formatCurrency } from '../utils/helpers'
 import { useNavigate } from 'react-router-dom'
+import NotificationSettingsModal from './NotificationSettingsModal'
+import './Skeleton.css'
 
 export default function NotificationCenter() {
-    const { upcomingEvents } = useCompany()
+    const { upcomingEvents, loading } = useCompany()
     const { user, isAdmin, hasPermission, userPreferences } = useAuth()
     const [isOpen, setIsOpen] = useState(false)
+    const [showSettingsModal, setShowSettingsModal] = useState(false)
     const [activeFilter, setActiveFilter] = useState('all') // 'all' | 'overdue' | 'urgent' | 'upcoming'
     const [userSettings, setUserSettings] = useState(() => {
         return {
             inAppEnabled: localStorage.getItem('user_in_app_enabled') !== 'false'
+        }
+    })
+    const [categoryFilters, setCategoryFilters] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem(`notif_cat_filters_${user?.id || 'anon'}`) || '{}')
+        } catch (_) {
+            return {}
         }
     })
     const dropdownRef = useRef(null)
@@ -32,12 +43,35 @@ export default function NotificationCenter() {
     useEffect(() => {
         const handleSettingsChanged = (e) => {
             if (e.detail) {
-                setUserSettings(e.detail)
+                if (e.detail.inAppEnabled !== undefined) {
+                    setUserSettings(prev => ({ ...prev, inAppEnabled: e.detail.inAppEnabled }))
+                }
+                if (e.detail.categories) {
+                    setCategoryFilters(e.detail.categories)
+                } else {
+                    try {
+                        setCategoryFilters(JSON.parse(localStorage.getItem(`notif_cat_filters_${user?.id || 'anon'}`) || '{}'))
+                    } catch (_) {}
+                }
             }
         }
         window.addEventListener('user_notification_settings_changed', handleSettingsChanged)
         return () => window.removeEventListener('user_notification_settings_changed', handleSettingsChanged)
-    }, [])
+    }, [user?.id])
+
+    useEffect(() => {
+        const handleDismissedChanged = (e) => {
+            if (Array.isArray(e.detail)) {
+                setDismissedIds(e.detail)
+            } else {
+                try {
+                    setDismissedIds(JSON.parse(localStorage.getItem(`dismissed_notifs_${user?.id || 'anon'}`) || '[]'))
+                } catch (_) {}
+            }
+        }
+        window.addEventListener('notifications_dismissed_changed', handleDismissedChanged)
+        return () => window.removeEventListener('notifications_dismissed_changed', handleDismissedChanged)
+    }, [user?.id])
 
     const isMasterInAppEnabled = userSettings?.inAppEnabled !== false && localStorage.getItem('user_in_app_enabled') !== 'false'
 
@@ -89,6 +123,7 @@ export default function NotificationCenter() {
                     preferences: { dismissedEvents: next }
                 }).catch(() => {})
             }
+            window.dispatchEvent(new CustomEvent('notifications_dismissed_changed', { detail: next }))
             return next
         })
     }
@@ -102,6 +137,7 @@ export default function NotificationCenter() {
                 preferences: { dismissedEvents: [] }
             }).catch(() => {})
         }
+        window.dispatchEvent(new CustomEvent('notifications_dismissed_changed', { detail: [] }))
     }
 
     // Filter events based on User RBAC permissions first, then user in-app preferences & dismissed
@@ -110,6 +146,9 @@ export default function NotificationCenter() {
         .filter(e => !dismissedIds.includes(`${e.eventType}_${e.id}`))
 
     const filteredEvents = !isMasterInAppEnabled ? [] : permittedEvents.filter(e => {
+        if (categoryFilters[e.eventType] === false) {
+            return false
+        }
         if (userPreferences?.notifications && userPreferences.notifications[e.eventType] !== undefined) {
             return userPreferences.notifications[e.eventType] === true
         }
@@ -220,8 +259,16 @@ export default function NotificationCenter() {
                             <button
                                 type="button"
                                 className="notif-icon-btn"
-                                onClick={() => { setIsOpen(false); navigate('/profile'); }}
-                                title="Bildirim Tercihleri"
+                                onClick={() => { setIsOpen(false); navigate('/notifications'); }}
+                                title="Detaylı Bildirimler Sayfası"
+                            >
+                                <ExternalLink size={14} />
+                            </button>
+                            <button
+                                type="button"
+                                className="notif-icon-btn"
+                                onClick={() => { setIsOpen(false); setShowSettingsModal(true); }}
+                                title="Bildirim Ayarları & Tercihleri"
                             >
                                 <Sliders size={14} />
                             </button>
@@ -247,7 +294,7 @@ export default function NotificationCenter() {
                                 type="button"
                                 className="btn btn-secondary"
                                 style={{ fontSize: '11.5px', padding: '5px 12px', marginTop: '12px' }}
-                                onClick={() => { setIsOpen(false); navigate('/profile'); }}
+                                onClick={() => { setIsOpen(false); setShowSettingsModal(true); }}
                             >
                                 Tercihleri Aç
                             </button>
@@ -301,7 +348,31 @@ export default function NotificationCenter() {
 
                             {/* Notification List */}
                             <div className="notif-list">
-                                {displayedEvents.length === 0 ? (
+                                {loading && (!upcomingEvents || upcomingEvents.length === 0) ? (
+                                    <div style={{ padding: '4px 0' }}>
+                                        {[1, 2, 3].map((s) => (
+                                            <div
+                                                key={`drop-skel-${s}`}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '10px',
+                                                    padding: '10px 14px',
+                                                    borderBottom: s < 3 ? '1px solid var(--border-color)' : 'none'
+                                                }}
+                                            >
+                                                <div
+                                                    className="skeleton-pulse"
+                                                    style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--bg-tertiary)', flexShrink: 0 }}
+                                                />
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
+                                                    <div className="skeleton-pulse" style={{ width: `${75 + s * 25}px`, height: '13px', borderRadius: '4px', background: 'var(--bg-tertiary)' }} />
+                                                    <div className="skeleton-pulse" style={{ width: '115px', height: '11px', borderRadius: '4px', background: 'var(--bg-tertiary)' }} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : displayedEvents.length === 0 ? (
                                     <div className="notif-empty">
                                         <CheckCircle2 size={26} className="notif-empty-icon" />
                                         <div className="notif-empty-title">
@@ -347,14 +418,19 @@ export default function NotificationCenter() {
                             <button
                                 type="button"
                                 className="notif-footer-action"
-                                onClick={() => { setIsOpen(false); navigate('/'); }}
+                                onClick={() => { setIsOpen(false); navigate('/notifications'); }}
                             >
-                                Dashboard Takvimi →
+                                Tüm Bildirimler ({totalCount}) →
                             </button>
                         )}
                     </div>
                 </div>
             )}
+
+            <NotificationSettingsModal
+                isOpen={showSettingsModal}
+                onClose={() => setShowSettingsModal(false)}
+            />
         </div>
     )
 }

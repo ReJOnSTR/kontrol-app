@@ -420,8 +420,8 @@
     }
 
     @page {
-        margin: 12mm 10mm; /* Consistent 12mm top/bottom page margin on all printed pages */
-        size: A4 portrait;
+        margin: 0 !important;
+        size: auto;
     }
 }
 
@@ -510,7 +510,7 @@ body:has(.is-generating-pdf),
     width: 100% !important;
     max-width: 210mm !important;
     margin: 0 auto !important;
-    padding: 12mm 10mm !important;
+    padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
     background: #ffffff !important;
@@ -524,17 +524,16 @@ body:has(.is-generating-pdf),
 
 /* Compact Fit-to-Page Mode */
 .pdf-report-container.pdf-fit-page {
-    padding: 8mm 6mm !important;
-    font-size: 7.5px !important;
+    padding: 0 !important;
 }
 
 .pdf-fit-page .pdf-title-standard {
-    font-size: 15px !important;
+    font-size: 16px !important;
 }
 
 .pdf-fit-page .pdf-header-standard {
     padding-bottom: 6px !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 10px !important;
 }
 
 .pdf-fit-page .pdf-date-label {
@@ -546,56 +545,57 @@ body:has(.is-generating-pdf),
 }
 
 .pdf-fit-page .pdf-vehicle-group {
-    margin-bottom: 8px !important;
+    margin-bottom: 10px !important;
 }
 
 .pdf-fit-page .pdf-vehicle-group h3 {
-    font-size: 9.5px !important;
+    font-size: 10px !important;
     margin-top: 6px !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 5px !important;
     padding-bottom: 2px !important;
 }
 
 .pdf-fit-page .pdf-table {
-    margin-bottom: 6px !important;
+    margin-bottom: 8px !important;
+    width: 100% !important;
 }
 
 .pdf-fit-page .pdf-table th,
 .pdf-fit-page .pdf-table td {
-    padding: 1px 3px !important;
-    font-size: 7.5px !important;
-    line-height: 1.1 !important;
+    padding: 3px 5.5px !important;
+    font-size: 9px !important;
+    line-height: 1.25 !important;
 }
 
 .pdf-fit-page .pdf-summary-block {
-    margin-top: 4px !important;
+    margin-top: 10px !important;
 }
 
 .pdf-fit-page .pdf-summary-table {
-    width: 100% !important;
-    max-width: 440px !important;
+    width: 520px !important;
+    max-width: 520px !important;
 }
 
 .pdf-fit-page .pdf-summary-table td {
-    padding: 1.5px 4px !important;
-    font-size: 7.5px !important;
-    line-height: 1.1 !important;
+    padding: 3px 6px !important;
+    font-size: 8.5px !important;
+    line-height: 1.2 !important;
 }
 
 .pdf-fit-page .pdf-grand-total {
-    margin-top: 6px !important;
+    margin-top: 8px !important;
     padding: 0 !important;
 }
 
 .pdf-fit-page .pdf-grand-total table td {
-    padding: 1.5px 4px !important;
-    font-size: 7.5px !important;
+    padding: 2.5px 5px !important;
+    font-size: 8.5px !important;
 }
 
 .pdf-fit-page .pdf-footer-standard {
-    margin-top: 6px !important;
+    margin-top: 8px !important;
     padding-top: 4px !important;
-    font-size: 7px !important;
+    font-size: 7.5px !important;
 }
 
 @media print {

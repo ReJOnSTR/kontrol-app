@@ -38,6 +38,12 @@ export async function exportElementToCleanPdf(containerElement, filename = 'Rapo
     layoutWrapper.classList.add('is-pdf-exporting');
     target.classList.add('is-pdf-exporting');
 
+    // UI ölçeğinin (zoom) html2canvas koordinatlarını ve kenar boşluklarını daraltmasını önle
+    const prevHtmlZoom = document.documentElement.style.zoom;
+    const prevBodyZoom = document.body.style.zoom;
+    document.documentElement.style.zoom = '1';
+    document.body.style.zoom = '1';
+
     // Also hide badges and buttons directly just to be 100% resilient
     const hiddenElements = target.querySelectorAll('.pdf-page-header-badge, .pdf-actions-bar, .web-print-toolbar, button');
     hiddenElements.forEach(el => {
@@ -88,5 +94,9 @@ export async function exportElementToCleanPdf(containerElement, filename = 'Rapo
         if (scrollParent) {
             scrollParent.scrollTop = originalScrollTop;
         }
+
+        // Restore zoom
+        document.documentElement.style.zoom = prevHtmlZoom || '';
+        document.body.style.zoom = prevBodyZoom || '';
     }
 }

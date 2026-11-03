@@ -913,10 +913,15 @@ export function formatDayBalance(days, customWhpl) {
     if (!days && days !== 0) return '-'
     const whpl = customWhpl || parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8
     const absDays = Math.abs(days)
-    const hours = Math.round(absDays * whpl * 100) / 100
+    const rawHours = absDays * whpl
+    let hours = Math.round(rawHours * 100) / 100
+    if (Math.abs(hours - Math.round(hours)) < 0.05) {
+        hours = Math.round(hours)
+    }
     const sign = days < 0 ? '-' : ''
     if (hours % whpl === 0) {
-        return `${sign}${absDays} gün`
+        const cleanDays = Math.round((hours / whpl) * 100) / 100
+        return `${sign}${cleanDays} gün`
     }
     return `${sign}${hours} saat`
 }
@@ -1061,4 +1066,13 @@ export function formatMonthName(monthStr) {
     } catch {
         return monthStr;
     }
+}
+
+export function getUiScale() {
+    if (typeof document === 'undefined') return 1;
+    const zoomVal = parseFloat(document.documentElement.style.zoom);
+    if (!isNaN(zoomVal) && zoomVal > 0) return zoomVal;
+    const scaleProp = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale'));
+    if (!isNaN(scaleProp) && scaleProp > 0) return scaleProp;
+    return 1;
 }

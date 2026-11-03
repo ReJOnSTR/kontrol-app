@@ -10,6 +10,12 @@ export default function PrintPage() {
     const [data, setData] = useState(null)
 
     useEffect(() => {
+        // Baskı ve PDF çıktısında arayüz ölçeğinin (zoom) PDF'i daraltmasını/bozmasını engellemek için 1:1 ölçeği uygula
+        const prevHtmlZoom = document.documentElement.style.zoom;
+        const prevBodyZoom = document.body.style.zoom;
+        document.documentElement.style.zoom = '1';
+        document.body.style.zoom = '1';
+
         const load = () => {
             const storedData = localStorage.getItem('printData')
             if (storedData) {
@@ -196,6 +202,7 @@ export default function PrintPage() {
                         margin: 0px !important;
                         padding: 0px !important;
                         width: 100% !important;
+                        zoom: 1 !important;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
@@ -391,7 +398,7 @@ export default function PrintPage() {
                     background: white !important;
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
-                    zoom: 0.88 !important;
+                    zoom: 1 !important;
                 }
                 .report-print-container,
                 .pdf-report-container {

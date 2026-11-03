@@ -29,13 +29,6 @@ import MealTicketSettings from './MealTicketSettings'
 
 import TopProgressBar from '../components/TopProgressBar'
 
-const TEST_ROLE_OPTIONS = [
-    { value: 'admin', label: 'Şirket Yöneticisi & Admin' },
-    { value: 'accounting', label: 'Muhasebe & Finans' },
-    { value: 'fleet', label: 'Filo & Operasyon' },
-    { value: 'personnel', label: 'Personel & Sürücü' }
-]
-
 const AUDIT_ACTION_OPTIONS = [
     { value: 'all', label: 'Tüm Eylemler' },
     { value: 'LOGIN', label: 'Giriş Yapıldı (LOGIN)' },
@@ -55,10 +48,23 @@ const AUDIT_ENTITY_OPTIONS = [
     { value: 'user', label: 'Kullanıcılar' }
 ]
 
+const UI_SCALE_OPTIONS = [
+    { value: 85, label: 'Kompakt Mod (%85) — Küçük & Yoğun' },
+    { value: 100, label: 'Standart Mod (%100) — Varsayılan' },
+    { value: 115, label: 'Geniş Mod (%115) — Büyük & Rahat' }
+]
+
 export default function Settings() {
-    const { theme, toggleTheme } = useTheme()
+    const { theme, toggleTheme, uiScale, setUiScale, resetUiScale } = useTheme()
     const { user, userPreferences, updateUserPreferences } = useAuth()
     const { currentCompany, companySettings, updateCompanySettings } = useCompany()
+
+    const currentScaleValue = (() => {
+        const num = Number(uiScale) || 100
+        if (num <= 90) return 85
+        if (num >= 110) return 115
+        return 100
+    })()
 
     const [searchParams, setSearchParams] = useSearchParams()
     const tabParam = searchParams.get('tab')
@@ -260,63 +266,6 @@ export default function Settings() {
         }
     }, [activeTab, currentCompany?.id])
 
-    // ── ROLE-BASED NOTIFICATION & EMAIL ENGINE STATE ──
-    const [notificationConfig, setNotificationConfig] = useState({
-        emailNotificationsEnabled: true,
-        notificationEmails: '',
-        dailySummaryEnabled: true,
-        dailySummaryTime: '09:00',
-        rolePreferences: {
-            admin: {
-                label: 'Şirket Yöneticisi & Admin',
-                description: 'Tüm operasyonel, finansal ve güvenlik süreçlerine tam yetkili erişim.',
-                items: {
-                    inspection: { label: 'Araç Muayene & Periyodik Kontrol', inApp: true, email: true },
-                    insurance: { label: 'Trafik Sigortası ve Kasko Bitişleri', inApp: true, email: true },
-                    finance_check: { label: 'Vadesi Gelen Çek & Senetler', inApp: true, email: true },
-                    approval_center: { label: 'Onay Bekleyen Personel Talepleri (İzin/Mesai)', inApp: true, email: true },
-                    employee_document: { label: 'Personel Belge & Ehliyet/SRC Süreleri', inApp: true, email: true },
-                    security_alerts: { label: 'Kritik Güvenlik Olayları & Silme Hareketleri', inApp: true, email: true },
-                    daily_summary: { label: 'Konsolide Günlük Şirket Özeti', inApp: true, email: true }
-                }
-            },
-            accounting: {
-                label: 'Muhasebe & Finans',
-                description: 'Finansal vadeler, çek/senet, kasa ve avans ödemeleri yönetimi.',
-                items: {
-                    finance_check: { label: 'Vadesi Yaklaşan Çekler ve Senetler', inApp: true, email: true },
-                    advance_requests: { label: 'Personel Avans ve Masraf Talepleri', inApp: true, email: true },
-                    cash_flow_warning: { label: 'Kritik Kasa & Bakiye Hatırlatıcıları', inApp: true, email: false },
-                    daily_summary: { label: 'Günlük Finansal Durum Özeti', inApp: true, email: true }
-                }
-            },
-            fleet: {
-                label: 'Filo & Saha Operasyon',
-                description: 'Araç muayeneleri, sigorta, periyodik bakım ve servis takibi.',
-                items: {
-                    inspection: { label: 'Muayene & Egzoz Süresi Biten / Yaklaşan Araçlar', inApp: true, email: true },
-                    insurance: { label: 'Kasko & Trafik Sigortası Bitişleri', inApp: true, email: true },
-                    maintenance: { label: 'Periyodik Bakım & Kilometre Sayaç Uyarıları', inApp: true, email: true },
-                    daily_summary: { label: 'Günlük Filo ve Araç Takip Özeti', inApp: true, email: false }
-                }
-            },
-            personnel: {
-                label: 'Personel & Şoför',
-                description: 'Sürücü ve saha personeli ehliyet, SRC belgeleri ve talep bildirimleri.',
-                items: {
-                    employee_document: { label: 'Ehliyet, SRC ve Sağlık Raporu Süre Sonu', inApp: true, email: true },
-                    leave_results: { label: 'İzin & Mesai Talebi Onay / Red Bildirimi', inApp: true, email: true },
-                    vehicle_assignment: { label: 'Zimmetli Araç & Görev Atama Bildirimleri', inApp: true, email: false }
-                }
-            }
-        }
-    })
-    const [savingNotificationConfig, setSavingNotificationConfig] = useState(false)
-    const [testEmailLoading, setTestEmailLoading] = useState(false)
-    const [selectedTestRole, setSelectedTestRole] = useState('admin')
-    const [scanLoading, setScanLoading] = useState(false)
-    const [notificationStatusMsg, setNotificationStatusMsg] = useState(null)
-
     // ── COMPANY AUDIT LOG TRAIL STATE ──
     const [auditLogs, setAuditLogs] = useState([])
     const [auditMetrics, setAuditMetrics] = useState({ total24h: 0, failedLogins24h: 0, criticalDeletes24h: 0, securityEvents24h: 0 })
@@ -334,92 +283,7 @@ export default function Settings() {
     const [auditPagination, setAuditPagination] = useState({ total: 0, page: 1, totalPages: 1 })
     const [selectedAuditLog, setSelectedAuditLog] = useState(null)
 
-    const loadNotificationSettings = async () => {
-        if (!currentCompany?.id) return
-        try {
-            const res = await window.electronAPI?.getCompanyNotificationSettings?.(currentCompany.id)
-            if (res?.success && res.data) {
-                setNotificationConfig(res.data)
-            }
-        } catch (e) {
-            console.error('Failed to load company notification settings:', e)
-        }
-    }
 
-    const handleSaveNotificationConfig = async (newConfig = notificationConfig) => {
-        if (!currentCompany?.id) return
-        setSavingNotificationConfig(true)
-        try {
-            const res = await window.electronAPI?.saveCompanyNotificationSettings?.(currentCompany.id, newConfig)
-            if (res?.success) {
-                setNotificationStatusMsg({ type: 'success', text: 'Bildirim tercihleri ve e-posta onayları başarıyla kaydedildi!' })
-            } else {
-                setNotificationStatusMsg({ type: 'error', text: res?.error || 'Ayarlar kaydedilemedi.' })
-            }
-        } catch (e) {
-            setNotificationStatusMsg({ type: 'error', text: e.message })
-        } finally {
-            setSavingNotificationConfig(false)
-            setTimeout(() => setNotificationStatusMsg(null), 4000)
-        }
-    }
-
-
-    const handleSendTestNotificationEmail = async () => {
-        const configEmails = (notificationConfig.notificationEmails || '')
-            .split(',')
-            .map(e => e.trim())
-            .filter(e => e.includes('@'))
-
-        let emailToUse = configEmails[0] || (user?.email && !user.email.endsWith('@muayen.com') ? user.email : '')
-        if (!emailToUse || !emailToUse.includes('@')) {
-            const promptInput = prompt(
-                'Test e-postasının gönderileceği e-posta adresini giriniz:',
-                user?.email && !user.email.endsWith('@muayen.com') ? user.email : ''
-            )
-            if (!promptInput || !promptInput.includes('@')) return
-            emailToUse = promptInput.trim()
-        }
-
-        setTestEmailLoading(true)
-        setNotificationStatusMsg(null)
-        try {
-            const res = await window.electronAPI?.sendTestNotificationEmail?.({
-                companyId: currentCompany?.id,
-                recipientEmail: emailToUse,
-                roleKey: selectedTestRole
-            })
-            if (res?.success) {
-                setNotificationStatusMsg({ type: 'success', text: res.message || 'Test e-postası başarıyla gönderildi!' })
-            } else {
-                setNotificationStatusMsg({ type: 'error', text: res?.error || 'Test e-postası gönderilemedi.' })
-            }
-        } catch (e) {
-            setNotificationStatusMsg({ type: 'error', text: e.message })
-        } finally {
-            setTestEmailLoading(false)
-            setTimeout(() => setNotificationStatusMsg(null), 6000)
-        }
-    }
-
-    const handleRunNotificationScan = async () => {
-        if (!currentCompany?.id) return
-        setScanLoading(true)
-        setNotificationStatusMsg(null)
-        try {
-            const res = await window.electronAPI?.runCompanyNotificationScan?.(currentCompany.id, { force: true })
-            if (res?.success) {
-                setNotificationStatusMsg({ type: 'success', text: res.message || 'Tarama tamamlandı ve e-postalar iletildi!' })
-            } else {
-                setNotificationStatusMsg({ type: 'error', text: res?.error || 'Tarama tamamlanamadı.' })
-            }
-        } catch (e) {
-            setNotificationStatusMsg({ type: 'error', text: e.message })
-        } finally {
-            setScanLoading(false)
-            setTimeout(() => setNotificationStatusMsg(null), 6000)
-        }
-    }
 
     const loadAuditLogs = async () => {
         if (!currentCompany?.id) return
@@ -456,9 +320,6 @@ export default function Settings() {
     }
 
     useEffect(() => {
-        if (activeTab === 'notifications' && currentCompany?.id) {
-            loadNotificationSettings()
-        }
         if (activeTab === 'audit' && currentCompany?.id) {
             loadAuditLogs()
         }
@@ -1149,7 +1010,6 @@ export default function Settings() {
         { id: 'users', label: 'Kullanıcılar', icon: Users },
         { id: 'appearance', label: 'Görünüm', icon: Palette },
         { id: 'security', label: 'Güvenlik', icon: Shield },
-        { id: 'notifications', label: 'Bildirimler', icon: Bell },
         { id: 'audit', label: 'Denetim', icon: FileSearch },
         { id: 'data', label: 'Veri', icon: Database },
         { id: 'arvento', label: 'Arvento', icon: Zap },
@@ -1552,6 +1412,47 @@ export default function Settings() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div className="settings-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px', paddingTop: '18px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', width: '100%' }}>
+                                            <div className="settings-item-content" style={{ minWidth: 0, flex: 1 }}>
+                                                <div className="settings-item-label" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    Arayüz Ölçeği ve Boyutlandırma
+                                                    <span className="scale-badge">
+                                                        {currentScaleValue === 85 ? 'Kompakt (%85)' : currentScaleValue === 115 ? 'Geniş (%115)' : 'Standart (%100)'}
+                                                    </span>
+                                                </div>
+                                                <div className="settings-item-desc" style={{ marginTop: '2px' }}>
+                                                    Tüm butonlar, kartlar, tablolar ve yazıların genel boyutunu ekranınıza göre ayarlayın.
+                                                </div>
+                                            </div>
+
+                                            {currentScaleValue !== 100 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={resetUiScale}
+                                                    className="btn-secondary"
+                                                    style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', height: '32px', whiteSpace: 'nowrap', flexShrink: 0 }}
+                                                    title="Standart %100 boyuta sıfırla"
+                                                >
+                                                    <RefreshCw size={12} />
+                                                    Varsayılana Sıfırla (%100)
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div style={{ width: '100%', boxSizing: 'border-box' }}>
+                                            <CustomSelect
+                                                value={currentScaleValue}
+                                                onChange={(val) => setUiScale(Number(val))}
+                                                options={UI_SCALE_OPTIONS}
+                                                placeholder="Ölçek Modu Seçin"
+                                                floatingLabel={false}
+                                                hidePlaceholderOption
+                                                style={{ width: '100%', margin: 0 }}
+                                            />
+                                        </div>
+                                    </div>
                             </div>
                         </div>
                     )}
@@ -1695,298 +1596,7 @@ export default function Settings() {
                         </div>
                     )}
 
-                    {activeTab === 'notifications' && (
-                        <div className="tab-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            {notificationStatusMsg && (
-                                <div style={{
-                                    padding: '14px 18px',
-                                    borderRadius: '12px',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    backgroundColor: notificationStatusMsg.type === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                                    color: notificationStatusMsg.type === 'success' ? '#10b981' : '#ef4444',
-                                    border: `1px solid ${notificationStatusMsg.type === 'success' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`
-                                }}>
-                                    {notificationStatusMsg.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-                                    <span>{notificationStatusMsg.text}</span>
-                                </div>
-                            )}
 
-                            {/* ── TOP HEADER & ACTIONS CARD ── */}
-                            <div className="settings-card">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-                                    <div>
-                                        <h2 className="settings-card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <Mail size={20} className="text-primary" /> Şirket Otomatik E-Posta &amp; Dağıtım Motoru
-                                        </h2>
-                                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px', maxWidth: '680px', lineHeight: 1.5 }}>
-                                            Şirket çapında günlük e-posta özetini, gönderim saatini ve harici CC adresini yönetir. Personellerin kişisel zil ve e-posta bildirim filtreleri ise her çalışanın kendi <strong>Profil &gt; Bildirim Tercihleri</strong> menüsünden yönetilir.
-                                        </p>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <button
-                                            type="button"
-                                            className="btn btn-secondary"
-                                            onClick={handleRunNotificationScan}
-                                            disabled={scanLoading || !currentCompany}
-                                            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                                        >
-                                            {scanLoading ? <RefreshCw size={15} className="spin" /> : <Zap size={15} />}
-                                            {scanLoading ? 'Taranıyor...' : 'Şimdi Personele Uyarı Taraması Yap'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn btn-primary"
-                                            onClick={() => handleSaveNotificationConfig()}
-                                            disabled={savingNotificationConfig || !currentCompany}
-                                            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                                        >
-                                            {savingNotificationConfig ? <RefreshCw size={15} className="spin" /> : <Check size={15} />}
-                                            {savingNotificationConfig ? 'Kaydediliyor...' : 'Politikayı Kaydet'}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Global Controls Grid */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                                    {/* Company-wide Email Toggle */}
-                                    <div style={{
-                                        background: 'var(--bg-tertiary)',
-                                        borderRadius: '12px',
-                                        padding: '16px 20px',
-                                        border: '1px solid var(--border-color)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        gap: '12px'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(99,102,241,0.12)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <Mail size={18} />
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>Şirket İçi E-Posta İletimi</div>
-                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>Tüm otomatik e-posta gönderimini aç / kapat</div>
-                                            </div>
-                                        </div>
-                                        <label className="toggle-switch">
-                                            <input
-                                                type="checkbox"
-                                                checked={notificationConfig.emailNotificationsEnabled !== false}
-                                                onChange={(e) => {
-                                                    const updated = { ...notificationConfig, emailNotificationsEnabled: e.target.checked }
-                                                    setNotificationConfig(updated)
-                                                    handleSaveNotificationConfig(updated)
-                                                }}
-                                            />
-                                            <span className="toggle-slider"></span>
-                                        </label>
-                                    </div>
-
-                                    {/* Daily Consolidated Digest */}
-                                    <div style={{
-                                        background: 'var(--bg-tertiary)',
-                                        borderRadius: '12px',
-                                        padding: '16px 20px',
-                                        border: '1px solid var(--border-color)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        gap: '12px'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(16,185,129,0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <Clock size={18} />
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>Günlük Konsolide Özet</div>
-                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>Her sabah tek derlenmiş durum bülteni gönder</div>
-                                            </div>
-                                        </div>
-                                        <label className="toggle-switch">
-                                            <input
-                                                type="checkbox"
-                                                checked={notificationConfig.dailySummaryEnabled !== false}
-                                                onChange={(e) => {
-                                                    const updated = { ...notificationConfig, dailySummaryEnabled: e.target.checked }
-                                                    setNotificationConfig(updated)
-                                                    handleSaveNotificationConfig(updated)
-                                                }}
-                                            />
-                                            <span className="toggle-slider"></span>
-                                        </label>
-                                    </div>
-
-                                    {/* Summary Schedule Time */}
-                                    <div style={{
-                                        background: 'var(--bg-tertiary)',
-                                        borderRadius: '12px',
-                                        padding: '16px 20px',
-                                        border: '1px solid var(--border-color)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        gap: '12px'
-                                    }}>
-                                        <div>
-                                            <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>Günlük Tarama &amp; Gönderim Saati</div>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>Otomatik motor her gün bu saatte çalışır</div>
-                                        </div>
-                                        <input
-                                            type="time"
-                                            className="form-input"
-                                            style={{ width: '110px', textAlign: 'center' }}
-                                            value={notificationConfig.dailySummaryTime || '09:00'}
-                                            onChange={(e) => {
-                                                const updated = { ...notificationConfig, dailySummaryTime: e.target.value }
-                                                setNotificationConfig(updated)
-                                            }}
-                                            onBlur={() => handleSaveNotificationConfig()}
-                                        />
-                                    </div>
-
-                                    {/* Optional CC / External Email */}
-                                    <div style={{
-                                        background: 'var(--bg-tertiary)',
-                                        borderRadius: '12px',
-                                        padding: '16px 20px',
-                                        border: '1px solid var(--border-color)'
-                                    }}>
-                                        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                                            Harici / Yedek E-Posta (İsteğe Bağlı CC)
-                                        </div>
-                                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                                            Kopyaların ayrıca gideceği muhasebeci veya ortak adres
-                                        </div>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            placeholder="ornek@sirket.com, muhasebe@dis.com"
-                                            value={notificationConfig.notificationEmails || ''}
-                                            onChange={(e) => setNotificationConfig(prev => ({ ...prev, notificationEmails: e.target.value }))}
-                                            onBlur={() => handleSaveNotificationConfig()}
-                                            style={{ width: '100%', fontSize: '12px' }}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* ── SMART ROLE ROUTING EXPLANATION & USER PREFERENCE CALLOUT ── */}
-                            <div className="settings-card">
-                                <div style={{ marginBottom: '16px' }}>
-                                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Users size={18} className="text-primary" /> Akıllı Rol &amp; Departman Dağıtımı
-                                    </h3>
-                                    <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                                        Sistem bildirimleri tek bir genel havuza yığmak yerine, her personelin görev tanımına göre hedefler:
-                                    </p>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '20px' }}>
-                                    <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                            <Shield size={16} color="#3b82f6" />
-                                            <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Yöneticiler &amp; Admin</strong>
-                                        </div>
-                                        <p style={{ margin: 0, fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                                            Onay bekleyen personel talepleri, güvenlik ve veri silme hareketleri, tüm araçlar ve konsolide günlük şirket bülteni.
-                                        </p>
-                                    </div>
-
-                                    <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                            <Wallet size={16} color="#10b981" />
-                                            <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Muhasebe &amp; Finans</strong>
-                                        </div>
-                                        <p style={{ margin: 0, fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                                            Vadesi 7 gün içinde dolacak çek ve senetler, personel avans ve masraf talepleri, kritik kasa bakiye uyarıları.
-                                        </p>
-                                    </div>
-
-                                    <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                            <Wrench size={16} color="#f59e0b" />
-                                            <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Filo &amp; Operasyon</strong>
-                                        </div>
-                                        <p style={{ margin: 0, fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                                            Tüvtürk araç muayeneleri, egzoz kontrolleri, trafik/kasko poliçe bitişleri ve kilometre bakım eşikleri.
-                                        </p>
-                                    </div>
-
-                                    <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                            <User size={16} color="#8b5cf6" />
-                                            <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Personel &amp; Sürücü</strong>
-                                        </div>
-                                        <p style={{ margin: 0, fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                                            Ehliyet, SRC ve sağlık raporu süre sonları, izin/mesai onay-ret sonuçları ve zimmetli araç atamaları.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Info Banner */}
-                                <div style={{
-                                    padding: '14px 18px',
-                                    borderRadius: '12px',
-                                    background: 'var(--bg-tertiary)',
-                                    border: '1px solid var(--border-color)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px'
-                                }}>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                        <Sparkles size={16} />
-                                    </div>
-                                    <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                                        <strong style={{ color: 'var(--text-primary)' }}>Kişisel Tercihler: </strong>
-                                        Şirketinizdeki her çalışan kendi hesabına giriş yaparak sağ üst köşedeki <strong>Profil &gt; Bildirim Tercihleri</strong> menüsünden hangi kategorileri e-posta ve zil bildirimi olarak alacağını kişisel olarak açıp kapatabilir.
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* ── ROLE TEMPLATE PREVIEW & TEST EMAIL CARD ── */}
-                            <div className="settings-card">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                                    <div>
-                                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Send size={16} className="text-primary" /> E-Posta Şablonu Canlı Önizleme &amp; Test Gönderimi
-                                        </h3>
-                                        <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                                            Farklı departmanlara gidecek modern tasarımlı bülteni e-posta adresinize (<strong>{(notificationConfig.notificationEmails || '').split(',')[0]?.trim() || (user?.email && !user.email.endsWith('@muayen.com') ? user.email : 'belirteceğiniz e-posta')}</strong>) göndererek test edin.
-                                        </p>
-                                    </div>
-
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                        <div style={{ minWidth: '220px' }}>
-                                            <CustomSelect
-                                                value={selectedTestRole}
-                                                onChange={(val) => setSelectedTestRole(val)}
-                                                options={TEST_ROLE_OPTIONS}
-                                                placeholder="Departman Rolü Seçin"
-                                                floatingLabel={false}
-                                                hidePlaceholderOption
-                                                style={{ margin: 0 }}
-                                            />
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            className="btn btn-secondary"
-                                            onClick={handleSendTestNotificationEmail}
-                                            disabled={testEmailLoading}
-                                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', minHeight: '38px' }}
-                                        >
-                                            {testEmailLoading ? <RefreshCw size={15} className="spin" /> : <Send size={15} />}
-                                            {testEmailLoading ? 'Gönderiliyor...' : 'Test E-Postası Gönder'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     {/* AUDIT LOG TAB */}
                     {activeTab === 'audit' && (

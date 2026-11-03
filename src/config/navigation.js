@@ -195,6 +195,7 @@ export const moduleMenus = {
         {
             title: 'Sistem Tercihleri',
             items: [
+                { path: '/notifications', label: 'Bildirim Merkezi', icon: Bell },
                 { path: '/settings?tab=general', label: 'Genel', icon: Cog },
                 { path: '/settings?tab=users', label: 'Kullanıcılar & Yetkiler', icon: Users },
                 { path: '/settings?tab=appearance', label: 'Görünüm', icon: Palette },
@@ -271,6 +272,7 @@ export const getRouteInfo = (path) => {
     if (path.startsWith('/platform')) return { label: 'Platform Yönetimi', icon: Crown }
 
     // Fallback for global settings and company management
+    if (path === '/notifications') return { label: 'Bildirim Merkezi', icon: Bell }
     if (path === '/settings') return { label: 'Ayarlar', icon: Settings }
     if (path === '/companies') return { label: 'Şirket Yönetimi', icon: Building2 }
 
@@ -312,7 +314,7 @@ export const getActiveModule = (pathname, search = '') => {
     }
 
     // 2. Global system pages (Settings & module settings use 'system')
-    if (pathname === '/settings' || pathname.startsWith('/module-settings') || pathname === '/profile' || pathname === '/companies') {
+    if (pathname === '/settings' || pathname.startsWith('/module-settings') || pathname === '/profile' || pathname === '/companies' || pathname === '/notifications') {
         return 'system'
     }
 

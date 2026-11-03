@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx'
 import CustomSelect from './CustomSelect'
 import CustomDatePicker from './CustomDatePicker'
 import TableActionMenu from './TableActionMenu'
+import { formatCurrency } from '../utils/helpers'
 import './Skeleton.css'
 
 export default function DataTable({
@@ -24,6 +25,7 @@ export default function DataTable({
     onBulkDelete = null,
     onBulkArchive = null,
     customBulkActions = null,
+    selectionSummaryCalculator = null,
     isArchiveView = false,
     onToggleArchiveView = null,
     onContextMenu = null,
@@ -507,9 +509,14 @@ export default function DataTable({
                 const dateA = new Date(aVal)
                 const dateB = new Date(bVal)
                 if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+                    if (dateA.getTime() !== dateB.getTime()) {
+                        return sortConfig.direction === 'asc'
+                            ? dateA.getTime() - dateB.getTime()
+                            : dateB.getTime() - dateA.getTime()
+                    }
                     return sortConfig.direction === 'asc'
-                        ? dateA.getTime() - dateB.getTime()
-                        : dateB.getTime() - dateA.getTime()
+                        ? (a.id || 0) - (b.id || 0)
+                        : (b.id || 0) - (a.id || 0)
                 }
             }
 
@@ -725,6 +732,35 @@ export default function DataTable({
 
     const isAllSelected = sortedData.length > 0 && selectedRows.size === sortedData.length
     const isSomeSelected = selectedRows.size > 0 && selectedRows.size < sortedData.length
+
+    const selectionSummary = useMemo(() => {
+        if (selectedRows.size === 0) return null
+        const selectedData = sortedData.filter(row => selectedRows.has(row.id))
+        if (typeof selectionSummaryCalculator === 'function') {
+            return selectionSummaryCalculator(selectedData)
+        }
+
+        let hasPrice = false
+        let sum = 0
+        selectedData.forEach(row => {
+            const val = row.total_price !== undefined ? Number(row.total_price) :
+                        row.price !== undefined ? Number(row.price) :
+                        row.amount !== undefined ? Number(row.amount) :
+                        row.tutar !== undefined ? Number(row.tutar) : null
+            if (val !== null && !isNaN(val)) {
+                hasPrice = true
+                sum += val
+            }
+        })
+
+        if (!hasPrice) return null
+
+        return {
+            total: sum,
+            label: 'Seçilen Toplam Tutar',
+            count: selectedData.length
+        }
+    }, [selectedRows, sortedData, selectionSummaryCalculator])
 
     const startRecord = sortedData.length > 0 ? (currentPage - 1) * pageSize + 1 : 0
     const endRecord = Math.min(currentPage * pageSize, sortedData?.length || 0)
@@ -1033,29 +1069,54 @@ export default function DataTable({
                 </div>
             </div>
 
-            {/* Bulk Selection Overlay */}
+            {/* Top Selection Summary Card (Sade Üst Kart) */}
             {selectedRows.size > 0 && (
-                <div className="bulk-selection-overlay">
-                    <span className="bulk-count">{selectedRows.size} öğe seçili</span>
-                    <div className="bulk-divider" />
-                    <div className="bulk-actions">
+                <div className="selection-top-summary-card">
+                    <div className="selection-summary-left">
+                        <div className="selection-pill">
+                            <Check size={14} />
+                            <span><strong>{selectedRows.size}</strong> {selectionSummary?.itemLabel || 'öğe'} seçildi</span>
+                        </div>
+
+                        {selectionSummary && selectionSummary.total !== undefined && (
+                            <div className="selection-total-wrap">
+                                <span className="selection-total-label">{selectionSummary.label || 'Seçilen Toplam Tutar'}:</span>
+                                <span className="selection-total-value">{formatCurrency(selectionSummary.total)}</span>
+                                {selectionSummary.showKdv !== false && (
+                                    <span className="selection-total-kdv" title="KDV Dahil (+%20)">
+                                        (+KDV: {formatCurrency(Math.round(selectionSummary.total * 1.20))})
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        {selectionSummary?.badges && selectionSummary.badges.length > 0 && (
+                            <div className="selection-badges">
+                                {selectionSummary.badges.map((b, idx) => (
+                                    <span key={idx} className="selection-badge">{b}</span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="selection-summary-right">
                         {onBulkDelete && (
-                            <button className="btn-bulk-action danger" onClick={handleBulkDeleteClick}>
-                                <Trash2 size={15} />
-                                Sil
+                            <button type="button" className="btn-bulk-action danger" onClick={handleBulkDeleteClick}>
+                                <Trash2 size={14} />
+                                <span>Sil</span>
                             </button>
                         )}
                         {onBulkArchive && (
-                            <button className="btn-bulk-action secondary" onClick={() => { onBulkArchive(Array.from(selectedRows)); clearSelection() }}>
-                                {isArchiveView ? <ArchiveRestore size={15} /> : <Archive size={15} />}
-                                {isArchiveView ? 'Geri Al' : 'Arşivle'}
+                            <button type="button" className="btn-bulk-action secondary" onClick={() => { onBulkArchive(Array.from(selectedRows)); clearSelection() }}>
+                                {isArchiveView ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                                <span>{isArchiveView ? 'Geri Al' : 'Arşivle'}</span>
                             </button>
                         )}
                         {customBulkActions && customBulkActions(Array.from(selectedRows), clearSelection)}
 
-                        <button className="btn-bulk-action secondary" onClick={clearSelection}>
-                            <X size={15} />
-                            Vazgeç
+                        <button type="button" className="btn-selection-clear" onClick={clearSelection} title="Seçimi Kaldır">
+                            <X size={14} />
+                            <span>Vazgeç</span>
                         </button>
                     </div>
                 </div>

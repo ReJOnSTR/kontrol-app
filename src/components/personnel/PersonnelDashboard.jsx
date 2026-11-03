@@ -405,7 +405,7 @@ export default function PersonnelDashboard() {
 
             {/* Modal for Creating Request */}
             {modalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
                     <div className="w-full max-w-lg bg-[#121522] border border-gray-800 rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between pb-4 border-b border-gray-800 mb-5">
                             <div className="flex items-center gap-3">

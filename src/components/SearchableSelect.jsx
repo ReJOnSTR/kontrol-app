@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { createPortal } from 'react-dom'
 import { ChevronDown, Check, Search } from 'lucide-react'
 
 export default function SearchableSelect({
@@ -17,8 +16,8 @@ export default function SearchableSelect({
     const [isOpen, setIsOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [placement, setPlacement] = useState('bottom')
-    const [dropdownStyle, setDropdownStyle] = useState({})
     const ref = useRef(null)
+    const triggerRef = useRef(null)
     const inputRef = useRef(null)
 
     const selectedOption = options.find(opt => opt.value === value)
@@ -29,60 +28,39 @@ export default function SearchableSelect({
         return options.filter(opt => opt.label.toLowerCase().includes(lowerTerm))
     }, [options, searchTerm])
 
-    const updatePosition = () => {
-        if (!isOpen || !ref.current) return
-        const rect = ref.current.getBoundingClientRect()
-        const spaceBelow = window.innerHeight - rect.bottom
-        const spaceAbove = rect.top
-        
-        let newPlacement = 'bottom'
-        if (spaceBelow < 250 && spaceAbove > spaceBelow) {
-            newPlacement = 'top'
-        }
-        setPlacement(newPlacement)
-
-        const viewportWidth = window.innerWidth
-        const maxWidth = viewportWidth - 24
-        const width = Math.min(Math.max(rect.width, 220), maxWidth)
-        let left = rect.left
-        if (left + width > viewportWidth - 12) {
-            left = Math.max(12, viewportWidth - width - 12)
-        }
-        if (left < 12) {
-            left = 12
-        }
-
-        setDropdownStyle({
-            position: 'fixed',
-            top: newPlacement === 'bottom' ? rect.bottom + 6 : 'auto',
-            bottom: newPlacement === 'top' ? (window.innerHeight - rect.top) + 6 : 'auto',
-            left,
-            width,
-            maxWidth: 'calc(100vw - 24px)',
-            zIndex: 99999
-        })
-    }
-
     useEffect(() => {
         if (isOpen) {
-            updatePosition()
-            window.addEventListener('resize', updatePosition)
-            window.addEventListener('scroll', updatePosition, true)
-            return () => {
-                window.removeEventListener('resize', updatePosition)
-                window.removeEventListener('scroll', updatePosition, true)
+            const targetEl = triggerRef.current || ref.current
+            if (targetEl) {
+                const rect = targetEl.getBoundingClientRect()
+                const spaceBelow = window.innerHeight - rect.bottom
+                const spaceAbove = rect.top
+                if (spaceBelow < 220 && spaceAbove > spaceBelow) {
+                    setPlacement('top')
+                } else {
+                    setPlacement('bottom')
+                }
             }
+
+            const timer = setTimeout(() => {
+                if (inputRef.current) {
+                    inputRef.current.focus()
+                }
+            }, 50)
+
+            return () => {
+                clearTimeout(timer)
+            }
+        } else {
+            setSearchTerm('')
+            setPlacement('bottom')
         }
     }, [isOpen])
 
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (ref.current && !ref.current.contains(e.target)) {
-                const isDropdownClick = e.target.closest('.custom-select-dropdown')
-                if (!isDropdownClick) {
-                    setIsOpen(false)
-                    setSearchTerm('')
-                }
+                setIsOpen(false)
             }
         }
 
@@ -94,14 +72,10 @@ export default function SearchableSelect({
         }
     }, [])
 
-    useEffect(() => {
-        if (isOpen && inputRef.current) {
-            inputRef.current.focus()
-        }
-    }, [isOpen])
-
     const handleSelect = (optValue, e) => {
-        if (e) e.stopPropagation()
+        if (e) {
+            e.stopPropagation()
+        }
         onChange(optValue)
         setIsOpen(false)
         setSearchTerm('')
@@ -109,18 +83,19 @@ export default function SearchableSelect({
 
     const toggleOpen = () => {
         setIsOpen(!isOpen)
-        if (!isOpen) setSearchTerm('')
     }
 
     const isFloating = floatingLabel
-    const hasValue = (selectedOption || isOpen || searchTerm)
-    const wrapperClass = isFloating ? `custom-select form-group floating-label-group ${hasValue ? 'has-value' : ''}` : `custom-select form-group`
+    const hasValue = !!(selectedOption || value || isOpen || searchTerm)
+    const wrapperClass = isFloating 
+        ? `custom-select form-group floating-label-group ${hasValue ? 'has-value' : ''} ${isOpen ? 'is-open' : ''}` 
+        : `custom-select form-group ${isOpen ? 'is-open' : ''}`
 
     return (
         <div className={`${wrapperClass} ${className}`} ref={ref}>
             {!isFloating && label && (
                 <label className="form-label">
-                    {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
+                    {label} {required && <span>*</span>}
                 </label>
             )}
 
@@ -128,22 +103,29 @@ export default function SearchableSelect({
                 {Icon && <Icon className="input-icon" size={18} />}
 
                 <div
+                    ref={triggerRef}
                     className={`custom-select-trigger form-input ${isOpen ? 'open' : ''} ${error ? 'input-error' : ''} ${Icon ? 'has-icon' : ''}`}
                     onClick={toggleOpen}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', height: '40px', minHeight: '40px', paddingLeft: Icon ? '40px' : '14px' }}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        paddingLeft: Icon ? '40px' : undefined,
+                        userSelect: 'none'
+                    }}
                 >
-                     {isOpen ? (
+                    {isOpen ? (
                         <input
                             ref={inputRef}
                             type="text"
-                            className="searchable-select-input"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onClick={(e) => e.stopPropagation()}
                             placeholder={selectedOption ? selectedOption.label : "Arama yapın..."}
                             style={{ 
                                 border: 'none', outline: 'none', background: 'transparent', width: '100%', 
-                                color: 'var(--text-primary)', fontSize: '14px' 
+                                color: 'var(--text-primary)', fontSize: '14px', padding: 0 
                             }}
                         />
                     ) : (
@@ -161,8 +143,13 @@ export default function SearchableSelect({
                     </label>
                 )}
 
-                {isOpen && createPortal(
-                    <div className={`custom-select-dropdown placement-${placement}`} style={{ ...dropdownStyle, maxHeight: '250px', overflowY: 'auto' }}>
+                {isOpen && (
+                    <div 
+                        className={`custom-select-dropdown placement-${placement}`} 
+                        style={{ maxHeight: '250px', overflowY: 'auto' }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                    >
                          {filteredOptions.length === 0 ? (
                             <div className="custom-select-option" style={{ opacity: 0.5, pointerEvents: 'none' }}>
                                 Sonuç bulunamadı
@@ -183,14 +170,15 @@ export default function SearchableSelect({
                                         className={`custom-select-option ${value === opt.value ? 'selected' : ''}`}
                                         onClick={(e) => handleSelect(opt.value, e)}
                                     >
-                                        <span>{opt.label}</span>
-                                        {value === opt.value && <Check size={14} />}
+                                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {opt.label}
+                                        </span>
+                                        {value === opt.value && <Check size={14} style={{ flexShrink: 0, color: 'var(--accent-primary)', marginLeft: '6px' }} />}
                                     </div>
                                 ))}
                             </>
                         )}
-                    </div>,
-                    document.body
+                    </div>
                 )}
             </div>
 

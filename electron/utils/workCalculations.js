@@ -5,6 +5,83 @@
  * IMPORTANT: Any change here must match src/utils/workCalculations.js EXACTLY.
  */
 
+function parseVehicleCapacity(model) {
+    if (!model) return { type: 'other', value: null, num: null }
+    let str = ''
+    if (typeof model === 'object') {
+        str = String(model.model || model.machineName || model.rawMachineName || model.name || model.custom_vehicle || model.plate || '').trim()
+    } else {
+        str = String(model).trim()
+    }
+    if (!str) return { type: 'other', value: null, num: null }
+    
+    // Check Ton (e.g., "80 Ton", "110 TON", "35 Ton", "80tn")
+    const tonMatch = str.match(/(\d+(?:[.,]\d+)?)\s*(?:ton|tn)\b/i)
+    if (tonMatch) {
+        const num = parseFloat(tonMatch[1].replace(',', '.'))
+        return { type: 'ton', value: `${tonMatch[1]} Ton`, num }
+    }
+    
+    // Check Metre / Sepet (e.g., "26 Metre", "43 Metre", "30 mt", "43 Metre Sepetli", "30 Sepetli", "Sepet 26")
+    const metreMatch = str.match(/(?:(\d+(?:[.,]\d+)?)\s*(?:metre|meter|mt|\bm\b|sepet(?:li)?)|sepet(?:li)?\s*(\d+(?:[.,]\d+)?))/i)
+    if (metreMatch) {
+        const rawNum = metreMatch[1] || metreMatch[2]
+        if (rawNum) {
+            const num = parseFloat(rawNum.replace(',', '.'))
+            return { type: 'metre', value: `${rawNum} Metre`, num }
+        }
+    }
+
+    // Check if it mentions "sepet" without a specific number
+    if (/(?:sepet|platform)/i.test(str)) {
+        return { type: 'metre', value: 'Sepetli', num: 0 }
+    }
+    
+    return { type: 'other', value: str, num: null }
+}
+
+function compareVehicleCapacityDesc(a, b) {
+    if (!a && !b) return 0
+    if (!a) return 1
+    if (!b) return -1
+
+    const capA = parseVehicleCapacity(a)
+    const capB = parseVehicleCapacity(b)
+
+    // Rank: 1 = Ton, 2 = Metre, 3 = Diğer / Standart
+    const getRank = (type) => {
+        if (type === 'ton') return 1
+        if (type === 'metre') return 2
+        return 3
+    }
+
+    const rankA = getRank(capA.type)
+    const rankB = getRank(capB.type)
+
+    if (rankA !== rankB) {
+        return rankA - rankB
+    }
+
+    if (capA.type === 'ton' && capB.type === 'ton') {
+        const diff = (capB.num || 0) - (capA.num || 0)
+        if (diff !== 0) return diff
+    }
+
+    if (capA.type === 'metre' && capB.type === 'metre') {
+        const diff = (capB.num || 0) - (capA.num || 0)
+        if (diff !== 0) return diff
+    }
+
+    const brandA = typeof a === 'object' ? (a.brand || '') : ''
+    const brandB = typeof b === 'object' ? (b.brand || '') : ''
+    const brandDiff = brandA.localeCompare(brandB, 'tr')
+    if (brandDiff !== 0) return brandDiff
+
+    const plateA = typeof a === 'object' ? (a.plate || a.machineName || a.name || '') : String(a)
+    const plateB = typeof b === 'object' ? (b.plate || b.machineName || b.name || '') : String(b)
+    return plateA.localeCompare(plateB, 'tr')
+}
+
 function calculateAutoHours(startTime, endTime, pricingType, workStartStr = '08:00', workEndStr = '17:00', disableOvertime = false) {
     if (!startTime || !endTime) return { hours: 1, overtimeHours: 0 };
 
@@ -110,10 +187,12 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
             uniqueVehicles.add(String(item.vehicle_id))
         } else if (item.custom_vehicle) {
             uniqueVehicles.add(`custom_${item.custom_vehicle}`)
+        } else if (item.plate) {
+            uniqueVehicles.add(`plate_${item.plate}`)
         }
         if (item.employee_id) uniqueEmployees.add(item.employee_id)
 
-        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : 'diger')
+        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : (item.plate ? `plate_${item.plate}` : 'diger'))
         const unitPriceVal = Number(item.unit_price) || 0
         const cleanDesc = (item.description || '').replace(/\[[^\]]*\]\s*/g, '').trim()
 
@@ -157,7 +236,7 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
     let hasAylikWork = false
 
     items.forEach(item => {
-        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : 'diger')
+        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : (item.plate ? `plate_${item.plate}` : 'diger'))
         const { unitPriceVal, cleanDesc } = resolveItemEffectiveInfo(item)
 
         const descUpper = (item.description || '').toUpperCase()
@@ -166,7 +245,13 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
         const isHoliday = descUpper.includes('TATİL') || descUpper.includes('ÇALIŞILMADI') || (Number(item.hours) === 0 && Number(item.overtime_hours) === 0)
         const isPazar = !isHoliday && (isSunday || descUpper.includes('PAZAR'))
         const isSaatlik = descUpper.includes('[SAATLİK]') || item.pricingType === 'hourly'
-        const isAylik = descUpper.includes('[AYLIK]') || item.pricingType === 'monthly'
+        const isAylik = descUpper.includes('[AYLIK]') || 
+            descUpper.includes('AYLIK') || 
+            descUpper.includes('AYLİK') || 
+            item.pricingType === 'monthly' || 
+            item.pricing_type === 'monthly' ||
+            item.unit === 'ay' || 
+            item.unit === 'aylık'
 
         if (isAylik) hasAylikWork = true
 
@@ -212,15 +297,43 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
     const calculatedGroups = Object.values(groupedByVehicle).map(group => {
         group.items.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        const isAylikGroup = group.items.some(i => i.isAylik);
         const positivePriceItem = group.items.find(i => i.unitPriceVal > 0);
         const rawPrimaryPrice = positivePriceItem ? positivePriceItem.unitPriceVal : 0;
+        const positiveItems = group.items.filter(i => (Number(i.hours) || 0) > 0 && i.unitPriceVal > 0);
+
+        // Aylık tespiti:
+        // 1. Açıklamada açıkça [AYLIK] / AYLIK olması veya pricingType === 'monthly' / unit === 'ay'
+        const hasExplicitAylik = group.items.some(i => 
+            i.isAylik || 
+            (i.description || '').toUpperCase().includes('AYLIK') || 
+            (i.description || '').toUpperCase().includes('AYLİK') ||
+            i.pricingType === 'monthly' ||
+            i.pricing_type === 'monthly' ||
+            i.unit === 'ay' ||
+            i.unit === 'aylık'
+        );
+
+        // 2. Otomatik aylık tespiti:
+        // - Asla tam sayılar (günlük yevmiyeler örn. 2.500, 5.000, 35.000, 50.000, 60.000 TL) için devreye girmemeli.
+        // - Asla 1-2 günlük veya kısa süreli işler için devreye girmemeli (en az 20 günlük puantaj olmalı).
+        // - Yalnızca 26 güne bölünmüş kesirli fiyat girilmiş aylık puantajlar için geçerlidir.
+        const isAutoRecognizedMonthly = !hasExplicitAylik && 
+            rawPrimaryPrice > 0 && 
+            (rawPrimaryPrice % 1 !== 0) &&
+            positiveItems.length >= 20 &&
+            (
+                Math.abs(Math.round(rawPrimaryPrice) - 12308) < 3 || // 320.000 / 26
+                Math.abs(Math.round(rawPrimaryPrice) - 9615) < 3 ||  // 250.000 / 26
+                Math.abs(rawPrimaryPrice * 26 - Math.round(rawPrimaryPrice * 26)) < 0.5
+            );
+
+        const isAylikGroup = hasExplicitAylik || isAutoRecognizedMonthly;
 
         let dailyRate = rawPrimaryPrice;
         let monthlyAmount = rawPrimaryPrice;
 
         if (isAylikGroup && rawPrimaryPrice > 0) {
-            // 1. Açıklamada açıkça [AYLIK:320000] veya [AYLIK:250000] belirtilmiş mi?
+            // Açıklamada açıkça [AYLIK:320000] veya [AYLIK:250000] belirtilmiş mi?
             const aylikTagItem = group.items.find(i => (i.description || '').match(/\[AYLIK:([0-9.]+)\]/));
             let explicitMonthly = null;
             if (aylikTagItem) {
@@ -231,27 +344,13 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
             if (explicitMonthly) {
                 monthlyAmount = explicitMonthly;
                 dailyRate = explicitMonthly / 26;
-            } else {
-                const positiveItems = group.items.filter(i => (Number(i.hours) || 0) > 0 && i.unitPriceVal > 0);
-                if (positiveItems.length === 1 && rawPrimaryPrice >= 50000) {
-                    dailyRate = rawPrimaryPrice / 26;
-                    monthlyAmount = rawPrimaryPrice;
-                } else if (Math.abs(Math.round(rawPrimaryPrice) - 9615) < 2) {
-                    // 250.000 TL için önceden yuvarlanmış kayıtlar (9615 TL)
-                    dailyRate = 250000 / 26;
-                    monthlyAmount = 250000;
-                } else if (Math.abs(Math.round(rawPrimaryPrice) - 12308) < 2) {
-                    // 320.000 TL için önceden yuvarlanmış kayıtlar (12308 TL)
-                    dailyRate = 320000 / 26;
-                    monthlyAmount = 320000;
-                } else if (rawPrimaryPrice > 0 && Math.abs(rawPrimaryPrice * 26 - Math.round(rawPrimaryPrice * 26)) < 0.1) {
-                    // 250.000 / 26 = 9615.384615... gibi tam oranlı değerler
-                    dailyRate = rawPrimaryPrice;
-                    monthlyAmount = Math.round(rawPrimaryPrice * 26);
-                } else {
-                    dailyRate = rawPrimaryPrice;
-                    monthlyAmount = Math.round(rawPrimaryPrice * 26);
-                }
+            } else if (group.items.length === 1 && (group.items[0].isAylik || group.items[0].pricingType === 'monthly' || group.items[0].unit === 'ay' || group.items[0].unit === 'aylık')) {
+                monthlyAmount = rawPrimaryPrice;
+                dailyRate = rawPrimaryPrice / 26;
+            } else if (rawPrimaryPrice > 0) {
+                // Standart sektör uygulaması: aylık fiyat anlaşması 26 gün üzerinden yapılır
+                dailyRate = rawPrimaryPrice;
+                monthlyAmount = Math.round(rawPrimaryPrice * 26);
             }
         }
 
@@ -315,6 +414,7 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
 
         const customRateItems = group.items.filter(i => {
             if (i.isPazar || i.isSaatlik) return false;
+            if (isAylikGroup && group.items.length === 1) return false;
             if ((Number(i.hours) || 0) === 0) return false;
             const kMatch = (i.description || '').match(/\[KATSAYI:([^\]]+)\]/);
             if (kMatch && parseFloat(kMatch[1]) !== 1) return true;
@@ -323,13 +423,24 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
         const customRateDaysCount = customRateItems.reduce((s, i) => s + (Number(i.hours) || 0), 0);
 
         if (isAylikGroup) {
-            const baseMonthlyDays = Math.max(0, 26 - customRateDaysCount);
-            const baseMonthlyTotal = Math.round(baseMonthlyDays * dailyRate);
+            // Sektör standardı: Aylık anlaşma 26 gün olarak sabitlenir (ay 27 gün de olsa, 1 günü tatil de olsa fiyat düşmez ve 26 gün yazılır)
+            const monthsCount = (group.items.length === 1 && (group.items[0]?.hours || 1) > 1) 
+                ? Number(group.items[0].hours) 
+                : 1;
+
+            const baseMonthlyTotal = Math.round(monthlyAmount * monthsCount);
+            const isSingleMonthlyItem = group.items.length === 1;
+            const countText = isSingleMonthlyItem 
+                ? (monthsCount > 1 ? `${monthsCount} AY (${monthsCount * 26} Gün)` : '1 AY (26 Gün)')
+                : (monthsCount > 1 ? `${monthsCount * 26} GÜN` : '26 GÜN');
+            const displayUnitPrice = isSingleMonthlyItem 
+                ? (monthlyAmount % 1 === 0 ? Math.round(monthlyAmount) : Number(monthlyAmount.toFixed(2)))
+                : (dailyRate % 1 === 0 ? Math.round(dailyRate) : Number(dailyRate.toFixed(2)));
 
             summaryLines.push({
                 typeLabel: 'AYLIK',
-                countText: customRateDaysCount > 0 ? `1 AY (${baseMonthlyDays} Gün)` : '1 AY (26 Gün)',
-                unitPrice: monthlyAmount % 1 === 0 ? Math.round(monthlyAmount) : Number(monthlyAmount.toFixed(6)),
+                countText: countText,
+                unitPrice: displayUnitPrice,
                 totalPrice: baseMonthlyTotal
             });
 
@@ -481,17 +592,34 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
         };
     });
 
+    // Sort calculatedGroups by vehicle capacity: Tonaj (desc) -> Sepet/Metre (desc) -> Diğer
+    calculatedGroups.sort((gA, gB) => {
+        const itemA = gA.items?.[0] || {};
+        const itemB = gB.items?.[0] || {};
+        const vA = itemA.vehicle || itemA.vehicles || (itemA.vehicle_id ? vehiclesMap[String(itemA.vehicle_id)] : null) || {
+            model: itemA.model || gA.machineName || itemA.custom_vehicle,
+            brand: itemA.brand,
+            plate: itemA.plate || gA.machineName
+        };
+        const vB = itemB.vehicle || itemB.vehicles || (itemB.vehicle_id ? vehiclesMap[String(itemB.vehicle_id)] : null) || {
+            model: itemB.model || gB.machineName || itemB.custom_vehicle,
+            brand: itemB.brand,
+            plate: itemB.plate || gB.machineName
+        };
+        return compareVehicleCapacityDesc(vA, vB);
+    });
+
     let durationText = '0 Gün'
     if (hasAylikWork) {
-        durationText = '1 Ay (26 Gün)'
+        durationText = '1 Ay (26 Gün)';
     } else if (totalGunCount > 0 && totalSaatCount > 0) {
         durationText = `${totalGunCount} Gün + ${totalSaatCount} Saat`
     } else if (totalSaatCount > 0) {
         durationText = `${totalSaatCount} Saat`
     } else if (totalGunCount > 0) {
         durationText = `${totalGunCount} Gün`
-    } else if (items.length > 0) {
-        durationText = `${items.length} Gün`
+    } else {
+        durationText = '0 Gün'
     }
 
     return {
@@ -514,4 +642,4 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
     }
 }
 
-module.exports = { calculateWorkStats, calculateAutoHours };
+module.exports = { calculateWorkStats, calculateAutoHours, parseVehicleCapacity, compareVehicleCapacityDesc };

@@ -380,7 +380,7 @@ export default function Assignments() {
                 } else if (previewDoc.related_id) {
                     result = await window.electronAPI.updateAssignment({ id: previewDoc.related_id, filePath: null })
                 }
-                if (result?.success) {
+                 if (result?.success) {
                     loadData()
                     setPreviewDoc(null)
                     setConfirmModal(null)

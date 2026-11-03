@@ -87,6 +87,7 @@ const PrintDocument = lazyWithRetry(() => import('./pages/PrintDocument'))
 const PersonnelDashboardPortal = lazyWithRetry(() => import('./components/personnel/PersonnelDashboard'))
 const ApprovalCenter = lazyWithRetry(() => import('./components/personnel/ApprovalCenter'))
 const PlatformAdmin = lazyWithRetry(() => import('./pages/PlatformAdmin'))
+const Notifications = lazyWithRetry(() => import('./pages/Notifications'))
 
 import { loadingManager } from './utils/loadingManager'
 
@@ -310,6 +311,7 @@ function AppRoutes() {
                         <Route path="/reports" element={<PermissionRoute module="reports"><Reports /></PermissionRoute>} />
                         <Route path="/employee-reports" element={<PermissionRoute module="employees"><EmployeeReports /></PermissionRoute>} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/notifications" element={<Notifications />} />
                         <Route path="/personnel-profile" element={<EmployeeDetail />} />
                     </Route>
 

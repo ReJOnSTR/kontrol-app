@@ -1003,10 +1003,15 @@ export default function EmployeeDetail() {
         if (!days && days !== 0) return '-'
         const whpl = customWhpl || getWhpl()
         const absDays = Math.abs(days)
-        const hours = Math.round(absDays * whpl * 100) / 100
+        const rawHours = absDays * whpl
+        let hours = Math.round(rawHours * 100) / 100
+        if (Math.abs(hours - Math.round(hours)) < 0.05) {
+            hours = Math.round(hours)
+        }
         const sign = days < 0 ? '-' : ''
         if (hours % whpl === 0) {
-            return `${sign}${absDays} gün`
+            const cleanDays = Math.round((hours / whpl) * 100) / 100
+            return `${sign}${cleanDays} gün`
         }
         return `${sign}${hours} saat`
     }
@@ -1656,7 +1661,7 @@ export default function EmployeeDetail() {
                 .filter(l => l.status === 'approved' && l.type && (l.type.toLowerCase().includes('mesai') || l.type.toLowerCase().includes('mahsup') || l.type === 'offset') && (editingItem ? l.id !== editingItem.id : true))
                 .reduce((sum, l) => sum + (l.hours ? l.hours / whpl : (l.days || 0)), 0)
             
-            const otBalance = Math.round((totalEarned - totalUsedOT) * 100) / 100
+            const otBalance = Math.round((totalEarned - totalUsedOT) * 10000) / 10000
 
             if (days > otBalance) {
                 setError(`Yetersiz mesai izni bakiyesi. Mevcut: ${formatDayBalance(otBalance, whpl)}.`)
@@ -1726,7 +1731,8 @@ export default function EmployeeDetail() {
 
     const handleOffsetLeave = async (amount, currentAnnualBalance, currentOtBalance) => {
         const whpl = getWhpl()
-        const amountInHours = Math.round(amount * whpl * 10) / 10
+        const rawAmountH = amount * whpl
+        const amountInHours = Math.abs(rawAmountH - Math.round(rawAmountH)) < 0.05 ? Math.round(rawAmountH) : Math.round(rawAmountH * 10) / 10
         const amountText = amount % 1 === 0 ? `${amount} günlük` : `${amountInHours} saatlik`
         if (!window.confirm(`${amountText} yıllık izin borcunu mesai izninden mahsup etmek istediğinize emin misiniz?`)) return
         
@@ -2287,7 +2293,10 @@ export default function EmployeeDetail() {
             const displayVal = (() => {
                 if (row.hours) return `${row.hours} Saat`;
                 if (v && v % 1 !== 0) {
-                    return `${Math.round(v * whpl * 100) / 100} Saat`;
+                    const rawH = v * whpl;
+                    let h = Math.round(rawH * 100) / 100;
+                    if (Math.abs(h - Math.round(h)) < 0.05) h = Math.round(h);
+                    return `${h} Saat`;
                 }
                 return `${v} Gün`;
             })();
@@ -3147,7 +3156,7 @@ export default function EmployeeDetail() {
                                           const totalUsedOT = leaves
                                               .filter(l => l.status === 'approved' && l.type && (l.type.toLowerCase().includes('mesai') || l.type.toLowerCase().includes('mahsup') || l.type === 'offset'))
                                               .reduce((sum, l) => sum + (l.hours ? l.hours / whpl : (l.days || 0)), 0)
-                                          const otBalance = Math.round((totalEarned - totalUsedOT) * 100) / 100
+                                          const otBalance = Math.round((totalEarned - totalUsedOT) * 10000) / 10000
 
                                           const totalOffsets = leaves
                                               .filter(l => l.status === 'approved' && l.type && (l.type === 'offset' || l.type.toLowerCase() === 'mahsup' || isAdditiveAnnual(l.type)))
@@ -3216,13 +3225,18 @@ export default function EmployeeDetail() {
                                          l.type === 'offset'
                                      ))
                                      .reduce((sum, l) => sum + (l.hours ? l.hours / whpl : (l.days || 0)), 0)
-                                 const otBalance = Math.round((totalEarned - totalUsedOT) * 100) / 100
+                                 const otBalance = Math.round((totalEarned - totalUsedOT) * 10000) / 10000
 
                                  const displayBalance = (() => {
-                                     const hours = Math.round(otBalance * whpl * 100) / 100
+                                     const rawHours = otBalance * whpl
+                                     let hours = Math.round(rawHours * 100) / 100
+                                     if (Math.abs(hours - Math.round(hours)) < 0.05) {
+                                         hours = Math.round(hours)
+                                     }
                                      if (hours === 0) return '0 gün'
                                      if (hours % whpl === 0) {
-                                         return `${otBalance} gün`
+                                         const days = Math.round((hours / whpl) * 100) / 100
+                                         return `${days} gün`
                                      }
                                      return `${hours} saat`
                                  })()

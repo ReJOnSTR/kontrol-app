@@ -73,7 +73,7 @@ export default function WorkPdfReport({
                 const naturalPx = targetChild.offsetTop + targetChild.offsetHeight;
 
                 const isLandscapeMode = orientationProp === 'landscape';
-                const targetH = isLandscapeMode ? 625 : 830; // Printable inner height limit right above pinned footer in px
+                const targetH = isLandscapeMode ? 720 : 1000; // Gerçek A4 (297mm = 1123px) güvenli baskı alan yüksekliği
 
                 if (naturalPx > targetH) {
                     const exactScaleNeeded = targetH / naturalPx;
@@ -90,7 +90,7 @@ export default function WorkPdfReport({
         }
     }, [pageBreakMode, work, showPricesProp, showKdvProp, kdvRateProp, pazarMultiplierProp, mesaiMultiplierProp, customScaleProp, orientationProp, tableDensity, showWorkTitleProp]);
 
-    const effectiveScale = customScaleProp ? Number(customScaleProp) : (pageBreakMode === 'fit_page' ? autoScale : 1.0);
+    const effectiveScale = customScaleProp ? Number(customScaleProp) : 1.0;
 
     useEffect(() => {
         if (manualBreakIdsProp) {
@@ -467,15 +467,16 @@ export default function WorkPdfReport({
                             <div 
                                 ref={pIdx === 0 ? contentRef : null}
                                 className="pdf-content-wrapper"
-                                style={{
-                                    transform: `scale(${effectiveScale})`,
-                                    transformOrigin: 'top left',
-                                    width: `calc(100% / ${effectiveScale})`,
-                                    minWidth: `calc(100% / ${effectiveScale})`,
+                                style={customScaleProp && Number(customScaleProp) !== 1.0 ? {
+                                    transform: `scale(${Number(customScaleProp)})`,
+                                    transformOrigin: 'top center',
+                                    width: `calc(100% / ${Number(customScaleProp)})`,
+                                    minWidth: `calc(100% / ${Number(customScaleProp)})`,
                                     maxWidth: 'none',
-                                    height: `calc(100% / ${effectiveScale})`,
-                                    minHeight: `calc(100% / ${effectiveScale})`,
-                                    maxHeight: 'none',
+                                    boxSizing: 'border-box'
+                                } : {
+                                    width: '100%',
+                                    minWidth: '100%',
                                     boxSizing: 'border-box'
                                 }}
                             >
@@ -563,7 +564,14 @@ export default function WorkPdfReport({
                                                                 <td className="center">{isHoliday ? '-' : (item.start_time || '-')}</td>
                                                                 <td className="center">{isHoliday ? '-' : (item.end_time || '-')}</td>
                                                                 <td className="center">
-                                                                    {isHoliday ? '0 Gün' : `${item.hours || 0} ${(descUpper.includes('[SAATLİK]') ? 'Saat' : 'Gün')}`}
+                                                                    {(() => {
+                                                                        if (isHoliday) return '0 Gün';
+                                                                        const isItemHourly = descUpper.includes('[SAATLİK]') || item.pricingType === 'hourly' || item.unit === 'saat';
+                                                                        const isItemMonthly = item.isAylik || descUpper.includes('[AYLIK]') || item.pricingType === 'monthly' || item.unit === 'ay' || item.unit === 'aylık';
+                                                                        if (isItemHourly) return `${item.hours || 0} Saat`;
+                                                                        if (isItemMonthly) return `${item.hours || 1} Aylık`;
+                                                                        return `${item.hours || 0} Gün`;
+                                                                    })()}
                                                                 </td>
                                                                 <td className="center">{!isHoliday && item.overtime_hours > 0 ? `${item.overtime_hours} Saat` : '-'}</td>
                                                                 <td className="center">{group.rawMachineName || group.machineName}</td>
@@ -577,8 +585,7 @@ export default function WorkPdfReport({
                                                                         }
                                                                         const kMatch = (desc || '').match(/\[KATSAYI:([^\]]+)\]/);
                                                                         const baseP = item.unit_price || item.unitPriceVal || 0;
-                                                                        const positiveItems = (group.items || []).filter(i => (Number(i.hours) || 0) > 0 && ((i.unit_price || i.unitPriceVal || 0) > 0));
-                                                                        const dailyP = (item.isAylik && positiveItems.length === 1 && baseP >= 50000) ? Math.round((baseP / 26) * 100) / 100 : baseP;
+                                                                        const dailyP = baseP;
                                                                         
                                                                         let finalPrice = dailyP;
                                                                         if (kMatch) {

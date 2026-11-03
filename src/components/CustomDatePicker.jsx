@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { getUiScale } from '../utils/helpers'
 
 export default function CustomDatePicker({
     startDate,
@@ -16,6 +17,7 @@ export default function CustomDatePicker({
     const updatePosition = () => {
         if (!isOpen || !ref.current) return
         const rect = ref.current.getBoundingClientRect()
+        const scale = getUiScale()
         
         const popupWidth = 320
         const viewportWidth = window.innerWidth
@@ -36,8 +38,9 @@ export default function CustomDatePicker({
 
         setPopupStyle({
             position: 'fixed',
-            top,
-            left,
+            top: Math.round(top),
+            left: Math.round(left),
+            right: 'auto',
             zIndex: 99999
         })
     }

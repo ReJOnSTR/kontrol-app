@@ -6,7 +6,7 @@ import DataTable from '../components/DataTable'
 import CustomSelect from '../components/CustomSelect'
 import CustomInput from '../components/CustomInput'
 import ConfirmModal from '../components/ConfirmModal'
-import { ArrowLeft, Plus, Pencil, Trash2, Calendar, Clock, Truck, User, DollarSign, FileText, Printer, Download, FileDown, Settings, Wallet, ChevronDown, Save, Briefcase, CheckCircle2, AlertCircle, Info, Tag, Layers, RotateCcw, Sliders, ChevronRight, Check, X, Sparkles, Zap } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Calendar, Clock, Truck, User, DollarSign, FileText, Printer, Download, FileDown, Settings, Wallet, ChevronDown, Save, Briefcase, CheckCircle, CheckCircle2, AlertCircle, Info, Tag, Layers, RotateCcw, Sliders, ChevronRight, Check, X, Sparkles, Zap } from 'lucide-react'
 import { formatDate, formatCurrency, safeSetLocalStorage, generateUniqueFileName, compareVehicleCapacityDesc } from '../utils/helpers'
 import { calculateWorkStats } from '../utils/workCalculations'
 import { workItemSchema } from '../schemas/workSchema'
@@ -273,6 +273,22 @@ export default function WorkDetails(props) {
         return { hours: calculatedHours, overtimeHours: calculatedOvertime };
     }
 
+    const calculateMonthEndDate = (startDateStr) => {
+        if (!startDateStr) return '';
+        const parts = startDateStr.split('-').map(Number);
+        if (parts.length !== 3) return '';
+        const [y, m, d] = parts;
+        if (d === 1) {
+            // Ayın 1'i ise: o ayın son günü (30 veya 31 çeken ay fark etmeksizin)
+            const lastDay = new Date(y, m, 0);
+            return `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+        } else {
+            // Ay ortasından başlıyorsa tam 1 ay sonrası eksi 1 gün
+            const target = new Date(y, m, d - 1, 12, 0, 0);
+            return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+        }
+    };
+
     // Auto-calculate hours for single form
     useEffect(() => {
         if (!isModalOpen) return;
@@ -536,12 +552,12 @@ export default function WorkDetails(props) {
         let determinedPricingType = 'daily';
         let desc = item.description || '';
         
-        if (desc.startsWith('[SAATLİK] ')) {
+        if (desc.startsWith('[SAATLİK] ') || desc.startsWith('[SAATLİK]')) {
             determinedPricingType = 'hourly';
-            desc = desc.replace('[SAATLİK] ', '');
-        } else if (desc.startsWith('[AYLIK] ')) {
+            desc = desc.replace(/\[SAATLİK\]\s*/i, '');
+        } else if (desc.startsWith('[AYLIK] ') || desc.startsWith('[AYLIK]') || desc.match(/\[AYLIK:[0-9.]+\]/)) {
             determinedPricingType = 'monthly';
-            desc = desc.replace('[AYLIK] ', '');
+            desc = desc.replace(/\[AYLIK(?::[0-9.]+)?\]\s*/i, '');
         }
 
         // Parse multiplier tag
@@ -634,8 +650,13 @@ export default function WorkDetails(props) {
 
             if (formData.pricingType === 'hourly' && !finalDesc.startsWith('[SAATLİK]')) {
                 finalDesc = '[SAATLİK] ' + finalDesc;
-            } else if (formData.pricingType === 'monthly' && !finalDesc.startsWith('[AYLIK]')) {
-                finalDesc = '[AYLIK] ' + finalDesc;
+            } else if (formData.pricingType === 'monthly') {
+                const monthlyVal = parseFloat(formData.unitPrice) || 0;
+                if (monthlyVal > 0 && !finalDesc.includes('[AYLIK:')) {
+                    finalDesc = `[AYLIK:${monthlyVal}] ` + finalDesc.replace(/\[AYLIK\]\s*/g, '');
+                } else if (!finalDesc.includes('[AYLIK]')) {
+                    finalDesc = '[AYLIK] ' + finalDesc;
+                }
             }
 
             if (formData.multiplier && parseFloat(formData.multiplier) !== 1) {
@@ -710,7 +731,7 @@ export default function WorkDetails(props) {
 
             let finalUnitPrice = bulkFormData.unitPrice ? parseFloat(bulkFormData.unitPrice) : 0;
             if (bulkFormData.pricingType === 'monthly' && bulkFormData.monthlyPrice) {
-                // Aylar 26 gündür (Pazar hariç) - Tam oran (yuvarlama hatası olmadan)
+                // Sektör standardı: Aylık anlaşmalar 26 gün üzerinden hesaplanır
                 finalUnitPrice = parseFloat(bulkFormData.monthlyPrice) / 26;
             }
 
@@ -1251,6 +1272,16 @@ export default function WorkDetails(props) {
         return Array.from(map.values()).sort((a, b) => compareVehicleCapacityDesc(a.vehicle, b.vehicle))
     }, [work?.items, vehicles])
 
+    // Yeni kayıt açıldığında veya tablo açıldığında her seferinde en yeni kayıt en üstte (tarih azalan, sonra id azalan)
+    const sortedWorkItems = useMemo(() => {
+        return [...(work?.items || [])].sort((a, b) => {
+            const timeA = new Date(a.date).getTime() || 0;
+            const timeB = new Date(b.date).getTime() || 0;
+            if (timeB !== timeA) return timeB - timeA;
+            return (b.id || 0) - (a.id || 0);
+        });
+    }, [work?.items]);
+
     const vehicleFilteredItems = useMemo(() => {
         const items = work?.items || []
         if (selectedVehicleFilter === 'ALL') return items
@@ -1287,6 +1318,15 @@ export default function WorkDetails(props) {
 
         return { ...calc, dateRangeText, isHourly }
     }, [filteredItems, work, pazarMultiplier, mesaiMultiplier])
+
+    const selectedItemsStats = useMemo(() => {
+        if (!selectedIds || selectedIds.length === 0) return null;
+        const selectedItems = (work?.items || []).filter(i => selectedIds.includes(i.id));
+        if (selectedItems.length === 0) return null;
+        return calculateWorkStats(selectedItems, pazarMultiplier, mesaiMultiplier, vehicles);
+    }, [selectedIds, work?.items, pazarMultiplier, mesaiMultiplier, vehicles])
+
+    const activeStats = selectedItemsStats || stats;
 
     if (loading) return <DetailSkeleton />
     if (!work) return <div className="p-8 text-center">İş bulunamadı.</div>
@@ -1341,21 +1381,40 @@ export default function WorkDetails(props) {
             {/* Hero Dashboard Style */}
             <div className="work-hero-container">
                 {/* Sol Taraf: Finansal Hero Kart */}
-                <div className="stat-card work-hero-card">
+                <div className="stat-card work-hero-card" style={selectedItemsStats ? { border: '2px solid var(--accent-primary)' } : undefined}>
                     {/* Arka plan süsü */}
                     <div style={{ position: 'absolute', top: '-20px', right: '-20px', opacity: 0.05, transform: 'scale(2)', pointerEvents: 'none' }}>
                         <DollarSign size={100} />
                     </div>
 
                     <div>
-                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <DollarSign size={16} className="text-success" />
-                            Genel Toplam Tutar
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <DollarSign size={16} className={selectedItemsStats ? "text-primary" : "text-success"} />
+                                {selectedItemsStats ? 'Seçilen Günlerin Tutarı' : 'Genel Toplam Tutar'}
+                            </span>
+                            {selectedItemsStats && (
+                                <span style={{
+                                    fontSize: '11px',
+                                    background: 'var(--accent-primary)',
+                                    color: '#fff',
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    fontWeight: 700,
+                                    textTransform: 'none'
+                                }}>
+                                    {selectedItemsStats.itemCount} Gün Seçili
+                                </span>
+                            )}
                         </div>
-                        <div style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1 }} title={formatCurrency(stats.grandTotal)}>
-                            {formatCurrency(stats.grandTotal)}
+                        <div style={{ fontSize: '32px', fontWeight: '800', color: selectedItemsStats ? 'var(--accent-primary)' : 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1 }} title={formatCurrency(activeStats.grandTotal)}>
+                            {formatCurrency(activeStats.grandTotal)}
                         </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>Tüm mesai, pazar ve ek ödemeler dahil</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                            {selectedItemsStats 
+                                ? `Genel Toplam: ${formatCurrency(stats.grandTotal)} (+KDV: ${formatCurrency(Math.round(activeStats.grandTotal * 1.20))})` 
+                                : 'Tüm mesai, pazar ve ek ödemeler dahil'}
+                        </div>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '32px', position: 'relative', zIndex: 1 }}>
@@ -1363,13 +1422,13 @@ export default function WorkDetails(props) {
                             <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <Clock size={14} className="text-warning" /> Mesai & Pazar
                             </span>
-                            <span style={{ fontSize: '14px', color: 'var(--warning)', fontWeight: 700 }}>{formatCurrency(stats.totalMesaiPriceAmount + stats.totalPazarPriceAmount)}</span>
+                            <span style={{ fontSize: '14px', color: 'var(--warning)', fontWeight: 700 }}>{formatCurrency(activeStats.totalMesaiPriceAmount + activeStats.totalPazarPriceAmount)}</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
                             <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <Wallet size={14} style={{ color: '#8b5cf6' }} /> Ek Ödemeler
                             </span>
-                            <span style={{ fontSize: '14px', color: '#8b5cf6', fontWeight: 700 }}>{formatCurrency(stats.totalEkOdemeler)}</span>
+                            <span style={{ fontSize: '14px', color: '#8b5cf6', fontWeight: 700 }}>{formatCurrency(activeStats.totalEkOdemeler)}</span>
                         </div>
                     </div>
                 </div>
@@ -1377,11 +1436,20 @@ export default function WorkDetails(props) {
                 {/* Sağ Taraf: Operasyonel Grid */}
                 <div className="work-hero-grid">
                     {/* Toplam Kayıt */}
-                    <div className="stat-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '8px' }}>
+                    <div className="stat-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '8px', border: selectedItemsStats ? '1.5px solid var(--accent-primary)' : undefined }}>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px' }}>
-                            <FileText size={14} className="text-info" /> Toplam Kayıt
+                            <FileText size={14} className="text-info" /> {selectedItemsStats ? 'Seçilen Kayıt' : 'Toplam Kayıt'}
                         </div>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>{stats.itemCount} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>Adet</span></div>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                            {selectedItemsStats ? (
+                                <>
+                                    <span style={{ color: 'var(--accent-primary)' }}>{selectedItemsStats.itemCount}</span>
+                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}> / {stats.itemCount} Gün</span>
+                                </>
+                            ) : (
+                                <>{stats.itemCount} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>Adet</span></>
+                            )}
+                        </div>
                     </div>
 
                     {/* Aktif Araç */}
@@ -1389,7 +1457,16 @@ export default function WorkDetails(props) {
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px' }}>
                             <Truck size={14} className="text-info" /> Aktif Araç
                         </div>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>{stats.uniqueVehicles.size} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>Araç</span></div>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                            {selectedItemsStats ? (
+                                <>
+                                    <span style={{ color: 'var(--accent-primary)' }}>{selectedItemsStats.uniqueVehicles.size}</span>
+                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}> / {stats.uniqueVehicles.size} Araç</span>
+                                </>
+                            ) : (
+                                <>{stats.uniqueVehicles.size} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>Araç</span></>
+                            )}
+                        </div>
                     </div>
 
                     {/* Personel */}
@@ -1397,15 +1474,24 @@ export default function WorkDetails(props) {
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px' }}>
                             <User size={14} className="text-info" /> Personel
                         </div>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>{stats.uniqueEmployees.size} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>Kişi</span></div>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                            {selectedItemsStats ? (
+                                <>
+                                    <span style={{ color: 'var(--accent-primary)' }}>{selectedItemsStats.uniqueEmployees.size}</span>
+                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}> / {stats.uniqueEmployees.size} Kişi</span>
+                                </>
+                            ) : (
+                                <>{stats.uniqueEmployees.size} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>Kişi</span></>
+                            )}
+                        </div>
                     </div>
 
                     {/* Toplam Süre */}
                     <div className="stat-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '8px' }}>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px' }}>
-                            <Calendar size={14} className="text-success" /> Toplam Süre
+                            <Calendar size={14} className="text-success" /> {selectedItemsStats ? 'Seçilen Süre' : 'Toplam Süre'}
                         </div>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>{stats.durationText}</div>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>{activeStats.durationText}</div>
                     </div>
 
                     {/* Normal Mesai */}
@@ -1413,7 +1499,16 @@ export default function WorkDetails(props) {
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px' }}>
                             <Clock size={14} className="text-warning" /> Normal Mesai
                         </div>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>{stats.totalOvertime} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>Saat</span></div>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                            {selectedItemsStats ? (
+                                <>
+                                    <span style={{ color: 'var(--warning)' }}>{selectedItemsStats.totalOvertime}</span>
+                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}> / {stats.totalOvertime} Saat</span>
+                                </>
+                            ) : (
+                                <>{stats.totalOvertime} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>Saat</span></>
+                            )}
+                        </div>
                     </div>
 
                     {/* Pazar Mesai */}
@@ -1421,7 +1516,16 @@ export default function WorkDetails(props) {
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px' }}>
                             <Calendar size={14} className="text-danger" /> Pazar Mesai
                         </div>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>{stats.totalPazarDayCount} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>Gün</span></div>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                            {selectedItemsStats ? (
+                                <>
+                                    <span style={{ color: 'var(--danger)' }}>{selectedItemsStats.totalPazarDayCount}</span>
+                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}> / {stats.totalPazarDayCount} Gün</span>
+                                </>
+                            ) : (
+                                <>{stats.totalPazarDayCount} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>Gün</span></>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1445,6 +1549,7 @@ export default function WorkDetails(props) {
             </div>
 
             <DataTable persistenceKey="WorkDetails_table_0"
+                initialSort={{ key: 'date', direction: 'desc' }}
                 columns={[
                     { 
                         label: 'TARİH', 
@@ -1504,7 +1609,8 @@ export default function WorkDetails(props) {
                         label: 'SÜRE', key: 'hours', render: (val, row) => {
                             const descUpper = (row.description || '').toUpperCase();
                             const isHourly = row.pricingType === 'hourly' || descUpper.includes('[SAATLİK]') || row.unit === 'saat';
-                            const unitLabel = isHourly ? 'Saat' : 'Gün';
+                            const isMonthly = row.pricingType === 'monthly' || descUpper.includes('[AYLIK]') || row.unit === 'ay' || row.unit === 'aylık';
+                            const unitLabel = isHourly ? 'Saat' : (isMonthly ? 'Aylık' : 'Gün');
                             const isZero = Number(row.hours) === 0;
 
                             if (isZero) {
@@ -1530,7 +1636,7 @@ export default function WorkDetails(props) {
 
                             return (
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span>{row.hours ?? 0} {unitLabel}</span>
+                                    <span>{row.hours ?? (isMonthly ? 1 : 0)} {unitLabel}</span>
                                 </div>
                             );
                         }
@@ -1594,7 +1700,7 @@ export default function WorkDetails(props) {
                     },
                     { label: 'AÇIKLAMA', key: 'description', render: (val) => <span style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px', display: 'inline-block' }}>{val}</span> }
                 ]}
-                data={work.items || []}
+                data={sortedWorkItems}
                 filters={[
                     {
                         key: 'vehicle_filter',
@@ -1971,7 +2077,7 @@ export default function WorkDetails(props) {
                                 ]}
                             />
                             <CustomInput
-                                label={formData.pricingType === 'monthly' ? "Günlük Birim Fiyat" : (formData.pricingType === 'hourly' ? "Saatlik Birim Fiyat" : "Birim Fiyat")}
+                                label={formData.pricingType === 'monthly' ? "Aylık Birim Fiyat" : (formData.pricingType === 'hourly' ? "Saatlik Birim Fiyat" : "Birim Fiyat")}
                                 format="currency"
                                 maxDecimals={6}
                                 maxLength={18}
@@ -2003,8 +2109,8 @@ export default function WorkDetails(props) {
                                 type="number"
                                 step="any"
                                 min={0}
-                                label={formData.pricingType === 'hourly' ? "Çalışma Süresi (Saat)" : "Çalışma Süresi (Gün Sayısı)"}
-                                value={formData.hours ?? 0}
+                                label={formData.pricingType === 'hourly' ? "Çalışma Süresi (Saat)" : (formData.pricingType === 'monthly' ? "Çalışma Süresi (Ay)" : "Çalışma Süresi (Gün Sayısı)")}
+                                value={formData.hours ?? (formData.pricingType === 'monthly' ? 1 : 0)}
                                 onChange={(val) => setFormData({ ...formData, hours: val === '' ? '' : parseFloat(val), _manualHours: true })}
                             />
                             <CustomInput
@@ -2607,9 +2713,7 @@ export default function WorkDetails(props) {
                             onChange={(val) => {
                                 const updates = { startDate: val };
                                 if (bulkFormData.pricingType === 'monthly') {
-                                    const d = new Date(val);
-                                    d.setDate(d.getDate() + 29);
-                                    updates.endDate = d.toISOString().split('T')[0];
+                                    updates.endDate = calculateMonthEndDate(val);
                                 }
                                 setBulkFormData({ ...bulkFormData, ...updates });
                             }}
@@ -2700,9 +2804,7 @@ export default function WorkDetails(props) {
                                 onChange={(val) => {
                                     const updates = { pricingType: val };
                                     if (val === 'monthly') {
-                                        const d = new Date(bulkFormData.startDate);
-                                        d.setDate(d.getDate() + 29);
-                                        updates.endDate = d.toISOString().split('T')[0];
+                                        updates.endDate = calculateMonthEndDate(bulkFormData.startDate);
                                     }
                                     setBulkFormData({ ...bulkFormData, ...updates });
                                 }}
@@ -3269,7 +3371,6 @@ export default function WorkDetails(props) {
                         inset: 0,
                         zIndex: 1300,
                         background: 'rgba(0, 0, 0, 0.65)',
-                        backdropFilter: 'blur(8px)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

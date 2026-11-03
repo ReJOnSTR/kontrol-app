@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, webUtils } = require('electron')
+const { contextBridge, ipcRenderer, webUtils, webFrame } = require('electron')
 
 const PASSIVE_CHANNELS = new Set([
     // App & system diagnostics
@@ -51,6 +51,20 @@ ipcRenderer.invoke = (channel, ...args) => {
 
 contextBridge.exposeInMainWorld('electronAPI', {
     isElectron: true,
+    setZoomFactor: (factor) => {
+        try {
+            if (typeof webFrame?.setZoomFactor === 'function') {
+                webFrame.setZoomFactor(factor);
+            }
+        } catch (_) {}
+    },
+    getZoomFactor: () => {
+        try {
+            return webFrame?.getZoomFactor?.() || 1;
+        } catch (_) {
+            return 1;
+        }
+    },
     // Auth
     logout: () => ipcRenderer.invoke('auth:logout'),
     register: (userData) => ipcRenderer.invoke('auth:register', userData),

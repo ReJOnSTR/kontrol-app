@@ -81,7 +81,7 @@ async function getWorkDetails(id, companyId = null) {
                         vehicles: true,
                         employees: true
                     },
-                    orderBy: [{ date: 'asc' }, { id: 'asc' }]
+                    orderBy: [{ date: 'desc' }, { id: 'desc' }]
                 }
             }
         })
@@ -172,27 +172,48 @@ async function updateWork(data) {
             }
         });
 
-        if (currentWork && currentWork.work_items && currentWork.work_items.length > 0 &&
-            ((data.work_start_time !== undefined && data.work_start_time !== currentWork.work_start_time) ||
-             (data.work_end_time !== undefined && data.work_end_time !== currentWork.work_end_time) ||
-             disableOvertimeChanged)) {
-            
-            for (const item of currentWork.work_items) {
-                if (item.start_time && item.end_time) {
-                    const descUpper = (item.description || '').toUpperCase();
-                    const isHourly = descUpper.includes('[SAATLİK]') || item.pricingType === 'hourly';
-                    const { overtimeHours } = calculateAutoHours(
-                        item.start_time,
-                        item.end_time,
-                        isHourly ? 'hourly' : 'daily',
-                        newStartTime || '08:00',
-                        newEndTime || '17:00',
-                        !!isDisableOvertime
-                    );
+        const pazarMultiplierChanged = data.pazar_multiplier !== undefined && parseFloat(data.pazar_multiplier) !== currentWork?.pazar_multiplier;
+        const mesaiMultiplierChanged = data.mesai_multiplier !== undefined && parseFloat(data.mesai_multiplier) !== currentWork?.mesai_multiplier;
+
+        if (currentWork && currentWork.work_items && currentWork.work_items.length > 0) {
+            const needTimeRecalc = (data.work_start_time !== undefined && data.work_start_time !== currentWork.work_start_time) ||
+                                  (data.work_end_time !== undefined && data.work_end_time !== currentWork.work_end_time) ||
+                                  disableOvertimeChanged;
+            const needPriceRecalc = pazarMultiplierChanged || mesaiMultiplierChanged;
+
+            if (needTimeRecalc || needPriceRecalc) {
+                const finalPazarMult = data.pazar_multiplier !== undefined ? parseFloat(data.pazar_multiplier) : (currentWork.pazar_multiplier ?? 1.5);
+                const finalMesaiMult = data.mesai_multiplier !== undefined ? parseFloat(data.mesai_multiplier) : (currentWork.mesai_multiplier ?? 1.5);
+
+                for (const item of currentWork.work_items) {
+                    let overtimeHours = item.overtime_hours;
+                    if (needTimeRecalc && item.start_time && item.end_time) {
+                        const descUpper = (item.description || '').toUpperCase();
+                        const isHourly = descUpper.includes('[SAATLİK]') || item.pricingType === 'hourly';
+                        const calc = calculateAutoHours(
+                            item.start_time,
+                            item.end_time,
+                            isHourly ? 'hourly' : 'daily',
+                            newStartTime || '08:00',
+                            newEndTime || '17:00',
+                            !!isDisableOvertime
+                        );
+                        overtimeHours = calc.overtimeHours;
+                    }
+
+                    const newTotalPrice = calculateItemTotalPrice({
+                        ...item,
+                        unitPrice: item.unit_price,
+                        overtimeHours,
+                        travelPrice: item.travel_price
+                    }, finalPazarMult, finalMesaiMult);
 
                     await prisma.work_items.update({
                         where: { id: item.id },
-                        data: { overtime_hours: overtimeHours }
+                        data: {
+                            overtime_hours: overtimeHours,
+                            total_price: newTotalPrice
+                        }
                     });
                 }
             }

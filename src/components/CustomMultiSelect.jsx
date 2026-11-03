@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 
 export default function CustomMultiSelect({
@@ -18,78 +17,69 @@ export default function CustomMultiSelect({
 }) {
     const [isOpen, setIsOpen] = useState(false)
     const [placement, setPlacement] = useState('bottom')
-    const [dropdownStyle, setDropdownStyle] = useState({})
     const ref = useRef(null)
-
-    const updatePosition = () => {
-        if (!isOpen || !ref.current) return
-        const rect = ref.current.getBoundingClientRect()
-        const spaceBelow = window.innerHeight - rect.bottom
-        const spaceAbove = rect.top
-        
-        let newPlacement = 'bottom'
-        if (spaceBelow < 250 && spaceAbove > spaceBelow) {
-            newPlacement = 'top'
-        }
-        setPlacement(newPlacement)
-
-        setDropdownStyle({
-            position: 'fixed',
-            top: newPlacement === 'bottom' ? rect.bottom + 6 : 'auto',
-            bottom: newPlacement === 'top' ? (window.innerHeight - rect.top) + 6 : 'auto',
-            left: rect.left,
-            width: rect.width,
-            zIndex: 99999
-        })
-    }
+    const triggerRef = useRef(null)
 
     useEffect(() => {
         if (isOpen) {
-            updatePosition()
-            window.addEventListener('resize', updatePosition)
-            window.addEventListener('scroll', updatePosition, true)
-            return () => {
-                window.removeEventListener('resize', updatePosition)
-                window.removeEventListener('scroll', updatePosition, true)
+            const targetEl = triggerRef.current || ref.current
+            if (targetEl) {
+                const rect = targetEl.getBoundingClientRect()
+                const spaceBelow = window.innerHeight - rect.bottom
+                const spaceAbove = rect.top
+                if (spaceBelow < 220 && spaceAbove > spaceBelow) {
+                    setPlacement('top')
+                } else {
+                    setPlacement('bottom')
+                }
             }
+        } else {
+            setPlacement('bottom')
         }
     }, [isOpen])
 
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (ref.current && !ref.current.contains(e.target)) {
-                const isDropdownClick = e.target.closest('.custom-select-dropdown')
-                if (!isDropdownClick) {
-                    setIsOpen(false)
-                }
+                setIsOpen(false)
             }
         }
 
         document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
+        document.addEventListener('touchstart', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+            document.removeEventListener('touchstart', handleClickOutside)
+        }
     }, [])
 
     const handleToggle = (optValue) => {
-        let newValue;
+        let newValue
         if (value.includes(optValue)) {
-            newValue = value.filter(v => v !== optValue);
+            newValue = value.filter(v => v !== optValue)
         } else {
-            newValue = [...value, optValue];
+            newValue = [...value, optValue]
         }
-        onChange(newValue);
+        onChange(newValue)
+    }
+
+    const toggleOpen = () => {
+        setIsOpen(!isOpen)
     }
 
     const selectedLabels = options
         .filter(opt => value.includes(opt.value))
         .map(opt => opt.label)
-        .join(', ');
 
-    const hasValue = value.length > 0 || isOpen;
-    const wrapperClass = floatingLabel ? `custom-select form-group floating-label-group ${hasValue ? 'has-value' : ''}` : `custom-select form-group`
+    const isFloating = floatingLabel
+    const hasValue = value.length > 0 || isOpen
+    const wrapperClass = isFloating 
+        ? `custom-select form-group floating-label-group ${hasValue ? 'has-value' : ''} ${isOpen ? 'is-open' : ''}` 
+        : `custom-select form-group ${isOpen ? 'is-open' : ''}`
 
     return (
         <div className={`${wrapperClass} ${className}`} ref={ref} style={style}>
-            {!floatingLabel && label && (
+            {!isFloating && label && (
                 <label className="form-label">
                     {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
                 </label>
@@ -99,50 +89,57 @@ export default function CustomMultiSelect({
                 {Icon && <Icon className="input-icon" size={18} />}
 
                 <div
+                    ref={triggerRef}
                     className={`custom-select-trigger form-input ${isOpen ? 'open' : ''} ${error ? 'input-error' : ''} ${Icon ? 'has-icon' : ''} ${disabled ? 'disabled' : ''}`}
-                    onClick={!disabled ? () => setIsOpen(!isOpen) : undefined}
+                    onClick={!disabled ? toggleOpen : undefined}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         cursor: disabled ? 'not-allowed' : 'pointer',
                         opacity: disabled ? 0.6 : 1,
-                        background: disabled ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
-                        paddingLeft: Icon ? '40px' : '14px',
-                        height: '40px',
-                        minHeight: '40px',
+                        paddingLeft: Icon ? '40px' : undefined,
                         userSelect: 'none'
                     }}
                 >
-                    <span className={value.length > 0 ? 'value-text' : 'placeholder'} style={{ opacity: floatingLabel && !hasValue ? 0 : 1, width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {selectedLabels || placeholder}
+                    <span className={selectedLabels.length > 0 ? 'value-text' : 'placeholder'} style={{ opacity: isFloating && !hasValue ? 0 : 1, width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {selectedLabels.length > 0 
+                            ? (selectedLabels.length <= 2 ? selectedLabels.join(', ') : `${selectedLabels.length} seçildi`)
+                            : (isFloating ? '' : placeholder)
+                        }
                     </span>
                     <ChevronDown size={16} className={`chevron ${isOpen ? 'rotate' : ''}`} style={{ flexShrink: 0, marginLeft: '8px' }} />
                 </div>
 
-                {floatingLabel && label && (
+                {isFloating && label && (
                     <label className="form-label">
                         {label} {required && <span>*</span>}
                     </label>
                 )}
 
-                {isOpen && createPortal(
-                    <div className={`custom-select-dropdown placement-${placement}`} style={{ ...dropdownStyle, maxHeight: '250px', overflowY: 'auto' }}>
+                {isOpen && (
+                    <div 
+                        className={`custom-select-dropdown placement-${placement}`} 
+                        style={{ maxHeight: '250px', overflowY: 'auto' }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                    >
                         {options.map((opt) => {
-                            const isSelected = value.includes(opt.value);
+                            const isSelected = value.includes(opt.value)
                             return (
                                 <div
                                     key={opt.value}
                                     className={`custom-select-option ${isSelected ? 'selected' : ''}`}
                                     onClick={() => handleToggle(opt.value)}
                                 >
-                                    <span>{opt.label}</span>
-                                    {isSelected && <Check size={14} />}
+                                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {opt.label}
+                                    </span>
+                                    {isSelected && <Check size={14} style={{ flexShrink: 0, color: 'var(--accent-primary)', marginLeft: '6px' }} />}
                                 </div>
-                            );
+                            )
                         })}
-                    </div>,
-                    document.body
+                    </div>
                 )}
             </div>
 

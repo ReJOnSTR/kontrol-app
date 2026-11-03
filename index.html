@@ -18,6 +18,22 @@
           t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
         }
         document.documentElement.setAttribute('data-theme', t);
+
+        var isPrint = window.location.hash.indexOf('print') !== -1 || window.location.pathname.indexOf('print') !== -1;
+        if (!isPrint) {
+          var s = localStorage.getItem('aractakip_ui_scale') || localStorage.getItem('ui_scale');
+          if (s) {
+            var num = parseFloat(s);
+            if (!isNaN(num) && num >= 75 && num <= 130) {
+              var ratio = (num / 100).toString();
+              document.documentElement.style.zoom = ratio;
+              document.documentElement.style.setProperty('--ui-scale', ratio);
+            }
+          }
+        } else {
+          document.documentElement.style.zoom = '1';
+          document.documentElement.style.setProperty('--ui-scale', '1');
+        }
       } catch (e) {
         document.documentElement.setAttribute('data-theme', 'dark');
       }

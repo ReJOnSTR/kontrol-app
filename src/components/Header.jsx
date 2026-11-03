@@ -15,6 +15,7 @@ import NotificationCenter from './NotificationCenter'
 
 const pageTitles = {
     '/': 'Dashboard',
+    '/notifications': 'Bildirim Merkezi',
     '/companies': 'Şirketler',
     '/vehicles': 'Araçlar',
     '/maintenance': 'Bakım Takibi',

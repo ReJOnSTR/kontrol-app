@@ -2598,6 +2598,7 @@ ipcMain.handle('save-report-pdf', async (event, route = '/print', options = {}) 
                 nodeIntegration: false
             }
         });
+        hiddenWin.webContents.setZoomFactor(1.0);
 
         // Load the print page route (cross-platform compatible on Windows/macOS)
         if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
@@ -2652,8 +2653,15 @@ ipcMain.handle('save-report-pdf', async (event, route = '/print', options = {}) 
             } catch (e) {}
         }
 
-        // Wait for content to fully render
+        // Wait for content to fully render and force 1:1 scale for true A4 page dimensions
         await new Promise(resolve => setTimeout(resolve, 2000));
+        await hiddenWin.webContents.executeJavaScript(`
+            try {
+                document.documentElement.style.zoom = '1';
+                document.documentElement.style.setProperty('--ui-scale', '1');
+                document.body.style.zoom = '1';
+            } catch(e) {}
+        `);
 
         // Generate PDF with true landscape dimensions when requested
         const pdfData = await hiddenWin.webContents.printToPDF({

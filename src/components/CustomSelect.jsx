@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 
 export default function CustomSelect({
@@ -21,8 +20,8 @@ export default function CustomSelect({
     const [isOpen, setIsOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [placement, setPlacement] = useState('bottom')
-    const [dropdownStyle, setDropdownStyle] = useState({})
     const ref = useRef(null)
+    const triggerRef = useRef(null)
     const searchInputRef = useRef(null)
 
     const selectedOption = options.find(opt => opt.value === value)
@@ -35,64 +34,20 @@ export default function CustomSelect({
         opt.label && opt.label.toString().toLowerCase() === searchTerm.toLowerCase()
     )
 
-    const updatePosition = () => {
-        if (!isOpen || !ref.current) return
-        const rect = ref.current.getBoundingClientRect()
-        const spaceBelow = window.innerHeight - rect.bottom
-        const spaceAbove = rect.top
-        
-        let newPlacement = 'bottom'
-        if (spaceBelow < 250 && spaceAbove > spaceBelow) {
-            newPlacement = 'top'
-        }
-        setPlacement(newPlacement)
-
-        // Smart width: form selects in modals/pages should match trigger width!
-        const isCompact = className.includes('filter-select-custom') || className.includes('page-select-custom')
-        const isPageSelect = className.includes('page-select-custom')
-
-        let popupWidth, popupMinWidth, popupMaxWidth
-        if (isPageSelect) {
-            popupMinWidth = rect.width
-            popupMaxWidth = rect.width
-            popupWidth = `${rect.width}px`
-        } else if (isCompact) {
-            popupMinWidth = Math.min(Math.max(rect.width, 180), window.innerWidth - 24)
-            popupMaxWidth = Math.min(360, window.innerWidth - 24)
-            popupWidth = 'max-content'
-        } else {
-            // Form select in modal or page - match trigger width
-            popupWidth = `${Math.min(rect.width, window.innerWidth - 24)}px`
-            popupMinWidth = `${Math.min(Math.max(rect.width, 240), window.innerWidth - 24)}px`
-            popupMaxWidth = `${window.innerWidth - 24}px`
-        }
-
-        // Prevent overflow beyond right edge of viewport
-        const targetWidth = isCompact ? (typeof popupMinWidth === 'number' ? popupMinWidth : 200) : rect.width
-        let left = rect.left
-        if (left + targetWidth > window.innerWidth - 12) {
-            left = Math.max(12, window.innerWidth - targetWidth - 12)
-        }
-        if (left < 12) left = 12
-
-        setDropdownStyle({
-            position: 'fixed',
-            top: newPlacement === 'bottom' ? rect.bottom + 4 : 'auto',
-            bottom: newPlacement === 'top' ? (window.innerHeight - rect.top) + 4 : 'auto',
-            left: left,
-            minWidth: typeof popupMinWidth === 'number' ? `${popupMinWidth}px` : popupMinWidth,
-            maxWidth: typeof popupMaxWidth === 'number' ? `${popupMaxWidth}px` : popupMaxWidth,
-            width: popupWidth,
-            zIndex: 99999
-        })
-    }
-
     useEffect(() => {
         if (isOpen) {
-            updatePosition()
-            window.addEventListener('resize', updatePosition)
-            window.addEventListener('scroll', updatePosition, true)
-            
+            const targetEl = triggerRef.current || ref.current
+            if (targetEl) {
+                const rect = targetEl.getBoundingClientRect()
+                const spaceBelow = window.innerHeight - rect.bottom
+                const spaceAbove = rect.top
+                if (spaceBelow < 220 && spaceAbove > spaceBelow) {
+                    setPlacement('top')
+                } else {
+                    setPlacement('bottom')
+                }
+            }
+
             const timer = setTimeout(() => {
                 if (searchInputRef.current) {
                     searchInputRef.current.focus()
@@ -100,22 +55,18 @@ export default function CustomSelect({
             }, 50)
 
             return () => {
-                window.removeEventListener('resize', updatePosition)
-                window.removeEventListener('scroll', updatePosition, true)
                 clearTimeout(timer)
             }
         } else {
             setSearchTerm('')
+            setPlacement('bottom')
         }
     }, [isOpen])
 
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (ref.current && !ref.current.contains(e.target)) {
-                const isDropdownClick = e.target.closest('.custom-select-dropdown')
-                if (!isDropdownClick) {
-                    setIsOpen(false)
-                }
+                setIsOpen(false)
             }
         }
 
@@ -153,7 +104,9 @@ export default function CustomSelect({
     const isFloating = floatingLabel
     const displayLabel = selectedOption ? selectedOption.label : (value || (isFloating ? '' : placeholder))
     const hasValue = !!(selectedOption || value || isOpen || searchTerm)
-    const wrapperClass = isFloating ? `custom-select form-group floating-label-group ${hasValue ? 'has-value' : ''}` : `custom-select form-group`
+    const wrapperClass = isFloating 
+        ? `custom-select form-group floating-label-group ${hasValue ? 'has-value' : ''} ${isOpen ? 'is-open' : ''}` 
+        : `custom-select form-group ${isOpen ? 'is-open' : ''}`
 
     return (
         <div className={`${wrapperClass} ${className}`} ref={ref} style={style}>
@@ -167,6 +120,7 @@ export default function CustomSelect({
                 {Icon && <Icon className="input-icon" size={18} />}
 
                 <div
+                    ref={triggerRef}
                     className={`custom-select-trigger form-input ${isOpen ? 'open' : ''} ${error ? 'input-error' : ''} ${Icon ? 'has-icon' : ''} ${disabled ? 'disabled' : ''}`}
                     onClick={!disabled ? toggleOpen : undefined}
                     style={{
@@ -212,10 +166,10 @@ export default function CustomSelect({
                     </label>
                 )}
 
-                {isOpen && createPortal(
+                {isOpen && (
                     <div 
                         className={`custom-select-dropdown placement-${placement}`} 
-                        style={{ ...dropdownStyle, maxHeight: '250px', overflowY: 'auto' }}
+                        style={{ maxHeight: '250px', overflowY: 'auto' }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onTouchStart={(e) => e.stopPropagation()}
                     >
@@ -249,13 +203,12 @@ export default function CustomSelect({
                             <div
                                 className="custom-select-option creatable-option"
                                 onClick={() => handleSelect(searchTerm)}
-                                style={{ borderTop: '1px dashed var(--border-color)', color: 'var(--accent-primary)', fontWeight: 500 }}
+                                style={{ borderTop: '1px solid var(--border-color)', color: 'var(--accent-primary)', fontWeight: 500 }}
                             >
                                 <span>+ Ekle: "{searchTerm}"</span>
                             </div>
                         )}
-                    </div>,
-                    document.body
+                    </div>
                 )}
             </div>
 

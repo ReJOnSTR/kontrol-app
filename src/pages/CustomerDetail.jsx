@@ -52,6 +52,8 @@ export default function CustomerDetail() {
 
     // Filter states
     const [showArchived, setShowArchived] = useState(false)
+    const [selectedWorkIds, setSelectedWorkIds] = useState([])
+    const [selectedLedgerIds, setSelectedLedgerIds] = useState([])
 
     // Document States
     const [documents, setDocuments] = useState([])
@@ -754,6 +756,40 @@ export default function CustomerDetail() {
         });
     }, [ledgerData, reportStartDate, reportEndDate]);
 
+    // Selected stats for works or ledger (Hook must be defined before any early return)
+    const selectedStats = useMemo(() => {
+        if (!customer) return null
+        if (activeTab === 'works' && selectedWorkIds.length > 0) {
+            const selectedList = (customer.works || []).filter(w => selectedWorkIds.includes(w.id))
+            const totalBorc = selectedList.reduce((sum, w) => sum + (Number(w.total_price) || 0), 0)
+            const totalTahsilat = selectedList
+                .filter(w => w.status === 'paid')
+                .reduce((sum, w) => sum + (Number(w.total_price) || 0), 0)
+            const bakiye = totalBorc - totalTahsilat
+            return {
+                type: 'works',
+                count: selectedList.length,
+                totalBorc,
+                totalTahsilat,
+                bakiye
+            }
+        }
+        if (activeTab === 'ledger' && selectedLedgerIds.length > 0) {
+            const selectedList = (ledgerData || []).filter(r => selectedLedgerIds.includes(r.id))
+            const totalBorc = selectedList.reduce((sum, r) => sum + (Number(r.debit) || 0), 0)
+            const totalTahsilat = selectedList.reduce((sum, r) => sum + (Number(r.credit) || 0), 0)
+            const bakiye = totalBorc - totalTahsilat
+            return {
+                type: 'ledger',
+                count: selectedList.length,
+                totalBorc,
+                totalTahsilat,
+                bakiye
+            }
+        }
+        return null
+    }, [activeTab, selectedWorkIds, selectedLedgerIds, customer, ledgerData]);
+
     const handlePrintReport = () => {
         const printData = {
             isCustomerLedgerReport: true,
@@ -942,7 +978,14 @@ export default function CustomerDetail() {
             {/* Cari Durum Paneli */}
             <div className="detail-card-grid-3">
                 {/* Kart 1: Toplam Borç */}
-                <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="card" style={{ 
+                    padding: '18px 20px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '16px',
+                    border: selectedStats ? '1.5px solid var(--accent-primary)' : undefined,
+                    transition: 'all 0.2s ease'
+                }}>
                     <div style={{ 
                         width: '42px', height: '42px', borderRadius: '12px', 
                         backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)',
@@ -953,16 +996,28 @@ export default function CustomerDetail() {
                     </div>
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
-                            Toplam Borç
+                            {selectedStats ? `Seçilen Borç (${selectedStats.count} ${selectedStats.type === 'works' ? 'İş' : 'Kayıt'})` : 'Toplam Borç'}
                         </div>
-                        <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            {formatCurrency(customer.total_volume || 0)}
+                        <div style={{ fontSize: '20px', fontWeight: 700, color: selectedStats ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
+                            {formatCurrency(selectedStats ? selectedStats.totalBorc : (customer.total_volume || 0))}
                         </div>
+                        {selectedStats && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                Toplam Borç: {formatCurrency(customer.total_volume || 0)}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Kart 2: Toplam Tahsilat */}
-                <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="card" style={{ 
+                    padding: '18px 20px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '16px',
+                    border: selectedStats ? '1.5px solid var(--success)' : undefined,
+                    transition: 'all 0.2s ease'
+                }}>
                     <div style={{ 
                         width: '42px', height: '42px', borderRadius: '12px', 
                         backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)',
@@ -973,23 +1028,41 @@ export default function CustomerDetail() {
                     </div>
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
-                            Toplam Tahsilat
+                            {selectedStats ? 'Seçilen Tahsilat' : 'Toplam Tahsilat'}
                         </div>
                         <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--success)' }}>
-                            {formatCurrency((customer.total_volume || 0) - (customer.total_receivable || 0))}
+                            {formatCurrency(selectedStats ? selectedStats.totalTahsilat : ((customer.total_volume || 0) - (customer.total_receivable || 0)))}
                         </div>
+                        {selectedStats && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                Toplam Tahsilat: {formatCurrency((customer.total_volume || 0) - (customer.total_receivable || 0))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Kart 3: Güncel Cari Bakiye */}
                 <div className="card" style={{ 
-                    padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '16px',
-                    borderLeft: (customer.total_receivable || 0) > 0 ? '4px solid var(--danger-primary, #ef4444)' : '4px solid var(--success-primary, #22c55e)'
+                    padding: '18px 20px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '16px',
+                    borderLeft: selectedStats 
+                        ? (selectedStats.bakiye > 0 ? '4px solid var(--danger-primary, #ef4444)' : '4px solid var(--success-primary, #22c55e)')
+                        : ((customer.total_receivable || 0) > 0 ? '4px solid var(--danger-primary, #ef4444)' : '4px solid var(--success-primary, #22c55e)'),
+                    borderTop: selectedStats ? '1.5px solid var(--border-color)' : undefined,
+                    borderRight: selectedStats ? '1.5px solid var(--border-color)' : undefined,
+                    borderBottom: selectedStats ? '1.5px solid var(--border-color)' : undefined,
+                    transition: 'all 0.2s ease'
                 }}>
                     <div style={{ 
                         width: '42px', height: '42px', borderRadius: '12px', 
-                        backgroundColor: (customer.total_receivable || 0) > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                        color: (customer.total_receivable || 0) > 0 ? 'var(--danger)' : 'var(--success)',
+                        backgroundColor: selectedStats 
+                            ? (selectedStats.bakiye > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)')
+                            : ((customer.total_receivable || 0) > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)'),
+                        color: selectedStats
+                            ? (selectedStats.bakiye > 0 ? 'var(--danger)' : 'var(--success)')
+                            : ((customer.total_receivable || 0) > 0 ? 'var(--danger)' : 'var(--success)'),
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0
                     }}>
@@ -997,14 +1070,21 @@ export default function CustomerDetail() {
                     </div>
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
-                            Güncel Cari Bakiye
+                            {selectedStats ? 'Seçilen Kalan Bakiye' : 'Güncel Cari Bakiye'}
                         </div>
                         <div style={{ 
                             fontSize: '20px', fontWeight: 700, 
-                            color: (customer.total_receivable || 0) > 0 ? 'var(--danger)' : 'var(--success)'
+                            color: selectedStats
+                                ? (selectedStats.bakiye > 0 ? 'var(--danger)' : 'var(--success)')
+                                : ((customer.total_receivable || 0) > 0 ? 'var(--danger)' : 'var(--success)')
                         }}>
-                            {formatCurrency(customer.total_receivable || 0)}
+                            {formatCurrency(selectedStats ? selectedStats.bakiye : (customer.total_receivable || 0))}
                         </div>
+                        {selectedStats && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                Güncel Cari: {formatCurrency(customer.total_receivable || 0)}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1080,6 +1160,7 @@ export default function CustomerDetail() {
                             showSearch={true}
                             showDateFilter={true}
                             showCheckboxes={true}
+                            onSelectionChange={setSelectedWorkIds}
                             dateFilterKey="start_date"
                             isArchiveView={showArchived}
                             onToggleArchiveView={setShowArchived}
@@ -1192,6 +1273,8 @@ export default function CustomerDetail() {
                             ]}
                             data={ledgerData}
                             showSearch={true}
+                            showCheckboxes={true}
+                            onSelectionChange={setSelectedLedgerIds}
                             searchPlaceholder="Ekstre hareketlerinde ara..."
                         />
                     </div>

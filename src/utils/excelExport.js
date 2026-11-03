@@ -140,7 +140,9 @@ export function exportWorkToExcel(work, vehicles = [], options = {}) {
         groupItems.forEach((item) => {
             const desc = item.description || ''
             const cleanDesc = desc.replace(/\[[^\]]*\]\s*/g, '').trim()
-            const unitText = desc.toUpperCase().includes('[SAATLİK]') ? 'Saat' : 'Gün'
+            const isItemHourly = desc.toUpperCase().includes('[SAATLİK]') || item.pricingType === 'hourly' || item.unit === 'saat';
+            const isItemMonthly = desc.toUpperCase().includes('[AYLIK]') || item.pricingType === 'monthly' || item.isAylik || item.unit === 'ay' || item.unit === 'aylık';
+            const unitText = isItemHourly ? 'Saat' : (isItemMonthly ? 'Aylık' : 'Gün');
 
             let rowClass = ''
             if (desc.includes('[RENK:red]') || item.isPazar) rowClass = 'row-red'
@@ -153,8 +155,7 @@ export function exportWorkToExcel(work, vehicles = [], options = {}) {
             if (showPrices) {
                 if (item.isPazar && !desc.includes('[KATSAYI:')) {
                     const baseP = item.unit_price || item.unitPriceVal || 0
-                    const positiveItems = (group.items || []).filter(i => (Number(i.hours) || 0) > 0 && ((i.unit_price || i.unitPriceVal || 0) > 0))
-                    const dailyP = (item.isAylik && positiveItems.length === 1 && baseP >= 50000) ? Math.round((baseP / 26) * 100) / 100 : baseP
+                    const dailyP = baseP
                     priceText = dailyP > 0 ? formatCurrency(Math.round(dailyP * pazarMultiplier * 100) / 100) : '-'
                 } else {
                     priceText = (item.unit_price || item.unitPriceVal) ? formatCurrency(item.unit_price || item.unitPriceVal) : '-'

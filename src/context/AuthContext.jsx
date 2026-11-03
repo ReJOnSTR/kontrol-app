@@ -44,6 +44,23 @@ export function AuthProvider({ children }) {
             document.documentElement.setAttribute('data-theme', prefs.theme);
             window.dispatchEvent(new CustomEvent('aractakip_theme_changed', { detail: prefs.theme }));
         }
+        if (prefs.ui_scale) {
+            const scale = Number(prefs.ui_scale);
+            if (!isNaN(scale) && scale >= 75 && scale <= 130) {
+                localStorage.setItem('aractakip_ui_scale', String(scale));
+                const isPrint = typeof window !== 'undefined' && (
+                    window.location.hash.includes('print') || 
+                    window.location.pathname.includes('print') ||
+                    window.location.pathname.includes('work-report')
+                );
+                if (!isPrint) {
+                    document.documentElement.style.zoom = String(scale / 100);
+                } else {
+                    document.documentElement.style.zoom = '1';
+                }
+                window.dispatchEvent(new CustomEvent('aractakip_scale_changed', { detail: scale }));
+            }
+        }
         if (prefs.lock) {
             localStorage.setItem('aractakip_lock_settings', JSON.stringify(prefs.lock));
             window.dispatchEvent(new CustomEvent('aractakip_lock_settings_changed', { detail: prefs.lock }));
