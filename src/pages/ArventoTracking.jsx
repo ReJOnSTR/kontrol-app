@@ -11,7 +11,8 @@ import {
     Search, MapPin, Navigation, RefreshCw, 
     Calendar, List, CheckCircle2, XCircle, Info, Car, Loader2, Clock,
     Globe, Map, Maximize2, Plus, Minus, Gauge, Power, Compass, Minimize2, User,
-    Activity, FileText, Layers, ExternalLink, Play, Pause, Square, ChevronDown, X
+    Activity, FileText, Layers, ExternalLink, Play, Pause, Square, ChevronDown, X,
+    ChevronLeft, Copy, Wrench, Crosshair, ArrowLeft
 } from 'lucide-react'
 
 function formatArventoDate(dateStr) {
@@ -307,21 +308,18 @@ export default function ArventoTracking() {
 
     // Effective Arvento Credentials from Company Integrations or Settings
     const effectiveArventoCreds = useMemo(() => {
-        // Company settings is the primary source of truth
         const companyArvento = companySettings?.integrations?.arvento
-        if (companySettings) {
-            if (!companyArvento || companyArvento.enabled !== true) {
-                return null
-            }
-        }
-        
-        const arventoConfig = companyArvento || settings?.arvento
-        if (arventoConfig?.enabled === true && arventoConfig?.username && arventoConfig?.pin1) {
+        const arventoConfig = (companyArvento?.enabled === true && companyArvento?.username)
+            ? companyArvento
+            : (settings?.arvento?.enabled === true && settings?.arvento?.username ? settings.arvento : companyArvento || settings?.arvento)
+
+        if (arventoConfig?.username && arventoConfig?.pin1) {
             return {
                 username: arventoConfig.username,
                 pin1: arventoConfig.pin1,
                 pin2: arventoConfig.pin2 || '',
-                enabled: true
+                language: arventoConfig.language || 'tr',
+                enabled: arventoConfig.enabled !== false
             }
         }
         return null
@@ -401,12 +399,54 @@ export default function ArventoTracking() {
     const [roadDistance, setRoadDistance] = useState(null)
     const [roadDuration, setRoadDuration] = useState(null)
     const [isRoutingLoading, setIsRoutingLoading] = useState(false)
+    const [copiedCoord, setCopiedCoord] = useState(false)
 
     const searchMarkerRef = useRef(null)
     const searchDistanceLineRef = useRef(null)
     const prevSearchedLocationKey = useRef('')
     const prevSelectedVehicleKey = useRef('')
     const hasInitialDistanceFit = useRef(false)
+    const searchTimeoutRef = useRef(null)
+    const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const searchInputRef = useRef(null)
+    const searchContainerRef = useRef(null)
+
+    // Click outside & Escape key handler to collapse search bar
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+                if (!mapSearchQuery.trim() && !searchedLocation) {
+                    setIsSearchOpen(false)
+                }
+            }
+        }
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isSearchOpen) {
+                setSearchedLocation(null)
+                if (!mapSearchQuery.trim()) {
+                    setIsSearchOpen(false)
+                } else {
+                    setMapSearchQuery('')
+                    setMapSearchResults([])
+                }
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        document.addEventListener('keydown', handleKeyDown)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+            document.removeEventListener('keydown', handleKeyDown)
+        }
+    }, [isSearchOpen, mapSearchQuery, searchedLocation])
+
+    useEffect(() => {
+        if (isSearchOpen && searchInputRef.current) {
+            const timer = setTimeout(() => {
+                searchInputRef.current?.focus()
+            }, 60)
+            return () => clearTimeout(timer)
+        }
+    }, [isSearchOpen])
 
     const mapRef = useRef(null)
     const [mapContainerElement, setMapContainerElement] = useState(null)
@@ -681,16 +721,18 @@ export default function ArventoTracking() {
                 bottom: 0;
                 width: 360px;
                 height: 100%;
-                background: rgba(15, 15, 18, 0.92);
+                background: rgba(15, 15, 18, 0.94);
                 backdrop-filter: blur(24px) saturate(1.4);
                 -webkit-backdrop-filter: blur(24px) saturate(1.4);
-                border-right: 1px solid rgba(255,255,255,0.06);
-                box-shadow: 8px 0 40px rgba(0, 0, 0, 0.45), 0 0 80px rgba(0,0,0,0.15);
+                border-right: 1px solid rgba(255,255,255,0.08);
+                box-shadow: 8px 0 40px rgba(0, 0, 0, 0.45);
                 z-index: 1000;
                 display: flex;
                 flex-direction: column;
-                transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-                animation: drawerSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+                padding: 14px 16px;
+                box-sizing: border-box;
+                transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+                animation: drawerSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
             }
 
             .vehicle-detail-drawer.collapsed {
@@ -703,9 +745,9 @@ export default function ArventoTracking() {
             }
 
             [data-theme="light"] .vehicle-detail-drawer {
-                background: rgba(255, 255, 255, 0.95);
-                box-shadow: 8px 0 40px rgba(0, 0, 0, 0.08);
+                background: rgba(255, 255, 255, 0.96);
                 border-right: 1px solid rgba(0,0,0,0.08);
+                box-shadow: 8px 0 30px rgba(0, 0, 0, 0.08);
             }
 
             /* Drawer Close Tab (outside drawer) */
@@ -742,341 +784,358 @@ export default function ArventoTracking() {
                 background: rgba(245, 245, 250, 0.98);
             }
 
-            .drawer-header {
-                padding: 20px 20px 16px;
-                border-bottom: 1px solid rgba(255,255,255,0.04);
+            /* Executive Vehicle Detail Panel Styles (Matches App Design System) */
+            .tracking-detail-panel {
                 display: flex;
                 flex-direction: column;
-                gap: 14px;
-                position: relative;
-            }
-            [data-theme="light"] .drawer-header {
-                border-bottom-color: rgba(0,0,0,0.06);
-            }
-
-            /* Status indicator bar at top */
-            .drawer-status-bar {
-                height: 3px;
-                border-radius: 0 0 4px 4px;
-                position: absolute;
-                top: 0;
-                left: 20px;
-                right: 20px;
-                opacity: 0.8;
-            }
-            .drawer-status-bar.status-active {
-                background: linear-gradient(90deg, #22c55e, #4ade80);
-                box-shadow: 0 2px 12px rgba(34, 197, 94, 0.35);
-            }
-            .drawer-status-bar.status-stopped {
-                background: linear-gradient(90deg, #ef4444, #f87171);
-                box-shadow: 0 2px 12px rgba(239, 68, 68, 0.3);
-            }
-            .drawer-status-bar.status-offline {
-                background: linear-gradient(90deg, #6b7280, #9ca3af);
-                box-shadow: 0 2px 12px rgba(107, 114, 128, 0.2);
+                height: 100%;
+                min-height: 0;
+                overflow: hidden;
+                animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             }
 
-            .vehicle-detail-header {
+            .tracking-detail-nav {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-bottom: 12px;
+                gap: 8px;
+                flex-shrink: 0;
+            }
+
+            .tracking-nav-actions {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .tracking-nav-btn {
+                width: 30px;
+                height: 30px;
+                border-radius: var(--radius-sm, 8px);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                color: var(--text-secondary);
+                cursor: pointer;
+                transition: all var(--transition-fast, 0.15s ease);
+            }
+            .tracking-nav-btn:hover {
+                background: var(--bg-tertiary);
+                border-color: var(--accent-primary);
+                color: var(--accent-primary);
+            }
+            .tracking-nav-btn.close:hover {
+                background: var(--danger-bg);
+                border-color: var(--danger);
+                color: var(--danger);
+            }
+
+            /* Identity / Header Card */
+            .tracking-identity-card {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md, 12px);
+                padding: 12px 14px;
+                margin-bottom: 12px;
+                box-shadow: var(--shadow-sm);
+                flex-shrink: 0;
+            }
+
+            .tracking-identity-row {
                 display: flex;
                 align-items: center;
                 gap: 12px;
-                position: relative;
             }
 
-            .vehicle-detail-avatar {
+            .tracking-avatar-box {
                 width: 44px;
                 height: 44px;
-                border-radius: 12px;
+                border-radius: var(--radius-md, 12px);
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 flex-shrink: 0;
-                transition: all 0.3s ease;
+                transition: all 0.2s ease;
+            }
+            .tracking-avatar-box.state-moving {
+                background: var(--success-bg);
+                border: 1px solid rgba(34, 197, 94, 0.3);
+                color: var(--success);
+            }
+            .tracking-avatar-box.state-idle {
+                background: var(--warning-bg);
+                border: 1px solid rgba(245, 158, 11, 0.3);
+                color: var(--warning);
+            }
+            .tracking-avatar-box.state-stopped {
+                background: var(--danger-bg);
+                border: 1px solid rgba(239, 68, 68, 0.3);
+                color: var(--danger);
+            }
+            .tracking-avatar-box.state-offline {
+                background: rgba(113, 113, 122, 0.12);
+                border: 1px solid rgba(113, 113, 122, 0.25);
+                color: var(--text-muted);
             }
 
-            .vehicle-detail-avatar.state-active {
-                background: rgba(34, 197, 94, 0.12);
-                color: #22c55e;
-                box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
-                border: 1px solid rgba(34, 197, 94, 0.15);
-            }
-
-            .vehicle-detail-avatar.state-stopped {
-                background: rgba(239, 68, 68, 0.12);
-                color: #ef4444;
-                box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
-                border: 1px solid rgba(239, 68, 68, 0.12);
-            }
-
-            .vehicle-detail-avatar.state-offline {
-                background: rgba(107, 114, 128, 0.12);
-                color: #6b7280;
-                box-shadow: 0 0 20px rgba(107, 114, 128, 0.1);
-                border: 1px solid rgba(107, 114, 128, 0.08);
-            }
-
-            .vehicle-detail-meta {
+            .tracking-identity-meta {
                 display: flex;
                 flex-direction: column;
                 min-width: 0;
                 flex: 1;
+                gap: 2px;
             }
 
-            /* Vehicle Detail Plate Style */
-            .vehicle-detail-plate {
-                font-family: 'Inter', -apple-system, sans-serif;
+            .tracking-plate-badge-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+            }
+
+            .tracking-plate-text {
+                font-size: 16px;
                 font-weight: 800;
-                font-size: 15px;
                 color: var(--text-primary);
-                letter-spacing: 0.5px;
-                margin-bottom: 3px;
-                text-transform: uppercase;
+                letter-spacing: -0.2px;
+                line-height: 1.2;
             }
 
-            .vehicle-detail-brand {
-                margin: 0;
-                font-size: 12px;
+            .tracking-vehicle-brand {
+                font-size: 12.5px;
                 font-weight: 600;
-                color: var(--text-primary);
+                color: var(--text-secondary);
+                white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                white-space: nowrap;
             }
 
-            .vehicle-detail-driver {
-                margin: 0;
+            .tracking-vehicle-driver {
                 font-size: 11px;
-                color: var(--text-secondary);
-                margin-top: 1px;
+                color: var(--text-muted);
                 display: flex;
                 align-items: center;
                 gap: 4px;
+                margin-top: 1px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
-            /* Drawer Content & Scrolling */
-            .drawer-content-scroll {
+            /* Scroll Body */
+            .tracking-scroll-body {
                 overflow-y: auto;
                 flex: 1;
-                padding: 16px 20px;
                 display: flex;
                 flex-direction: column;
-                gap: 18px;
+                gap: 12px;
+                padding-right: 2px;
+                min-height: 0;
             }
-            .drawer-content-scroll::-webkit-scrollbar {
+            .tracking-scroll-body::-webkit-scrollbar {
                 width: 4px;
             }
-            .drawer-content-scroll::-webkit-scrollbar-track {
+            .tracking-scroll-body::-webkit-scrollbar-track {
                 background: transparent;
             }
-            .drawer-content-scroll::-webkit-scrollbar-thumb {
-                background: rgba(255,255,255,0.08);
-                border-radius: 2px;
-            }
-            [data-theme="light"] .drawer-content-scroll::-webkit-scrollbar-thumb {
-                background: rgba(0,0,0,0.1);
+            .tracking-scroll-body::-webkit-scrollbar-thumb {
+                background: var(--border-light);
+                border-radius: 4px;
             }
 
-            .drawer-section-title {
+            .tracking-section {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .tracking-section-title {
+                font-size: 10.5px;
+                font-weight: 700;
+                color: var(--text-muted);
+                letter-spacing: 0.4px;
+                text-transform: uppercase;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+
+            /* Telemetry 2x2 Grid (Native StatCard Pattern) */
+            .tracking-stats-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .tracking-stat-card {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-sm, 10px);
+                padding: 10px 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                transition: border-color var(--transition-fast, 0.15s ease);
+            }
+            .tracking-stat-card:hover {
+                border-color: var(--border-light);
+            }
+
+            .tracking-stat-label {
                 font-size: 10px;
                 font-weight: 700;
                 color: var(--text-muted);
+                letter-spacing: 0.3px;
                 text-transform: uppercase;
-                letter-spacing: 1.2px;
-                margin-bottom: 10px;
                 display: flex;
                 align-items: center;
-                gap: 6px;
+                gap: 5px;
             }
 
-            .vehicle-detail-metrics-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
-            }
-
-            .metric-card-modern {
-                background: rgba(255,255,255,0.03);
-                padding: 10px 12px;
-                border-radius: 10px;
-                border: 1px solid rgba(255,255,255,0.05);
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                min-width: 0;
-            }
-            [data-theme="light"] .metric-card-modern {
-                background: rgba(0,0,0,0.02);
-                border-color: rgba(0,0,0,0.06);
-            }
-
-            .metric-card-modern:hover {
-                background: rgba(255,255,255,0.06);
-                border-color: rgba(255,255,255,0.1);
-                transform: translateY(-1px);
-            }
-            [data-theme="light"] .metric-card-modern:hover {
-                background: rgba(0,0,0,0.04);
-                border-color: rgba(0,0,0,0.1);
-            }
-
-            .metric-icon-wrapper {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 30px;
-                height: 30px;
-                border-radius: 8px;
-                flex-shrink: 0;
-            }
-
-            .metric-icon-wrapper.speed {
-                background: rgba(20, 184, 166, 0.1);
-                color: #14b8a6;
-            }
-
-            .metric-icon-wrapper.direction {
-                background: rgba(99, 102, 241, 0.1);
-                color: #6366f1;
-            }
-
-            .metric-icon-wrapper.time {
-                background: rgba(245, 158, 11, 0.1);
-                color: #f59e0b;
-            }
-
-            .metric-icon-wrapper.ignition {
-                border-radius: 8px;
-            }
-
-            .metric-icon-wrapper.location {
-                background: rgba(59, 130, 246, 0.1);
-                color: #3b82f6;
-            }
-
-            .metric-content {
-                display: flex;
-                flex-direction: column;
-                min-width: 0;
-            }
-
-            .metric-label {
-                font-size: 9px;
+            .tracking-stat-value {
+                font-size: 15px;
                 font-weight: 700;
-                color: var(--text-muted);
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-
-            .metric-value {
-                font-size: 13px;
-                font-weight: 800;
                 color: var(--text-primary);
+                line-height: 1.2;
+                white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                white-space: nowrap;
             }
-
-            /* Detailed Database Rows */
-            .detail-row {
-                display: flex;
-                flex-direction: column;
-                gap: 0;
-                background: rgba(255,255,255,0.02);
-                border-radius: 10px;
-                border: 1px solid rgba(255,255,255,0.05);
-                overflow: hidden;
-            }
-            [data-theme="light"] .detail-row {
-                background: rgba(0,0,0,0.015);
-                border-color: rgba(0,0,0,0.06);
-            }
-
-            .detail-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 9px 14px;
-                font-size: 12px;
-            }
-
-            .detail-item:not(:last-child) {
-                border-bottom: 1px solid rgba(255,255,255,0.04);
-            }
-            [data-theme="light"] .detail-item:not(:last-child) {
-                border-bottom-color: rgba(0,0,0,0.05);
-            }
-
-            .detail-label {
-                color: var(--text-secondary);
-                font-weight: 500;
-                font-size: 12px;
-            }
-
-            .detail-value {
-                color: var(--text-primary);
-                font-weight: 700;
-                font-size: 12px;
-            }
-
-            /* Notes Callout */
-            .notes-callout {
-                background: rgba(245, 158, 11, 0.06);
-                border-left: 3px solid rgba(245, 158, 11, 0.5);
-                padding: 10px 12px;
-                border-radius: 2px 8px 8px 2px;
+            .tracking-stat-unit {
                 font-size: 11px;
-                line-height: 1.5;
-                color: var(--text-secondary);
-            }
-            [data-theme="light"] .notes-callout {
-                background: rgba(245, 158, 11, 0.04);
+                font-weight: 500;
+                color: var(--text-muted);
+                margin-left: 2px;
             }
 
-            /* Action Buttons Footer */
-            .drawer-footer {
-                padding: 14px 20px;
-                border-top: 1px solid rgba(255,255,255,0.04);
-                background: rgba(10, 10, 12, 0.6);
+            /* General Tracking Card (for location and specs) */
+            .tracking-card {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-sm, 10px);
+                padding: 10px 12px;
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
             }
-            [data-theme="light"] .drawer-footer {
-                background: rgba(250, 250, 255, 0.8);
-                border-top-color: rgba(0,0,0,0.06);
+
+            .tracking-address-text {
+                font-size: 12px;
+                line-height: 1.45;
+                color: var(--text-primary);
+                word-break: break-word;
             }
 
-            /* Sidebar Back Button */
-            .sidebar-back-btn {
-                display: inline-flex;
+            .tracking-coord-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                padding-top: 6px;
+                border-top: 1px solid var(--border-light);
+            }
+
+            .tracking-coord-info {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .tracking-coord-val {
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                font-size: 11.5px;
+                font-weight: 600;
+                color: var(--text-secondary);
+            }
+
+            .tracking-coord-date {
+                font-size: 10px;
+                color: var(--text-muted);
+                margin-top: 1px;
+            }
+
+            .tracking-coord-btns {
+                display: flex;
                 align-items: center;
                 gap: 6px;
-                background: rgba(255, 255, 255, 0.04);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                color: var(--accent-primary);
+            }
+
+            .tracking-action-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                background: var(--bg-tertiary);
+                border: 1px solid var(--border-color);
+                color: var(--text-secondary);
+                font-size: 11px;
+                font-weight: 600;
+                padding: 4px 8px;
+                border-radius: var(--radius-xs, 6px);
                 cursor: pointer;
-                font-weight: 700;
-                font-size: 12px;
-                padding: 6px 12px;
-                border-radius: 8px;
-                width: fit-content;
-                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                transition: all var(--transition-fast, 0.15s ease);
+                line-height: 1;
             }
-            .sidebar-back-btn:hover {
-                background: var(--accent-subtle);
+            .tracking-action-pill:hover {
+                background: var(--bg-elevated);
                 border-color: var(--accent-primary);
+                color: var(--text-primary);
             }
-            [data-theme="light"] .sidebar-back-btn {
-                background: rgba(0, 0, 0, 0.03);
-                border-color: rgba(0, 0, 0, 0.08);
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+
+            /* Triplet Grid for system counts */
+            .tracking-triplet-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
             }
-            [data-theme="light"] .sidebar-back-btn:hover {
-                background: var(--accent-subtle);
-                border-color: var(--accent-primary);
+            .tracking-triplet-item {
+                background: var(--bg-tertiary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-xs, 6px);
+                padding: 6px 4px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .triplet-val {
+                font-size: 14px;
+                font-weight: 800;
+                color: var(--accent-primary);
+            }
+            .triplet-lbl {
+                font-size: 9.5px;
+                color: var(--text-muted);
+                margin-top: 1px;
+            }
+
+            .tracking-open-profile-btn {
+                width: 100%;
+                justify-content: center;
+                font-size: 11.5px !important;
+                height: 32px;
+                margin-top: 2px;
+            }
+
+            .tracking-notes-box {
+                background: var(--warning-bg);
+                border-left: 3px solid var(--warning);
+                padding: 8px 10px;
+                border-radius: 0 var(--radius-xs, 6px) var(--radius-xs, 6px) 0;
+                font-size: 11.5px;
+                color: var(--text-secondary);
+                line-height: 1.4;
+            }
+
+            /* Sticky Footer */
+            .tracking-detail-footer {
+                display: flex;
+                gap: 8px;
+                padding-top: 10px;
+                border-top: 1px solid var(--border-color);
+                margin-top: auto;
+                flex-shrink: 0;
             }
 
             .sidebar-vehicle-details-container {
@@ -1085,30 +1144,6 @@ export default function ArventoTracking() {
                 height: 100%;
                 min-height: 0;
                 overflow: hidden;
-                animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            }
-
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(4px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-
-            /* Overrides to make details fit flush inside the padded sidebar */
-            .tracking-sidebar .drawer-header {
-                padding: 10px 0 14px 0 !important;
-                border-bottom: 1px solid var(--border-color);
-            }
-            .tracking-sidebar .drawer-content-scroll {
-                padding: 12px 0 !important;
-            }
-            .tracking-sidebar .drawer-footer {
-                padding: 12px 0 0 0 !important;
-                background: transparent !important;
-                border-top: 1px solid var(--border-color);
-            }
-            .tracking-sidebar .vehicle-detail-metrics-grid {
-                grid-template-columns: 1fr !important;
-                gap: 8px !important;
             }
 
             /* Sleek scrollbar for vehicle details content */
@@ -1304,13 +1339,18 @@ export default function ArventoTracking() {
                 border-color: rgba(0,0,0,0.06);
             }
             .map-picker-option.selected {
-                background: rgba(99, 102, 241, 0.08);
+                background: var(--accent-subtle, rgba(13, 148, 136, 0.16)) !important;
             }
             .map-picker-option.selected::after {
-                border-color: var(--primary);
+                border-color: var(--accent-primary, #0d9488) !important;
+                border-width: 2px !important;
             }
             [data-theme="light"] .map-picker-option.selected {
-                background: rgba(99, 102, 241, 0.04);
+                background: var(--accent-subtle, rgba(15, 118, 110, 0.12)) !important;
+            }
+            [data-theme="light"] .map-picker-option.selected::after {
+                border-color: var(--accent-primary, #0f766e) !important;
+                border-width: 2px !important;
             }
             .map-picker-option-icon {
                 width: 100%;
@@ -1558,27 +1598,113 @@ export default function ArventoTracking() {
         }
     }, [leafletLoaded, isMapTab, mapContainerElement])
 
-    // Map Search functions
-    const handleMapSearch = async (e) => {
-        if (e) e.preventDefault()
-        if (!mapSearchQuery.trim()) return
+    // Map Search functions (Google Places API New + Geocoding with OSM fallback)
+    const executeMapSearch = async (queryText) => {
+        const trimmed = (queryText || '').trim()
+        if (!trimmed) {
+            setMapSearchResults([])
+            setMapSearchLoading(false)
+            return
+        }
 
         setMapSearchLoading(true)
 
         // Set up location bias parameters (coordinates of selected vehicle or map center) to prioritize nearest places
+        let centerLat = null
+        let centerLng = null
         let biasParams = ''
         if (selectedVehicle && selectedVehicle.lat && selectedVehicle.lng && selectedVehicle.lat !== 0 && selectedVehicle.lng !== 0) {
-            biasParams = `&lat=${selectedVehicle.lat}&lon=${selectedVehicle.lng}`
+            centerLat = selectedVehicle.lat
+            centerLng = selectedVehicle.lng
+            biasParams = `&lat=${centerLat}&lon=${centerLng}`
         } else if (mapInstance.current) {
             const center = mapInstance.current.getCenter()
             if (center) {
-                biasParams = `&lat=${center.lat}&lon=${center.lng}`
+                centerLat = center.lat
+                centerLng = center.lng
+                biasParams = `&lat=${centerLat}&lon=${centerLng}`
             }
         }
 
+        const googleApiKey = settings?.googleMapsApiKey || settings?.arvento?.googleMapsApiKey || 'AIzaSyApAxTd3kbvCnldGHTSTXocNcQb6Mc0DJ4'
+
+        // 1. First priority: Google Places API (New) - High-precision text search for business, POI, streets, numbers
+        if (googleApiKey) {
+            try {
+                const body = {
+                    textQuery: trimmed,
+                    languageCode: 'tr'
+                }
+                if (centerLat && centerLng) {
+                    body.locationBias = {
+                        circle: {
+                            center: { latitude: centerLat, longitude: centerLng },
+                            radius: 50000.0 // 50 km bias around active vehicle or view
+                        }
+                    }
+                }
+
+                const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Goog-Api-Key': googleApiKey,
+                        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.types'
+                    },
+                    body: JSON.stringify(body)
+                })
+
+                if (res.ok) {
+                    const data = await res.json()
+                    if (data.places && data.places.length > 0) {
+                        const mappedResults = data.places.map(p => ({
+                            lat: p.location.latitude,
+                            lon: p.location.longitude,
+                            name: p.displayName?.text || p.formattedAddress?.split(',')[0] || 'Konum',
+                            display_name: p.formattedAddress || p.displayName?.text,
+                            source: 'google'
+                        }))
+                        setMapSearchResults(mappedResults)
+                        setMapSearchLoading(false)
+                        return
+                    }
+                } else {
+                    const errText = await res.text()
+                    console.warn(`Google Places search HTTP ${res.status}:`, errText)
+                }
+            } catch (err) {
+                console.warn('Google Places (New) search failed, trying Geocoding fallback:', err)
+            }
+
+            // 2. Google Geocoding API fallback
+            try {
+                const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(trimmed)}&language=tr&key=${googleApiKey}`)
+                if (geoRes.ok) {
+                    const geoData = await geoRes.json()
+                    if (geoData.status === 'OK' && geoData.results && geoData.results.length > 0) {
+                        const mappedResults = geoData.results.map(r => ({
+                            lat: r.geometry.location.lat,
+                            lon: r.geometry.location.lng,
+                            name: r.address_components?.[0]?.long_name || r.formatted_address.split(',')[0],
+                            display_name: r.formatted_address,
+                            source: 'google'
+                        }))
+                        setMapSearchResults(mappedResults)
+                        setMapSearchLoading(false)
+                        return
+                    }
+                } else {
+                    const errText = await geoRes.text()
+                    console.warn(`Google Geocoding HTTP ${geoRes.status}:`, errText)
+                }
+            } catch (err) {
+                console.warn('Google Geocoding failed, trying Photon fallback:', err)
+            }
+        }
+
+        // 3. Fallback to Photon (Komoot)
         try {
-            // 1. Try Photon (Komoot) Elasticsearch geocoder for fuzzy business/POI search
-            const photonRes = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(mapSearchQuery)}&limit=10&lang=tr${biasParams}`)
+            const photonRes = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=10&lang=tr${biasParams}`)
             if (photonRes.ok) {
                 const data = await photonRes.json()
                 if (data.features && data.features.length > 0) {
@@ -1599,7 +1725,8 @@ export default function ArventoTracking() {
                             lat: feat.geometry.coordinates[1],
                             lon: feat.geometry.coordinates[0],
                             name: props.name || addressParts[0] || 'Bilinmeyen Konum',
-                            display_name: displayName
+                            display_name: displayName,
+                            source: 'osm'
                         }
                     })
                     setMapSearchResults(mappedResults)
@@ -1611,20 +1738,21 @@ export default function ArventoTracking() {
             console.warn('Photon POI search failed, falling back to Nominatim:', err)
         }
 
-        // 2. Fallback to Nominatim if Photon fails or returns empty
+        // 4. Fallback to Nominatim
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mapSearchQuery)}&limit=10&addressdetails=1${biasParams}`, {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmed)}&limit=10&addressdetails=1${biasParams}`, {
                 headers: {
                     'User-Agent': 'AracTakipApp/1.0.0',
                     'Accept-Language': 'tr'
                 }
             })
             const data = await response.json()
-            const mappedResults = data.map(item => ({
+            const mappedResults = (data || []).map(item => ({
                 lat: parseFloat(item.lat),
                 lon: parseFloat(item.lon),
                 name: item.name || item.display_name.split(',')[0],
-                display_name: item.display_name
+                display_name: item.display_name,
+                source: 'osm'
             }))
             setMapSearchResults(mappedResults)
         } catch (error) {
@@ -1634,12 +1762,21 @@ export default function ArventoTracking() {
         }
     }
 
+    const handleMapSearch = (e) => {
+        if (e) e.preventDefault()
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current)
+        }
+        executeMapSearch(mapSearchQuery)
+    }
+
     const handleSelectSearchResult = (result) => {
         const lat = parseFloat(result.lat)
         const lng = parseFloat(result.lon)
-        const name = result.display_name
+        const name = result.display_name || ''
+        const title = result.name || result.display_name?.split(',')[0] || 'Hedef Konum'
         
-        setSearchedLocation({ lat, lng, name })
+        setSearchedLocation({ lat, lng, name, title })
         setMapSearchResults([])
         setMapSearchQuery(result.display_name)
         
@@ -1763,15 +1900,15 @@ export default function ArventoTracking() {
                     </div>
                 ) : roadDistanceStr ? (
                     <div className="road-distance-badge" style={{ 
-                        background: 'rgba(59, 130, 246, 0.08)', 
-                        border: '1px solid rgba(59, 130, 246, 0.15)', 
+                        background: 'var(--bg-tertiary)', 
+                        border: '1px solid var(--border-color)', 
                         padding: '8px 12px', 
                         borderRadius: '8px',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '2px'
                     }}>
-                        <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
                             Karayolu: {roadDistanceStr}
                         </span>
                         {roadDurationStr && (
@@ -1821,26 +1958,68 @@ export default function ArventoTracking() {
         }
 
         if (searchedLocation) {
-            // Create target pin SVG icon
+            const rawName = searchedLocation.name || ''
+            const parts = rawName.split(',').map(s => s.trim()).filter(Boolean)
+            const mainTitle = (searchedLocation.title || parts[0] || 'Hedef Konum').trim()
+            
+            // Subtitle: secondary address information (e.g. district, city)
+            let subtitle = ''
+            if (parts.length > 1) {
+                if (parts[0] === mainTitle) {
+                    subtitle = parts.slice(1, 3).join(', ')
+                } else {
+                    subtitle = parts.slice(0, 2).join(', ')
+                }
+            } else if (rawName && rawName !== mainTitle) {
+                subtitle = rawName
+            }
+
+            const escapedName = rawName.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            const escapedTitle = mainTitle.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            const escapedSubtitle = subtitle.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+            // Create modern unified destination marker
             const targetIcon = L.divIcon({
                 className: 'custom-search-marker',
                 html: `
-                    <div class="search-pin-wrapper">
-                        <div class="search-pin-circle">
-                            <div class="search-pin-inner"></div>
+                    <div class="dest-marker-container">
+                        <!-- Ground shadow & GPS contact pin dot -->
+                        <div class="dest-ground-anchor">
+                            <div class="dest-ground-shadow"></div>
+                            <div class="dest-ground-dot"></div>
                         </div>
-                        <div class="search-pin-shadow"></div>
+
+                        <!-- Sleek pointer beak -->
+                        <div class="dest-pointer"></div>
+
+                        <!-- Floating destination capsule badge -->
+                        <div class="dest-badge" title="${escapedName}">
+                            <div class="dest-badge-icon">
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                                    <line x1="4" y1="22" x2="4" y2="15"/>
+                                </svg>
+                            </div>
+                            <div class="dest-badge-text">
+                                <span class="dest-badge-title">${escapedTitle}</span>
+                                ${escapedSubtitle ? `<span class="dest-badge-subtitle">${escapedSubtitle}</span>` : ''}
+                            </div>
+                        </div>
                     </div>
                 `,
                 iconSize: [0, 0],
                 iconAnchor: [0, 0]
             })
 
-            // Add marker
-            const marker = L.marker([searchedLocation.lat, searchedLocation.lng], { icon: targetIcon })
+            // Add marker with high zIndexOffset so it is ALWAYS on top of vehicles
+            const marker = L.marker([searchedLocation.lat, searchedLocation.lng], { 
+                icon: targetIcon,
+                zIndexOffset: 30000 
+            })
                 .addTo(map)
                 .bindPopup(`<strong>Hedef:</strong><br/>${searchedLocation.name}`, {
-                    className: 'custom-search-popup'
+                    className: 'custom-search-popup',
+                    offset: [0, -56]
                 })
             
             searchMarkerRef.current = marker
@@ -1864,9 +2043,9 @@ export default function ArventoTracking() {
                 if (roadRoute && roadRoute.length > 0) {
                     // Draw road routing path
                     line = L.polyline(roadRoute, {
-                        color: '#3b82f6', // Premium bright blue
-                        weight: 5,
-                        opacity: 0.85,
+                        color: '#f4f4f5',
+                        weight: 4.5,
+                        opacity: 0.9,
                         lineJoin: 'round'
                     }).addTo(map)
                 } else {
@@ -1923,277 +2102,253 @@ export default function ArventoTracking() {
             lv.plate.replace(/[\s-]+/g, '').toUpperCase() === v.plate.replace(/[\s-]+/g, '').toUpperCase()
         )
         
-        const statusClass = v.isOffline ? 'status-offline' : v.ignition ? 'status-active' : 'status-stopped'
-        
+        const isMoving = !v.isOffline && v.ignition && (v.speed > 0)
+        const isIdle = !v.isOffline && v.ignition && (!v.speed || v.speed === 0)
+        const isStopped = !v.isOffline && !v.ignition
+        const isOffline = v.isOffline
+
         return (
-            <>
-                {/* Header with Status Bar */}
-                <div className="drawer-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
-                    <div className={`drawer-status-bar ${statusClass}`}></div>
-                    
+            <div className="tracking-detail-panel">
+                {/* 1. Header with back button and quick actions */}
+                <div className="tracking-detail-nav">
                     {onBack && (
-                        <button 
-                            onClick={onBack}
-                            className="sidebar-back-btn"
-                            style={{ marginBottom: '12px', width: '100%', justifyContent: 'center' }}
-                        >
-                            ← Listeye Geri Dön
+                        <button onClick={onBack} className="detail-back-btn" title="Araç Listesine Dön">
+                            <span className="detail-back-icon">
+                                <ArrowLeft size={13} />
+                            </span>
+                            <span className="detail-back-text">Araç Listesi</span>
                         </button>
                     )}
-                    
-                    <div className="vehicle-detail-header" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
-                        <div className={`vehicle-detail-avatar ${
-                            v.isOffline ? 'state-offline' : v.ignition ? 'state-active' : 'state-stopped'
-                        }`} style={{ 
-                            width: '38px', 
-                            height: '38px', 
-                            borderRadius: '8px', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            background: v.isOffline ? '#374151' : v.ignition ? '#065f46' : '#991b1b',
-                            color: '#fff',
-                            flexShrink: 0
-                        }}>
-                            <Car size={20} />
-                        </div>
-                        <div className="vehicle-detail-meta" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                            <div className="vehicle-detail-plate" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {v.plate}
-                            </div>
-                            <h3 className="vehicle-detail-brand" style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {v.brand} {v.model}
-                            </h3>
-                            <p className="vehicle-detail-driver" style={{ fontSize: '10.5px', color: 'var(--text-muted)', margin: '2px 0 0 0', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                <User size={10} /> {v.driver || 'Bilinmiyor'}
-                            </p>
-                        </div>
-                    </div>
-                    
-                    {/* Status Badges */}
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        <span className={`badge ${
-                            v.isOffline ? 'badge-secondary' : v.ignition ? 'badge-success' : 'badge-danger'
-                        }`} style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                            {v.isOffline ? 'Çevrimdışı' : v.ignition ? 'Kontak Açık' : 'Kontak Kapalı'}
-                        </span>
-                        {v.speed > 0 && (
-                            <span className="badge badge-info" style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                                {v.speed} km/h
-                            </span>
+                    <div className="tracking-nav-actions">
+                        <button 
+                            className="tracking-nav-btn"
+                            onClick={() => mapInstance.current && mapInstance.current.setView([v.lat, v.lng], 16)}
+                            title="Haritada Odaklan"
+                        >
+                            <Crosshair size={14} />
+                        </button>
+                        <button 
+                            className="tracking-nav-btn"
+                            onClick={() => {
+                                setSelectedHistoryVehicles([v.plate])
+                                setActiveTab('history')
+                                setSelectedVehicle(null)
+                            }}
+                            title="Geçmiş Rota"
+                        >
+                            <Clock size={14} />
+                        </button>
+                        {onBack && (
+                            <button 
+                                className="tracking-nav-btn close" 
+                                onClick={onBack} 
+                                title="Kapat"
+                            >
+                                <X size={14} />
+                            </button>
                         )}
                     </div>
                 </div>
 
-                {/* Scrollable Content */}
-                <div className="drawer-content-scroll" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px', padding: '12px 0' }}>
-                    {/* Live Telemetry Section */}
-                    <div>
-                        <div className="drawer-section-title" style={{ fontSize: '10px', fontWeight: 850, color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Activity size={10} /> CANLI TELEMETRİ
+                {/* 2. Identity Card */}
+                <div className="tracking-identity-card">
+                    <div className="tracking-identity-row">
+                        <div className={`tracking-avatar-box ${
+                            isOffline ? 'state-offline' : isMoving ? 'state-moving' : isIdle ? 'state-idle' : 'state-stopped'
+                        }`}>
+                            <Car size={22} />
                         </div>
-                        <div className="vehicle-detail-metrics-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div className="tracking-identity-meta">
+                            <div className="tracking-plate-badge-row">
+                                <span className="tracking-plate-text">{v.plate}</span>
+                                <span className={`badge ${
+                                    isOffline ? 'badge-secondary' : isMoving ? 'badge-success' : isIdle ? 'badge-warning' : 'badge-danger'
+                                }`}>
+                                    <span className="status-dot"></span>
+                                    {isOffline ? 'Çevrimdışı' : isMoving ? 'Hareket Halinde' : isIdle ? 'Rölantide' : 'Kontak Kapalı'}
+                                </span>
+                            </div>
+                            <div className="tracking-vehicle-brand">
+                                {v.brand || currentLocalVeh?.brand || 'Araç'} {v.model || currentLocalVeh?.model || ''}
+                            </div>
+                            <div className="tracking-vehicle-driver">
+                                <User size={11} className="driver-icon" />
+                                <span>{v.driver || currentLocalVeh?.driver || 'Sürücü Atanmamış'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Scrollable Body */}
+                <div className="tracking-scroll-body">
+                    {/* Live Telemetry Section (2x2 Grid) */}
+                    <div className="tracking-section">
+                        <div className="tracking-section-title">
+                            <Activity size={12} /> CANLI DURUM
+                        </div>
+                        <div className="tracking-stats-grid">
                             {/* Hız */}
-                            <div className="metric-card-modern">
-                                <div className="metric-icon-wrapper speed">
-                                    <Gauge size={14} />
+                            <div className="tracking-stat-card">
+                                <div className="tracking-stat-label">
+                                    <Gauge size={11} /> HIZ
                                 </div>
-                                <div className="metric-content">
-                                    <span className="metric-label">Hız</span>
-                                    <span className="metric-value">{v.speed} km/h</span>
+                                <div className="tracking-stat-value">
+                                    {v.speed || 0} <span className="tracking-stat-unit">km/s</span>
                                 </div>
                             </div>
 
                             {/* Kontak */}
-                            <div className="metric-card-modern">
-                                <div className="metric-icon-wrapper ignition" style={{ 
-                                    color: v.isOffline ? 'var(--text-muted)' : v.ignition ? '#22c55e' : '#ef4444',
-                                    background: v.isOffline ? 'rgba(107, 114, 128, 0.08)' : v.ignition ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)'
-                                }}>
-                                    <Power size={14} />
+                            <div className="tracking-stat-card">
+                                <div className="tracking-stat-label">
+                                    <Power size={11} /> KONTAK
                                 </div>
-                                <div className="metric-content">
-                                    <span className="metric-label">Kontak</span>
-                                    <span className="metric-value" style={{ 
-                                        color: v.isOffline ? 'var(--text-muted)' : v.ignition ? '#22c55e' : '#ef4444'
-                                    }}>
-                                        {v.isOffline ? 'Çevrimdışı' : v.ignition ? 'Açık' : 'Kapalı'}
-                                    </span>
+                                <div className={`tracking-stat-value ${v.ignition ? 'text-success' : 'text-danger'}`}>
+                                    {isOffline ? 'Bilinmiyor' : v.ignition ? 'Açık' : 'Kapalı'}
                                 </div>
                             </div>
 
-                            {/* Son Sinyal - full width */}
-                            <div className="metric-card-modern" style={{ gridColumn: '1 / -1' }}>
-                                <div className="metric-icon-wrapper time">
-                                    <Clock size={14} />
+                            {/* Kilometre */}
+                            <div className="tracking-stat-card">
+                                <div className="tracking-stat-label">
+                                    <Car size={11} /> KİLOMETRE
                                 </div>
-                                <div className="metric-content">
-                                    <span className="metric-label">Son Sinyal</span>
-                                    <span className="metric-value">
-                                        {v.gpsDate || '--'}
-                                    </span>
+                                <div className="tracking-stat-value">
+                                    {currentLocalVeh?.km != null ? currentLocalVeh.km.toLocaleString('tr-TR') : '—'}
+                                    {currentLocalVeh?.km != null && <span className="tracking-stat-unit">km</span>}
+                                </div>
+                            </div>
+
+                            {/* Son Sinyal */}
+                            <div className="tracking-stat-card">
+                                <div className="tracking-stat-label">
+                                    <Clock size={11} /> SON SİNYAL
+                                </div>
+                                <div className="tracking-stat-value" title={v.gpsDate || ''}>
+                                    {v.gpsDate ? v.gpsDate.split(' ')[1] || v.gpsDate : '—'}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* GPS Coordinates Section */}
+                    {/* GPS Coordinates & Address Section */}
                     {v.lat && v.lng ? (
-                        <div>
-                            <div className="drawer-section-title" style={{ fontSize: '10px', fontWeight: 850, color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <MapPin size={10} /> GPS KOORDİNATLARI
+                        <div className="tracking-section">
+                            <div className="tracking-section-title">
+                                <MapPin size={12} /> GÜNCEL KONUM
                             </div>
-                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                <span className="coord-badge"
-                                    onClick={() => {
-                                        navigator.clipboard?.writeText(`${v.lat.toFixed(6)}, ${v.lng.toFixed(6)}`)
-                                    }}
-                                    title="Koordinatları kopyala"
-                                >
-                                    <MapPin size={10} />
-                                    {v.lat.toFixed(6)}, {v.lng.toFixed(6)}
-                                </span>
-                                <span className="coord-badge"
-                                    onClick={() => {
-                                        if (v.gpsDate) {
-                                            navigator.clipboard?.writeText(v.gpsDate)
-                                        }
-                                    }}
-                                    title="Zamanı kopyala"
-                                >
-                                    <Clock size={10} />
-                                    {v.gpsDate || '--'}
-                                </span>
-                                <span className="coord-badge-gmaps"
-                                    onClick={() => {
-                                        window.electronAPI.openExternal(`https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}`)
-                                    }}
-                                    title="Google Haritalar'da Aç"
-                                >
-                                    <ExternalLink size={10} /> Google Haritalar
-                                </span>
+                            <div className="tracking-card">
+                                {(v.address || v.location) && (
+                                    <div className="tracking-address-text">
+                                        {v.address || v.location}
+                                    </div>
+                                )}
+                                <div className="tracking-coord-row">
+                                    <div className="tracking-coord-info">
+                                        <span className="tracking-coord-val">{v.lat.toFixed(5)}, {v.lng.toFixed(5)}</span>
+                                        {v.gpsDate && <span className="tracking-coord-date">{v.gpsDate}</span>}
+                                    </div>
+                                    <div className="tracking-coord-btns">
+                                        <button 
+                                            className="tracking-action-pill"
+                                            onClick={() => {
+                                                navigator.clipboard?.writeText(`${v.lat.toFixed(6)}, ${v.lng.toFixed(6)}`)
+                                                setCopiedCoord(true)
+                                                setTimeout(() => setCopiedCoord(false), 1800)
+                                            }}
+                                            title="Koordinatları Kopyala"
+                                        >
+                                            {copiedCoord ? <CheckCircle2 size={12} className="text-success" /> : <Copy size={12} />}
+                                            <span>{copiedCoord ? 'Kopyalandı' : 'Kopyala'}</span>
+                                        </button>
+                                        <button 
+                                            className="tracking-action-pill"
+                                            onClick={() => {
+                                                const url = `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}`
+                                                if (window.electronAPI?.openExternal) {
+                                                    window.electronAPI.openExternal(url)
+                                                } else {
+                                                    window.open(url, '_blank')
+                                                }
+                                            }}
+                                            title="Google Haritalar'da Aç"
+                                        >
+                                            <ExternalLink size={12} />
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ) : null}
 
-                    {/* Database Details Section */}
-                    <div>
-                        <div className="drawer-section-title" style={{ fontSize: '10px', fontWeight: 850, color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Car size={10} /> ARAÇ BİLGİLERİ
-                        </div>
-                        <div className="detail-row">
-                            <div className="detail-item">
-                                <span className="detail-label">Kilometre</span>
-                                <span className="detail-value">
-                                    {currentLocalVeh?.km !== undefined && currentLocalVeh?.km !== null 
-                                        ? `${currentLocalVeh.km.toLocaleString('tr-TR')} km` 
-                                        : '0 km'}
-                                </span>
+                    {/* Local Vehicle System Details */}
+                    {currentLocalVeh && (
+                        <div className="tracking-section">
+                            <div className="tracking-section-title">
+                                <FileText size={12} /> SİSTEM KAYITLARI
                             </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Model Yılı</span>
-                                <span className="detail-value">{currentLocalVeh?.year || '—'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Renk</span>
-                                <span className="detail-value">{currentLocalVeh?.color || '—'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Araç Tipi</span>
-                                <span className="detail-value">
-                                    {currentLocalVeh?.type === 'truck' ? 'Kamyon' : 
-                                     currentLocalVeh?.type === 'car' ? 'Binek Araç' : 
-                                     currentLocalVeh?.type === 'van' ? 'Minibüs/Panelvan' : 
-                                     currentLocalVeh?.type || '—'}
-                                </span>
+                            <div className="tracking-card">
+                                <div className="tracking-triplet-grid">
+                                    <div className="tracking-triplet-item">
+                                        <span className="triplet-val">{currentLocalVeh.inspections_count || 0}</span>
+                                        <span className="triplet-lbl">Muayene</span>
+                                    </div>
+                                    <div className="tracking-triplet-item">
+                                        <span className="triplet-val">{currentLocalVeh.maintenances_count || 0}</span>
+                                        <span className="triplet-lbl">Periyodik</span>
+                                    </div>
+                                    <div className="tracking-triplet-item">
+                                        <span className="triplet-val">{currentLocalVeh.services_count || 0}</span>
+                                        <span className="triplet-lbl">Servis</span>
+                                    </div>
+                                </div>
+                                <button 
+                                    className="btn btn-secondary btn-sm tracking-open-profile-btn"
+                                    onClick={() => navigate(`/vehicles/${currentLocalVeh.id}`)}
+                                >
+                                    <ExternalLink size={13} />
+                                    <span>Araç Profilini Aç</span>
+                                </button>
                             </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Record Statistics Section */}
-                    <div>
-                        <div className="drawer-section-title" style={{ fontSize: '10px', fontWeight: 850, color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Activity size={10} /> KAYIT İSTATİSTİKLERİ
-                        </div>
-                        <div className="detail-row">
-                            <div className="detail-item">
-                                <span className="detail-label">Muayeneler</span>
-                                <span className="detail-value" style={{ color: currentLocalVeh?.inspections_count > 0 ? 'var(--primary)' : 'var(--text-muted)' }}>
-                                    {currentLocalVeh?.inspections_count || 0}
-                                </span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Bakımlar</span>
-                                <span className="detail-value" style={{ color: currentLocalVeh?.maintenances_count > 0 ? 'var(--primary)' : 'var(--text-muted)' }}>
-                                    {currentLocalVeh?.maintenances_count || 0}
-                                </span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Servis Kayıtları</span>
-                                <span className="detail-value" style={{ color: currentLocalVeh?.services_count > 0 ? 'var(--primary)' : 'var(--text-muted)' }}>
-                                    {currentLocalVeh?.services_count || 0}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Notes Section */}
+                    {/* Sürücü Notu */}
                     {currentLocalVeh?.notes && (
-                        <div>
-                            <div className="drawer-section-title" style={{ fontSize: '10px', fontWeight: 850, color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <FileText size={10} /> NOT
+                        <div className="tracking-section">
+                            <div className="tracking-section-title">
+                                <Info size={12} /> NOT
                             </div>
-                            <div className="notes-callout">
+                            <div className="tracking-notes-box">
                                 {currentLocalVeh.notes}
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Action Footer */}
-                <div className="drawer-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: 'auto' }}>
-                    <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                        <button 
-                            className="btn btn-primary"
-                            style={{
-                                flex: 1,
-                                height: '38px',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                borderRadius: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '6px'
-                            }}
-                            onClick={() => mapInstance.current && mapInstance.current.setView([v.lat, v.lng], 16)}
-                        >
-                            <MapPin size={13} /> Odaklan
-                        </button>
-                        <button 
-                            className="btn btn-secondary"
-                            style={{
-                                flex: 1,
-                                height: '38px',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                borderRadius: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '6px'
-                            }}
-                            onClick={() => {
-                                setSelectedHistoryVehicles([v.plate])
-                                setActiveTab('history')
-                                setSelectedVehicle(null)
-                            }}
-                        >
-                            <Clock size={13} /> Geçmiş
-                        </button>
-                    </div>
+                {/* 4. Action Footer */}
+                <div className="tracking-detail-footer">
+                    <button 
+                        className="btn btn-primary btn-sm"
+                        style={{ flex: 1, height: '36px' }}
+                        onClick={() => mapInstance.current && mapInstance.current.setView([v.lat, v.lng], 16)}
+                    >
+                        <Crosshair size={14} />
+                        <span>Haritada Odaklan</span>
+                    </button>
+                    <button 
+                        className="btn btn-secondary btn-sm"
+                        style={{ flex: 1, height: '36px' }}
+                        onClick={() => {
+                            setSelectedHistoryVehicles([v.plate])
+                            setActiveTab('history')
+                            setSelectedVehicle(null)
+                        }}
+                    >
+                        <Clock size={14} />
+                        <span>Geçmiş Rota</span>
+                    </button>
                 </div>
-            </>
+            </div>
         )
     }
 
@@ -2213,8 +2368,8 @@ export default function ArventoTracking() {
                 return
             }
             
-            const startDate = new Date(`${areaStartDate}T00:00:00`).toISOString()
-            const endDate = new Date(`${areaEndDate}T23:59:59`).toISOString()
+            const startDate = areaStartDate.includes('-') ? `${areaStartDate.replace(/-/g, '')}000000` : areaStartDate
+            const endDate = areaEndDate.includes('-') ? `${areaEndDate.replace(/-/g, '')}235959` : areaEndDate
             
             const results = []
             let completedCount = 0
@@ -2530,9 +2685,9 @@ export default function ArventoTracking() {
         
         setHistoryLoading(true)
         try {
-            // Get start and end of selected date range
-            const startDate = new Date(`${historyStartDate}T00:00:00`).toISOString()
-            const endDate = new Date(`${historyEndDate}T23:59:59`).toISOString()
+            // Get start and end of selected date range (exact 14-digit local Arvento format YYYYMMDDHHmmss)
+            const startDate = historyStartDate.includes('-') ? `${historyStartDate.replace(/-/g, '')}000000` : historyStartDate
+            const endDate = historyEndDate.includes('-') ? `${historyEndDate.replace(/-/g, '')}235959` : historyEndDate
             
             const result = await window.electronAPI.arventoGetHistory({
                 plates: selectedHistoryVehicles,
@@ -2541,7 +2696,7 @@ export default function ArventoTracking() {
             }, effectiveArventoCreds)
             
             if (result.success && Array.isArray(result.data)) {
-                // Group points by plate (case and space insensitive)
+                // Group points by plate (case, space & Turkish char insensitive)
                 const grouped = {}
                 selectedHistoryVehicles.forEach(p => {
                     grouped[p] = []
@@ -2551,10 +2706,11 @@ export default function ArventoTracking() {
                 let maxT = -Infinity
                 
                 result.data.forEach(pt => {
-                    // Find matching selected vehicle in a case, hyphen & whitespace insensitive way
-                    const matchedPlate = selectedHistoryVehicles.find(p => 
-                        p.replace(/[\s-]+/g, '').toUpperCase() === (pt.plate || '').replace(/[\s-]+/g, '').toUpperCase()
-                    )
+                    const cleanPt = (pt.plate || '').replace(/[\s-]+/g, '').toUpperCase().replace(/İ/g, 'I')
+                    const matchedPlate = selectedHistoryVehicles.find(p => {
+                        const cleanP = p.replace(/[\s-]+/g, '').toUpperCase().replace(/İ/g, 'I')
+                        return cleanP === cleanPt
+                    })
                     
                     if (matchedPlate) {
                         grouped[matchedPlate].push({
@@ -2851,6 +3007,7 @@ export default function ArventoTracking() {
                         ignition: ignitionVal,
                         heading: parseInt(item.Course || item.Heading || item.heading || 0),
                         gpsDate: item.LocalDateTime ? formatArventoDate(item.LocalDateTime) : (item.GPSDate || item.date || 'Belirtilmedi'),
+                        address: item.Address || item.address || item.Location || item.location || '',
                         isOffline: isOffline
                     }
                 })
@@ -3682,44 +3839,97 @@ export default function ArventoTracking() {
                         }`}>
                             <div ref={mapRefCallback} style={{ width: '100%', height: '100%', zIndex: 1 }} onClick={() => showMapPicker && setShowMapPicker(false)}></div>
 
-                            {/* Floating Map Search Container (Nominatim Geocoder) */}
-                            <div className="map-search-container" onClick={e => e.stopPropagation()}>
+                            {/* Floating Map Search Container (Expandable Button & Bar) */}
+                            <div 
+                                ref={searchContainerRef}
+                                className="map-search-container" 
+                                onClick={e => e.stopPropagation()}
+                            >
                                 <form onSubmit={handleMapSearch} className="map-search-box-form">
-                                    <div className="map-search-input-wrapper">
-                                        <Search size={16} className="search-icon" />
-                                        <input
-                                            type="text"
-                                            placeholder="Adres veya konum ara..."
-                                            value={mapSearchQuery}
-                                            onChange={(e) => {
-                                                setMapSearchQuery(e.target.value);
-                                                if (!e.target.value.trim()) {
-                                                    setMapSearchResults([]);
+                                    <div 
+                                        className={`map-search-input-wrapper ${isSearchOpen ? 'expanded' : 'collapsed'}`}
+                                        onClick={() => {
+                                            if (!isSearchOpen) {
+                                                setIsSearchOpen(true);
+                                            }
+                                        }}
+                                    >
+                                        <button 
+                                            type={isSearchOpen ? 'submit' : 'button'}
+                                            className="search-submit-icon-btn" 
+                                            title={isSearchOpen ? 'Ara' : 'Konum Ara'}
+                                            onClick={(e) => {
+                                                if (!isSearchOpen) {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setIsSearchOpen(true);
                                                 }
                                             }}
-                                            className="map-search-input"
-                                        />
-                                        {mapSearchLoading ? (
-                                            <Loader2 size={16} className="spin search-loading-icon" />
-                                        ) : mapSearchQuery ? (
-                                            <button 
-                                                type="button" 
-                                                className="search-clear-btn" 
-                                                onClick={() => {
-                                                    setMapSearchQuery('');
-                                                    setMapSearchResults([]);
-                                                    setSearchedLocation(null);
-                                                }}
-                                            >
-                                                <X size={14} />
-                                            </button>
-                                        ) : null}
+                                        >
+                                            <Search size={16} />
+                                        </button>
+
+                                        {isSearchOpen && (
+                                            <>
+                                                <input
+                                                    ref={searchInputRef}
+                                                    type="text"
+                                                    placeholder="Konum veya adres ara..."
+                                                    value={mapSearchQuery}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setMapSearchQuery(val);
+                                                        if (searchTimeoutRef.current) {
+                                                            clearTimeout(searchTimeoutRef.current);
+                                                        }
+                                                        if (!val.trim()) {
+                                                            setMapSearchResults([]);
+                                                        } else if (val.trim().length >= 3) {
+                                                            searchTimeoutRef.current = setTimeout(() => {
+                                                                executeMapSearch(val);
+                                                            }, 450);
+                                                        }
+                                                    }}
+                                                    className="map-search-input"
+                                                />
+                                                <div className="search-actions-right">
+                                                    {mapSearchLoading ? (
+                                                        <Loader2 size={15} className="spin search-loading-icon" />
+                                                    ) : (
+                                                        <button 
+                                                            type="button" 
+                                                            className="map-search-clear-btn" 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (searchTimeoutRef.current) {
+                                                                    clearTimeout(searchTimeoutRef.current);
+                                                                }
+                                                                setMapSearchQuery('');
+                                                                setMapSearchResults([]);
+                                                                setSearchedLocation(null);
+                                                                if (!mapSearchQuery) {
+                                                                    setIsSearchOpen(false);
+                                                                } else {
+                                                                    searchInputRef.current?.focus();
+                                                                }
+                                                            }}
+                                                            title={mapSearchQuery ? 'Temizle ve Hedefi Kaldır' : 'Kapat'}
+                                                        >
+                                                            <X size={13} strokeWidth={2.2} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </form>
 
                                 {/* Search Results Dropdown */}
-                                {mapSearchResults.length > 0 && (
+                                {isSearchOpen && mapSearchResults.length > 0 && (
                                     <div className="map-search-results">
+                                        <div className="map-search-results-header">
+                                            <span>Sonuçlar ({mapSearchResults.length})</span>
+                                        </div>
                                         {mapSearchResults.map((result, idx) => (
                                             <div 
                                                 key={idx} 
@@ -3740,15 +3950,19 @@ export default function ArventoTracking() {
                                 {searchedLocation && (
                                     <div className="map-search-distance-card">
                                         <div className="distance-card-header">
-                                            <span className="distance-card-title">Hedef Konum</span>
+                                            <div className="distance-card-title-group">
+                                                <MapPin size={13} className="distance-card-pin" />
+                                                <span className="distance-card-title">Hedef Konum</span>
+                                            </div>
                                             <button 
-                                                className="distance-card-clear" 
+                                                className="distance-card-close-btn" 
                                                 onClick={() => {
                                                     setSearchedLocation(null);
-                                                                setMapSearchQuery('');
+                                                    setMapSearchQuery('');
                                                 }}
+                                                title="Hedefi Kaldır"
                                             >
-                                                Temizle
+                                                <X size={13} strokeWidth={2.2} />
                                             </button>
                                         </div>
                                         <div className="distance-card-address">{searchedLocation.name}</div>
@@ -4025,27 +4239,7 @@ export default function ArventoTracking() {
                                         </svg>
                                     </div>
 
-                                    {/* Clear selected vehicle (Completely close details) */}
-                                    <button 
-                                        className="panel-close-btn"
-                                        onClick={() => setSelectedVehicle(null)}
-                                        title="Seçimi Temizle"
-                                        style={{
-                                            position: 'absolute',
-                                            top: '12px',
-                                            right: '12px',
-                                            zIndex: 1010,
-                                            background: 'transparent',
-                                            border: 'none',
-                                            color: 'var(--text-muted)',
-                                            cursor: 'pointer',
-                                            fontSize: '16px'
-                                        }}
-                                    >
-                                        ✕
-                                    </button>
-
-                                    {renderVehicleDetailsContent(selectedVehicle)}
+                                    {renderVehicleDetailsContent(selectedVehicle, () => setSelectedVehicle(null))}
                                 </div>
                             )}
 

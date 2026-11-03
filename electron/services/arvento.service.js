@@ -14,36 +14,32 @@ const settingsPath = (app && typeof app.getPath === 'function')
     : path.join(process.env.DATA_DIR || path.join(__dirname, '../../data'), 'settings.json')
 
 async function getArventoCredentials(companyId = null) {
-    if (!companyId) {
-        return { username: '', pin1: '', pin2: '', language: 'tr', enabled: false };
-    }
     const cid = parseInt(companyId, 10);
-    if (!cid) {
-        return { username: '', pin1: '', pin2: '', language: 'tr', enabled: false };
-    }
-    // 1. Check company_settings from PostgreSQL / DB first
-    try {
-        const prisma = getPrismaClient()
-        if (prisma && prisma.company_settings) {
-            const row = await prisma.company_settings.findUnique({
-                where: { company_id: cid }
-            })
-            if (row && row.settings_json) {
-                const parsed = typeof row.settings_json === 'string' ? JSON.parse(row.settings_json) : row.settings_json
-                const arvento = parsed?.integrations?.arvento
-                if (arvento && (arvento.username || arvento.pin1)) {
-                    return {
-                        username: arvento.username || '',
-                        pin1: arvento.pin1 || '',
-                        pin2: arvento.pin2 || '',
-                        language: arvento.language || 'tr',
-                        enabled: !!arvento.enabled
+    // 1. Check company_settings from PostgreSQL / DB first if companyId is provided
+    if (cid) {
+        try {
+            const prisma = getPrismaClient()
+            if (prisma && prisma.company_settings) {
+                const row = await prisma.company_settings.findUnique({
+                    where: { company_id: cid }
+                })
+                if (row && row.settings_json) {
+                    const parsed = typeof row.settings_json === 'string' ? JSON.parse(row.settings_json) : row.settings_json
+                    const arvento = parsed?.integrations?.arvento
+                    if (arvento && (arvento.username || arvento.pin1)) {
+                        return {
+                            username: arvento.username || '',
+                            pin1: arvento.pin1 || '',
+                            pin2: arvento.pin2 || '',
+                            language: arvento.language || 'tr',
+                            enabled: !!arvento.enabled
+                        }
                     }
                 }
             }
+        } catch (dbErr) {
+            // Fallback to disk file if DB fails
         }
-    } catch (dbErr) {
-        // Fallback to disk file if DB fails
     }
 
     // 2. Fallback to settings.json on disk
@@ -293,20 +289,51 @@ async function getArventoVehicleStatus(credentialsOverride = null) {
 
 function parseLocalDateTime(dateStr) {
     if (!dateStr) return new Date()
-    if (dateStr.includes('-') || dateStr.includes(':')) {
-        return new Date(dateStr)
+    const s = String(dateStr).trim()
+    
+    // 1. DD.MM.YYYY HH:mm:ss or DD.MM.YYYY
+    const dmyMatch = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
+    if (dmyMatch) {
+        const dd = parseInt(dmyMatch[1], 10)
+        const mm = parseInt(dmyMatch[2], 10) - 1
+        const yyyy = parseInt(dmyMatch[3], 10)
+        const hh = parseInt(dmyMatch[4] || 0, 10)
+        const min = parseInt(dmyMatch[5] || 0, 10)
+        const ss = parseInt(dmyMatch[6] || 0, 10)
+        return new Date(yyyy, mm, dd, hh, min, ss)
     }
-    if (dateStr.length < 14) return new Date()
-    const yyyy = parseInt(dateStr.substring(0, 4))
-    const mm = parseInt(dateStr.substring(4, 6))
-    const dd = parseInt(dateStr.substring(6, 8))
-    const hh = parseInt(dateStr.substring(8, 10))
-    const min = parseInt(dateStr.substring(10, 12))
-    const ss = parseInt(dateStr.substring(12, 14))
-    return new Date(yyyy, mm - 1, dd, hh, min, ss)
+
+    // 2. DD/MM/YYYY HH:mm:ss
+    const dmySlashMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
+    if (dmySlashMatch) {
+        const dd = parseInt(dmySlashMatch[1], 10)
+        const mm = parseInt(dmySlashMatch[2], 10) - 1
+        const yyyy = parseInt(dmySlashMatch[3], 10)
+        const hh = parseInt(dmySlashMatch[4] || 0, 10)
+        const min = parseInt(dmySlashMatch[5] || 0, 10)
+        const ss = parseInt(dmySlashMatch[6] || 0, 10)
+        return new Date(yyyy, mm, dd, hh, min, ss)
+    }
+
+    // 3. 14-digit YYYYMMDDHHmmss
+    if (/^\d{14}$/.test(s)) {
+        const yyyy = parseInt(s.substring(0, 4), 10)
+        const mm = parseInt(s.substring(4, 6), 10) - 1
+        const dd = parseInt(s.substring(6, 8), 10)
+        const hh = parseInt(s.substring(8, 10), 10)
+        const min = parseInt(s.substring(10, 12), 10)
+        const ss = parseInt(s.substring(12, 14), 10)
+        return new Date(yyyy, mm, dd, hh, min, ss)
+    }
+
+    // 4. ISO or standard YYYY-MM-DD
+    const d = new Date(s)
+    if (!isNaN(d.getTime())) return d
+
+    return new Date()
 }
 
-function formatDateForArvento(val) {
+function formatDateForArvento(val, isEnd = false) {
     if (!val) return ''
     
     // If it's already a Date object
@@ -328,37 +355,36 @@ function formatDateForArvento(val) {
         return str
     }
     
-    // 2. If it's 8 digits (YYYYMMDD), append 000000
+    // 2. If it's 8 digits (YYYYMMDD), append 000000 or 235959
     if (/^\d{8}$/.test(str)) {
-        return str + '000000'
+        return str + (isEnd ? '235959' : '000000')
     }
     
     // 3. Simple date formats: YYYY-MM-DD
     const ymdMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/)
     if (ymdMatch) {
-        return `${ymdMatch[1]}${ymdMatch[2]}${ymdMatch[3]}000000`
+        return `${ymdMatch[1]}${ymdMatch[2]}${ymdMatch[3]}` + (isEnd ? '235959' : '000000')
     }
     
     // 4. Simple date formats: DD.MM.YYYY
     const dmyDotMatch = str.match(/^(\d{2})\.(\d{2})\.(\d{4})$/)
     if (dmyDotMatch) {
-        return `${dmyDotMatch[3]}${dmyDotMatch[2]}${dmyDotMatch[1]}000000`
+        return `${dmyDotMatch[3]}${dmyDotMatch[2]}${dmyDotMatch[1]}` + (isEnd ? '235959' : '000000')
     }
     
     // 5. Simple date formats: DD/MM/YYYY
     const dmySlashMatch = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
     if (dmySlashMatch) {
-        return `${dmySlashMatch[3]}${dmySlashMatch[2]}${dmySlashMatch[1]}000000`
+        return `${dmySlashMatch[3]}${dmySlashMatch[2]}${dmySlashMatch[1]}` + (isEnd ? '235959' : '000000')
     }
     
     // Fallback: parse as date and format
     const d = new Date(str)
     if (isNaN(d.getTime())) {
-        // If parsing failed, remove all non-digits and see if it's 14 digits
         const clean = str.replace(/\D/g, '')
         if (clean.length === 14) return clean
-        if (clean.length === 8) return clean + '000000'
-        return str // return original if we can't do anything
+        if (clean.length === 8) return clean + (isEnd ? '235959' : '000000')
+        return str
     }
     
     const yyyy = d.getFullYear()
@@ -370,31 +396,36 @@ function formatDateForArvento(val) {
     return `${yyyy}${mm}${dd}${hh}${min}${ss}`
 }
 
-async function getArventoHistory(filters) {
+async function getArventoHistory(filters, credentialsOverride = null) {
     try {
         const { plate, plates, startDate, endDate } = filters
+        const credsToUse = credentialsOverride || filters?.credentials || filters?.companyId || null
         log.info('[getArventoHistory] Fetching directly from Arvento GeneralReport API with filters:', filters)
 
-        // 1. Get plate mappings
-        const mappingsRes = await getArventoLicensePlateNodeMappings()
+        // 1. Get plate mappings with credentials
+        const mappingsRes = await getArventoLicensePlateNodeMappings(credsToUse)
         const mappings = mappingsRes.success && Array.isArray(mappingsRes.data) ? mappingsRes.data : []
 
         // 2. Normalize and resolve selected plates to Node IDs
         const targetPlates = (plates || (plate ? [plate] : [])).map(p => p.replace(/[\s-]+/g, '').toUpperCase())
         
         const resolvedVehicles = targetPlates.map(tp => {
+            const cleanTp = tp.replace(/İ/g, 'I')
             const mapping = mappings.find(m => {
-                const normMappingPlate = m['License Plate'] ? m['License Plate'].split(/\s+-/)[0].replace(/[\s-]+/g, '').toUpperCase() : ''
-                return normMappingPlate === tp
+                const rawPlate = m['License Plate'] || m.LicensePlate || m.plate || m.Plate || m.licensePlate || ''
+                const normMappingPlate = rawPlate ? rawPlate.split(/\s+-/)[0].replace(/[\s-]+/g, '').toUpperCase() : ''
+                const cleanNorm = normMappingPlate.replace(/İ/g, 'I')
+                return normMappingPlate === tp || cleanNorm === cleanTp
             })
+            const devNo = mapping ? (mapping['Device No'] || mapping.DeviceNo || mapping.deviceNo || mapping.Node || mapping.node) : null
             return {
                 plateClean: tp,
-                deviceNo: mapping ? mapping['Device No'] : null
+                deviceNo: devNo
             }
         }).filter(r => r.deviceNo !== null)
 
         if (resolvedVehicles.length === 0) {
-            log.info('[getArventoHistory] No matching vehicles mapped to Arvento Device Nos.')
+            log.info('[getArventoHistory] No matching vehicles mapped to Arvento Device Nos. Mappings count:', mappings.length, 'Target plates:', targetPlates)
             return { success: true, data: [] }
         }
 
@@ -403,8 +434,8 @@ async function getArventoHistory(filters) {
             log.info(`[getArventoHistory] Requesting GeneralReport for plate ${veh.plateClean} (Device: ${veh.deviceNo})`)
             const params = {
                 Node: veh.deviceNo,
-                StartDate: formatDateForArvento(startDate),
-                EndDate: formatDateForArvento(endDate),
+                StartDate: formatDateForArvento(startDate, false),
+                EndDate: formatDateForArvento(endDate, true),
                 chkLocation: "1",
                 chkSpeed: "1",
                 chkPause: "1",
@@ -414,20 +445,20 @@ async function getArventoHistory(filters) {
 
             const points = []
             try {
-                const reportResult = await getArventoData('GeneralReport', params, false)
+                const reportResult = await getArventoData('GeneralReport', params, false, credsToUse)
                 if (reportResult.success && Array.isArray(reportResult.data)) {
                     log.info(`[getArventoHistory] Successfully fetched ${reportResult.data.length} records for ${veh.plateClean}`)
                     reportResult.data.forEach(item => {
-                        const latStr = (item.Latitude || item.LatitudeY || item.lat || '0').replace(',', '.')
+                        const latStr = (item.Latitude || item.LatitudeY || item.lat || item.Lat || item.y || item.Y || '0').replace(',', '.')
                         const lat = parseFloat(latStr)
                         
-                        const lngStr = (item.Longitude || item.LongitudeX || item.lng || '0').replace(',', '.')
+                        const lngStr = (item.Longitude || item.LongitudeX || item.lng || item.Lng || item.lon || item.Lon || item.x || item.X || '0').replace(',', '.')
                         const lng = parseFloat(lngStr)
                         
-                        const rawSpeed = item['Speed km/h'] || item.Speed || item.speed || 0
-                        const speed = parseInt(rawSpeed)
+                        const rawSpeed = item['Speed km/h'] || item.Speed || item.speed || item.Hiz || item['Hız'] || 0
+                        const speed = parseInt(rawSpeed, 10) || 0
                         
-                        const heading = parseInt(item.Course || item.Heading || 0)
+                        const heading = parseInt(item.Course || item.Heading || item.heading || item.Yon || item['Yön'] || 0, 10) || 0
                         const ignition = (
                             item.Ignition === true || 
                             item.Ignition === '1' || 
@@ -437,10 +468,10 @@ async function getArventoHistory(filters) {
                             item['Idling Duration'] !== undefined
                         ) ? 1 : 0
                         
-                        const gpsDateStr = item['Date/Time'] || item.LocalDateTime || item.GPSDate || item.Date || item.DateTime
+                        const gpsDateStr = item['Date/Time'] || item['Date_x002F_Time'] || item['Date Time'] || item.LocalDateTime || item.GPSDate || item.Date || item.DateTime || item.Tarih
                         if (lat && lng && gpsDateStr) {
                             const parsedDate = parseLocalDateTime(gpsDateStr)
-                            const gpsDateISO = isNaN(parsedDate.getTime()) ? gpsDateStr : parsedDate.toISOString()
+                            const gpsDateISO = !isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : gpsDateStr
                             
                             points.push({
                                 plate: veh.plateClean,

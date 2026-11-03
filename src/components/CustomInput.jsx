@@ -86,8 +86,8 @@ export default function CustomInput({
         } else if (format === 'phone') {
             let digits = val.replace(/\D/g, '')
 
-            // If user types 05XX... (11 digits), strip the leading 0 so all 10 phone digits fit
-            if (digits.startsWith('0') && digits.length > 1) {
+            // If user types 05XX... (11 digits) or starts with 0, strip the leading 0 so all 10 phone digits fit
+            if (digits.startsWith('0')) {
                 digits = digits.slice(1)
             }
 
@@ -134,7 +134,7 @@ export default function CustomInput({
             return // Skip normal onChange
         }
 
-        if (props.maxLength && typeof val === 'string' && val.length > props.maxLength) {
+        if (props.maxLength && typeof val === 'string' && val.length > props.maxLength && format !== 'phone') {
             val = val.slice(0, props.maxLength)
         }
 
@@ -231,6 +231,9 @@ export default function CustomInput({
     delete inputProps.onKeyDown
     if (isCurrency && inputProps.maxLength && inputProps.maxLength < 22) {
         inputProps.maxLength = 22
+    }
+    if (format === 'phone') {
+        inputProps.maxLength = 15
     }
 
     return (

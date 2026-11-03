@@ -388,7 +388,7 @@ export default function Companies() {
                                 value={formData.phone}
                                 onChange={(value) => setFormData({ ...formData, phone: value })}
                                 format="phone"
-                                maxLength={14}
+                                maxLength={15}
                                 placeholder="(5XX) XXX XX XX"
                             />
                         </div>

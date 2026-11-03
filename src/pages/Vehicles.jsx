@@ -324,21 +324,6 @@ export default function Vehicles() {
         }
     ]
 
-    if (!currentCompany) {
-        return (
-            <div className="empty-state">
-                <div className="empty-state-icon">
-                    <Building2 />
-                </div>
-                <h2 className="empty-state-title">Şirket Seçilmedi</h2>
-                <p className="empty-state-desc">
-                    Araçları görüntülemek için lütfen bir şirket seçin.
-                </p>
-            </div>
-        )
-    }
-
-
     const vehicleFilters = useMemo(() => {
         const tonMap = new Map()
         const metreMap = new Map()
@@ -444,6 +429,20 @@ export default function Vehicles() {
 
         return filters
     }, [vehicles])
+
+    if (!currentCompany) {
+        return (
+            <div className="empty-state">
+                <div className="empty-state-icon">
+                    <Building2 />
+                </div>
+                <h2 className="empty-state-title">Şirket Seçilmedi</h2>
+                <p className="empty-state-desc">
+                    Araçları görüntülemek için lütfen bir şirket seçin.
+                </p>
+            </div>
+        )
+    }
 
     return (
         <div>

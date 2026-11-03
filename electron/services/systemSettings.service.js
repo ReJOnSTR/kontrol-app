@@ -63,6 +63,7 @@ const DEFAULT_COMPANY_SETTINGS = {
 const DEFAULT_USER_PREFERENCES = {
     // Görünüm & Tema
     theme: 'dark',
+    accent_color: 'teal',
     ui_scale: 100,
     // Ekran Kilidi
     lock: {

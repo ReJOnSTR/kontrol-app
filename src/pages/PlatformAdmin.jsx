@@ -2139,9 +2139,9 @@ export default function PlatformAdmin({ section }) {
                                 label="Telefon"
                                 value={newCompanyForm.phone}
                                 onChange={(val) => setNewCompanyForm(prev => ({ ...prev, phone: getVal(val) }))}
-                                placeholder="0212 XXX XX XX"
+                                placeholder="(0XXX) XXX XX XX"
                                 format="phone"
-                                maxLength={14}
+                                maxLength={15}
                             />
                         </div>
 
@@ -2254,9 +2254,9 @@ export default function PlatformAdmin({ section }) {
                                 label="Telefon"
                                 value={editCompanyForm.phone}
                                 onChange={(val) => setEditCompanyForm(prev => ({ ...prev, phone: getVal(val) }))}
-                                placeholder="0212 XXX XX XX"
+                                placeholder="(0XXX) XXX XX XX"
                                 format="phone"
-                                maxLength={14}
+                                maxLength={15}
                             />
                         </div>
 
@@ -2545,9 +2545,9 @@ export default function PlatformAdmin({ section }) {
                                     label="Telefon Numarası"
                                     value={newUserForm.phone}
                                     onChange={(val) => setNewUserForm(prev => ({ ...prev, phone: getVal(val) }))}
-                                    placeholder="05XX XXX XX XX"
+                                    placeholder="(5XX) XXX XX XX"
                                     format="phone"
-                                    maxLength={14}
+                                    maxLength={15}
                                 />
                             )}
                         </div>

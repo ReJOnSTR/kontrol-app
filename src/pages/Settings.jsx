@@ -54,8 +54,63 @@ const UI_SCALE_OPTIONS = [
     { value: 115, label: 'Geniş Mod (%115) — Büyük & Rahat' }
 ]
 
+const ACCENT_OPTIONS = [
+    { 
+        id: 'teal', 
+        label: 'Kuzey Turkuazı', 
+        tag: 'Petrol & Dengeli (Varsayılan)', 
+        desc: 'Gözü yormayan kurumsal derin petrol turkuazı',
+        previewColor: '#0d9488',
+        gradient: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
+    },
+    { 
+        id: 'sage', 
+        alias: 'emerald',
+        label: 'Adaçayı Yeşili', 
+        tag: 'Okaliptüs & Dingin', 
+        desc: 'Fosfor içermeyen, dinlendirici botanik adaçayı tonu',
+        previewColor: '#158062',
+        gradient: 'linear-gradient(135deg, #158062 0%, #0f624b 100%)'
+    },
+    { 
+        id: 'bronze', 
+        alias: 'amber',
+        label: 'Sıcak Bronz', 
+        tag: 'Terracotta & Lüks', 
+        desc: 'Çiğ sarı yerine zengin sıcak deri, bakır ve terracotta tonu',
+        previewColor: '#c25e1a',
+        gradient: 'linear-gradient(135deg, #c25e1a 0%, #9c450f 100%)'
+    },
+    { 
+        id: 'indigo', 
+        alias: 'blue',
+        label: 'Derin İndigo', 
+        tag: 'Gece Mavisi & Asil', 
+        desc: 'Çiğ mavi yerine asil ve kurumsal gece mavisi',
+        previewColor: '#4f46e5',
+        gradient: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)'
+    },
+    { 
+        id: 'plum', 
+        alias: 'violet',
+        label: 'Asil Mürdüm', 
+        tag: 'Gül Ağacı & Seçkin', 
+        desc: 'Cırtlak pembe/mor yerine tok ve seçkin gül kurusu ve mürdüm tonu',
+        previewColor: '#9f2d55',
+        gradient: 'linear-gradient(135deg, #9f2d55 0%, #7e1e40 100%)'
+    },
+    { 
+        id: 'slate', 
+        label: 'Titanyum Grafit', 
+        tag: 'Minimalist & Endüstriyel', 
+        desc: 'Renk karmaşası istemeyen sade ve odaklı endüstriyel antrasit füme',
+        previewColor: '#64748b',
+        gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
+    }
+]
+
 export default function Settings() {
-    const { theme, toggleTheme, uiScale, setUiScale, resetUiScale } = useTheme()
+    const { theme, toggleTheme, accentColor, setAccentColor, uiScale, setUiScale, resetUiScale } = useTheme()
     const { user, userPreferences, updateUserPreferences } = useAuth()
     const { currentCompany, companySettings, updateCompanySettings } = useCompany()
 
@@ -92,7 +147,8 @@ export default function Settings() {
             pin1: '',
             pin2: '',
             language: 'tr',
-            interval: 3
+            interval: 3,
+            googleMapsApiKey: 'AIzaSyApAxTd3kbvCnldGHTSTXocNcQb6Mc0DJ4'
         }
     })
 
@@ -1413,6 +1469,62 @@ export default function Settings() {
                                         </div>
                                     </div>
 
+                                    <div className="settings-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '14px', paddingTop: '18px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', width: '100%' }}>
+                                            <div className="settings-item-content" style={{ minWidth: 0, flex: 1 }}>
+                                                <div className="settings-item-label" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    Tema Vurgu Rengi
+                                                    <span className="scale-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'inline-block' }}></span>
+                                                        {(ACCENT_OPTIONS.find(o => o.id === accentColor || (o.alias && o.alias === accentColor)) || ACCENT_OPTIONS[0]).label}
+                                                    </span>
+                                                </div>
+                                                <div className="settings-item-desc" style={{ marginTop: '2px' }}>
+                                                    Butonlar, aktif sekme göstergeleri ve vurgulanan alanlar için renginizi seçin. Seçiminiz hesabınıza kaydedilir.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="accent-palette-grid">
+                                            {ACCENT_OPTIONS.map((option) => {
+                                                const isSelected = accentColor === option.id || (option.alias && accentColor === option.alias);
+                                                return (
+                                                    <button
+                                                        key={option.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setAccentColor(option.id);
+                                                            if (updateUserPreferences) {
+                                                                updateUserPreferences({ accent_color: option.id }).catch(() => {});
+                                                            }
+                                                        }}
+                                                        className={`accent-palette-card ${isSelected ? 'active' : ''}`}
+                                                        title={option.desc}
+                                                    >
+                                                        <div className="accent-swatch-wrapper">
+                                                            <span 
+                                                                className="accent-swatch-circle" 
+                                                                style={{ 
+                                                                    background: option.gradient,
+                                                                    boxShadow: isSelected ? `0 0 12px ${option.previewColor}99` : 'none'
+                                                                }}
+                                                            />
+                                                            {isSelected && (
+                                                                <div className="accent-check-badge">
+                                                                    <Check size={10} strokeWidth={3} />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="accent-palette-info">
+                                                            <div className="accent-palette-name">{option.label}</div>
+                                                            <div className="accent-palette-tag">{option.tag}</div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
                                     <div className="settings-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px', paddingTop: '18px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', width: '100%' }}>
                                             <div className="settings-item-content" style={{ minWidth: 0, flex: 1 }}>
@@ -2108,6 +2220,21 @@ export default function Settings() {
                                             />
                                         </div>
 
+                                        {/* Row 3: Google Maps API Key */}
+                                        <div>
+                                            <CustomInput
+                                                type="password"
+                                                label="Google Maps API Anahtarı (Harita Arama ve Konumlar)"
+                                                value={settings.arvento?.googleMapsApiKey !== undefined ? settings.arvento.googleMapsApiKey : 'AIzaSyApAxTd3kbvCnldGHTSTXocNcQb6Mc0DJ4'}
+                                                onChange={(val) => handleArventoFieldChange('googleMapsApiKey', val)}
+                                                disabled={!settings.arvento?.enabled}
+                                                placeholder="AIzaSy..."
+                                            />
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                                Harita üzerinde Google Maps kalitesinde dükkan, işletme, cadde, mahalle, sanayi sitesi ve adres araması için kullanılır.
+                                            </div>
+                                        </div>
+
                                         {/* Row 3: Action Buttons & Test Status Message */}
                                         <div style={{ 
                                             display: 'flex', 
@@ -2284,9 +2411,9 @@ export default function Settings() {
                                     label="Telefon Numarası"
                                     value={newUserForm.phone}
                                     onChange={(val) => setNewUserForm(prev => ({ ...prev, phone: val }))}
-                                    placeholder="05XX XXX XX XX"
+                                    placeholder="(5XX) XXX XX XX"
                                     format="phone"
-                                    maxLength={14}
+                                    maxLength={15}
                                 />
                             </div>
                         </div>
@@ -2696,9 +2823,9 @@ export default function Settings() {
                                     label="Telefon Numarası"
                                     value={editingUser.phone || ''}
                                     onChange={val => setEditingUser(prev => ({ ...prev, phone: val }))}
-                                    placeholder="05XX XXX XX XX"
+                                    placeholder="(5XX) XXX XX XX"
                                     format="phone"
-                                    maxLength={14}
+                                    maxLength={15}
                                 />
 
                                 <CustomSelect

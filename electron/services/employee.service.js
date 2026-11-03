@@ -157,16 +157,20 @@ async function addEmployee(data) {
                 past_used_leaves: data.pastUsedLeaves ? parseInt(data.pastUsedLeaves) : 0,
                 birth_date: parseDate(data.birthDate),
                 iban: data.iban || null,
-                off_days: data.offDays || '0',
-                employee_salary_history: {
-                    create: {
-                        amount: salaryNum,
-                        start_date: effectiveDateObj,
-                        type: 'initial'
-                    }
-                }
+                off_days: data.offDays || '0'
             }
         });
+
+        if (salaryNum > 0 || effectiveDateObj) {
+            await prisma.employee_salary_history.create({
+                data: {
+                    employee_id: emp.id,
+                    amount: salaryNum,
+                    start_date: effectiveDateObj,
+                    type: 'initial'
+                }
+            }).catch(err => console.warn('[addEmployee] initial salary history warning:', err.message));
+        }
 
         logAudit({
             companyId: emp.company_id,
@@ -204,7 +208,6 @@ async function updateEmployee(data) {
         const oldSalary = currentEmp?.salary || 0;
         const effectiveDate = parseDate(data.effectiveDate) || new Date();
 
-        let salaryHistoryOp = undefined;
         if (newSalary !== oldSalary) {
             // End the existing latest history
             if (currentEmp?.employee_salary_history && currentEmp.employee_salary_history.length > 0) {
@@ -215,14 +218,15 @@ async function updateEmployee(data) {
                 }).catch(() => {});
             }
 
-            // Create new period
-            salaryHistoryOp = {
-                create: {
+            // Create new period (separate scalar-ID operation compliant with tenant security)
+            await prisma.employee_salary_history.create({
+                data: {
+                    employee_id: empId,
                     amount: newSalary,
                     start_date: effectiveDate,
                     type: 'raise'
                 }
-            };
+            }).catch(err => console.warn('[updateEmployee] raise salary history warning:', err.message));
         }
 
         const updateData = {
@@ -246,10 +250,6 @@ async function updateEmployee(data) {
             off_days: data.offDays !== undefined ? data.offDays : undefined,
             is_archived: data.isArchived !== undefined ? (data.isArchived ? 1 : 0) : undefined,
         };
-
-        if (salaryHistoryOp) {
-            updateData.employee_salary_history = salaryHistoryOp;
-        }
 
         const updated = await prisma.employees.update({
             where: { id: empId },

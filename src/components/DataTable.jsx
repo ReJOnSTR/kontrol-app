@@ -1069,37 +1069,25 @@ export default function DataTable({
                 </div>
             </div>
 
-            {/* Top Selection Summary Card (Sade Üst Kart) */}
+            {/* Bulk Selection Overlay (Floating Bottom Dock) */}
             {selectedRows.size > 0 && (
-                <div className="selection-top-summary-card">
-                    <div className="selection-summary-left">
-                        <div className="selection-pill">
-                            <Check size={14} />
-                            <span><strong>{selectedRows.size}</strong> {selectionSummary?.itemLabel || 'öğe'} seçildi</span>
-                        </div>
-
+                <div className="bulk-selection-overlay">
+                    <span className="bulk-count">
+                        <strong>{selectedRows.size}</strong> {selectionSummary?.itemLabel || 'öğe'} seçili
                         {selectionSummary && selectionSummary.total !== undefined && (
-                            <div className="selection-total-wrap">
-                                <span className="selection-total-label">{selectionSummary.label || 'Seçilen Toplam Tutar'}:</span>
-                                <span className="selection-total-value">{formatCurrency(selectionSummary.total)}</span>
-                                {selectionSummary.showKdv !== false && (
-                                    <span className="selection-total-kdv" title="KDV Dahil (+%20)">
-                                        (+KDV: {formatCurrency(Math.round(selectionSummary.total * 1.20))})
-                                    </span>
-                                )}
-                            </div>
+                            <span style={{ marginLeft: '10px', opacity: 0.9, fontWeight: 700 }}>
+                                ({selectionSummary.label ? `${selectionSummary.label}: ` : ''}{formatCurrency(selectionSummary.total)}
+                                {selectionSummary.showKdv !== false && ` • KDV Dahil: ${formatCurrency(Math.round(selectionSummary.total * 1.20))}`})
+                            </span>
                         )}
-
                         {selectionSummary?.badges && selectionSummary.badges.length > 0 && (
-                            <div className="selection-badges">
-                                {selectionSummary.badges.map((b, idx) => (
-                                    <span key={idx} className="selection-badge">{b}</span>
-                                ))}
-                            </div>
+                            <span style={{ marginLeft: '8px', opacity: 0.85, fontSize: '12px' }}>
+                                • {selectionSummary.badges.join(' • ')}
+                            </span>
                         )}
-                    </div>
-
-                    <div className="selection-summary-right">
+                    </span>
+                    <div className="bulk-divider" />
+                    <div className="bulk-actions">
                         {onBulkDelete && (
                             <button type="button" className="btn-bulk-action danger" onClick={handleBulkDeleteClick}>
                                 <Trash2 size={14} />
@@ -1114,7 +1102,7 @@ export default function DataTable({
                         )}
                         {customBulkActions && customBulkActions(Array.from(selectedRows), clearSelection)}
 
-                        <button type="button" className="btn-selection-clear" onClick={clearSelection} title="Seçimi Kaldır">
+                        <button type="button" className="btn-bulk-action secondary" onClick={clearSelection} title="Seçimi Kaldır">
                             <X size={14} />
                             <span>Vazgeç</span>
                         </button>

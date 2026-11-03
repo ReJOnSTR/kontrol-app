@@ -44,6 +44,11 @@ export function AuthProvider({ children }) {
             document.documentElement.setAttribute('data-theme', prefs.theme);
             window.dispatchEvent(new CustomEvent('aractakip_theme_changed', { detail: prefs.theme }));
         }
+        if (prefs.accent_color) {
+            localStorage.setItem('aractakip_accent_color', prefs.accent_color);
+            document.documentElement.setAttribute('data-accent', prefs.accent_color);
+            window.dispatchEvent(new CustomEvent('aractakip_accent_changed', { detail: prefs.accent_color }));
+        }
         if (prefs.ui_scale) {
             const scale = Number(prefs.ui_scale);
             if (!isNaN(scale) && scale >= 75 && scale <= 130) {

@@ -148,7 +148,8 @@ export default function EmployeeForm({ initialData, onSubmit, onCancel, saving, 
                     format="phone"
                     value={form.phone}
                     onChange={(val) => handleChange('phone', val)}
-                    maxLength={14}
+                    maxLength={15}
+                    placeholder="(5XX) XXX XX XX"
                 />
                 <CustomInput
                     label="E-posta"
