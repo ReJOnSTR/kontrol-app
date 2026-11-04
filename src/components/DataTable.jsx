@@ -1072,39 +1072,26 @@ export default function DataTable({
             {/* Bulk Selection Overlay (Floating Bottom Dock) */}
             {selectedRows.size > 0 && (
                 <div className="bulk-selection-overlay">
-                    <span className="bulk-count">
-                        <strong>{selectedRows.size}</strong> {selectionSummary?.itemLabel || 'öğe'} seçili
-                        {selectionSummary && selectionSummary.total !== undefined && (
-                            <span style={{ marginLeft: '10px', opacity: 0.9, fontWeight: 700 }}>
-                                ({selectionSummary.label ? `${selectionSummary.label}: ` : ''}{formatCurrency(selectionSummary.total)}
-                                {selectionSummary.showKdv !== false && ` • KDV Dahil: ${formatCurrency(Math.round(selectionSummary.total * 1.20))}`})
-                            </span>
-                        )}
-                        {selectionSummary?.badges && selectionSummary.badges.length > 0 && (
-                            <span style={{ marginLeft: '8px', opacity: 0.85, fontSize: '12px' }}>
-                                • {selectionSummary.badges.join(' • ')}
-                            </span>
-                        )}
-                    </span>
+                    <span className="bulk-count">{selectedRows.size} öğe seçili</span>
                     <div className="bulk-divider" />
                     <div className="bulk-actions">
                         {onBulkDelete && (
                             <button type="button" className="btn-bulk-action danger" onClick={handleBulkDeleteClick}>
-                                <Trash2 size={14} />
-                                <span>Sil</span>
+                                <Trash2 size={15} />
+                                Sil
                             </button>
                         )}
                         {onBulkArchive && (
                             <button type="button" className="btn-bulk-action secondary" onClick={() => { onBulkArchive(Array.from(selectedRows)); clearSelection() }}>
-                                {isArchiveView ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-                                <span>{isArchiveView ? 'Geri Al' : 'Arşivle'}</span>
+                                {isArchiveView ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+                                {isArchiveView ? 'Geri Al' : 'Arşivle'}
                             </button>
                         )}
                         {customBulkActions && customBulkActions(Array.from(selectedRows), clearSelection)}
 
                         <button type="button" className="btn-bulk-action secondary" onClick={clearSelection} title="Seçimi Kaldır">
-                            <X size={14} />
-                            <span>Vazgeç</span>
+                            <X size={15} />
+                            Vazgeç
                         </button>
                     </div>
                 </div>
