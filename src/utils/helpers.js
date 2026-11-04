@@ -607,7 +607,6 @@ const fixedHolidaysMD = [
     '05-19', // Atatürk'ü Anma, Gençlik ve Spor Bayramı
     '07-15', // Demokrasi ve Milli Birlik Günü
     '08-30', // Zafer Bayramı
-    '10-28', // Cumhuriyet Bayramı Arifesi (Yarım Gün)
     '10-29'  // Cumhuriyet Bayramı
 ];
 
@@ -647,14 +646,12 @@ function getReligiousHolidays(year) {
     };
 
     if (config.ramadan) {
-        dates.push(addDays(config.ramadan, -1)); // Arife
         dates.push(config.ramadan);              // 1. Gün
         dates.push(addDays(config.ramadan, 1));  // 2. Gün
         dates.push(addDays(config.ramadan, 2));  // 3. Gün
     }
 
     if (config.sacrifice) {
-        dates.push(addDays(config.sacrifice, -1)); // Arife
         dates.push(config.sacrifice);              // 1. Gün
         dates.push(addDays(config.sacrifice, 1));  // 2. Gün
         dates.push(addDays(config.sacrifice, 2));  // 3. Gün
@@ -701,6 +698,11 @@ function parseHolidayDates(publicHolidayDates) {
                 dateStr = d.toISOString().split('T')[0];
             } catch (e) {}
         } else if (typeof d === 'object') {
+            const desc = (d.description || d.name || '').toLowerCase();
+            // Resmi tatil öncesi arife / yarım günleri izin hesabında tatil olarak sayma
+            if (desc.includes('arifesi') || desc.includes('arife') || desc.includes('yarım gün')) {
+                return;
+            }
             status = d.status || 'active';
             const dateVal = d.date;
             if (typeof dateVal === 'string') {
@@ -834,7 +836,6 @@ export function checkDateHolidayStatus(dateStr, offDaysStr = "0", publicHolidayD
             '05-19': 'Atatürk\'ü Anma, Gençlik ve Spor Bayramı',
             '07-15': 'Demokrasi ve Milli Birlik Günü',
             '08-30': 'Zafer Bayramı',
-            '10-28': 'Cumhuriyet Bayramı Arifesi (Yarım Gün)',
             '10-29': 'Cumhuriyet Bayramı'
         };
         if (fixedDescriptions[md]) return { type: 'holiday', label: `Resmi Tatil (${fixedDescriptions[md]})` };
@@ -848,11 +849,9 @@ export function checkDateHolidayStatus(dateStr, offDaysStr = "0", publicHolidayD
                 dt.setDate(dt.getDate() + days);
                 return dt.toISOString().split('T')[0];
             };
-            if (dateOnly === addDays(config.ramadan, -1)) return { type: 'holiday', label: 'Ramazan Bayramı Arifesi (Yarım Gün)' };
             if (dateOnly === config.ramadan) return { type: 'holiday', label: 'Ramazan Bayramı 1. Gün' };
             if (dateOnly === addDays(config.ramadan, 1)) return { type: 'holiday', label: 'Ramazan Bayramı 2. Gün' };
             if (dateOnly === addDays(config.ramadan, 2)) return { type: 'holiday', label: 'Ramazan Bayramı 3. Gün' };
-            if (dateOnly === addDays(config.sacrifice, -1)) return { type: 'holiday', label: 'Kurban Bayramı Arifesi (Yarım Gün)' };
             if (dateOnly === config.sacrifice) return { type: 'holiday', label: 'Kurban Bayramı 1. Gün' };
             if (dateOnly === addDays(config.sacrifice, 1)) return { type: 'holiday', label: 'Kurban Bayramı 2. Gün' };
             if (dateOnly === addDays(config.sacrifice, 2)) return { type: 'holiday', label: 'Kurban Bayramı 3. Gün' };
