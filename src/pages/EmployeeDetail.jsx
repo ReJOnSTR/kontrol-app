@@ -278,6 +278,52 @@ export default function EmployeeDetail() {
     const getHdpl = () => hrSettings.holidayDaysPerLeave !== undefined ? hrSettings.holidayDaysPerLeave : (parseFloat(localStorage.getItem('hr_overtime_holiday_days_per_leave')) || 1)
     const getAdvanceAmount = () => hrSettings.defaultAdvanceAmount !== undefined ? hrSettings.defaultAdvanceAmount : (parseFloat(localStorage.getItem('hr_default_advance_amount')) || 0)
 
+    const getStoredArray = (key, fallback = []) => {
+        try {
+            const item = localStorage.getItem(key)
+            if (!item) return fallback
+            const parsed = JSON.parse(item)
+            return Array.isArray(parsed) ? parsed : fallback
+        } catch {
+            return fallback
+        }
+    }
+
+    const getDefaultMultiplierForType = (type) => {
+        if (type === 'weekday') return getWeekdayMultiplier()
+        if (type === 'sunday') return getSundayMultiplier()
+        if (type === 'holiday') return getHolidayMultiplier()
+        if (type === 'gurbet') return getGurbetMultiplier()
+        return 1.5
+    }
+
+    const getAvailableMultipliers = (type) => {
+        const defaultVal = getDefaultMultiplierForType(type)
+        if (type === 'weekday') {
+            const rawList = Array.isArray(hrSettings.weekdayMultipliers) ? hrSettings.weekdayMultipliers : getStoredArray('hr_overtime_weekday_multipliers', [])
+            return Array.from(new Set([defaultVal, ...rawList])).sort((a, b) => a - b)
+        }
+        if (type === 'sunday') {
+            const rawList = Array.isArray(hrSettings.sundayMultipliers) ? hrSettings.sundayMultipliers : getStoredArray('hr_overtime_sunday_multipliers', [])
+            return Array.from(new Set([defaultVal, ...rawList])).sort((a, b) => a - b)
+        }
+        if (type === 'holiday') {
+            const rawList = Array.isArray(hrSettings.holidayMultipliers) ? hrSettings.holidayMultipliers : getStoredArray('hr_overtime_holiday_multipliers', [])
+            return Array.from(new Set([defaultVal, ...rawList])).sort((a, b) => a - b)
+        }
+        if (type === 'gurbet') {
+            const rawList = Array.isArray(hrSettings.gurbetMultipliers) ? hrSettings.gurbetMultipliers : getStoredArray('hr_overtime_gurbet_multipliers', [])
+            return Array.from(new Set([defaultVal, ...rawList])).sort((a, b) => a - b)
+        }
+        return [defaultVal]
+    }
+
+    const getWhplOptions = () => {
+        const primary = getWhpl()
+        const rawList = Array.isArray(hrSettings.weekdayHoursPerLeaveOptions) ? hrSettings.weekdayHoursPerLeaveOptions : getStoredArray('hr_overtime_weekday_hours_per_leave_options', [])
+        return Array.from(new Set([primary, ...rawList])).sort((a, b) => a - b)
+    }
+
 
     // Request Modal States & Handlers
     const [vehicles, setVehicles] = useState([])
@@ -961,20 +1007,19 @@ export default function EmployeeDetail() {
         return ''
     }
 
-    const calcOvertimeRate = (type, customSalary) => {
+    const calcOvertimeRate = (type, customSalary, customMultiplier) => {
         if (!employee) return 0
         const activeSalary = customSalary !== undefined ? customSalary : getHistoricalFullSalary(employee, selectedMonth)
         if (!activeSalary) return 0
         const dailyRate = activeSalary / 30
         const hourlyRate = dailyRate / 10
-        const weekdayMultiplier = getWeekdayMultiplier()
-        const sundayMultiplier = getSundayMultiplier()
-        const holidayMultiplier = getHolidayMultiplier()
-        const gurbetMultiplier = getGurbetMultiplier()
-        if (type === 'weekday') return Math.round(hourlyRate * weekdayMultiplier * 100) / 100
-        if (type === 'sunday') return Math.round(dailyRate * sundayMultiplier * 100) / 100
-        if (type === 'holiday') return Math.round(dailyRate * holidayMultiplier * 100) / 100
-        if (type === 'gurbet') return Math.round(dailyRate * gurbetMultiplier * 100) / 100
+        const mult = customMultiplier !== undefined && customMultiplier !== null && customMultiplier !== ''
+            ? parseFloat(customMultiplier)
+            : getDefaultMultiplierForType(type)
+        if (type === 'weekday') return Math.round(hourlyRate * mult * 100) / 100
+        if (type === 'sunday') return Math.round(dailyRate * mult * 100) / 100
+        if (type === 'holiday') return Math.round(dailyRate * mult * 100) / 100
+        if (type === 'gurbet') return Math.round(dailyRate * mult * 100) / 100
         return 0
     }
 
@@ -1022,8 +1067,9 @@ export default function EmployeeDetail() {
         if (type === 'salary') {
             setFormData({ paymentType: 'salary', amount: getDefaultAmount('salary'), paymentDate: today(), salaryMonth: selectedMonth, status: 'paid', paymentMethod: 'nakit', notes: '' })
         } else if (type === 'overtime') {
-            const rate = calcOvertimeRate('weekday')
-            setFormData({ overtimeType: 'weekday', date: today(), startTime: '', endTime: '', hours: '', extraHours: '', rate, amount: '', notes: '', useAsLeave: false })
+            const defaultMult = getDefaultMultiplierForType('weekday')
+            const rate = calcOvertimeRate('weekday', undefined, defaultMult)
+            setFormData({ overtimeType: 'weekday', selectedMultiplier: defaultMult, date: today(), startTime: '', endTime: '', hours: '', extraHours: '', rate, amount: '', notes: '', useAsLeave: false })
         } else if (type === 'leave') {
             const defaultType = leaveTypes[0]?.value || 'annual';
             const autoDays = 1;
@@ -1105,8 +1151,10 @@ export default function EmployeeDetail() {
                 strippedNotes = strippedNotes.replace(extraMatch[0], '').trim()
             }
 
+            const defaultMult = getDefaultMultiplierForType(otType)
             setFormData({ 
                 overtimeType: otType, 
+                selectedMultiplier: defaultMult,
                 date: formatDateForInput(item.date), 
                 startTime,
                 endTime,
@@ -1165,17 +1213,29 @@ export default function EmployeeDetail() {
                 };
             });
         } else if (key === 'overtimeType') {
-            const rate = calcOvertimeRate(value)
+            const defaultMult = getDefaultMultiplierForType(value)
+            const rate = calcOvertimeRate(value, undefined, defaultMult)
             setFormData(prev => {
                 const hours = value !== 'weekday' && (!prev.hours || prev.hours === '') ? 1 : (parseFloat(prev.hours) || 0)
                 const extraHours = value === 'weekday' ? '' : (prev.extraHours || '')
                 return { 
                     ...prev, 
                     overtimeType: value, 
+                    selectedMultiplier: defaultMult,
                     rate, 
                     hours, 
                     extraHours,
                     amount: calculateOvertimeAmount(value, rate, hours, extraHours)
+                }
+            })
+        } else if (key === 'selectedMultiplier' && modalType === 'overtime') {
+            setFormData(prev => {
+                const rate = calcOvertimeRate(prev.overtimeType, undefined, value)
+                return {
+                    ...prev,
+                    selectedMultiplier: value,
+                    rate,
+                    amount: calculateOvertimeAmount(prev.overtimeType, rate, prev.hours, prev.extraHours)
                 }
             })
         } else if ((key === 'startTime' || key === 'endTime') && modalType === 'overtime') {
@@ -1203,10 +1263,10 @@ export default function EmployeeDetail() {
                     amount: calculateOvertimeAmount(prev.overtimeType, rate, nextHours, nextExtra)
                 }
             })
-        } else if (modalType === 'leave' && ['startDate', 'endDate', 'days', 'type', 'leaveUnit', 'hours'].includes(key)) {
+        } else if (modalType === 'leave' && ['startDate', 'endDate', 'days', 'type', 'leaveUnit', 'hours', 'selectedWhpl'].includes(key)) {
             setFormData(prev => {
                 let newData = { ...prev, [key]: value }
-                const whpl = getWhpl()
+                const whpl = newData.selectedWhpl || getWhpl()
 
                 if (newData.leaveUnit === 'hourly') {
                     if (key === 'startDate') {
@@ -1214,6 +1274,10 @@ export default function EmployeeDetail() {
                     } else if (key === 'hours') {
                         const hr = parseFloat(value) || 0
                         newData.days = hr / whpl
+                    } else if (key === 'selectedWhpl') {
+                        const hr = parseFloat(newData.hours) || 0
+                        newData.selectedWhpl = value
+                        newData.days = hr > 0 ? hr / value : newData.days
                     } else if (key === 'leaveUnit') {
                         newData.endDate = newData.startDate
                         const hr = parseFloat(newData.hours) || 1
@@ -1279,6 +1343,7 @@ export default function EmployeeDetail() {
                 startDate: employee.start_date ? new Date(employee.start_date).toISOString().split('T')[0] : null,
                 endDate: status === 1 ? (archiveEndDate || null) : null,
                 salary: employee.salary || 0,
+                salaryChanged: false,
                 status: status === 1 ? 'passive' : 'active',
                 notes: employee.notes || null,
                 image: employee.image || null,
@@ -3936,6 +4001,78 @@ export default function EmployeeDetail() {
                                                 })()}
                                             </div>
                                             <CustomInput label="Süre (Saat) *" type="number" value={formData.hours ?? ''} onChange={(val) => updateField('hours', val)} step="0.5" min="0.5" max="24" required />
+                                            {getWhplOptions().length > 1 && (
+                                                <div style={{ gridColumn: 'span 2', width: '100%' }}>
+                                                    <div style={{ 
+                                                        display: 'flex', 
+                                                        alignItems: 'center', 
+                                                        justifyContent: 'space-between', 
+                                                        marginBottom: '6px',
+                                                        lineHeight: 1.2 
+                                                    }}>
+                                                        <label style={{ 
+                                                            fontSize: '12px', 
+                                                            fontWeight: 500, 
+                                                            color: 'var(--text-secondary)',
+                                                            margin: 0
+                                                        }}>
+                                                            İzin Karşılığı (Saat / Gün Oranı)
+                                                        </label>
+                                                        <span style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                                            {formData.selectedWhpl || getWhpl()} Saat = 1 Gün
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ 
+                                                        display: 'grid', 
+                                                        gridTemplateColumns: `repeat(${Math.min(getWhplOptions().length, 3)}, minmax(0, 1fr))`, 
+                                                        gap: '8px' 
+                                                    }}>
+                                                        {getWhplOptions().map(opt => {
+                                                            const activeWhpl = formData.selectedWhpl || getWhpl();
+                                                            const isSelected = activeWhpl === opt;
+                                                            const isDefault = opt === getWhpl();
+                                                            return (
+                                                                <button
+                                                                    key={opt}
+                                                                    type="button"
+                                                                    className="btn"
+                                                                    style={{
+                                                                        height: '42px',
+                                                                        padding: '0 8px',
+                                                                        fontSize: '13px',
+                                                                        fontWeight: 600,
+                                                                        borderRadius: 'var(--radius-sm, 6px)',
+                                                                        borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                        borderWidth: '1.5px',
+                                                                        borderStyle: 'solid',
+                                                                        color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                        background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        gap: '6px',
+                                                                        whiteSpace: 'nowrap',
+                                                                        cursor: 'pointer',
+                                                                        transition: 'all 0.15s ease',
+                                                                        boxShadow: isSelected ? '0 1px 4px rgba(20, 184, 166, 0.15)' : 'none'
+                                                                    }}
+                                                                    onClick={() => updateField('selectedWhpl', opt)}
+                                                                >
+                                                                    <span style={{
+                                                                        width: '7px',
+                                                                        height: '7px',
+                                                                        borderRadius: '50%',
+                                                                        background: isSelected ? 'var(--accent-primary)' : 'transparent',
+                                                                        border: `1.5px solid ${isSelected ? 'var(--accent-primary)' : 'var(--text-muted)'}`,
+                                                                        flexShrink: 0
+                                                                    }} />
+                                                                    <span>{opt} Saat = 1 Gün</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </>
                                     ) : (
                                         <>
@@ -4039,6 +4176,88 @@ export default function EmployeeDetail() {
                                         <CustomSelect label="Mesai Türü *" value={formData.overtimeType || 'weekday'} options={overtimeTypes} onChange={(val) => updateField('overtimeType', val)} />
                                         <CustomInput label="Tarih *" type="date" value={formData.date || ''} onChange={(val) => updateField('date', val)} required />
                                     </div>
+
+                                    {/* Dynamic Multiplier Selector */}
+                                    {(() => {
+                                        const currentType = formData.overtimeType || 'weekday';
+                                        const availableMultipliers = getAvailableMultipliers(currentType);
+                                        const defaultMult = getDefaultMultiplierForType(currentType);
+                                        const activeMultiplier = formData.selectedMultiplier ?? defaultMult;
+
+                                        if (availableMultipliers.length <= 1) return null;
+
+                                        return (
+                                            <div style={{ width: '100%' }}>
+                                                <div style={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'space-between', 
+                                                    marginBottom: '6px',
+                                                    lineHeight: 1.2 
+                                                }}>
+                                                    <label style={{ 
+                                                        fontSize: '12px', 
+                                                        fontWeight: 500, 
+                                                        color: 'var(--text-secondary)',
+                                                        margin: 0
+                                                    }}>
+                                                        Mesai Katsayı Oranı
+                                                    </label>
+                                                    <span style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                                        Seçili: {activeMultiplier}x
+                                                    </span>
+                                                </div>
+                                                <div style={{ 
+                                                    display: 'grid', 
+                                                    gridTemplateColumns: `repeat(${Math.min(availableMultipliers.length, 4)}, minmax(0, 1fr))`, 
+                                                    gap: '8px' 
+                                                }}>
+                                                    {availableMultipliers.map(mult => {
+                                                        const isSelected = activeMultiplier === mult;
+                                                        const isDefault = mult === defaultMult;
+                                                        return (
+                                                            <button
+                                                                key={mult}
+                                                                type="button"
+                                                                className="btn"
+                                                                style={{
+                                                                    height: '42px',
+                                                                    padding: '0 8px',
+                                                                    fontSize: '13px',
+                                                                    fontWeight: 600,
+                                                                    borderRadius: 'var(--radius-sm, 6px)',
+                                                                    borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                    borderWidth: '1.5px',
+                                                                    borderStyle: 'solid',
+                                                                    color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                    background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    gap: '6px',
+                                                                    whiteSpace: 'nowrap',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease',
+                                                                    boxShadow: isSelected ? '0 1px 4px rgba(20, 184, 166, 0.15)' : 'none'
+                                                                }}
+                                                                onClick={() => updateField('selectedMultiplier', mult)}
+                                                            >
+                                                                <span style={{
+                                                                    width: '7px',
+                                                                    height: '7px',
+                                                                    borderRadius: '50%',
+                                                                    background: isSelected ? 'var(--accent-primary)' : 'transparent',
+                                                                    border: `1.5px solid ${isSelected ? 'var(--accent-primary)' : 'var(--text-muted)'}`,
+                                                                    flexShrink: 0
+                                                                }} />
+                                                                <span>{mult}x</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
 
                                     {formData.overtimeType === 'weekday' ? (
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>

@@ -162,3 +162,75 @@ export function calculateEmployeeMonthlyPayroll(employee, salaries = [], overtim
         hasLoanHistory
     }
 }
+
+/**
+ * Calculate overtime breakdown and metrics for an employee in a given month
+ */
+export function calculateEmployeeMonthlyOvertime(employee, salaries = [], overtimes = [], targetMonth) {
+    if (!targetMonth) {
+        targetMonth = new Date().toISOString().slice(0, 7)
+    }
+
+    const monthlyOvertimes = (overtimes || []).filter(o => {
+        if (!o || !o.date) return false
+        const dStr = typeof o.date === 'string' ? o.date : new Date(o.date).toISOString()
+        if (!dStr.startsWith(targetMonth)) return false
+        if (o.notes && o.notes.includes('[İZİN OLARAK KULLANILDI]')) return false
+        if (o.is_converted_to_leave) return false
+        return true
+    })
+
+    let weekdayHours = 0
+    let sundayDays = 0
+    let holidayDays = 0
+    let gurbetDays = 0
+
+    monthlyOvertimes.forEach(o => {
+        const typeStr = (o.type || o.overtime_type || '').toLowerCase()
+        const notes = (o.notes || o.description || '')
+        const isHoliday = notes.includes('[BAYRAM]') || typeStr === 'holiday' || typeStr === 'bayram'
+        const isGurbet = notes.includes('[GURBET]') || typeStr === 'gurbet'
+
+        const extraMatch = notes ? notes.match(/\[\+([0-9.]+)\s*Saat\]/i) : null
+        const extraH = extraMatch ? (parseFloat(extraMatch[1]) || 0) : 0
+        if (extraH > 0) {
+            weekdayHours += extraH
+        }
+
+        if (isHoliday) {
+            holidayDays += (o.hours || 0)
+        } else if (isGurbet) {
+            gurbetDays += (o.hours || 0)
+        } else {
+            const isSunday = typeStr === 'sunday' || typeStr === 'weekend' || notes.toUpperCase().includes('[PAZAR]') || notes.toUpperCase().includes('[HAFTA SONU]') || (o.date && new Date(o.date).getDay() === 0)
+            if (isSunday) {
+                sundayDays += (o.hours || 0)
+            } else {
+                weekdayHours += (o.hours || 0)
+            }
+        }
+    })
+
+    const totalAmount = monthlyOvertimes.reduce((sum, o) => sum + (o.amount ?? o.total_amount ?? 0), 0)
+
+    const monthlySalaries = (salaries || []).filter(s => isSalaryInMonth(s, targetMonth))
+    const totalPaid = monthlySalaries
+        .filter(s => s.status === 'paid' && s.period === 'overtime_pay')
+        .reduce((sum, s) => sum + (s.net_salary || 0), 0)
+
+    const rawRemaining = totalAmount - totalPaid
+    const remainingAmount = Math.max(0, rawRemaining)
+
+    return {
+        entriesCount: monthlyOvertimes.length,
+        weekdayHours: Math.round(weekdayHours * 100) / 100,
+        sundayDays: Math.round(sundayDays * 100) / 100,
+        holidayDays: Math.round(holidayDays * 100) / 100,
+        gurbetDays: Math.round(gurbetDays * 100) / 100,
+        totalAmount,
+        totalPaid,
+        remainingAmount,
+        rawRemaining,
+        entries: monthlyOvertimes
+    }
+}

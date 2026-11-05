@@ -29,6 +29,22 @@ import { formatDate, today, formatDateForInput, calculateLeaveDays, calculateLea
 export default function Leaves() {
     const { currentCompany, companySettings } = useCompany();
     const whpl = companySettings?.hr?.weekdayHoursPerLeave !== undefined ? companySettings.hr.weekdayHoursPerLeave : (parseFloat(localStorage.getItem('hr_overtime_weekday_hours_per_leave')) || 8);
+    
+    const getWhplOptions = () => {
+        const hr = companySettings?.hr || {};
+        const getStoredArray = (key, fallback = []) => {
+            try {
+                const item = localStorage.getItem(key);
+                if (!item) return fallback;
+                const parsed = JSON.parse(item);
+                return Array.isArray(parsed) ? parsed : fallback;
+            } catch {
+                return fallback;
+            }
+        };
+        const rawList = Array.isArray(hr.weekdayHoursPerLeaveOptions) ? hr.weekdayHoursPerLeaveOptions : getStoredArray('hr_overtime_weekday_hours_per_leave_options', []);
+        return Array.from(new Set([whpl, ...rawList])).sort((a, b) => a - b);
+    };
     const { addTab } = useTabs();
     const { showToast } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -447,17 +463,22 @@ export default function Leaves() {
             const offDaysStr = emp ? emp.off_days : '0';
             const holidayDates = publicHolidays;
 
+            const itemWhpl = newItem.selectedWhpl || whpl;
             if (newItem.leaveUnit === 'hourly') {
                 if (key === 'startDate') {
                     newItem.endDate = newItem.startDate;
                 } else if (key === 'hours') {
                     const hr = parseFloat(value) || 0;
-                    newItem.days = hr / whpl;
+                    newItem.days = hr / itemWhpl;
+                } else if (key === 'selectedWhpl') {
+                    const hr = parseFloat(newItem.hours) || 0;
+                    newItem.selectedWhpl = value;
+                    newItem.days = hr > 0 ? hr / value : newItem.days;
                 } else if (key === 'leaveUnit') {
                     newItem.endDate = newItem.startDate;
                     const hr = parseFloat(newItem.hours) || 1;
                     newItem.hours = hr;
-                    newItem.days = hr / whpl;
+                    newItem.days = hr / itemWhpl;
                 }
             } else {
                 if (key === 'leaveUnit') {
@@ -1259,6 +1280,7 @@ export default function Leaves() {
                                     </div>
 
                                     {leaveQueue[leaveQueueIndex].leaveUnit === 'hourly' ? (
+                                        <>
                                         <div className="form-grid form-grid-2" style={{ width: '100%' }}>
                                             <div>
                                                 <CustomInput 
@@ -1293,6 +1315,81 @@ export default function Leaves() {
                                                 required 
                                             />
                                         </div>
+
+                                        {/* Dynamic WHPL Options (if configured) */}
+                                        {leaveQueue[leaveQueueIndex].leaveUnit === 'hourly' && getWhplOptions().length > 1 && (
+                                            <div style={{ width: '100%' }}>
+                                                <div style={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'space-between', 
+                                                    marginBottom: '6px',
+                                                    lineHeight: 1.2 
+                                                }}>
+                                                    <label style={{ 
+                                                        fontSize: '12px', 
+                                                        fontWeight: 500, 
+                                                        color: 'var(--text-secondary)',
+                                                        margin: 0
+                                                    }}>
+                                                        İzin Karşılığı (Saat / Gün Oranı)
+                                                    </label>
+                                                    <span style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                                        {leaveQueue[leaveQueueIndex].selectedWhpl || whpl} Saat = 1 Gün
+                                                    </span>
+                                                </div>
+                                                <div style={{ 
+                                                    display: 'grid', 
+                                                    gridTemplateColumns: `repeat(${Math.min(getWhplOptions().length, 3)}, minmax(0, 1fr))`, 
+                                                    gap: '8px' 
+                                                }}>
+                                                    {getWhplOptions().map(opt => {
+                                                        const activeWhpl = leaveQueue[leaveQueueIndex].selectedWhpl || whpl;
+                                                        const isSelected = activeWhpl === opt;
+                                                        const isDefault = opt === whpl;
+                                                        return (
+                                                            <button
+                                                                key={opt}
+                                                                type="button"
+                                                                className="btn"
+                                                                style={{
+                                                                    height: '42px',
+                                                                    padding: '0 8px',
+                                                                    fontSize: '13px',
+                                                                    fontWeight: 600,
+                                                                    borderRadius: 'var(--radius-sm, 6px)',
+                                                                    borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                    borderWidth: '1.5px',
+                                                                    borderStyle: 'solid',
+                                                                    color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                    background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    gap: '6px',
+                                                                    whiteSpace: 'nowrap',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease',
+                                                                    boxShadow: isSelected ? '0 1px 4px rgba(20, 184, 166, 0.15)' : 'none'
+                                                                }}
+                                                                onClick={() => updateLeaveQueueField('selectedWhpl', opt)}
+                                                            >
+                                                                <span style={{
+                                                                    width: '7px',
+                                                                    height: '7px',
+                                                                    borderRadius: '50%',
+                                                                    background: isSelected ? 'var(--accent-primary)' : 'transparent',
+                                                                    border: `1.5px solid ${isSelected ? 'var(--accent-primary)' : 'var(--text-muted)'}`,
+                                                                    flexShrink: 0
+                                                                }} />
+                                                                <span>{opt} Saat = 1 Gün</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                        </>
                                     ) : (
                                         <>
                                             <div className="form-grid form-grid-3" style={{ width: '100%' }}>

@@ -115,6 +115,7 @@ export default function EmployeeForm({ initialData, onSubmit, onCancel, saving, 
         e.preventDefault()
         onSubmit({
             ...form,
+            salaryChanged,
             offDays: offDays.join(',')
         })
     }

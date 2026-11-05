@@ -11,7 +11,7 @@ import MonthFilter from '../components/MonthFilter'
 import ConfirmModal from '../components/ConfirmModal'
 import CustomMultiSelect from '../components/CustomMultiSelect'
 import { formatCurrency, getHistoricalBaseSalary, getHistoricalFullSalary, formatDateForInput } from '../utils/helpers'
-import { Clock, Users, User, Building2, Wallet, Banknote, X, Plus, Calendar, Calculator, Trash2, ChevronRight, ChevronLeft, CheckCircle, Pencil, Search, Check, Palmtree, ArrowRightLeft, FileCheck } from 'lucide-react'
+import { Clock, Users, User, Building2, Wallet, Banknote, X, Plus, Calendar, Calculator, Trash2, ChevronRight, ChevronLeft, CheckCircle, Pencil, Search, Check, Palmtree, ArrowRightLeft, FileCheck, FileText } from 'lucide-react'
 import { useToast } from '../context/ToastContext'
 
 const paymentMethods = [
@@ -335,7 +335,49 @@ export default function Overtimes() {
         if (!isBackground) setLoading(false)
     }
 
-    const calcOvertimeRate = (type, employee) => {
+    const getStoredArray = (key, fallback = []) => {
+        try {
+            const item = localStorage.getItem(key)
+            if (!item) return fallback
+            const parsed = JSON.parse(item)
+            return Array.isArray(parsed) ? parsed : fallback
+        } catch {
+            return fallback
+        }
+    }
+
+    const getDefaultMultiplierForType = (type) => {
+        const hr = companySettings?.hr || {}
+        if (type === 'weekday') return hr.weekdayMultiplier !== undefined ? hr.weekdayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_weekday_multiplier')) || 1.5)
+        if (type === 'sunday') return hr.sundayMultiplier !== undefined ? hr.sundayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_sunday_multiplier')) || 1.5)
+        if (type === 'holiday') return hr.holidayMultiplier !== undefined ? hr.holidayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_holiday_multiplier')) || 2.0)
+        if (type === 'gurbet') return hr.gurbetMultiplier !== undefined ? hr.gurbetMultiplier : (parseFloat(localStorage.getItem('hr_overtime_gurbet_multiplier')) || 1.0)
+        return 1.5
+    }
+
+    const getAvailableMultipliers = (type) => {
+        const hr = companySettings?.hr || {}
+        const defaultVal = getDefaultMultiplierForType(type)
+        if (type === 'weekday') {
+            const rawList = Array.isArray(hr.weekdayMultipliers) ? hr.weekdayMultipliers : getStoredArray('hr_overtime_weekday_multipliers', [])
+            return Array.from(new Set([defaultVal, ...rawList])).sort((a, b) => a - b)
+        }
+        if (type === 'sunday') {
+            const rawList = Array.isArray(hr.sundayMultipliers) ? hr.sundayMultipliers : getStoredArray('hr_overtime_sunday_multipliers', [])
+            return Array.from(new Set([defaultVal, ...rawList])).sort((a, b) => a - b)
+        }
+        if (type === 'holiday') {
+            const rawList = Array.isArray(hr.holidayMultipliers) ? hr.holidayMultipliers : getStoredArray('hr_overtime_holiday_multipliers', [])
+            return Array.from(new Set([defaultVal, ...rawList])).sort((a, b) => a - b)
+        }
+        if (type === 'gurbet') {
+            const rawList = Array.isArray(hr.gurbetMultipliers) ? hr.gurbetMultipliers : getStoredArray('hr_overtime_gurbet_multipliers', [])
+            return Array.from(new Set([defaultVal, ...rawList])).sort((a, b) => a - b)
+        }
+        return [defaultVal]
+    }
+
+    const calcOvertimeRate = (type, employee, customMultiplier) => {
         if (!employee) return 0
         // Use full monthly base salary (unprorated) for overtime unit rate calculation
         const activeSalary = getHistoricalFullSalary(employee, selectedMonth)
@@ -344,16 +386,14 @@ export default function Overtimes() {
         const dailyRate = activeSalary / 30
         const hourlyRate = dailyRate / 10
         
-        const hrSettings = companySettings?.hr || {}
-        const weekdayMultiplier = hrSettings.weekdayMultiplier !== undefined ? hrSettings.weekdayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_weekday_multiplier')) || 1.5)
-        const sundayMultiplier = hrSettings.sundayMultiplier !== undefined ? hrSettings.sundayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_sunday_multiplier')) || 1.5)
-        const holidayMultiplier = hrSettings.holidayMultiplier !== undefined ? hrSettings.holidayMultiplier : (parseFloat(localStorage.getItem('hr_overtime_holiday_multiplier')) || 2.0)
-        const gurbetMultiplier = hrSettings.gurbetMultiplier !== undefined ? hrSettings.gurbetMultiplier : (parseFloat(localStorage.getItem('hr_overtime_gurbet_multiplier')) || 1.0)
+        const mult = customMultiplier !== undefined && customMultiplier !== null && customMultiplier !== ''
+            ? parseFloat(customMultiplier)
+            : getDefaultMultiplierForType(type)
         
-        if (type === 'weekday') return Math.round(hourlyRate * weekdayMultiplier * 100) / 100
-        if (type === 'sunday') return Math.round(dailyRate * sundayMultiplier * 100) / 100
-        if (type === 'holiday') return Math.round(dailyRate * holidayMultiplier * 100) / 100
-        if (type === 'gurbet') return Math.round(dailyRate * gurbetMultiplier * 100) / 100
+        if (type === 'weekday') return Math.round(hourlyRate * mult * 100) / 100
+        if (type === 'sunday') return Math.round(dailyRate * mult * 100) / 100
+        if (type === 'holiday') return Math.round(dailyRate * mult * 100) / 100
+        if (type === 'gurbet') return Math.round(dailyRate * mult * 100) / 100
         return 0
     }
 
@@ -396,9 +436,11 @@ export default function Overtimes() {
                     }
                 }
                 
-                // If type changes, recalculate rate
+                // If type changes, reset multiplier to default and recalculate rate
                 if (key === 'overtimeType') {
-                    newItem.rate = calcOvertimeRate(value, newItem.employee)
+                    const defaultMult = getDefaultMultiplierForType(value)
+                    newItem.selectedMultiplier = defaultMult
+                    newItem.rate = calcOvertimeRate(value, newItem.employee, defaultMult)
                     if (value !== 'weekday') {
                         if (!newItem.hours || newItem.hours === '') {
                             newItem.hours = 1
@@ -408,8 +450,14 @@ export default function Overtimes() {
                     }
                 }
 
+                // If multiplier is changed directly
+                if (key === 'selectedMultiplier') {
+                    newItem.selectedMultiplier = value
+                    newItem.rate = calcOvertimeRate(newItem.overtimeType, newItem.employee, value)
+                }
+
                 // Auto-calculate amount
-                if (key === 'hours' || key === 'extraHours' || key === 'overtimeType' || key === 'rate' || key === 'startTime' || key === 'endTime') {
+                if (key === 'hours' || key === 'extraHours' || key === 'overtimeType' || key === 'selectedMultiplier' || key === 'rate' || key === 'startTime' || key === 'endTime') {
                     newItem.amount = calculateOvertimeAmount(newItem.overtimeType, newItem.rate, newItem.hours, newItem.extraHours)
                 }
                 return newItem
@@ -430,15 +478,17 @@ export default function Overtimes() {
                 }
             }
             
-            if (newData.employeeId && (key === 'hours' || key === 'extraHours' || key === 'overtimeType' || key === 'rate' || key === 'employeeId' || key === 'startTime' || key === 'endTime')) {
+            if (newData.employeeId && (key === 'hours' || key === 'extraHours' || key === 'overtimeType' || key === 'selectedMultiplier' || key === 'rate' || key === 'employeeId' || key === 'startTime' || key === 'endTime')) {
                 let rate = newData.rate
                 
                 if (key === 'overtimeType' || key === 'employeeId') {
                     const empId = newData.employeeId
                     const type = newData.overtimeType
+                    const defaultMult = getDefaultMultiplierForType(type)
+                    newData.selectedMultiplier = defaultMult
                     const emp = allEmployees.find(e => e.id === parseInt(empId)) || overtimeData.find(e => e.id === parseInt(empId))
                     if (emp) {
-                        rate = calcOvertimeRate(type, emp)
+                        rate = calcOvertimeRate(type, emp, defaultMult)
                         newData.rate = rate
                         if (type !== 'weekday') {
                             if (!newData.hours || newData.hours === '') {
@@ -447,6 +497,14 @@ export default function Overtimes() {
                         } else {
                             newData.extraHours = ''
                         }
+                    }
+                } else if (key === 'selectedMultiplier') {
+                    newData.selectedMultiplier = value
+                    const empId = newData.employeeId
+                    const emp = allEmployees.find(e => e.id === parseInt(empId)) || overtimeData.find(e => e.id === parseInt(empId))
+                    if (emp) {
+                        rate = calcOvertimeRate(newData.overtimeType, emp, value)
+                        newData.rate = rate
                     }
                 }
                 
@@ -483,7 +541,8 @@ export default function Overtimes() {
             }
         }
 
-        const rate = isEditing ? row.rate : (emp ? calcOvertimeRate(overtimeType, emp) : 0)
+        const defaultMult = getDefaultMultiplierForType(overtimeType)
+        const rate = isEditing ? row.rate : (emp ? calcOvertimeRate(overtimeType, emp, defaultMult) : 0)
 
         let startTime = ''
         let endTime = ''
@@ -514,6 +573,7 @@ export default function Overtimes() {
             employeeId: empId,
             employeeIds: empIds,
             overtimeType: overtimeType,
+            selectedMultiplier: defaultMult,
             date: isEditing ? formatDateForInput(row.date) : formatDateForInput(new Date()),
             startTime,
             endTime,
@@ -535,6 +595,7 @@ export default function Overtimes() {
                 employeeId: empId,
                 employee: emp,
                 overtimeType: overtimeType,
+                selectedMultiplier: defaultMult,
                 date: isEditing ? formatDateForInput(row.date) : formatDateForInput(new Date()),
                 startTime,
                 endTime,
@@ -553,13 +614,15 @@ export default function Overtimes() {
     const startProcessingQueue = () => {
         if (overtimeFormData.employeeIds.length === 0) return
         
+        const defaultMult = getDefaultMultiplierForType('weekday')
         const newQueue = overtimeFormData.employeeIds.map(id => {
             const emp = allEmployees.find(e => e.id === id) || overtimeData.find(e => e.id === id)
-            const rate = emp ? calcOvertimeRate('weekday', emp) : 0
+            const rate = emp ? calcOvertimeRate('weekday', emp, defaultMult) : 0
             return {
                 employeeId: id,
                 employee: emp,
                 overtimeType: 'weekday',
+                selectedMultiplier: defaultMult,
                 date: formatDateForInput(new Date()),
                 startTime: '',
                 endTime: '',
@@ -579,15 +642,17 @@ export default function Overtimes() {
 
     const applyToAll = () => {
         const current = overtimeQueue[overtimeQueueIndex]
+        const mult = current.selectedMultiplier !== undefined ? current.selectedMultiplier : getDefaultMultiplierForType(current.overtimeType)
         setOvertimeQueue(prev => prev.map((item, idx) => {
             if (item.isSaved) return item
-            // Recalculate rate and amount for each based on the shared type/hours/extraHours
-            const rate = item.employee ? calcOvertimeRate(current.overtimeType, item.employee) : 0
+            // Recalculate rate and amount for each based on the shared type/multiplier/hours/extraHours
+            const rate = item.employee ? calcOvertimeRate(current.overtimeType, item.employee, mult) : 0
             const amount = calculateOvertimeAmount(current.overtimeType, rate, current.hours, current.extraHours)
             
             return {
                 ...item,
                 overtimeType: current.overtimeType,
+                selectedMultiplier: mult,
                 date: current.date,
                 startTime: current.startTime,
                 endTime: current.endTime,
@@ -1229,6 +1294,14 @@ export default function Overtimes() {
                     <p style={{ marginTop: '5px', color: 'var(--text-secondary)' }}>Personellerin aylık mesai saatleri ve ödemeleri.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button 
+                        className="btn btn-secondary" 
+                        onClick={() => navigate(`/employee-reports?type=overtime&month=${selectedMonth}&auto=1`)} 
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                        title="Bu ayın mesai raporunu ve dökümünü al"
+                    >
+                        <FileText size={18} /> Rapor Al
+                    </button>
                     <button className="btn btn-primary" onClick={() => handleOpenOvertimeModal()} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Plus size={18} /> Mesai Ekle
                     </button>
@@ -1911,6 +1984,88 @@ export default function Overtimes() {
                                                 required 
                                             />
                                         </div>
+
+                                        {/* Dynamic Multiplier Selector (if more than 1 option exists for this overtime type) */}
+                                        {(() => {
+                                            const currentType = overtimeQueue[overtimeQueueIndex].overtimeType;
+                                            const availableMultipliers = getAvailableMultipliers(currentType);
+                                            const defaultMult = getDefaultMultiplierForType(currentType);
+                                            const activeMultiplier = overtimeQueue[overtimeQueueIndex].selectedMultiplier ?? defaultMult;
+
+                                            if (availableMultipliers.length <= 1) return null;
+
+                                            return (
+                                                <div style={{ width: '100%' }}>
+                                                    <div style={{ 
+                                                        display: 'flex', 
+                                                        alignItems: 'center', 
+                                                        justifyContent: 'space-between', 
+                                                        marginBottom: '6px',
+                                                        lineHeight: 1.2 
+                                                    }}>
+                                                        <label style={{ 
+                                                            fontSize: '12px', 
+                                                            fontWeight: 500, 
+                                                            color: 'var(--text-secondary)',
+                                                            margin: 0
+                                                        }}>
+                                                            Mesai Katsayı Oranı
+                                                        </label>
+                                                        <span style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                                            Seçili: {activeMultiplier}x
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ 
+                                                        display: 'grid', 
+                                                        gridTemplateColumns: `repeat(${Math.min(availableMultipliers.length, 4)}, minmax(0, 1fr))`, 
+                                                        gap: '8px' 
+                                                    }}>
+                                                        {availableMultipliers.map(mult => {
+                                                            const isSelected = activeMultiplier === mult;
+                                                            const isDefault = mult === defaultMult;
+                                                            return (
+                                                                <button
+                                                                    key={mult}
+                                                                    type="button"
+                                                                    className="btn"
+                                                                    style={{
+                                                                        height: '42px',
+                                                                        padding: '0 8px',
+                                                                        fontSize: '13px',
+                                                                        fontWeight: 600,
+                                                                        borderRadius: 'var(--radius-sm, 6px)',
+                                                                        borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-color)',
+                                                                        borderWidth: '1.5px',
+                                                                        borderStyle: 'solid',
+                                                                        color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                                        background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        gap: '6px',
+                                                                        whiteSpace: 'nowrap',
+                                                                        cursor: 'pointer',
+                                                                        transition: 'all 0.15s ease',
+                                                                        boxShadow: isSelected ? '0 1px 4px rgba(20, 184, 166, 0.15)' : 'none'
+                                                                    }}
+                                                                    onClick={() => updateOvertimeField('selectedMultiplier', mult)}
+                                                                >
+                                                                    <span style={{
+                                                                        width: '7px',
+                                                                        height: '7px',
+                                                                        borderRadius: '50%',
+                                                                        background: isSelected ? 'var(--accent-primary)' : 'transparent',
+                                                                        border: `1.5px solid ${isSelected ? 'var(--accent-primary)' : 'var(--text-muted)'}`,
+                                                                        flexShrink: 0
+                                                                    }} />
+                                                                    <span>{mult}x</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
 
                                         {overtimeQueue[overtimeQueueIndex].overtimeType === 'weekday' ? (
                                             <div className="form-grid form-grid-3" style={{ width: '100%' }}>

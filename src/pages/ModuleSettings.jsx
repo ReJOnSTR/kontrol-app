@@ -4,7 +4,7 @@ import {
     Settings, Info, ToggleLeft, Sliders, Bell, Database, Shield, Palette, 
     Clock, Calculator, Pencil, Save, CalendarCheck, Users, Plus, Trash2, 
     Edit2, Briefcase, FileText, AlertCircle, Car, Wallet, Coins, Percent, 
-    Calendar, CheckCircle2, ShieldCheck, ArrowRight
+    Calendar, CheckCircle2, ShieldCheck, ArrowRight, ListPlus
 } from 'lucide-react'
 import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
@@ -115,6 +115,30 @@ function HrModuleContent() {
     const [holidayDaysPerLeave, setHolidayDaysPerLeave] = useState(1)
     const [defaultAdvanceAmount, setDefaultAdvanceAmount] = useState(0)
 
+    // Multi-option states
+    const [weekdayMultipliers, setWeekdayMultipliers] = useState([])
+    const [sundayMultipliers, setSundayMultipliers] = useState([])
+    const [holidayMultipliers, setHolidayMultipliers] = useState([])
+    const [gurbetMultipliers, setGurbetMultipliers] = useState([])
+    const [weekdayHoursPerLeaveOptions, setWeekdayHoursPerLeaveOptions] = useState([])
+    const [sundayDaysPerLeaveOptions, setSundayDaysPerLeaveOptions] = useState([])
+    const [holidayDaysPerLeaveOptions, setHolidayDaysPerLeaveOptions] = useState([])
+
+    // Options Modal State
+    const [optionsModalItem, setOptionsModalItem] = useState(null)
+    const [newOptionValue, setNewOptionValue] = useState('')
+
+    const getStoredArray = (key, fallback = []) => {
+        try {
+            const item = localStorage.getItem(key)
+            if (!item) return fallback
+            const parsed = JSON.parse(item)
+            return Array.isArray(parsed) ? parsed : fallback
+        } catch {
+            return fallback
+        }
+    }
+
     useEffect(() => {
         if (companySettings?.hr) {
             const hr = companySettings.hr
@@ -126,6 +150,14 @@ function HrModuleContent() {
             if (hr.sundayDaysPerLeave !== undefined) setSundayDaysPerLeave(hr.sundayDaysPerLeave)
             if (hr.holidayDaysPerLeave !== undefined) setHolidayDaysPerLeave(hr.holidayDaysPerLeave)
             if (hr.defaultAdvanceAmount !== undefined) setDefaultAdvanceAmount(hr.defaultAdvanceAmount)
+
+            setWeekdayMultipliers(Array.isArray(hr.weekdayMultipliers) ? hr.weekdayMultipliers : [])
+            setSundayMultipliers(Array.isArray(hr.sundayMultipliers) ? hr.sundayMultipliers : [])
+            setHolidayMultipliers(Array.isArray(hr.holidayMultipliers) ? hr.holidayMultipliers : [])
+            setGurbetMultipliers(Array.isArray(hr.gurbetMultipliers) ? hr.gurbetMultipliers : [])
+            setWeekdayHoursPerLeaveOptions(Array.isArray(hr.weekdayHoursPerLeaveOptions) ? hr.weekdayHoursPerLeaveOptions : [])
+            setSundayDaysPerLeaveOptions(Array.isArray(hr.sundayDaysPerLeaveOptions) ? hr.sundayDaysPerLeaveOptions : [])
+            setHolidayDaysPerLeaveOptions(Array.isArray(hr.holidayDaysPerLeaveOptions) ? hr.holidayDaysPerLeaveOptions : [])
         } else {
             setWeekdayMultiplier(parseFloat(localStorage.getItem('hr_overtime_weekday_multiplier')) || 1.5)
             setSundayMultiplier(parseFloat(localStorage.getItem('hr_overtime_sunday_multiplier')) || 1.5)
@@ -136,6 +168,14 @@ function HrModuleContent() {
             setHolidayDaysPerLeave(parseFloat(localStorage.getItem('hr_overtime_holiday_days_per_leave')) || 1)
             const savedAdv = localStorage.getItem('hr_default_advance_amount')
             setDefaultAdvanceAmount(savedAdv === 'salary' ? 'salary' : (parseFloat(savedAdv) || 0))
+
+            setWeekdayMultipliers(getStoredArray('hr_overtime_weekday_multipliers', []))
+            setSundayMultipliers(getStoredArray('hr_overtime_sunday_multipliers', []))
+            setHolidayMultipliers(getStoredArray('hr_overtime_holiday_multipliers', []))
+            setGurbetMultipliers(getStoredArray('hr_overtime_gurbet_multipliers', []))
+            setWeekdayHoursPerLeaveOptions(getStoredArray('hr_overtime_weekday_hours_per_leave_options', []))
+            setSundayDaysPerLeaveOptions(getStoredArray('hr_overtime_sunday_days_per_leave_options', []))
+            setHolidayDaysPerLeaveOptions(getStoredArray('hr_overtime_holiday_days_per_leave_options', []))
         }
     }, [companySettings])
 
@@ -169,7 +209,11 @@ function HrModuleContent() {
             description: 'Saatlik ücret × katsayı (Maaş ÷ 30 ÷ 10 × katsayı)',
             value: weekdayMultiplier,
             unit: 'x',
-            storageKey: 'hr_overtime_weekday_multiplier'
+            storageKey: 'hr_overtime_weekday_multiplier',
+            supportsOptions: true,
+            optionsKey: 'weekdayMultipliers',
+            optionsStorageKey: 'hr_overtime_weekday_multipliers',
+            options: weekdayMultipliers
         },
         {
             id: 'sunday',
@@ -177,7 +221,11 @@ function HrModuleContent() {
             description: 'Günlük ücret × katsayı (Maaş ÷ 30 × katsayı)',
             value: sundayMultiplier,
             unit: 'x',
-            storageKey: 'hr_overtime_sunday_multiplier'
+            storageKey: 'hr_overtime_sunday_multiplier',
+            supportsOptions: true,
+            optionsKey: 'sundayMultipliers',
+            optionsStorageKey: 'hr_overtime_sunday_multipliers',
+            options: sundayMultipliers
         },
         {
             id: 'holiday',
@@ -185,7 +233,11 @@ function HrModuleContent() {
             description: 'Günlük ücret × katsayı (Maaş ÷ 30 × katsayı)',
             value: holidayMultiplier,
             unit: 'x',
-            storageKey: 'hr_overtime_holiday_multiplier'
+            storageKey: 'hr_overtime_holiday_multiplier',
+            supportsOptions: true,
+            optionsKey: 'holidayMultipliers',
+            optionsStorageKey: 'hr_overtime_holiday_multipliers',
+            options: holidayMultipliers
         },
         {
             id: 'gurbet',
@@ -193,7 +245,11 @@ function HrModuleContent() {
             description: 'Günlük ücret × katsayı (Maaş ÷ 30 × katsayı)',
             value: gurbetMultiplier,
             unit: 'x',
-            storageKey: 'hr_overtime_gurbet_multiplier'
+            storageKey: 'hr_overtime_gurbet_multiplier',
+            supportsOptions: true,
+            optionsKey: 'gurbetMultipliers',
+            optionsStorageKey: 'hr_overtime_gurbet_multipliers',
+            options: gurbetMultipliers
         },
         {
             id: 'weekday_leave',
@@ -201,7 +257,11 @@ function HrModuleContent() {
             description: 'Kaç saat hafta içi mesai = 1 gün izin',
             value: weekdayHoursPerLeave,
             unit: ' saat',
-            storageKey: 'hr_overtime_weekday_hours_per_leave'
+            storageKey: 'hr_overtime_weekday_hours_per_leave',
+            supportsOptions: true,
+            optionsKey: 'weekdayHoursPerLeaveOptions',
+            optionsStorageKey: 'hr_overtime_weekday_hours_per_leave_options',
+            options: weekdayHoursPerLeaveOptions
         },
         {
             id: 'sunday_leave',
@@ -209,7 +269,11 @@ function HrModuleContent() {
             description: 'Kaç pazar mesai günü = 1 gün izin',
             value: sundayDaysPerLeave,
             unit: ' gün',
-            storageKey: 'hr_overtime_sunday_days_per_leave'
+            storageKey: 'hr_overtime_sunday_days_per_leave',
+            supportsOptions: true,
+            optionsKey: 'sundayDaysPerLeaveOptions',
+            optionsStorageKey: 'hr_overtime_sunday_days_per_leave_options',
+            options: sundayDaysPerLeaveOptions
         },
         {
             id: 'holiday_leave',
@@ -217,7 +281,11 @@ function HrModuleContent() {
             description: 'Kaç bayram mesai günü = 1 gün izin',
             value: holidayDaysPerLeave,
             unit: ' gün',
-            storageKey: 'hr_overtime_holiday_days_per_leave'
+            storageKey: 'hr_overtime_holiday_days_per_leave',
+            supportsOptions: true,
+            optionsKey: 'holidayDaysPerLeaveOptions',
+            optionsStorageKey: 'hr_overtime_holiday_days_per_leave_options',
+            options: holidayDaysPerLeaveOptions
         },
         {
             id: 'default_advance',
@@ -225,7 +293,8 @@ function HrModuleContent() {
             description: 'Ödeme eklerken avans seçildiğinde otomatik doldurulan tutar veya personel maaşı',
             value: defaultAdvanceAmount === 'salary' ? 'Personel Maaşı' : (Number(defaultAdvanceAmount) > 0 ? `₺${Number(defaultAdvanceAmount).toLocaleString('tr-TR')}` : 'Belirlenmedi'),
             unit: '',
-            storageKey: 'hr_default_advance_amount'
+            storageKey: 'hr_default_advance_amount',
+            supportsOptions: false
         }
     ]
 
@@ -245,11 +314,143 @@ function HrModuleContent() {
             key: 'value',
             label: 'Değer',
             sortable: false,
-            render: (val, item) => (
-                <span style={{ fontWeight: '600', color: 'var(--accent-primary)', fontSize: '15px' }}>
-                    {val}{item.unit}
-                </span>
-            )
+            render: (val, item) => {
+                if (val === undefined || val === null || val === '') return '-'
+
+                if (!item.supportsOptions) {
+                    return (
+                        <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            height: '28px',
+                            padding: '0 10px',
+                            borderRadius: '6px',
+                            background: 'var(--accent-subtle)',
+                            border: '1px solid rgba(20, 184, 166, 0.3)',
+                            color: 'var(--accent-primary)',
+                            boxShadow: '0 1px 3px rgba(20, 184, 166, 0.08)',
+                            fontSize: '13px',
+                            fontWeight: 700
+                        }}>
+                            {val}
+                        </div>
+                    )
+                }
+
+                const extraOptions = (item.options || [])
+                    .filter(o => Number(o) !== Number(item.value))
+                    .sort((a, b) => a - b)
+
+                return (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        {/* Primary Value Badge */}
+                        <div
+                            title="Ana değer"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                height: '28px',
+                                padding: '0 10px',
+                                borderRadius: '6px',
+                                background: 'rgba(20, 184, 166, 0.12)',
+                                border: '1px solid rgba(20, 184, 166, 0.35)',
+                                color: 'var(--accent-primary)',
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                letterSpacing: '0.01em',
+                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)'
+                            }}
+                        >
+                            {val}{item.unit}
+                        </div>
+
+                        {/* Subtle divider if extra options exist */}
+                        {extraOptions.length > 0 && (
+                            <span style={{
+                                width: '1px',
+                                height: '16px',
+                                background: 'var(--border-color)',
+                                margin: '0 2px',
+                                opacity: 0.6
+                            }} />
+                        )}
+
+                        {/* Extra Choices / Multiplier Pills */}
+                        {extraOptions.map(opt => (
+                            <button
+                                key={opt}
+                                type="button"
+                                onClick={() => openOptionsModal(item)}
+                                title={`${opt}${item.unit} (Seçenekleri yönetmek için tıklayın)`}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    height: '28px',
+                                    padding: '0 9px',
+                                    borderRadius: '6px',
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-color)',
+                                    color: 'var(--text-secondary)',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    outline: 'none'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = 'var(--accent-primary)'
+                                    e.currentTarget.style.color = 'var(--text-primary)'
+                                    e.currentTarget.style.background = 'var(--bg-tertiary)'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = 'var(--border-color)'
+                                    e.currentTarget.style.color = 'var(--text-secondary)'
+                                    e.currentTarget.style.background = 'var(--bg-secondary)'
+                                }}
+                            >
+                                {opt}{item.unit}
+                            </button>
+                        ))}
+
+                        {/* Quick Add Option Pill */}
+                        <button
+                            type="button"
+                            onClick={() => openOptionsModal(item)}
+                            title="Yeni seçenek ekle"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                height: '28px',
+                                width: extraOptions.length > 0 ? '28px' : 'auto',
+                                padding: extraOptions.length > 0 ? '0' : '0 8px',
+                                borderRadius: '6px',
+                                border: '1px dashed var(--border-color)',
+                                background: 'transparent',
+                                color: 'var(--text-muted)',
+                                fontSize: '11px',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--accent-primary)'
+                                e.currentTarget.style.color = 'var(--accent-primary)'
+                                e.currentTarget.style.background = 'var(--accent-subtle)'
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--border-color)'
+                                e.currentTarget.style.color = 'var(--text-muted)'
+                                e.currentTarget.style.background = 'transparent'
+                            }}
+                        >
+                            <Plus size={13} />
+                            {extraOptions.length === 0 && <span>Ekle</span>}
+                        </button>
+                    </div>
+                )
+            }
         }
     ]
 
@@ -399,6 +600,7 @@ function HrModuleContent() {
         if (updateCompanySettings) {
             await updateCompanySettings({
                 hr: {
+                    ...(companySettings?.hr || {}),
                     weekdayMultiplier: updatedWeekday,
                     sundayMultiplier: updatedSunday,
                     holidayMultiplier: updatedHoliday,
@@ -413,6 +615,75 @@ function HrModuleContent() {
 
         setShowModal(false)
         setEditingItem(null)
+    }
+
+    const openOptionsModal = (item) => {
+        setOptionsModalItem(item)
+        setNewOptionValue('')
+    }
+
+    const handleAddOption = async (e) => {
+        if (e) e.preventDefault()
+        if (!optionsModalItem) return
+        const num = parseFloat(newOptionValue)
+        if (isNaN(num) || num <= 0) return
+
+        const currentOptions = Array.isArray(optionsModalItem.options) ? [...optionsModalItem.options] : []
+        if (num === optionsModalItem.value || currentOptions.includes(num)) {
+            alert('Bu değer zaten tanımlı veya varsayılan değer ile aynı.')
+            return
+        }
+
+        const updatedOptions = [...currentOptions, num].sort((a, b) => a - b)
+
+        if (optionsModalItem.id === 'weekday') setWeekdayMultipliers(updatedOptions)
+        if (optionsModalItem.id === 'sunday') setSundayMultipliers(updatedOptions)
+        if (optionsModalItem.id === 'holiday') setHolidayMultipliers(updatedOptions)
+        if (optionsModalItem.id === 'gurbet') setGurbetMultipliers(updatedOptions)
+        if (optionsModalItem.id === 'weekday_leave') setWeekdayHoursPerLeaveOptions(updatedOptions)
+        if (optionsModalItem.id === 'sunday_leave') setSundayDaysPerLeaveOptions(updatedOptions)
+        if (optionsModalItem.id === 'holiday_leave') setHolidayDaysPerLeaveOptions(updatedOptions)
+
+        localStorage.setItem(optionsModalItem.optionsStorageKey, JSON.stringify(updatedOptions))
+
+        if (updateCompanySettings) {
+            await updateCompanySettings({
+                hr: {
+                    ...(companySettings?.hr || {}),
+                    [optionsModalItem.optionsKey]: updatedOptions
+                }
+            })
+        }
+
+        setNewOptionValue('')
+        setOptionsModalItem(prev => ({ ...prev, options: updatedOptions }))
+    }
+
+    const handleDeleteOption = async (optionVal) => {
+        if (!optionsModalItem) return
+        const currentOptions = Array.isArray(optionsModalItem.options) ? optionsModalItem.options : []
+        const updatedOptions = currentOptions.filter(o => o !== optionVal)
+
+        if (optionsModalItem.id === 'weekday') setWeekdayMultipliers(updatedOptions)
+        if (optionsModalItem.id === 'sunday') setSundayMultipliers(updatedOptions)
+        if (optionsModalItem.id === 'holiday') setHolidayMultipliers(updatedOptions)
+        if (optionsModalItem.id === 'gurbet') setGurbetMultipliers(updatedOptions)
+        if (optionsModalItem.id === 'weekday_leave') setWeekdayHoursPerLeaveOptions(updatedOptions)
+        if (optionsModalItem.id === 'sunday_leave') setSundayDaysPerLeaveOptions(updatedOptions)
+        if (optionsModalItem.id === 'holiday_leave') setHolidayDaysPerLeaveOptions(updatedOptions)
+
+        localStorage.setItem(optionsModalItem.optionsStorageKey, JSON.stringify(updatedOptions))
+
+        if (updateCompanySettings) {
+            await updateCompanySettings({
+                hr: {
+                    ...(companySettings?.hr || {}),
+                    [optionsModalItem.optionsKey]: updatedOptions
+                }
+            })
+        }
+
+        setOptionsModalItem(prev => ({ ...prev, options: updatedOptions }))
     }
 
     return (
@@ -521,7 +792,20 @@ function HrModuleContent() {
                     searchable={false}
                     paginated={false}
                     actions={(item) => (
-                        <button title="Düzenle" onClick={() => openEdit(item)}><Pencil size={16} /></button>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <button title="Düzenle" onClick={() => openEdit(item)}>
+                                <Pencil size={15} />
+                            </button>
+                            {item.supportsOptions && (
+                                <button
+                                    title="Seçenekleri Yönet"
+                                    style={{ color: 'var(--accent-primary)' }}
+                                    onClick={() => openOptionsModal(item)}
+                                >
+                                    <ListPlus size={16} />
+                                </button>
+                            )}
+                        </div>
                     )}
                 />
             </div>
@@ -768,6 +1052,133 @@ function HrModuleContent() {
                     </div>
                 )}
             </div>
+
+            {/* Ek Değerler / Seçenekler Modalı */}
+            <Modal
+                isOpen={!!optionsModalItem}
+                onClose={() => { setOptionsModalItem(null); setNewOptionValue(''); }}
+                title={optionsModalItem ? `${optionsModalItem.label} - Değer Seçenekleri` : 'Değer Seçenekleri'}
+            >
+                {optionsModalItem && (
+                    <form onSubmit={handleAddOption}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                                Mesai veya izin ekleme formlarında personele uygulanacak katsayı ve değer şıklarını buradan yönetebilirsiniz.
+                            </div>
+
+                            {/* Yeni Değer Ekleme Alanı */}
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label className="form-label" style={{ fontWeight: 600 }}>
+                                    Yeni Değer Ekle ({optionsModalItem.unit ? optionsModalItem.unit.trim() : 'Değer'})
+                                </label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        value={newOptionValue}
+                                        onChange={(e) => setNewOptionValue(e.target.value)}
+                                        min="0.1"
+                                        max="100"
+                                        step={optionsModalItem.id.includes('leave') ? '0.5' : '0.05'}
+                                        placeholder={`Örn: ${optionsModalItem.id.includes('leave') ? '10' : '1.75'}`}
+                                        autoFocus
+                                    />
+                                    <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 600, pointerEvents: 'none' }}>
+                                        {optionsModalItem.unit}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Mevcut Tanımlı Değerler */}
+                            <div>
+                                <label className="form-label" style={{ marginBottom: '8px', display: 'block', fontWeight: 600 }}>
+                                    Tanımlı Değerler ve Şıklar
+                                </label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {/* Varsayılan Değer */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '10px 14px',
+                                        background: 'var(--accent-subtle)',
+                                        borderRadius: 'var(--radius-sm, 6px)',
+                                        border: '1px solid rgba(20, 184, 166, 0.25)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                                                {optionsModalItem.value}{optionsModalItem.unit}
+                                            </span>
+                                            <span className="badge badge-success" style={{ fontSize: '10px', padding: '2px 6px' }}>
+                                                Ana Değer
+                                            </span>
+                                        </div>
+                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                            Ana ayar
+                                        </span>
+                                    </div>
+
+                                    {/* Ek Seçenekler Listesi */}
+                                    {(optionsModalItem.options || []).filter(o => o !== optionsModalItem.value).map(opt => (
+                                        <div key={opt} style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '10px 14px',
+                                            background: 'var(--bg-secondary)',
+                                            borderRadius: 'var(--radius-sm, 6px)',
+                                            border: '1px solid var(--border-color)'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                    {opt}{optionsModalItem.unit}
+                                                </span>
+                                                <span className="badge badge-neutral" style={{ fontSize: '10px', padding: '2px 6px' }}>
+                                                    Ek Şık
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="btn btn-icon-sm text-danger"
+                                                title="Bu seçeneği sil"
+                                                onClick={() => handleDeleteOption(opt)}
+                                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px' }}
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    {(optionsModalItem.options || []).filter(o => o !== optionsModalItem.value).length === 0 && (
+                                        <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px dashed var(--border-color)' }}>
+                                            Henüz ek bir değer tanımlanmadı.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Standard Modal Actions Bar */}
+                            <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => { setOptionsModalItem(null); setNewOptionValue(''); }}
+                                >
+                                    İptal
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={!newOptionValue}
+                                >
+                                    <Plus size={15} />
+                                    Değeri Ekle
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                )}
+            </Modal>
 
             {/* Katsayı Edit Modal */}
             <Modal

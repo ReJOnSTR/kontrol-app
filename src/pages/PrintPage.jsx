@@ -33,7 +33,11 @@ export default function PrintPage() {
                         return parsed;
                     });
                     document.title = parsed.isEmployeeReport
-                        ? (parsed.reportType === 'payroll' ? `Maaş Tablosu ${parsed.selectedPayrollMonth || ''}`.trim() : 'Personel Raporları')
+                        ? (parsed.reportType === 'payroll' 
+                            ? `Maaş Tablosu ${parsed.selectedPayrollMonth || ''}`.trim() 
+                            : parsed.reportType === 'overtime'
+                                ? `Mesai Tablosu ${parsed.selectedPayrollMonth || ''}`.trim()
+                                : 'Personel Raporları')
                         : (parsed.isWorkReport ? 'Puantaj Raporu' : 'Araç Raporları')
                 } catch (e) {
                     console.error('Failed to parse print data', e)
@@ -62,7 +66,13 @@ export default function PrintPage() {
                                 parsed = JSON.parse(parsed)
                             } catch (e) {}
                         }
-                        document.title = parsed.isEmployeeReport ? 'Personel Raporları' : (parsed.isWorkReport ? 'Puantaj Raporu' : 'Araç Raporları')
+                        document.title = parsed.isEmployeeReport 
+                            ? (parsed.reportType === 'payroll' 
+                                ? `Maaş Tablosu ${parsed.selectedPayrollMonth || ''}`.trim() 
+                                : parsed.reportType === 'overtime'
+                                    ? `Mesai Tablosu ${parsed.selectedPayrollMonth || ''}`.trim()
+                                    : 'Personel Raporları')
+                            : (parsed.isWorkReport ? 'Puantaj Raporu' : 'Araç Raporları')
                         return parsed
                     } catch (e) {
                         return prev

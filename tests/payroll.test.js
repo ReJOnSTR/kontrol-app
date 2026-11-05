@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isSalaryInMonth, calculateEmployeeMonthlyPayroll, SALARY_ALLOWED_PERIODS } from '../src/utils/payrollCalculator'
+import { isSalaryInMonth, calculateEmployeeMonthlyPayroll, calculateEmployeeMonthlyOvertime, SALARY_ALLOWED_PERIODS } from '../src/utils/payrollCalculator'
 
 describe('Payroll Calculator & Financial Logic', () => {
     it('should validate allowed salary periods', () => {
@@ -54,5 +54,28 @@ describe('Payroll Calculator & Financial Logic', () => {
         ]
         const result = calculateEmployeeMonthlyPayroll(employee, [], overtimes, '2026-10')
         expect(result.totalOtTarget).toBe(0)
+    })
+
+    it('should calculate monthly overtime breakdown and balance accurately', () => {
+        const employee = { id: 1, first_name: 'Mehmet', last_name: 'Demir' }
+        const overtimes = [
+            { id: 1, date: '2026-10-02', type: 'weekday', hours: 5, amount: 500 },
+            { id: 2, date: '2026-10-04', type: 'sunday', hours: 1, amount: 800 },
+            { id: 3, date: '2026-10-29', type: 'holiday', hours: 1, amount: 1000, notes: '[BAYRAM]' },
+            { id: 4, date: '2026-10-10', type: 'weekday', hours: 4, amount: 400, notes: '[İZİN OLARAK KULLANILDI]' },
+            { id: 5, date: '2026-11-01', type: 'weekday', hours: 3, amount: 300 } // Different month
+        ]
+        const salaries = [
+            { id: 10, period: 'overtime_pay', net_salary: 1300, salary_month: '2026-10', status: 'paid' }
+        ]
+
+        const result = calculateEmployeeMonthlyOvertime(employee, salaries, overtimes, '2026-10')
+        expect(result.entriesCount).toBe(3)
+        expect(result.weekdayHours).toBe(5)
+        expect(result.sundayDays).toBe(1)
+        expect(result.holidayDays).toBe(1)
+        expect(result.totalAmount).toBe(2300)
+        expect(result.totalPaid).toBe(1300)
+        expect(result.remainingAmount).toBe(1000)
     })
 })

@@ -68,6 +68,15 @@ export function CompanyProvider({ children }) {
         if (hrSettings.sundayDaysPerLeave !== undefined) localStorage.setItem('hr_overtime_sunday_days_per_leave', String(hrSettings.sundayDaysPerLeave));
         if (hrSettings.holidayDaysPerLeave !== undefined) localStorage.setItem('hr_overtime_holiday_days_per_leave', String(hrSettings.holidayDaysPerLeave));
         if (hrSettings.defaultAdvanceAmount !== undefined) localStorage.setItem('hr_default_advance_amount', String(hrSettings.defaultAdvanceAmount));
+
+        // Multi-option arrays
+        if (Array.isArray(hrSettings.weekdayMultipliers)) localStorage.setItem('hr_overtime_weekday_multipliers', JSON.stringify(hrSettings.weekdayMultipliers));
+        if (Array.isArray(hrSettings.sundayMultipliers)) localStorage.setItem('hr_overtime_sunday_multipliers', JSON.stringify(hrSettings.sundayMultipliers));
+        if (Array.isArray(hrSettings.holidayMultipliers)) localStorage.setItem('hr_overtime_holiday_multipliers', JSON.stringify(hrSettings.holidayMultipliers));
+        if (Array.isArray(hrSettings.gurbetMultipliers)) localStorage.setItem('hr_overtime_gurbet_multipliers', JSON.stringify(hrSettings.gurbetMultipliers));
+        if (Array.isArray(hrSettings.weekdayHoursPerLeaveOptions)) localStorage.setItem('hr_overtime_weekday_hours_per_leave_options', JSON.stringify(hrSettings.weekdayHoursPerLeaveOptions));
+        if (Array.isArray(hrSettings.sundayDaysPerLeaveOptions)) localStorage.setItem('hr_overtime_sunday_days_per_leave_options', JSON.stringify(hrSettings.sundayDaysPerLeaveOptions));
+        if (Array.isArray(hrSettings.holidayDaysPerLeaveOptions)) localStorage.setItem('hr_overtime_holiday_days_per_leave_options', JSON.stringify(hrSettings.holidayDaysPerLeaveOptions));
     };
 
     const clearHrSettingsFromLocalStorage = () => {
@@ -75,7 +84,11 @@ export function CompanyProvider({ children }) {
             'hr_overtime_weekday_multiplier', 'hr_overtime_sunday_multiplier',
             'hr_overtime_holiday_multiplier', 'hr_overtime_gurbet_multiplier',
             'hr_overtime_weekday_hours_per_leave', 'hr_overtime_sunday_days_per_leave',
-            'hr_overtime_holiday_days_per_leave', 'hr_default_advance_amount'
+            'hr_overtime_holiday_days_per_leave', 'hr_default_advance_amount',
+            'hr_overtime_weekday_multipliers', 'hr_overtime_sunday_multipliers',
+            'hr_overtime_holiday_multipliers', 'hr_overtime_gurbet_multipliers',
+            'hr_overtime_weekday_hours_per_leave_options', 'hr_overtime_sunday_days_per_leave_options',
+            'hr_overtime_holiday_days_per_leave_options'
         ];
         keys.forEach(k => localStorage.removeItem(k));
     };

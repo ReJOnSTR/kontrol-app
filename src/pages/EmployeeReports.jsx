@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import TopProgressBar from '../components/TopProgressBar'
 import { useCompany } from '../context/CompanyContext'
 import DataTable from '../components/DataTable'
@@ -6,12 +7,13 @@ import Modal from '../components/Modal'
 import EmployeeReportRenderer from '../components/EmployeeReportRenderer'
 import { FileText, Printer, Building2, Download, Eye, Calendar, Layers, Settings, List, Filter, FileDown, User, ChevronDown } from 'lucide-react'
 import { formatDate, formatCurrency, calculateRemainingLeaves, formatDayBalance, generateUniqueFileName, formatWorkingDuration, compareEmployeeTenureDesc, formatMonthName } from '../utils/helpers'
-import { calculateEmployeeMonthlyPayroll } from '../utils/payrollCalculator'
+import { calculateEmployeeMonthlyPayroll, calculateEmployeeMonthlyOvertime } from '../utils/payrollCalculator'
 import { usePersistentTab } from '../hooks/usePersistentTab'
 import { exportElementToCleanPdf } from '../utils/pdfCleanExport'
 import * as XLSX from 'xlsx'
 
 export default function EmployeeReports() {
+    const [searchParams] = useSearchParams()
     const { currentCompany } = useCompany()
     const [employees, setEmployees] = useState([])
     const [loading, setLoading] = useState(true)
@@ -25,7 +27,7 @@ export default function EmployeeReports() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [loadingReport, setLoadingReport] = useState(false)
     const [generatingPdf, setGeneratingPdf] = useState(false)
-    const [reportType, setReportType] = useState('detail') // 'detail', 'list', or 'payroll'
+    const [reportType, setReportType] = useState('detail') // 'detail', 'list', 'payroll', or 'overtime'
     const [selectedPayrollMonth, setSelectedPayrollMonth] = useState(() => {
         const now = new Date()
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -33,6 +35,18 @@ export default function EmployeeReports() {
     const [pageBreakMode, setPageBreakMode] = useState('auto') // 'auto' or 'fit_page'
     const [activeTab, setActiveTab] = usePersistentTab('EmployeeReports', 'all')
     const [departmentsList, setDepartmentsList] = useState([])
+
+    // URL Search Params Listener
+    useEffect(() => {
+        const typeParam = searchParams.get('type')
+        const monthParam = searchParams.get('month')
+        if (typeParam && ['payroll', 'overtime', 'list', 'detail'].includes(typeParam)) {
+            setReportType(typeParam)
+        }
+        if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
+            setSelectedPayrollMonth(monthParam)
+        }
+    }, [searchParams])
 
     // Report Configuration
     const [config, setConfig] = useState({
@@ -115,7 +129,11 @@ export default function EmployeeReports() {
             localStorage.setItem('printData', JSON.stringify(printData))
             
             const companyStr = currentCompany?.name || ''
-            const reportPrefix = reportType === 'payroll' ? `Maas_Tablosu_${selectedPayrollMonth}` : 'Personel_Raporu'
+            const reportPrefix = reportType === 'payroll'
+                ? `Maas_Tablosu_${selectedPayrollMonth}`
+                : reportType === 'overtime'
+                    ? `Mesai_Tablosu_${selectedPayrollMonth}`
+                    : 'Personel_Raporu'
             const defaultFileName = generateUniqueFileName(reportPrefix, [companyStr], 'pdf')
 
             const isElectronApp = typeof window !== 'undefined' && Boolean(
@@ -248,6 +266,68 @@ export default function EmployeeReports() {
             const excelFileName = generateUniqueFileName(`Maas_Tablosu_${selectedPayrollMonth}`, [companyStr], 'xlsx')
             XLSX.writeFile(wb, excelFileName)
             return
+        } else if (reportType === 'overtime') {
+            const otCols = [
+                { header: 'S.No', value: (_, idx) => idx + 1 },
+                { header: 'Personel', value: r => `${r.employee.first_name} ${r.employee.last_name}` },
+                { header: 'Görev / Pozisyon', value: r => r.employee.position || r.employee.role || '-' },
+                { header: 'Departman', value: r => r.employee.department || '-' },
+                { header: 'Hafta İçi (Saat)', value: r => r.overtimeSummary?.weekdayHours || 0 },
+                { header: 'Pazar (Gün)', value: r => r.overtimeSummary?.sundayDays || 0 },
+                { header: 'Bayram (Gün)', value: r => r.overtimeSummary?.holidayDays || 0 },
+                { header: 'Gurbet (Gün)', value: r => r.overtimeSummary?.gurbetDays || 0 },
+                { header: 'Hak Edilen Mesai (TL)', value: r => r.overtimeSummary?.totalAmount || 0 },
+                { header: 'Yapılan Ödeme (TL)', value: r => r.overtimeSummary?.totalPaid || 0 },
+                { header: 'Kalan Bakiye (TL)', value: r => r.overtimeSummary?.remainingAmount || 0 }
+            ]
+
+            const rows = processedReportList.map((r, idx) => otCols.map(c => c.value(r, idx)))
+            const totals = processedReportList.reduce((acc, r) => {
+                const ot = r.overtimeSummary || {}
+                return {
+                    weekdayHours: acc.weekdayHours + (ot.weekdayHours || 0),
+                    sundayDays: acc.sundayDays + (ot.sundayDays || 0),
+                    holidayDays: acc.holidayDays + (ot.holidayDays || 0),
+                    gurbetDays: acc.gurbetDays + (ot.gurbetDays || 0),
+                    totalAmount: acc.totalAmount + (ot.totalAmount || 0),
+                    totalPaid: acc.totalPaid + (ot.totalPaid || 0),
+                    remainingAmount: acc.remainingAmount + (ot.remainingAmount || 0)
+                }
+            }, {
+                weekdayHours: 0,
+                sundayDays: 0,
+                holidayDays: 0,
+                gurbetDays: 0,
+                totalAmount: 0,
+                totalPaid: 0,
+                remainingAmount: 0
+            })
+
+            rows.push([
+                '',
+                'GENEL TOPLAM',
+                '',
+                '',
+                totals.weekdayHours,
+                totals.sundayDays,
+                totals.holidayDays,
+                totals.gurbetDays,
+                totals.totalAmount,
+                totals.totalPaid,
+                totals.remainingAmount
+            ])
+
+            const wsData = [
+                otCols.map(c => c.header),
+                ...rows
+            ]
+            const ws = XLSX.utils.aoa_to_sheet(wsData)
+            XLSX.utils.book_append_sheet(wb, ws, `Mesai_${selectedPayrollMonth}`)
+
+            const companyStr = currentCompany?.name || ''
+            const excelFileName = generateUniqueFileName(`Mesai_Tablosu_${selectedPayrollMonth}`, [companyStr], 'xlsx')
+            XLSX.writeFile(wb, excelFileName)
+            return
         } else if (reportType === 'list') {
             const listCols = []
             if (listConfig.name) listCols.push({ header: 'Ad Soyad', value: r => `${r.employee.first_name} ${r.employee.last_name}` })
@@ -337,6 +417,14 @@ export default function EmployeeReports() {
         setLoading(false)
     }
 
+    // Auto open modal when coming with ?auto=1 (e.g. from Mesai Tablosu)
+    useEffect(() => {
+        if (employees.length > 0 && searchParams.get('auto') === '1' && !isModalOpen) {
+            const activeEmps = employees.filter(e => e.status !== 'passive')
+            openReportModal(activeEmps.length > 0 ? activeEmps : employees)
+        }
+    }, [employees, searchParams])
+
     const openReportModal = async (employeesToReport) => {
         const sortedToReport = [...employeesToReport].sort(compareEmployeeTenureDesc)
         setSelectedEmployees(sortedToReport)
@@ -413,6 +501,12 @@ export default function EmployeeReports() {
             documents: report.data.documents,
             overtimes: report.data.overtimes || [],
             payroll: calculateEmployeeMonthlyPayroll(
+                report.employee,
+                report.data.salaries || [],
+                report.data.overtimes || [],
+                selectedPayrollMonth
+            ),
+            overtimeSummary: calculateEmployeeMonthlyOvertime(
                 report.employee,
                 report.data.salaries || [],
                 report.data.overtimes || [],
@@ -641,6 +735,11 @@ export default function EmployeeReports() {
                                             <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: reportType === 'payroll' ? '5px solid var(--accent-primary)' : '2px solid var(--border-light)', background: 'var(--bg-primary)' }} />
                                             <span style={{ fontSize: '13px' }}>Aylık Maaş Tablosu</span>
                                         </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 10px', borderRadius: '8px', background: reportType === 'overtime' ? 'var(--accent-subtle)' : 'transparent', border: reportType === 'overtime' ? '1px solid var(--accent-primary)' : '1px solid transparent' }}>
+                                            <input type="radio" name="reportType" checked={reportType === 'overtime'} onChange={() => setReportType('overtime')} style={{ display: 'none' }} />
+                                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: reportType === 'overtime' ? '5px solid var(--accent-primary)' : '2px solid var(--border-light)', background: 'var(--bg-primary)' }} />
+                                            <span style={{ fontSize: '13px' }}>Aylık Mesai Tablosu</span>
+                                        </label>
                                         <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 10px', borderRadius: '8px', background: reportType === 'list' ? 'var(--accent-subtle)' : 'transparent', border: reportType === 'list' ? '1px solid var(--accent-primary)' : '1px solid transparent' }}>
                                             <input type="radio" name="reportType" checked={reportType === 'list'} onChange={() => setReportType('list')} style={{ display: 'none' }} />
                                             <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: reportType === 'list' ? '5px solid var(--accent-primary)' : '2px solid var(--border-light)', background: 'var(--bg-primary)' }} />
@@ -714,8 +813,8 @@ export default function EmployeeReports() {
                                 )}
                             </div>
 
-                            {/* Content Toggles or Payroll Month Picker */}
-                            {reportType === 'payroll' ? (
+                            {/* Content Toggles or Payroll / Overtime Month Picker */}
+                            {(reportType === 'payroll' || reportType === 'overtime') ? (
                                 <div style={{ borderBottom: '1px solid var(--border-color)' }}>
                                     <div 
                                         onClick={() => setSidebarCollapsed(prev => ({ ...prev, payrollMonth: !prev.payrollMonth }))}
@@ -784,7 +883,11 @@ export default function EmployeeReports() {
                                                 Bu Ay ({formatMonthName(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)})
                                             </button>
                                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4', background: 'var(--bg-tertiary)', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', marginTop: '4px' }}>
-                                                Seçili personellerin <strong>{formatMonthName(selectedPayrollMonth)}</strong> dönemindeki maaş, mesai, ek kazanç, devir ve hakedişlerini tek tabloda listeler.
+                                                {reportType === 'payroll' ? (
+                                                    <>Seçili personellerin <strong>{formatMonthName(selectedPayrollMonth)}</strong> dönemindeki maaş, mesai, ek kazanç, devir ve hakedişlerini tek tabloda listeler.</>
+                                                ) : (
+                                                    <>Seçili personellerin <strong>{formatMonthName(selectedPayrollMonth)}</strong> dönemindeki mesai saatleri (hafta içi, pazar, bayram, gurbet), hak ediş ve ödemelerini tek tabloda listeler.</>
+                                                )}
                                             </div>
                                         </div>
                                     )}

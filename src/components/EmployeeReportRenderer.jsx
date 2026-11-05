@@ -344,7 +344,255 @@ export default function EmployeeReportRenderer({
     }
 
     // -------------------------------------------------------------
-    // 2. PERSONEL LİSTESİ (ÖZET) RAPORU
+    // 2. AYLIK MESAİ TABLOSU RAPORU
+    // -------------------------------------------------------------
+    if (reportType === 'overtime') {
+        const totals = reports.reduce((acc, r) => {
+            const ot = r.overtimeSummary || {};
+            return {
+                weekdayHours: acc.weekdayHours + (ot.weekdayHours || 0),
+                sundayDays: acc.sundayDays + (ot.sundayDays || 0),
+                holidayDays: acc.holidayDays + (ot.holidayDays || 0),
+                gurbetDays: acc.gurbetDays + (ot.gurbetDays || 0),
+                totalAmount: acc.totalAmount + (ot.totalAmount || 0),
+                totalPaid: acc.totalPaid + (ot.totalPaid || 0),
+                remainingAmount: acc.remainingAmount + (ot.remainingAmount || 0)
+            };
+        }, {
+            weekdayHours: 0,
+            sundayDays: 0,
+            holidayDays: 0,
+            gurbetDays: 0,
+            totalAmount: 0,
+            totalPaid: 0,
+            remainingAmount: 0
+        });
+
+        const monthTitle = formatMonthName(selectedPayrollMonth || new Date().toISOString().slice(0, 7));
+
+        // Pagination calculation
+        let pages = [];
+        let effectiveScale = 1.0;
+
+        if (pageBreakMode === 'fit_page' && reports.length <= 26) {
+            effectiveScale = reports.length <= 13 ? 1.0 : Math.max(0.60, Math.min(0.98, 13 / reports.length + 0.12));
+            pages = [{ items: reports, startIndex: 0, isFirst: true, isLast: true }];
+        } else {
+            // Auto pagination: Page 1 fits 13 rows with big header & KPI cards; Page 2+ fits 19 rows
+            pages = paginateItems(reports, 13, 19);
+            effectiveScale = 1.0;
+        }
+
+        const totalPages = pages.length;
+
+        return (
+            <div className="pdf-pages-container">
+                {pages.map((page, pIdx) => (
+                    <div
+                        key={pIdx}
+                        className={`pdf-report-container ${isPreview ? 'is-preview' : ''} ${pageBreakMode === 'fit_page' ? 'pdf-fit-page' : ''}`}
+                    >
+                        {isPreview && (
+                            <div className="pdf-page-header-badge">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span>Dikey A4</span>
+                                    <span>•</span>
+                                    <span>Ölçek: %{Math.round(effectiveScale * 100)}</span>
+                                    <span>•</span>
+                                    <span>{pageBreakMode === 'fit_page' ? '1 Sayfaya Sığdırıldı' : 'Çoklu Sayfa'}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontWeight: 700, color: totalPages === 1 ? '#16a34a' : '#2563eb' }}>
+                                        Sayfa {pIdx + 1} / {totalPages}
+                                    </span>
+                                    <span>({page.items.length} Personel)</span>
+                                </div>
+                            </div>
+                        )}
+
+                        <div
+                            className="pdf-content-wrapper"
+                            style={{
+                                transform: effectiveScale !== 1 ? `scale(${effectiveScale})` : undefined,
+                                transformOrigin: 'top left',
+                                width: effectiveScale !== 1 ? `calc(100% / ${effectiveScale})` : '100%',
+                                height: effectiveScale !== 1 ? `calc(100% / ${effectiveScale})` : 'calc(100% - 15mm)',
+                                padding: '10mm 12mm 4mm 12mm'
+                            }}
+                        >
+                            {/* Page 1 Header & KPI */}
+                            {page.isFirst ? (
+                                <>
+                                    <div style={headerStyle}>
+                                        <div>
+                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                {companyName || 'FİLO YÖNETİM SİSTEMİ'}
+                                            </div>
+                                            <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: '4px 0 0', color: '#0f172a' }}>
+                                                AYLIK MESAİ VE HAKEDİŞ TABLOSU
+                                            </h1>
+                                            <div style={{ fontSize: '13px', color: '#2563eb', fontWeight: '700', marginTop: '4px' }}>
+                                                Dönem: {monthTitle}
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '11px', color: '#64748b' }}>Rapor Tarihi</div>
+                                            <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{new Date().toLocaleDateString('tr-TR')}</div>
+                                            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                                                {generateReportNo('MES')}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* KPI Summary Cards */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '16px' }}>
+                                        <div style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                                            <div style={{ fontSize: '9.5px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Personel Sayısı</div>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a', marginTop: '2px' }}>{reports.length} Kişi</div>
+                                        </div>
+                                        <div style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                                            <div style={{ fontSize: '9.5px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Hak Edilen Mesai</div>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#0284c7', marginTop: '2px' }}>{formatCurrency(totals.totalAmount)}</div>
+                                        </div>
+                                        <div style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                                            <div style={{ fontSize: '9.5px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Ödenen Mesai</div>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#16a34a', marginTop: '2px' }}>{formatCurrency(totals.totalPaid)}</div>
+                                        </div>
+                                        <div style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                                            <div style={{ fontSize: '9.5px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Kalan Bakiye</div>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold', color: totals.remainingAmount > 0 ? '#ea580c' : '#16a34a', marginTop: '2px' }}>{formatCurrency(totals.remainingAmount)}</div>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ ...headerStyle, paddingBottom: '10px', marginBottom: '14px' }}>
+                                    <div>
+                                        <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
+                                            {companyName || 'FİLO YÖNETİM SİSTEMİ'}
+                                        </div>
+                                        <h2 style={{ fontSize: '15px', fontWeight: 'bold', margin: '2px 0 0', color: '#0f172a' }}>
+                                            AYLIK MESAİ VE HAKEDİŞ TABLOSU (DEVAM)
+                                        </h2>
+                                        <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: '600', marginTop: '2px' }}>
+                                            Dönem: {monthTitle}
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '10px', color: '#64748b' }}>Rapor Tarihi</div>
+                                        <div style={{ fontWeight: 'bold', fontSize: '11px' }}>{new Date().toLocaleDateString('tr-TR')}</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Table */}
+                            <table style={{ ...tableStyle, fontSize: '9.5px' }}>
+                                <thead>
+                                    <tr style={thRowStyle}>
+                                        <th style={{ ...thStyle, width: '22px', textAlign: 'center' }}>#</th>
+                                        <th style={thStyle}>PERSONEL</th>
+                                        <th style={thStyle}>GÖREV / DEPARTMAN</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>HAFTA İÇİ</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>PAZAR</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>BAYRAM</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>GURBET</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>HAK EDİŞ</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>ÖDENEN</th>
+                                        <th style={{ ...thStyle, textAlign: 'right' }}>KALAN BAKİYE</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {page.items.map((report, i) => {
+                                        const ot = report.overtimeSummary || {};
+                                        const rowNum = page.startIndex + i + 1;
+                                        return (
+                                            <tr key={i} style={{ backgroundColor: i % 2 === 1 ? '#f8fafc' : '#ffffff' }}>
+                                                <td style={{ ...tdStyle, textAlign: 'center', color: '#64748b' }}>{rowNum}</td>
+                                                <td style={{ ...tdStyle, fontWeight: 'bold' }}>
+                                                    {report.employee.first_name} {report.employee.last_name}
+                                                </td>
+                                                <td style={tdStyle}>
+                                                    {report.employee.position || report.employee.department || '-'}
+                                                </td>
+                                                <td style={{ ...tdStyle, textAlign: 'right', color: ot.weekdayHours > 0 ? '#0f172a' : '#94a3b8' }}>
+                                                    {ot.weekdayHours > 0 ? `${ot.weekdayHours} Saat` : '-'}
+                                                </td>
+                                                <td style={{ ...tdStyle, textAlign: 'right', color: ot.sundayDays > 0 ? '#4f46e5' : '#94a3b8' }}>
+                                                    {ot.sundayDays > 0 ? `${ot.sundayDays} Gün` : '-'}
+                                                </td>
+                                                <td style={{ ...tdStyle, textAlign: 'right', color: ot.holidayDays > 0 ? '#d97706' : '#94a3b8' }}>
+                                                    {ot.holidayDays > 0 ? `${ot.holidayDays} Gün` : '-'}
+                                                </td>
+                                                <td style={{ ...tdStyle, textAlign: 'right', color: ot.gurbetDays > 0 ? '#16a34a' : '#94a3b8' }}>
+                                                    {ot.gurbetDays > 0 ? `${ot.gurbetDays} Gün` : '-'}
+                                                </td>
+                                                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
+                                                    {formatCurrency(ot.totalAmount || 0)}
+                                                </td>
+                                                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '600', color: '#16a34a' }}>
+                                                    {formatCurrency(ot.totalPaid || 0)}
+                                                </td>
+                                                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold', color: ot.remainingAmount > 0 ? '#dc2626' : '#16a34a' }}>
+                                                    {formatCurrency(ot.remainingAmount || 0)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                {page.isLast && (
+                                    <tfoot>
+                                        <tr style={{ ...totalRowStyle, borderTop: '2px solid #0f172a' }}>
+                                            <td colSpan={3} style={{ ...tdStyle, fontWeight: 'bold', textAlign: 'right', background: '#f1f5f9' }}>
+                                                GENEL TOPLAM:
+                                            </td>
+                                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold', background: '#f1f5f9' }}>
+                                                {totals.weekdayHours > 0 ? `${totals.weekdayHours} Saat` : '-'}
+                                            </td>
+                                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold', background: '#f1f5f9' }}>
+                                                {totals.sundayDays > 0 ? `${totals.sundayDays} Gün` : '-'}
+                                            </td>
+                                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold', background: '#f1f5f9' }}>
+                                                {totals.holidayDays > 0 ? `${totals.holidayDays} Gün` : '-'}
+                                            </td>
+                                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold', background: '#f1f5f9' }}>
+                                                {totals.gurbetDays > 0 ? `${totals.gurbetDays} Gün` : '-'}
+                                            </td>
+                                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold', color: '#0284c7', background: '#f1f5f9' }}>
+                                                {formatCurrency(totals.totalAmount)}
+                                            </td>
+                                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold', color: '#16a34a', background: '#f1f5f9' }}>
+                                                {formatCurrency(totals.totalPaid)}
+                                            </td>
+                                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold', color: totals.remainingAmount > 0 ? '#dc2626' : '#16a34a', background: '#f1f5f9' }}>
+                                                {formatCurrency(totals.remainingAmount)}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                )}
+                            </table>
+
+                            {page.isLast && (
+                                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748b' }}>
+                                    <div>Toplam {reports.length} personel listelendi.</div>
+                                    <div>{monthTitle} Mesai & Hakediş Dökümü</div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Pinned Page Footer */}
+                        <div style={footerStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                <span>{companyName || 'FİLO YÖNETİM SİSTEMİ'} • {monthTitle}</span>
+                                <span>Sayfa {pIdx + 1} / {totalPages}</span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    // -------------------------------------------------------------
+    // 3. PERSONEL LİSTESİ (ÖZET) RAPORU
     // -------------------------------------------------------------
     if (reportType === 'list') {
         let pages = [];

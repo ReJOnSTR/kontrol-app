@@ -204,14 +204,27 @@ async function updateEmployee(data) {
             return isNaN(d.getTime()) ? null : d;
         };
 
-        const newSalary = data.salary !== undefined ? parseFloat(data.salary) : (currentEmp?.salary || 0);
-        const oldSalary = currentEmp?.salary || 0;
+        const latestHistory = currentEmp?.employee_salary_history && currentEmp.employee_salary_history.length > 0
+            ? currentEmp.employee_salary_history[0]
+            : null;
+        
+        const currentSalary = latestHistory?.amount ?? currentEmp?.salary ?? 0;
+
+        let parsedSalary = NaN;
+        if (data.salary !== undefined && data.salary !== null && data.salary !== '') {
+            parsedSalary = parseFloat(data.salary);
+        }
+
+        const newSalary = !isNaN(parsedSalary) ? parsedSalary : currentSalary;
         const effectiveDate = parseDate(data.effectiveDate) || new Date();
 
-        if (newSalary !== oldSalary) {
+        // Only create salary history if salary was explicitly changed and is genuinely different
+        const isSalaryExplicitlyChanged = data.salaryChanged === true;
+        const isSalaryDifferent = !isNaN(parsedSalary) && Math.abs(parsedSalary - currentSalary) > 0.01;
+
+        if (isSalaryExplicitlyChanged && isSalaryDifferent) {
             // End the existing latest history
-            if (currentEmp?.employee_salary_history && currentEmp.employee_salary_history.length > 0) {
-                const latestHistory = currentEmp.employee_salary_history[0];
+            if (latestHistory && (!latestHistory.end_date || new Date(latestHistory.end_date) > effectiveDate)) {
                 await prisma.employee_salary_history.update({
                     where: { id: latestHistory.id },
                     data: { end_date: effectiveDate }
