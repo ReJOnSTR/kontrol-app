@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { isSalaryInMonth, calculateEmployeeMonthlyPayroll, calculateEmployeeMonthlyOvertime, SALARY_ALLOWED_PERIODS } from '../src/utils/payrollCalculator'
+import { getHistoricalBaseSalary } from '../src/utils/helpers'
 
 describe('Payroll Calculator & Financial Logic', () => {
     it('should validate allowed salary periods', () => {
@@ -77,5 +78,36 @@ describe('Payroll Calculator & Financial Logic', () => {
         expect(result.totalAmount).toBe(2300)
         expect(result.totalPaid).toBe(1300)
         expect(result.remainingAmount).toBe(1000)
+    })
+
+    it('should correctly calculate full month salary and prorated mid-month hire salary', () => {
+        // Full month employee in a 31-day month (October)
+        const fullEmployee = {
+            id: 100,
+            salary: 60000,
+            start_date: '2025-01-01'
+        }
+        expect(getHistoricalBaseSalary(fullEmployee, '2026-10')).toBe(60000)
+        expect(getHistoricalBaseSalary(fullEmployee, '2026-11')).toBe(60000)
+
+        // Mid-month hire on 23rd October (9 calendar days: 23-31 October)
+        const midMonthEmployee = {
+            id: 156,
+            salary: 27085.50,
+            start_date: '2026-10-23'
+        }
+        // Daily rate = 27085.50 / 30 = 902.85; 9 days = 8125.65
+        expect(getHistoricalBaseSalary(midMonthEmployee, '2026-10')).toBe(8125.65)
+        // Next month (November, full month)
+        expect(getHistoricalBaseSalary(midMonthEmployee, '2026-11')).toBe(27085.50)
+
+        // Mid-month exit on 15th October (15 calendar days: 1-15 October)
+        const exitingEmployee = {
+            id: 157,
+            salary: 60000,
+            start_date: '2025-01-01',
+            end_date: '2026-10-15'
+        }
+        expect(getHistoricalBaseSalary(exitingEmployee, '2026-10')).toBe(30000)
     })
 })

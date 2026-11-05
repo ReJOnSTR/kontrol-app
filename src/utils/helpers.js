@@ -503,20 +503,23 @@ export function getHistoricalBaseSalary(employee, targetMonth) {
         }
     }
 
+    // Target Month days count (e.g. 31 in Oct, 30 in Nov, 28/29 in Feb)
+    const daysInMonth = new Date(tYear, tMonth, 0).getDate()
+
     // Determine start day in this month (1-based day)
     let startDay = 1
     if (startObj && startObj.year === tYear && startObj.month === tMonth) {
         startDay = startObj.day
     }
 
-    // Determine end day in this month (30-day standard)
-    let endDay = 30
+    // Determine end day in this month (actual calendar end of month)
+    let endDay = daysInMonth
     if (endObj && endObj.year === tYear && endObj.month === tMonth) {
-        endDay = Math.min(endObj.day, 30)
+        endDay = Math.min(endObj.day, daysInMonth)
     }
 
-    // Full month worked under 30-day standard
-    if (startDay === 1 && endDay >= 30) {
+    // Full month worked under standard: full baseSalary regardless of month duration
+    if (startDay === 1 && endDay >= daysInMonth) {
         return baseSalary
     }
 
