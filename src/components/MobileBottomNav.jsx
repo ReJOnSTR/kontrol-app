@@ -8,12 +8,21 @@ export default function MobileBottomNav() {
     const location = useLocation()
     const { user, isAdmin, hasPermission } = useAuth()
     const { isModuleEnabled } = useCompany()
+    const [isDrawerOpen, setIsDrawerOpen] = React.useState(false)
 
     const isPersonnel = user?.role === 'personnel'
     const isSuperAdmin = user?.role === 'superadmin'
 
-    const openDrawer = () => {
-        window.dispatchEvent(new CustomEvent('kontrol:open-mobile-drawer'))
+    React.useEffect(() => {
+        const handleState = (e) => {
+            setIsDrawerOpen(!!e.detail?.open)
+        }
+        window.addEventListener('kontrol:mobile-drawer-state', handleState)
+        return () => window.removeEventListener('kontrol:mobile-drawer-state', handleState)
+    }, [])
+
+    const toggleDrawer = () => {
+        window.dispatchEvent(new CustomEvent('kontrol:toggle-mobile-drawer'))
     }
 
     // Don't show bottom nav on print pages
@@ -35,7 +44,12 @@ export default function MobileBottomNav() {
                     <Wallet size={20} />
                     <span>Mesailerim</span>
                 </NavLink>
-                <button type="button" className="bottom-nav-item menu-trigger" onClick={openDrawer}>
+                <button 
+                    type="button" 
+                    className={`bottom-nav-item menu-trigger ${isDrawerOpen ? 'active' : ''}`} 
+                    onClick={toggleDrawer}
+                    aria-label="Menüyü Aç / Kapat"
+                >
                     <Menu size={20} />
                     <span>Menü</span>
                 </button>
@@ -84,7 +98,12 @@ export default function MobileBottomNav() {
                 </NavLink>
             )}
 
-            <button type="button" className="bottom-nav-item menu-trigger" onClick={openDrawer} aria-label="Tüm Menüyü Aç">
+            <button 
+                type="button" 
+                className={`bottom-nav-item menu-trigger ${isDrawerOpen ? 'active' : ''}`} 
+                onClick={toggleDrawer} 
+                aria-label="Menüyü Aç / Kapat"
+            >
                 <Menu size={20} />
                 <span>Menü</span>
             </button>

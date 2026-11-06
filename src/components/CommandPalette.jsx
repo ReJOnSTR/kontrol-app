@@ -207,9 +207,10 @@ export default function CommandPalette() {
                         type="button"
                         className="command-palette-close-btn"
                         onClick={() => setIsOpen(false)}
-                        title="Kapat (ESC)"
+                        title="Kapat"
                     >
                         <span className="esc-text">ESC</span>
+                        <span className="mobile-cancel-text">Vazgeç</span>
                         <X size={16} className="close-icon" />
                     </button>
                 </div>

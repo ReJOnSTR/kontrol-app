@@ -67,10 +67,9 @@ export default function MobileHeader() {
     const isSuperAdmin = user?.role === 'superadmin'
     const isPersonnel = user?.role === 'personnel'
 
-    // Listen to global open mobile drawer event
+    // Listen to global open/close/toggle mobile drawer events
     useEffect(() => {
-        const handleOpen = () => {
-            setDrawerOpen(true)
+        const resetStyles = () => {
             if (sheetRef.current) {
                 sheetRef.current.style.transform = ''
                 sheetRef.current.style.transition = ''
@@ -80,9 +79,38 @@ export default function MobileHeader() {
                 overlayRef.current.style.transition = ''
             }
         }
+
+        const handleOpen = () => {
+            setDrawerOpen(true)
+            resetStyles()
+        }
+
+        const handleClose = () => {
+            setDrawerOpen(false)
+        }
+
+        const handleToggle = () => {
+            setDrawerOpen(prev => {
+                const next = !prev
+                if (next) resetStyles()
+                return next
+            })
+        }
+
         window.addEventListener('kontrol:open-mobile-drawer', handleOpen)
-        return () => window.removeEventListener('kontrol:open-mobile-drawer', handleOpen)
+        window.addEventListener('kontrol:close-mobile-drawer', handleClose)
+        window.addEventListener('kontrol:toggle-mobile-drawer', handleToggle)
+        return () => {
+            window.removeEventListener('kontrol:open-mobile-drawer', handleOpen)
+            window.removeEventListener('kontrol:close-mobile-drawer', handleClose)
+            window.removeEventListener('kontrol:toggle-mobile-drawer', handleToggle)
+        }
     }, [])
+
+    // Broadcast mobile drawer state changes
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent('kontrol:mobile-drawer-state', { detail: { open: drawerOpen } }))
+    }, [drawerOpen])
 
     // Close drawer on route change
     useEffect(() => {
