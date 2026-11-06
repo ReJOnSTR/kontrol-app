@@ -29,14 +29,27 @@ const applyScaleToDom = (scale) => {
         );
 
         if (isPrint || isMobile) {
+            if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.setZoomFactor === 'function') {
+                window.electronAPI.setZoomFactor(1);
+            }
             document.documentElement.style.zoom = '1';
             document.documentElement.style.setProperty('--ui-scale', '1');
+            document.documentElement.style.minWidth = '';
+            document.documentElement.style.minHeight = '';
             return;
         }
 
         const ratio = scale / 100;
-        document.documentElement.style.zoom = `${ratio}`;
-        document.documentElement.style.setProperty('--ui-scale', `${ratio}`);
+        if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.setZoomFactor === 'function') {
+            window.electronAPI.setZoomFactor(ratio);
+            document.documentElement.style.zoom = '1';
+            document.documentElement.style.setProperty('--ui-scale', '1');
+        } else {
+            document.documentElement.style.zoom = `${ratio}`;
+            document.documentElement.style.setProperty('--ui-scale', `${ratio}`);
+        }
+        document.documentElement.style.minWidth = '';
+        document.documentElement.style.minHeight = '';
     }
 }
 

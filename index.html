@@ -48,14 +48,27 @@
             var num = parseFloat(s);
             if (!isNaN(num) && num >= 75 && num <= 130) {
               var ratio = (num / 100);
-              document.documentElement.style.zoom = ratio.toString();
-              document.documentElement.style.setProperty('--ui-scale', ratio.toString());
+              if (window.electronAPI && typeof window.electronAPI.setZoomFactor === 'function') {
+                window.electronAPI.setZoomFactor(ratio);
+                document.documentElement.style.zoom = '1';
+                document.documentElement.style.setProperty('--ui-scale', '1');
+              } else {
+                document.documentElement.style.zoom = ratio.toString();
+                document.documentElement.style.setProperty('--ui-scale', ratio.toString());
+              }
+              document.documentElement.style.minWidth = '';
+              document.documentElement.style.minHeight = '';
             }
           }
         } else {
           // Strictly lock mobile zoom to standard 1.0 (prevents oversized screen shifts)
+          if (window.electronAPI && typeof window.electronAPI.setZoomFactor === 'function') {
+            window.electronAPI.setZoomFactor(1);
+          }
           document.documentElement.style.zoom = '1';
           document.documentElement.style.setProperty('--ui-scale', '1');
+          document.documentElement.style.minWidth = '';
+          document.documentElement.style.minHeight = '';
         }
       } catch (e) {
         document.documentElement.setAttribute('data-theme', 'dark');

@@ -64,16 +64,22 @@ export function AuthProvider({ children }) {
                 );
                 if (!isPrint && !isMobile) {
                     const ratio = scale / 100;
-                    document.documentElement.style.zoom = String(ratio);
-                    if (ratio < 1) {
-                        document.documentElement.style.minWidth = `${100 / ratio}%`;
-                        document.documentElement.style.minHeight = `${100 / ratio}%`;
+                    if (window.electronAPI && typeof window.electronAPI.setZoomFactor === 'function') {
+                        window.electronAPI.setZoomFactor(ratio);
+                        document.documentElement.style.zoom = '1';
+                        document.documentElement.style.setProperty('--ui-scale', '1');
                     } else {
-                        document.documentElement.style.minWidth = '';
-                        document.documentElement.style.minHeight = '';
+                        document.documentElement.style.zoom = String(ratio);
+                        document.documentElement.style.setProperty('--ui-scale', String(ratio));
                     }
+                    document.documentElement.style.minWidth = '';
+                    document.documentElement.style.minHeight = '';
                 } else {
+                    if (window.electronAPI && typeof window.electronAPI.setZoomFactor === 'function') {
+                        window.electronAPI.setZoomFactor(1);
+                    }
                     document.documentElement.style.zoom = '1';
+                    document.documentElement.style.setProperty('--ui-scale', '1');
                     document.documentElement.style.minWidth = '';
                     document.documentElement.style.minHeight = '';
                 }
