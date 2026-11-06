@@ -4,22 +4,14 @@ import { loadingManager } from '../utils/loadingManager'
 
 const style = `
 .top-progress-bar {
-    position: fixed;
+    position: absolute;
     top: 40px;
-    left: var(--sidebar-width);
+    left: 0;
     right: 0;
     height: 2.5px;
     z-index: 999;
     pointer-events: none;
     transition: opacity 0.2s ease;
-}
-
-body.is-electron .top-progress-bar {
-    top: 78px;
-}
-
-.sidebar-collapsed .top-progress-bar {
-    left: var(--sidebar-collapsed-width);
 }
 
 @media (max-width: 768px) {

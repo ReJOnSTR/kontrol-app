@@ -308,18 +308,9 @@ body.is-electron .app-layout {
   margin-top: 38px;
 }
 
-body.is-electron .sidebar {
-  top: 38px;
-}
-
 body:not(.is-electron) .desktop-title-bar,
 body.is-web .desktop-title-bar {
   display: none !important;
-}
-
-body:not(.is-electron) .sidebar,
-body.is-web .sidebar {
-  top: 0 !important;
 }
 
 /* Custom Title Bar Dragging */
@@ -373,21 +364,20 @@ textarea,
 
 
 .main-content {
-  flex: 1;
+  flex: 1 1 0%;
   display: flex;
   flex-direction: column;
-  margin-left: var(--sidebar-width);
-  transition: margin-left var(--transition-normal), width var(--transition-normal), max-width var(--transition-normal);
+  margin-left: 0;
   min-width: 0;
-  width: calc(100% - var(--sidebar-width));
-  max-width: calc(100% - var(--sidebar-width));
-  box-sizing: border-box;
+  width: auto;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 .sidebar-collapsed .main-content {
-  margin-left: var(--sidebar-collapsed-width);
-  width: calc(100% - var(--sidebar-collapsed-width));
-  max-width: calc(100% - var(--sidebar-collapsed-width));
+  margin-left: 0;
+  width: auto;
 }
 
 .page-content {
@@ -2608,16 +2598,15 @@ textarea,
    ============================================ */
 
 .sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
+  position: relative;
+  height: 100%;
   width: var(--sidebar-width);
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   /* Faster width transition */
   transition: width 0.25s cubic-bezier(0.2, 0, 0, 1);
   z-index: 50;
