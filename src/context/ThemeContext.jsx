@@ -23,14 +23,29 @@ const applyScaleToDom = (scale) => {
             document.body.classList.contains('is-printing') ||
             document.body.classList.contains('print-body')
         );
-        if (isPrint) {
+        const isMobile = typeof window !== 'undefined' && (
+            window.innerWidth <= 768 ||
+            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        );
+
+        if (isPrint || isMobile) {
             document.documentElement.style.zoom = '1';
+            document.documentElement.style.minWidth = '';
+            document.documentElement.style.minHeight = '';
             document.documentElement.style.setProperty('--ui-scale', '1');
             return;
         }
-        const ratio = scale / 100
-        document.documentElement.style.zoom = `${ratio}`
-        document.documentElement.style.setProperty('--ui-scale', `${ratio}`)
+
+        const ratio = scale / 100;
+        document.documentElement.style.zoom = `${ratio}`;
+        document.documentElement.style.setProperty('--ui-scale', `${ratio}`);
+        if (ratio < 1) {
+            document.documentElement.style.minWidth = `${100 / ratio}%`;
+            document.documentElement.style.minHeight = `${100 / ratio}%`;
+        } else {
+            document.documentElement.style.minWidth = '';
+            document.documentElement.style.minHeight = '';
+        }
     }
 }
 
@@ -114,6 +129,12 @@ export function ThemeProvider({ children }) {
     useEffect(() => {
         applyScaleToDom(uiScale)
         localStorage.setItem('aractakip_ui_scale', String(uiScale))
+
+        const handleResize = () => {
+            applyScaleToDom(uiScale)
+        }
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
     }, [uiScale])
 
     // Listen for theme updates from DB when user logs in

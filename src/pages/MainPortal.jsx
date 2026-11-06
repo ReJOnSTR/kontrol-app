@@ -102,14 +102,31 @@ const portalStyles = `
     }
     @media (max-width: 768px) {
         .portal-container {
-            padding: 16px 12px;
+            padding: 4px 0 !important;
+            max-width: 100% !important;
+        }
+        .portal-header-area {
+            margin-bottom: 20px !important;
+        }
+        .portal-header-top {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+        }
+        .portal-header-area h1 {
+            font-size: 22px !important;
+        }
+        .portal-card {
+            padding: 18px 16px !important;
+            border-radius: 16px !important;
         }
         .portal-grid {
             grid-template-columns: 1fr;
-            gap: 14px;
+            gap: 12px;
         }
         .portal-inactive-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
         }
     }
 `
@@ -278,7 +295,7 @@ export default function MainPortal() {
             <div className="portal-container">
                 {/* Header */}
                 <div className="portal-header-area" style={{ marginBottom: '32px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div className="portal-header-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '12px', marginBottom: '10px', fontWeight: '500' }}>
                                 <Clock size={13} />

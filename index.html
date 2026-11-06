@@ -3,12 +3,24 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" />
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' 'unsafe-inline' blob: https://unpkg.com https://cdn.jsdelivr.net; worker-src 'self' blob:; object-src 'self' blob: data:; frame-src 'self' blob: data:; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://unpkg.com https://*.arcgisonline.com https://*.google.com https://*.googleapis.com https://*.kontrol-app.com https://supabase.kontrol-app.com https://*.supabase.co; connect-src 'self' blob: data: ws://localhost:* http://localhost:* ws://127.0.0.1:* http://127.0.0.1:* ws://* wss://* https://*.kontrol-app.com https://supabase.kontrol-app.com https://*.supabase.co https://*.sslip.io https://nominatim.openstreetmap.org https://router.project-osrm.org https://photon.komoot.io https://*.googleapis.com https://*.google.com;">
   <title>Kontrol - Filo Yönetim Sistemi</title>
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="shortcut icon" href="/favicon.ico" />
+
+  <!-- Progressive Web App (PWA) Tags -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#0f0f11" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Kontrol" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
 
   <script>
     (function () {
@@ -23,19 +35,52 @@
         document.documentElement.setAttribute('data-accent', a);
 
         var isPrint = window.location.hash.indexOf('print') !== -1 || window.location.pathname.indexOf('print') !== -1;
-        if (!isPrint) {
+        var isMobile = (window.innerWidth <= 768) || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        if (!isPrint && !isMobile) {
           var s = localStorage.getItem('aractakip_ui_scale') || localStorage.getItem('ui_scale');
           if (s) {
             var num = parseFloat(s);
             if (!isNaN(num) && num >= 75 && num <= 130) {
-              var ratio = (num / 100).toString();
-              document.documentElement.style.zoom = ratio;
-              document.documentElement.style.setProperty('--ui-scale', ratio);
+              var ratio = (num / 100);
+              document.documentElement.style.zoom = ratio.toString();
+              document.documentElement.style.setProperty('--ui-scale', ratio.toString());
+              if (ratio < 1) {
+                document.documentElement.style.minWidth = (100 / ratio) + '%';
+                document.documentElement.style.minHeight = (100 / ratio) + '%';
+              } else {
+                document.documentElement.style.minWidth = '';
+                document.documentElement.style.minHeight = '';
+              }
             }
           }
         } else {
+          // Strictly lock mobile zoom to standard 1.0 (prevents oversized screen shifts)
           document.documentElement.style.zoom = '1';
+          document.documentElement.style.minWidth = '';
+          document.documentElement.style.minHeight = '';
           document.documentElement.style.setProperty('--ui-scale', '1');
+        }
+
+        // Disable accidental iOS/touch zoom gestures on mobile devices
+        if (typeof window !== 'undefined') {
+          // Prevent pinch-zoom gestures (iOS Safari)
+          document.addEventListener('gesturestart', function (e) {
+            e.preventDefault();
+          }, { passive: false });
+          document.addEventListener('gesturechange', function (e) {
+            e.preventDefault();
+          }, { passive: false });
+          document.addEventListener('gestureend', function (e) {
+            e.preventDefault();
+          }, { passive: false });
+
+          // Prevent multi-touch pinch zoom
+          document.addEventListener('touchstart', function (e) {
+            if (e.touches && e.touches.length > 1) {
+              e.preventDefault();
+            }
+          }, { passive: false });
         }
       } catch (e) {
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -205,10 +250,10 @@
 <body>
   <div id="root" style="height:100%;width:100%;position:relative;background:inherit;">
     <!-- Full-screen Canvas with Organic Aurora Dots & Depth Mask -->
-    <canvas id="shimmer-canvas" style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:block;z-index:0;"></canvas>
+    <canvas id="shimmer-canvas" style="position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;pointer-events:none;"></canvas>
 
     <!-- Floating Clean Overlay (No Box, Calm Status & Button) -->
-    <div class="shimmer-overlay" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:10;pointer-events:none;padding:24px;">
+    <div class="shimmer-overlay" style="position:fixed;inset:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:10;pointer-events:none;padding:24px;box-sizing:border-box;overflow:hidden;">
       <!-- Elegant Spinner Ring -->
       <div class="shimmer-spinner"></div>
 

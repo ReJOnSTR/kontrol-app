@@ -239,7 +239,7 @@ export default function ApprovalCenter() {
             </div>
 
             {/* Stats Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+            <div className="grid-responsive-4" style={{ marginBottom: '24px', gap: '16px' }}>
                 <div className="card" style={{ padding: '16px 20px' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Onay Bekleyenler</div>
                     <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: pendingCount > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>

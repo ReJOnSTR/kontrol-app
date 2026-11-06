@@ -58,10 +58,24 @@ export function AuthProvider({ children }) {
                     window.location.pathname.includes('print') ||
                     window.location.pathname.includes('work-report')
                 );
-                if (!isPrint) {
-                    document.documentElement.style.zoom = String(scale / 100);
+                const isMobile = typeof window !== 'undefined' && (
+                    window.innerWidth <= 768 ||
+                    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+                );
+                if (!isPrint && !isMobile) {
+                    const ratio = scale / 100;
+                    document.documentElement.style.zoom = String(ratio);
+                    if (ratio < 1) {
+                        document.documentElement.style.minWidth = `${100 / ratio}%`;
+                        document.documentElement.style.minHeight = `${100 / ratio}%`;
+                    } else {
+                        document.documentElement.style.minWidth = '';
+                        document.documentElement.style.minHeight = '';
+                    }
                 } else {
                     document.documentElement.style.zoom = '1';
+                    document.documentElement.style.minWidth = '';
+                    document.documentElement.style.minHeight = '';
                 }
                 window.dispatchEvent(new CustomEvent('aractakip_scale_changed', { detail: scale }));
             }

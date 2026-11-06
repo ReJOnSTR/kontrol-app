@@ -242,6 +242,8 @@ const MonthFilter = ({ value, onChange, minDate }) => {
                         top: 'calc(100% + 6px)',
                         right: 0,
                         width: '240px',
+                        maxWidth: 'calc(100vw - 24px)',
+                        boxSizing: 'border-box',
                         backgroundColor: 'var(--bg-secondary)',
                         border: '1px solid var(--border-color)',
                         borderRadius: '12px',

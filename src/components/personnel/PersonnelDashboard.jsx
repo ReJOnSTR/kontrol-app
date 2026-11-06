@@ -228,28 +228,28 @@ export default function PersonnelDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0d0f17] text-white p-6 md:p-10 font-sans">
+        <div className="min-h-screen bg-[#0d0f17] text-white p-4 sm:p-6 md:p-10 font-sans">
             {/* Header Bar */}
-            <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 pb-8 border-b border-gray-800/60 mb-8">
+            <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 md:pb-8 border-b border-gray-800/60 mb-6 md:mb-8">
                 <div>
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-500/20">
+                        <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center font-bold text-lg md:text-xl shadow-lg shadow-indigo-500/20 flex-shrink-0">
                             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'P'}
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight">{user?.full_name || user?.username}</h1>
-                            <p className="text-sm text-gray-400 flex items-center gap-2">
-                                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <div className="min-w-0">
+                            <h1 className="text-xl md:text-2xl font-bold tracking-tight truncate">{user?.full_name || user?.username}</h1>
+                            <p className="text-xs md:text-sm text-gray-400 flex items-center gap-2 truncate">
+                                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
                                 {user?.employee?.department || 'Personel Portalı'} • {user?.employee?.position || 'Çalışan'}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full md:w-auto">
                     <button 
                         onClick={logout}
-                        className="px-4 py-2 rounded-xl bg-gray-800/80 hover:bg-rose-600/20 hover:text-rose-400 text-gray-300 text-sm font-medium transition-all duration-200 border border-gray-700/50 flex items-center gap-2"
+                        className="w-full md:w-auto justify-center px-4 py-2.5 rounded-xl bg-gray-800/80 hover:bg-rose-600/20 hover:text-rose-400 text-gray-300 text-sm font-medium transition-all duration-200 border border-gray-700/50 flex items-center gap-2"
                     >
                         <LogOut size={16} /> Çıkış Yap
                     </button>
@@ -257,9 +257,9 @@ export default function PersonnelDashboard() {
             </div>
 
             {/* Quick Action Request Cards */}
-            <div className="max-w-6xl mx-auto mb-10">
-                <h2 className="text-sm uppercase tracking-wider text-gray-400 font-semibold mb-4">Hızlı Talep Oluştur</h2>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="max-w-6xl mx-auto mb-8 md:mb-10">
+                <h2 className="text-xs md:text-sm uppercase tracking-wider text-gray-400 font-semibold mb-3 md:mb-4">Hızlı Talep Oluştur</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
                     <button 
                         onClick={() => handleOpenModal('LEAVE')}
                         className="group p-4 rounded-2xl bg-gray-900/60 hover:bg-sky-500/10 border border-gray-800 hover:border-sky-500/40 transition-all text-left flex flex-col justify-between h-32"
@@ -351,7 +351,7 @@ export default function PersonnelDashboard() {
                                         {getTypeIcon(req.type)}
                                     </div>
                                     <div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             <h3 className="font-semibold text-white">{req.title}</h3>
                                             {getStatusBadge(req.status)}
                                         </div>
@@ -389,7 +389,7 @@ export default function PersonnelDashboard() {
                                     </div>
                                 </div>
 
-                                <div className="text-right text-xs text-gray-500 flex md:flex-col justify-between items-end">
+                                <div className="text-left md:text-right text-xs text-gray-500 flex flex-row md:flex-col justify-between items-center md:items-end w-full md:w-auto pt-2 border-t border-gray-800/40 md:border-t-0 md:pt-0">
                                     <div>Oluşturulma: {new Date(req.created_at).toLocaleDateString('tr-TR')}</div>
                                     {req.approvals && req.approvals.length > 0 && req.approvals[0].comment && (
                                         <div className="text-rose-400 text-xs mt-1 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20">
@@ -405,8 +405,8 @@ export default function PersonnelDashboard() {
 
             {/* Modal for Creating Request */}
             {modalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-                    <div className="w-full max-w-lg bg-[#121522] border border-gray-800 rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70">
+                    <div className="w-full max-w-lg bg-[#121522] border-t sm:border border-gray-800 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[92dvh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between pb-4 border-b border-gray-800 mb-5">
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">

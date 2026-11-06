@@ -2098,7 +2098,7 @@ export default function Overtimes() {
                                                 {/* Günlük Süre */}
                                                 <div style={{ 
                                                     display: 'grid', 
-                                                    gridTemplateColumns: 'minmax(140px, 1fr) minmax(210px, 1.2fr)', 
+                                                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', 
                                                     gap: '12px', 
                                                     alignItems: 'end', 
                                                     width: '100%' 
@@ -2187,7 +2187,7 @@ export default function Overtimes() {
                                                 {/* Ekstra Mesai (Saat) Uzatması */}
                                                 <div style={{ 
                                                     display: 'grid', 
-                                                    gridTemplateColumns: 'minmax(140px, 1fr) minmax(210px, 1.2fr)', 
+                                                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', 
                                                     gap: '12px', 
                                                     alignItems: 'end', 
                                                     width: '100%',

@@ -251,6 +251,7 @@
 html,
 body,
 #root {
+  width: 100%;
   height: 100%;
   min-height: calc(100vh / var(--ui-scale, 1));
 }
@@ -435,6 +436,29 @@ textarea,
     scrollbar-width: none !important;
   }
 
+  html, body {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    position: relative !important;
+    touch-action: pan-x pan-y !important;
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+  }
+
+  #root {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    position: relative !important;
+    touch-action: pan-x pan-y !important;
+  }
+
+  /* Prevent double-tap zoom & delay on interactive elements */
+  button, a, input, select, textarea, .card, .stat-card, .btn {
+    touch-action: manipulation !important;
+  }
+
   /* App Root Layout */
   .app-layout {
     flex-direction: column !important;
@@ -444,31 +468,26 @@ textarea,
     overflow: hidden !important;
   }
 
-  body:not(.is-electron) .desktop-title-bar {
+  /* Universal Mobile Hide: Desktop TitleBar, Sidebar & TabBar are hidden on all <= 768px screens */
+  .desktop-title-bar {
     display: none !important;
   }
 
-  body:not(.is-electron) .sidebar {
+  body.is-electron .app-layout {
+    margin-top: 0 !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+  }
+
+  .sidebar {
     display: none !important;
   }
 
-  body:not(.is-electron) .tab-bar {
+  .tab-bar {
     display: none !important;
   }
 
-  body.is-electron .sidebar {
-    width: var(--sidebar-collapsed-width) !important;
-    min-width: var(--sidebar-collapsed-width) !important;
-  }
-
-  body.is-electron .sidebar .sidebar-label,
-  body.is-electron .sidebar .sidebar-brand-text,
-  body.is-electron .sidebar .sidebar-section-title,
-  body.is-electron .sidebar .sidebar-footer-info {
-    display: none !important;
-  }
-
-  body:not(.is-electron) .main-content {
+  .main-content {
     margin-left: 0 !important;
     flex: 1;
     display: flex;
@@ -478,19 +497,10 @@ textarea,
     max-width: 100vw !important;
   }
 
-  body.is-electron .main-content {
-    margin-left: var(--sidebar-collapsed-width) !important;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    width: calc(100vw - var(--sidebar-collapsed-width)) !important;
-    max-width: calc(100vw - var(--sidebar-collapsed-width)) !important;
-  }
-
   .page-content {
-    padding: 14px 12px 60px 12px !important;
+    padding: 14px 12px max(60px, calc(env(safe-area-inset-bottom, 0px) + 24px)) 12px !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch;
     flex: 1;
     height: auto !important;
@@ -507,14 +517,15 @@ textarea,
     display: block !important;
   }
 
-  /* ── MOBILE HEADER (TOP BAR) ── */
-  body:not(.is-electron) .mobile-header-wrapper {
+  /* ── UNIVERSAL MOBILE HEADER (TOP BAR) ── */
+  .mobile-header-wrapper {
     display: block !important;
     position: sticky;
     top: 0;
     z-index: 900;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
+    padding-top: env(safe-area-inset-top, 0px) !important;
   }
 
   .mobile-header {
@@ -765,7 +776,7 @@ textarea,
     background: rgba(0, 0, 0, 0.65);
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    z-index: 1100;
+    z-index: 10000 !important;
     animation: fadeIn 0.2s ease;
   }
 
@@ -778,13 +789,15 @@ textarea,
     max-width: 82vw;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
-    z-index: 1200;
+    z-index: 10001 !important;
     display: flex;
     flex-direction: column;
     transform: translateX(-100%);
     transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   }
 
   .mobile-drawer.open {
@@ -1144,6 +1157,22 @@ textarea,
     margin-bottom: 16px !important;
   }
 
+  .page-header > div:last-child:not(:first-child) {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .page-header > div:last-child:not(:first-child) > * {
+    flex: 1 1 auto !important;
+  }
+
+  .page-header > div:last-child:not(:first-child) div[style*="width"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
   .page-title {
     font-size: 20px !important;
     line-height: 1.25 !important;
@@ -1160,6 +1189,23 @@ textarea,
   .page-actions .btn {
     flex: 1 1 auto !important;
     justify-content: center !important;
+  }
+
+  .salaries-header-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .salaries-header-actions > div {
+    flex: 1 1 180px !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .salaries-header-actions button {
+    flex: 0 0 auto !important;
   }
 
   /* ── DATA TABLE MOBILE RESPONSIVENESS ── */
@@ -1232,14 +1278,14 @@ textarea,
   }
 
   .pagination button {
-    min-width: 34px !important;
-    height: 34px !important;
-    font-size: 12.5px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    font-size: 13px !important;
   }
 
   .btn-icon {
-    min-width: 34px !important;
-    min-height: 34px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
   }
 
   /* Bulk Selection Floating Dock on Mobile */
@@ -2273,7 +2319,8 @@ textarea,
   }
 
   .form-grid-2,
-  .form-grid-3 {
+  .form-grid-3,
+  .form-grid-4 {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
@@ -2310,6 +2357,21 @@ textarea,
   }
   .grid-responsive-3 {
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .sidebar {
+    width: var(--sidebar-collapsed-width) !important;
+    min-width: var(--sidebar-collapsed-width) !important;
+  }
+  .sidebar .sidebar-label,
+  .sidebar .sidebar-brand-text,
+  .sidebar .sidebar-section-title,
+  .sidebar .sidebar-footer-info {
+    display: none !important;
+  }
+  .main-content {
+    margin-left: var(--sidebar-collapsed-width) !important;
+    width: calc(100vw - var(--sidebar-collapsed-width)) !important;
+    max-width: calc(100vw - var(--sidebar-collapsed-width)) !important;
   }
 }
 
@@ -7182,7 +7244,7 @@ body:has(.modal-overlay) .desktop-title-bar {
   
   .notification-dropdown {
     position: fixed !important;
-    top: 56px !important;
+    top: calc(56px + env(safe-area-inset-top, 0px)) !important;
     left: 8px !important;
     right: 8px !important;
     width: auto !important;

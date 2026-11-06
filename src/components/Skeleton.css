@@ -1,6 +1,8 @@
 .skeleton-pulse {
     position: relative;
     overflow: hidden;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .skeleton-pulse::after {
@@ -33,5 +35,256 @@
 
     100% {
         transform: translateX(100%);
+    }
+}
+
+/* ============================================================
+   RESPONSIVE SKELETON LAYOUT CLASSES (Mobile & Desktop)
+   ============================================================ */
+
+.skeleton-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding-bottom: 30px;
+    animation: fadeIn 0.2s ease;
+    overflow-x: hidden;
+}
+
+.skeleton-page-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 24px;
+    animation: fadeIn 0.2s ease;
+    overflow-x: hidden;
+}
+
+.skeleton-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skeleton-header-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.skeleton-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skeleton-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skeleton-stats-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skeleton-content-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skeleton-detail-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skeleton-controls-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    gap: 12px;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skeleton-controls-search {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.skeleton-controls-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.skeleton-pills-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.skeleton-pills-row::-webkit-scrollbar {
+    display: none;
+}
+
+/* Desktop vs Mobile Table Skeleton Switch */
+.skeleton-table-desktop {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skeleton-table-mobile {
+    display: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skeleton-mobile-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+/* ============================================================
+   MOBILE RESPONSIVE BREAKPOINTS (<= 768px & <= 480px)
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .skeleton-page-container,
+    .skeleton-container {
+        padding: 10px 4px 20px 4px !important;
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .skeleton-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        width: 100% !important;
+    }
+
+    .skeleton-header-actions {
+        width: 100%;
+        display: flex;
+        justify-content: flex-start;
+    }
+
+    .skeleton-quick-actions {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .skeleton-stats-grid,
+    .skeleton-stats-grid-3 {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .skeleton-content-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+    }
+
+    .skeleton-detail-form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    .skeleton-controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        width: 100% !important;
+    }
+
+    .skeleton-controls-search {
+        width: 100% !important;
+        display: flex;
+        gap: 8px;
+    }
+
+    .skeleton-controls-search > div {
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .skeleton-controls-actions {
+        width: 100% !important;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    /* Switch Table skeleton to Mobile Card view on mobile */
+    .skeleton-table-desktop {
+        display: none !important;
+    }
+
+    .skeleton-table-mobile {
+        display: flex !important;
+        flex-direction: column;
+        gap: 10px;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .skeleton-stats-grid,
+    .skeleton-stats-grid-3 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .skeleton-controls-search {
+        flex-direction: column;
     }
 }

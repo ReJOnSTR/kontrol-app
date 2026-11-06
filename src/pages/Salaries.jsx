@@ -607,7 +607,7 @@ export default function Salaries() {
                     <h1 className="page-title">Aylık Maaş Yönetimi</h1>
                     <p className="page-subtitle">Dönemsel maaş takibi, mesai ve ödemeler</p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="salaries-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ width: '240px' }}>
                         <MonthFilter
                             value={selectedMonth}

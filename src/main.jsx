@@ -65,6 +65,54 @@ if (
     }
 }
 
+// PWA Service Worker Registration
+// CRITICAL: NEVER run in Electron or in local development (DEV / localhost / 127.0.0.1).
+// Running SW on dev server intercepts Vite HMR websockets and modules, causing 400 handshake errors.
+const isElectronEnv = typeof window !== 'undefined' && Boolean(
+    window.process?.versions?.electron ||
+    (navigator.userAgent && navigator.userAgent.toLowerCase().includes('electron'))
+);
+
+const isDevEnv = typeof window !== 'undefined' && (
+    import.meta.env.DEV || 
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1'
+);
+
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    if (isDevEnv || isElectronEnv || !window.location.protocol.startsWith('http')) {
+        // Automatically unregister any stale Service Worker registered on localhost/dev
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+            for (const registration of registrations) {
+                registration.unregister();
+                console.info('[PWA] Unregistered local development service worker:', registration.scope);
+            }
+        }).catch(() => {});
+    } else {
+        // Production Web environment only
+        window.addEventListener('load', () => {
+            navigator.serviceWorker
+                .register('/sw.js')
+                .then((registration) => {
+                    console.log('[PWA] Service Worker registered successfully:', registration.scope);
+                    registration.addEventListener('updatefound', () => {
+                        const installingWorker = registration.installing;
+                        if (installingWorker) {
+                            installingWorker.addEventListener('statechange', () => {
+                                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('[PWA] New content is available; please refresh.');
+                                }
+                            });
+                        }
+                    });
+                })
+                .catch((err) => {
+                    console.warn('[PWA] Service Worker registration failed:', err);
+                });
+        });
+    }
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <QueryClientProvider client={queryClient}>
