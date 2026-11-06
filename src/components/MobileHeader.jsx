@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { 
-    Menu, X, Building2, ChevronDown, User, LogOut, Settings, 
+    X, Building2, ChevronDown, User, LogOut, Settings, 
     Crown, Bell, LayoutDashboard, Car, Users, Wallet, Briefcase, 
     UtensilsCrossed, ChevronRight, Shield, Check, Search, Sparkles
 } from 'lucide-react'
@@ -130,17 +130,10 @@ export default function MobileHeader() {
             {/* Top Bar for Mobile Screens */}
             <header className="mobile-header">
                 <div className="mobile-header-left">
-                    <button
-                        type="button"
-                        className="mobile-menu-btn"
-                        onClick={() => setDrawerOpen(true)}
-                        aria-label="Menüyü Aç"
-                    >
-                        <Menu size={22} />
-                    </button>
                     <div 
                         className="mobile-brand"
                         onClick={() => navigate(user?.role === 'personnel' ? '/personnel-profile' : '/portal')}
+                        style={{ cursor: 'pointer' }}
                     >
                         <img src={logoCollapsed} alt="Logo" className="mobile-logo" />
                         <span className="mobile-app-title">Kontrol</span>

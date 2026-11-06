@@ -25,6 +25,11 @@
   <script>
     (function () {
       try {
+        var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (isStandalone) {
+          document.documentElement.classList.add('is-pwa');
+        }
+
         var t = localStorage.getItem('aractakip_theme') || localStorage.getItem('theme');
         if (!t) {
           t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';

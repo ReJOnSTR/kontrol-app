@@ -26,7 +26,7 @@ body.is-electron .top-progress-bar {
     .top-progress-bar {
         left: 0 !important;
         right: 0 !important;
-        top: 56px !important;
+        top: 0 !important;
         height: 3px !important;
         z-index: 1005 !important;
     }

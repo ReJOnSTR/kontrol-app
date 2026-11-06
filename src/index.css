@@ -419,6 +419,12 @@ textarea,
   display: none;
 }
 
+@media all and (display-mode: standalone) {
+  .mobile-header-wrapper {
+    padding-top: max(env(safe-area-inset-top, 44px), 44px) !important;
+  }
+}
+
 /* ============================================
    RESPONSIVE MOBILE ENGINE (max-width: 768px)
    ============================================ */
@@ -586,12 +592,18 @@ textarea,
   /* ── UNIVERSAL MOBILE HEADER (TOP BAR) ── */
   .mobile-header-wrapper {
     display: block !important;
-    position: sticky;
-    top: 0;
+    position: relative;
+    top: auto;
     z-index: 900;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: max(env(safe-area-inset-top, 0px), 0px) !important;
+    flex-shrink: 0;
+  }
+
+  /* PWA Standalone Mode Top Padding Protection (Notch / Dynamic Island / Status Bar) */
+  .is-pwa .mobile-header-wrapper {
+    padding-top: max(env(safe-area-inset-top, 44px), 44px) !important;
   }
 
   .mobile-header {
@@ -599,7 +611,7 @@ textarea,
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 12px;
+    padding: 0 16px;
     gap: 8px;
   }
 
@@ -615,17 +627,7 @@ textarea,
   }
 
   .mobile-menu-btn {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    cursor: pointer;
-    flex-shrink: 0;
+    display: none !important;
   }
 
   .mobile-brand {
