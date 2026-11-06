@@ -300,6 +300,12 @@ export default function Login() {
 
                 {/* ── RIGHT SIDE: FORM CONTAINER ── */}
                 <div className="auth-form-panel">
+                    {/* Mobile-only compact branding header */}
+                    <div className="auth-mobile-brand">
+                        <img src={logo} alt="Kontrol Logo" className="auth-mobile-logo" />
+                        <h1 className="auth-mobile-title">KONTROL</h1>
+                        <span className="auth-mobile-badge">Filo & Yönetim Platformu</span>
+                    </div>
                     {/* ── 2FA VERIFICATION CHALLENGE FORM ── */}
                     {mfaChallenge ? (
                         <div>

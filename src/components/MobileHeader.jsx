@@ -48,6 +48,7 @@ export default function MobileHeader() {
     const [drawerOpen, setDrawerOpen] = useState(false)
     const [showCompanyMenu, setShowCompanyMenu] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
+    const [selectedDrawerModule, setSelectedDrawerModule] = useState(null)
     
     const { user, logout, isAdmin, hasPermission } = useAuth()
     const { companies, currentCompany, selectCompany, isImpersonating, isModuleEnabled, isIntegrationEnabled } = useCompany()
@@ -58,11 +59,19 @@ export default function MobileHeader() {
     const isSuperAdmin = user?.role === 'superadmin'
     const isPersonnel = user?.role === 'personnel'
 
+    // Listen to global open mobile drawer event
+    useEffect(() => {
+        const handleOpen = () => setDrawerOpen(true)
+        window.addEventListener('kontrol:open-mobile-drawer', handleOpen)
+        return () => window.removeEventListener('kontrol:open-mobile-drawer', handleOpen)
+    }, [])
+
     // Close drawer on route change
     useEffect(() => {
         setDrawerOpen(false)
         setShowCompanyMenu(false)
         setShowUserMenu(false)
+        setSelectedDrawerModule(null)
     }, [location.pathname, location.search])
 
     // Prevent background scrolling when drawer is open
@@ -77,14 +86,17 @@ export default function MobileHeader() {
         }
     }, [drawerOpen])
 
-    const activeModule = (isSuperAdmin && !isImpersonating) 
+    const activeRouteModule = (isSuperAdmin && !isImpersonating) 
         ? 'platform' 
         : (isPersonnel ? 'personnel' : getActiveModule(location.pathname, location.search))
 
-    const isModuleAllowed = (isSuperAdmin && !isImpersonating) ? true : (isPersonnel ? true : isModuleEnabled(activeModule))
-    const activeMenus = isModuleAllowed ? (moduleMenus[activeModule] || []) : []
+    // If on portal or activeRouteModule has no submenus, default to fleet or first available module
+    const currentDrawerModule = selectedDrawerModule || (activeRouteModule !== 'portal' && moduleMenus[activeRouteModule] ? activeRouteModule : 'fleet')
 
-    const filteredMenus = activeMenus.map(group => {
+    const isModuleAllowed = (isSuperAdmin && !isImpersonating) ? true : (isPersonnel ? true : isModuleEnabled(currentDrawerModule))
+    const targetMenus = isModuleAllowed ? (moduleMenus[currentDrawerModule] || []) : []
+
+    const filteredMenus = targetMenus.map(group => {
         const items = group.items.filter(item => {
             if (item.integration && !isIntegrationEnabled(item.integration)) return false
             if (item.path === '/arvento-tracking' && !isIntegrationEnabled('arvento')) return false
@@ -313,7 +325,7 @@ export default function MobileHeader() {
                     <div className="drawer-section-title">Modüller</div>
                     <div className="drawer-modules-grid">
                         {availableModules.map(mod => {
-                            const isModActive = activeModule === mod.id
+                            const isModActive = currentDrawerModule === mod.id || (mod.id === 'portal' && location.pathname === '/portal')
                             const IconComponent = mod.icon
                             return (
                                 <button
@@ -321,8 +333,12 @@ export default function MobileHeader() {
                                     type="button"
                                     className={`drawer-module-chip ${isModActive ? 'active' : ''}`}
                                     onClick={() => {
-                                        navigate(mod.path)
-                                        setDrawerOpen(false)
+                                        if (mod.id === 'portal') {
+                                            navigate('/portal')
+                                            setDrawerOpen(false)
+                                        } else {
+                                            setSelectedDrawerModule(mod.id)
+                                        }
                                     }}
                                 >
                                     <IconComponent size={15} />
@@ -333,7 +349,29 @@ export default function MobileHeader() {
                     </div>
                 </div>
 
-                {/* Submenu Items for Active Module */}
+                {/* Submenu Title & Quick Access */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px 6px 18px', borderBottom: '1px solid var(--border-color)' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        {availableModules.find(m => m.id === currentDrawerModule)?.label || 'Alt'} Menüleri
+                    </span>
+                    {availableModules.find(m => m.id === currentDrawerModule)?.path && (
+                        <button
+                            type="button"
+                            style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                            onClick={() => {
+                                const targetPath = availableModules.find(m => m.id === currentDrawerModule)?.path
+                                if (targetPath) {
+                                    navigate(targetPath)
+                                    setDrawerOpen(false)
+                                }
+                            }}
+                        >
+                            Panele Git →
+                        </button>
+                    )}
+                </div>
+
+                {/* Submenu Items for Active/Selected Module */}
                 <div className="drawer-nav-content">
                     {filteredMenus.map((group, gIdx) => (
                         <div key={gIdx} className="drawer-nav-group">

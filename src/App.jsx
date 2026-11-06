@@ -19,6 +19,7 @@ import { PageSkeleton } from './components/Skeleton'
 import BroadcastBanner from './components/BroadcastBanner'
 import ImpersonationBanner from './components/ImpersonationBanner'
 import MobileHeader from './components/MobileHeader'
+import MobileBottomNav from './components/MobileBottomNav'
 import { useDataListener } from './hooks/useDataListener'
 import { initIdlePrefetch } from './utils/routePrefetcher'
 
@@ -199,6 +200,7 @@ function MainLayout() {
                             </Suspense>
                         </ErrorBoundary>
                     </div>
+                    <MobileBottomNav />
                 </div>
             </div>
         </>
