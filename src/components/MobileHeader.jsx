@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { 
-    X, Building2, ChevronDown, User, LogOut, Settings, 
+    Building2, ChevronDown, User, LogOut, Settings, 
     Crown, Bell, LayoutDashboard, Car, Users, Wallet, Briefcase, 
     UtensilsCrossed, ChevronRight, Shield, Check, Search, Sparkles,
     ArrowUpRight
@@ -14,13 +14,13 @@ import logoCollapsed from '../assets/logos/Group1.svg'
 import NotificationCenter from './NotificationCenter'
 
 const MODULE_LIST = [
-    { id: 'portal', label: 'Ana Portal', sub: 'Tüm Modüller', icon: LayoutDashboard, path: '/portal', color: '#14b8a6', gradient: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)' },
-    { id: 'fleet', label: 'Filo Yönetimi', sub: 'Araç & Bakım', icon: Car, path: '/dashboard', color: '#3b82f6', gradient: 'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)' },
-    { id: 'hr', label: 'Personel & İK', sub: 'Maaş & İzinler', icon: Users, path: '/personel-dashboard', color: '#10b981', gradient: 'linear-gradient(135deg, #059669 0%, #34d399 100%)' },
-    { id: 'finance', label: 'Kasa & Finans', sub: 'Gelir, Gider & Çek', icon: Wallet, path: '/finance-dashboard', color: '#f59e0b', gradient: 'linear-gradient(135deg, #d97706 0%, #fbbf24 100%)' },
-    { id: 'works', label: 'İş & Operasyon', sub: 'Projeler & Emirler', icon: Briefcase, path: '/works', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)' },
-    { id: 'customers', label: 'Cari & Müşteri', sub: 'Cari Hesap & Borç', icon: Building2, path: '/customers', color: '#06b6d4', gradient: 'linear-gradient(135deg, #0891b2 0%, #22d3ee 100%)' },
-    { id: 'meals', label: 'Yemek Fişleri', sub: 'Günlük Takip & Fiş', icon: UtensilsCrossed, path: '/meal-tickets', color: '#f43f5e', gradient: 'linear-gradient(135deg, #e11d48 0%, #fb7185 100%)' }
+    { id: 'portal', label: 'Ana Portal', shortLabel: 'Portal', icon: LayoutDashboard, path: '/portal', color: '#14b8a6' },
+    { id: 'fleet', label: 'Filo Yönetimi', shortLabel: 'Filo', icon: Car, path: '/dashboard', color: '#3b82f6' },
+    { id: 'hr', label: 'Personel & İK', shortLabel: 'Personel', icon: Users, path: '/personel-dashboard', color: '#10b981' },
+    { id: 'finance', label: 'Kasa & Finans', shortLabel: 'Finans', icon: Wallet, path: '/finance-dashboard', color: '#f59e0b' },
+    { id: 'works', label: 'İş & Operasyon', shortLabel: 'Operasyon', icon: Briefcase, path: '/works', color: '#8b5cf6' },
+    { id: 'customers', label: 'Cari & Müşteri', shortLabel: 'Cari', icon: Building2, path: '/customers', color: '#06b6d4' },
+    { id: 'meals', label: 'Yemek Fişleri', shortLabel: 'Yemek', icon: UtensilsCrossed, path: '/meal-tickets', color: '#f43f5e' }
 ]
 
 function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
@@ -374,47 +374,6 @@ export default function MobileHeader() {
                     <div className="bottom-sheet-handle" />
                 </div>
 
-                {/* User & Company Header Card */}
-                <div 
-                    className="mobile-drawer-header"
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                >
-                    <div 
-                        className="drawer-user-info"
-                        onClick={() => {
-                            navigate(user?.role === 'personnel' ? '/personnel-profile' : '/portal');
-                            setDrawerOpen(false);
-                        }}
-                    >
-                        <div className="drawer-user-avatar">
-                            {user?.username?.charAt(0).toUpperCase() || 'K'}
-                        </div>
-                        <div className="drawer-user-meta">
-                            <div className="drawer-user-name">{user?.full_name || user?.username || 'Kullanıcı'}</div>
-                            <div className="drawer-user-sub">
-                                <span className="drawer-role-tag">
-                                    {isSuperAdmin ? 'Süper Admin' : (isAdmin ? 'Yönetici' : (isPersonnel ? 'Personel' : 'Üye'))}
-                                </span>
-                                {currentCompany?.name && (
-                                    <span className="drawer-company-tag" title={currentCompany.name}>
-                                        {currentCompany.name}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        className="drawer-close-btn"
-                        onClick={() => setDrawerOpen(false)}
-                        aria-label="Kapat"
-                    >
-                        <X size={18} />
-                    </button>
-                </div>
-
                 {/* Company Switcher (Multi-Company Support) */}
                 {!(isSuperAdmin && !isImpersonating) && companies.length > 1 && (
                     <div className="drawer-company-section">
@@ -454,34 +413,22 @@ export default function MobileHeader() {
                     </div>
                 )}
 
-                {/* Module Cards Deck (Redesigned & Visual) */}
-                <div className="drawer-modules-section">
-                    <div className="drawer-section-header">
-                        <div className="drawer-section-title-wrap">
-                            <span className="drawer-section-title">Modüller</span>
-                            <span className="drawer-badge">{availableModules.length}</span>
-                        </div>
-                        <button
-                            type="button"
-                            className="drawer-portal-btn"
-                            onClick={() => {
-                                navigate('/portal')
-                                setDrawerOpen(false)
-                            }}
-                        >
-                            <LayoutDashboard size={13} />
-                            <span>Ana Portal</span>
-                        </button>
-                    </div>
-
-                    <div className="drawer-modules-deck">
+                {/* Modules Segmented Capsule Strip */}
+                <div 
+                    className="drawer-modules-tabs-wrap"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                >
+                    <div className="drawer-modules-pills">
                         {availableModules.map(mod => {
                             const isModActive = currentDrawerModule === mod.id || (mod.id === 'portal' && location.pathname === '/portal')
                             const IconComponent = mod.icon
                             return (
-                                <div
+                                <button
                                     key={mod.id}
-                                    className={`drawer-module-card ${isModActive ? 'active' : ''}`}
+                                    type="button"
+                                    className={`drawer-module-pill ${isModActive ? 'active' : ''}`}
                                     onClick={() => {
                                         if (isModActive && mod.path) {
                                             navigate(mod.path)
@@ -491,65 +438,52 @@ export default function MobileHeader() {
                                         }
                                     }}
                                     style={{
-                                        '--mod-accent': mod.color || '#14b8a6',
-                                        '--mod-gradient': mod.gradient || 'linear-gradient(135deg, #0d9488, #14b8a6)'
+                                        '--mod-accent': mod.color || '#14b8a6'
                                     }}
                                 >
-                                    <div className="drawer-module-card-top">
-                                        <div className="drawer-module-icon-box">
-                                            <IconComponent size={18} />
-                                        </div>
-                                        <div className="drawer-module-card-status">
-                                            {isModActive ? (
-                                                <span className="drawer-module-active-pill">
-                                                    <span className="dot" />
-                                                    Aktif
-                                                </span>
-                                            ) : (
-                                                <ChevronRight size={13} className="drawer-module-chevron" />
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="drawer-module-card-info">
-                                        <span className="drawer-module-card-title">{mod.label}</span>
-                                        <span className="drawer-module-card-sub">{mod.sub || 'Görüntüle'}</span>
-                                    </div>
-                                </div>
+                                    <IconComponent size={15} className="drawer-pill-icon" />
+                                    <span className="drawer-pill-label">{mod.shortLabel || mod.label}</span>
+                                </button>
                             )
                         })}
                     </div>
                 </div>
 
-                {/* Submenu Title & Quick Access to Module Dashboard */}
-                <div className="drawer-submenus-bar">
-                    <div className="drawer-submenus-left">
-                        <span 
-                            className="drawer-submenus-indicator" 
-                            style={{ 
-                                background: availableModules.find(m => m.id === currentDrawerModule)?.color || 'var(--accent-primary)' 
-                            }} 
-                        />
-                        <span className="drawer-submenus-label">
-                            {availableModules.find(m => m.id === currentDrawerModule)?.label || 'Seçili'} Menüleri
-                        </span>
-                    </div>
-                    {availableModules.find(m => m.id === currentDrawerModule)?.path && (
-                        <button
-                            type="button"
-                            className="drawer-panel-link"
-                            onClick={() => {
-                                const targetPath = availableModules.find(m => m.id === currentDrawerModule)?.path
-                                if (targetPath) {
-                                    navigate(targetPath)
-                                    setDrawerOpen(false)
-                                }
-                            }}
+                {/* Active Module Header & Quick Jump */}
+                {(() => {
+                    const activeMod = availableModules.find(m => m.id === currentDrawerModule) || availableModules[0]
+                    return (
+                        <div 
+                            className="drawer-active-bar"
+                            onTouchStart={handleTouchStart}
+                            onTouchMove={handleTouchMove}
+                            onTouchEnd={handleTouchEnd}
                         >
-                            <span>Panele Git</span>
-                            <ArrowUpRight size={13} />
-                        </button>
-                    )}
-                </div>
+                            <div className="drawer-active-left">
+                                <span 
+                                    className="drawer-active-dot" 
+                                    style={{ backgroundColor: activeMod?.color || 'var(--accent-primary)' }} 
+                                />
+                                <span className="drawer-active-title">
+                                    {activeMod?.label || 'Menü'}
+                                </span>
+                            </div>
+                            {activeMod?.path && (
+                                <button
+                                    type="button"
+                                    className="drawer-active-action-btn"
+                                    onClick={() => {
+                                        navigate(activeMod.path)
+                                        setDrawerOpen(false)
+                                    }}
+                                >
+                                    <span>Modüle Git</span>
+                                    <ArrowUpRight size={13} />
+                                </button>
+                            )}
+                        </div>
+                    )
+                })()}
 
                 {/* Submenu Items for Active/Selected Module */}
                 <div 

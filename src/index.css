@@ -885,8 +885,8 @@ textarea,
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 12px 0 6px 0;
-    background: var(--bg-primary);
+    padding: 12px 0 10px 0;
+    background: var(--bg-secondary);
     flex-shrink: 0;
     cursor: grab;
     touch-action: none;
@@ -902,111 +902,13 @@ textarea,
     width: 44px;
     height: 5px;
     border-radius: 99px;
-    background: rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.35);
     transition: background 0.15s ease, transform 0.15s ease;
   }
 
   .bottom-sheet-handle-area:active .bottom-sheet-handle {
-    background: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.6);
     transform: scale(1.05);
-  }
-
-  .mobile-drawer-header {
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--bg-primary);
-    flex-shrink: 0;
-  }
-
-  .drawer-user-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-    cursor: pointer;
-  }
-
-  .drawer-user-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--accent-primary, #14b8a6), #0284c7);
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-    flex-shrink: 0;
-  }
-
-  .drawer-user-meta {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  .drawer-user-name {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.25;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 190px;
-  }
-
-  .drawer-user-sub {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 2px;
-  }
-
-  .drawer-role-tag {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--accent-primary);
-    background: var(--accent-subtle);
-    padding: 1px 6px;
-    border-radius: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-
-  .drawer-company-tag {
-    font-size: 11px;
-    color: var(--text-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 120px;
-  }
-
-  .drawer-close-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: var(--bg-tertiary);
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    flex-shrink: 0;
-  }
-
-  .drawer-close-btn:active {
-    background: var(--bg-card-hover);
-    color: var(--text-primary);
   }
 
   /* Drawer Company Section */
@@ -1116,229 +1018,122 @@ textarea,
     color: var(--accent-primary);
   }
 
-  .drawer-modules-section {
-    padding: 10px 16px 8px 16px;
-    border-bottom: 1px solid var(--border-color);
+  /* Modules Segmented Capsule Strip */
+  .drawer-modules-tabs-wrap {
+    padding: 8px 16px 10px 16px;
     background: var(--bg-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
   }
 
-  .drawer-section-header {
+  .drawer-modules-pills {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-  }
-
-  .drawer-section-title {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--text-muted);
-  }
-
-  .drawer-portal-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 3px 9px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--accent-primary);
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .drawer-portal-btn:active {
-    background: var(--accent-subtle);
-    transform: scale(0.97);
-  }
-
-  /* Drawer Modules Deck */
-  .drawer-modules-deck {
-    display: flex;
-    gap: 10px;
+    gap: 8px;
     overflow-x: auto;
-    padding: 3px 2px 7px 2px;
+    padding: 2px 0;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     overscroll-behavior-x: contain;
   }
-  .drawer-modules-deck::-webkit-scrollbar {
+  .drawer-modules-pills::-webkit-scrollbar {
     display: none;
   }
 
-  .drawer-module-card {
-    flex: 0 0 138px;
-    min-width: 138px;
-    border-radius: 14px;
-    padding: 10px 11px;
-    background: var(--bg-tertiary);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: pan-x;
-    transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .drawer-module-card:active {
-    transform: scale(0.97);
-  }
-
-  .drawer-module-card.active {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: var(--mod-accent, var(--accent-primary));
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28), 0 0 0 1px var(--mod-accent, var(--accent-primary));
-  }
-
-  .drawer-module-card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .drawer-module-icon-box {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.06);
-    color: var(--mod-accent, var(--text-primary));
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-  }
-
-  .drawer-module-card.active .drawer-module-icon-box {
-    background: var(--mod-gradient, var(--accent-primary));
-    color: #ffffff;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
-  }
-
-  .drawer-module-card-status {
-    display: flex;
-    align-items: center;
-  }
-
-  .drawer-module-active-pill {
+  .drawer-module-pill {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--mod-accent, var(--accent-primary));
-    background: rgba(255, 255, 255, 0.08);
-    padding: 2px 7px;
+    gap: 6px;
+    padding: 7px 13px;
     border-radius: 99px;
-  }
-
-  .drawer-module-active-pill .dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--mod-accent, var(--accent-primary));
-    box-shadow: 0 0 6px var(--mod-accent, var(--accent-primary));
-  }
-
-  .drawer-module-chevron {
-    color: var(--text-muted);
-    opacity: 0.5;
-  }
-
-  .drawer-module-card-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  .drawer-module-card-title {
+    background: var(--bg-tertiary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
     font-size: 12.5px;
-    font-weight: 700;
-    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.25;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+    touch-action: pan-x;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
-  .drawer-module-card.active .drawer-module-card-title {
-    color: #ffffff;
+  .drawer-pill-icon {
+    color: var(--mod-accent, var(--accent-primary));
+    flex-shrink: 0;
+    transition: color 0.18s ease;
   }
 
-  .drawer-module-card-sub {
-    font-size: 10.5px;
-    font-weight: 500;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .drawer-module-pill:active {
+    transform: scale(0.96);
   }
 
-  .drawer-submenus-bar {
+  .drawer-module-pill.active {
+    background: var(--mod-accent, var(--accent-primary));
+    border-color: var(--mod-accent, var(--accent-primary));
+    color: #ffffff !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+  }
+
+  .drawer-module-pill.active .drawer-pill-icon {
+    color: #ffffff !important;
+  }
+
+  /* Active Module Header Bar */
+  .drawer-active-bar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 16px 8px 16px;
-    border-bottom: 1px solid var(--border-color);
+    justify-content: space-between;
+    padding: 10px 16px;
     background: var(--bg-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
   }
 
-  .drawer-submenus-left {
+  .drawer-active-left {
     display: flex;
     align-items: center;
     gap: 8px;
     min-width: 0;
   }
 
-  .drawer-submenus-indicator {
-    width: 7px;
-    height: 7px;
+  .drawer-active-dot {
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
   }
 
-  .drawer-submenus-label {
-    font-size: 11px;
+  .drawer-active-title {
+    font-size: 13px;
     font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
+    color: var(--text-primary);
+    letter-spacing: 0.3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .drawer-panel-link {
+  .drawer-active-action-btn {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     background: var(--accent-subtle);
     border: 1px solid rgba(20, 184, 166, 0.25);
     color: var(--accent-primary);
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     border-radius: 8px;
-    padding: 4px 9px;
+    padding: 4px 10px;
     cursor: pointer;
     touch-action: manipulation;
     transition: all 0.15s ease;
     flex-shrink: 0;
   }
 
-  .drawer-panel-link:active {
+  .drawer-active-action-btn:active {
     background: var(--accent-primary);
     color: #ffffff;
     transform: scale(0.97);
