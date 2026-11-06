@@ -218,7 +218,26 @@ export const moduleMenus = {
             ]
         }
     ],
-    portal: []
+    portal: [
+        {
+            title: 'Modüller',
+            items: [
+                { path: '/portal', label: 'Ana Portal', icon: Layers },
+                { path: '/dashboard', label: 'Filo Yönetimi', icon: Car, module: 'fleet' },
+                { path: '/personel-dashboard', label: 'Personel & İK', icon: Users, module: 'hr' },
+                { path: '/finance-dashboard', label: 'Kasa & Finans', icon: Wallet, module: 'finance' },
+                { path: '/works', label: 'İş & Operasyon', icon: Briefcase, module: 'works' },
+                { path: '/customers', label: 'Cari & Müşteri', icon: Building2, module: 'customers' },
+                { path: '/meal-tickets', label: 'Yemek Fişleri', icon: UtensilsCrossed, module: 'meals' }
+            ]
+        },
+        {
+            title: 'Sistem',
+            items: [
+                { path: '/settings', label: 'Sistem Ayarları', icon: Settings }
+            ]
+        }
+    ]
 }
 
 
@@ -229,6 +248,7 @@ export const menuGroups = moduleMenus.fleet
 const buildPathToModuleMap = () => {
     const map = {}
     Object.entries(moduleMenus).forEach(([moduleKey, groups]) => {
+        if (moduleKey === 'portal') return // Don't override primary module ownership
         groups.forEach(group => {
             group.items.forEach(item => {
                 map[item.path] = moduleKey

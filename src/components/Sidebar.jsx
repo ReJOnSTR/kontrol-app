@@ -36,7 +36,7 @@ function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
     if (path.startsWith('/customers')) {
         return hasPermission('customers', 'can_read')
     }
-    if (path.startsWith('/vehicles') || path === '/maintenance' || path === '/inspections' || path === '/periodic-inspections' || path === '/insurance' || path === '/services' || path === '/assignments' || path === '/arvento-tracking') {
+    if (path === '/dashboard' || path.startsWith('/vehicles') || path === '/maintenance' || path === '/inspections' || path === '/periodic-inspections' || path === '/insurance' || path === '/services' || path === '/assignments' || path === '/arvento-tracking') {
         return hasPermission('vehicles', 'can_read')
     }
     if (path === '/reports') {
@@ -61,8 +61,8 @@ export default function Sidebar({ collapsed, onToggle }) {
 
     const isSuperAdmin = user?.role === 'superadmin'
 
-    // Determine the active module (For standalone SuperAdmin, always 'platform')
-    const activeModule = (isSuperAdmin && !isImpersonating) 
+    // Determine the active module (For standalone SuperAdmin on platform pages, use 'platform')
+    const activeModule = (isSuperAdmin && !isImpersonating && (location.pathname.startsWith('/platform') || location.pathname === '/platform-admin')) 
         ? 'platform' 
         : getActiveModule(location.pathname, location.search)
 
@@ -71,6 +71,7 @@ export default function Sidebar({ collapsed, onToggle }) {
 
     const filteredMenus = activeMenus.map(group => {
         const items = group.items.filter(item => {
+            if (item.module && !isModuleEnabled(item.module)) return false
             if (item.integration && !isIntegrationEnabled(item.integration)) return false
             if (item.path === '/arvento-tracking' && !isIntegrationEnabled('arvento')) return false
             return canAccessPath(item.path, hasPermission, isAdmin, isSuperAdmin)
