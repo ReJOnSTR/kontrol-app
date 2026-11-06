@@ -102,7 +102,7 @@ const portalStyles = `
     }
     @media (max-width: 768px) {
         .portal-container {
-            padding: 4px 0 !important;
+            padding: 4px 0 24px 0 !important;
             max-width: 100% !important;
         }
         .portal-header-area {

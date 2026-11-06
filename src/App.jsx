@@ -170,9 +170,19 @@ function PermissionRoute({ module, action = 'can_read', integration, children })
 
 function MainLayout() {
     const { user } = useAuth()
+    const location = useLocation()
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
         return localStorage.getItem('sidebarCollapsed') === 'true'
     })
+
+    // Scroll to the very top of .page-content and window on every navigation
+    useEffect(() => {
+        const pageEl = document.querySelector('.page-content')
+        if (pageEl) {
+            pageEl.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+        }
+        window.scrollTo(0, 0)
+    }, [location.pathname, location.search])
 
     const toggleSidebar = () => {
         setSidebarCollapsed(prev => {

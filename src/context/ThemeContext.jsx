@@ -30,8 +30,6 @@ const applyScaleToDom = (scale) => {
 
         if (isPrint || isMobile) {
             document.documentElement.style.zoom = '1';
-            document.documentElement.style.minWidth = '';
-            document.documentElement.style.minHeight = '';
             document.documentElement.style.setProperty('--ui-scale', '1');
             return;
         }
@@ -39,13 +37,6 @@ const applyScaleToDom = (scale) => {
         const ratio = scale / 100;
         document.documentElement.style.zoom = `${ratio}`;
         document.documentElement.style.setProperty('--ui-scale', `${ratio}`);
-        if (ratio < 1) {
-            document.documentElement.style.minWidth = `${100 / ratio}%`;
-            document.documentElement.style.minHeight = `${100 / ratio}%`;
-        } else {
-            document.documentElement.style.minWidth = '';
-            document.documentElement.style.minHeight = '';
-        }
     }
 }
 
