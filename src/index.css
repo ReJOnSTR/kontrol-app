@@ -297,7 +297,6 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   width: 100%;
-  max-width: 100vw;
   overflow-x: hidden;
 }
 
@@ -389,6 +388,7 @@ textarea,
   scrollbar-gutter: stable;
   animation: pageIn 0.25s ease;
   width: 100%;
+  box-sizing: border-box;
 }
 
 /* Desktop only utilities */
@@ -6849,6 +6849,8 @@ body:has(.modal-overlay) .desktop-title-bar {
   /* Must be visible for dropdowns to escape, but children will restrict Y */
   position: relative;
   z-index: 100;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .tab-bar-left {

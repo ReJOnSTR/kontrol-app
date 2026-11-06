@@ -81,9 +81,11 @@ const portalStyles = `
         flex-shrink: 0;
     }
     .portal-container {
-        padding: 24px 44px;
-        max-width: 1240px;
+        padding: 24px 32px;
+        width: 100%;
+        max-width: 1440px;
         margin: 0 auto;
+        box-sizing: border-box;
     }
     .portal-grid {
         display: grid;
