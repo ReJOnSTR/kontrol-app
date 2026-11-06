@@ -290,7 +290,8 @@ body {
    ============================================ */
 
 .app-layout {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   height: calc(100vh / var(--ui-scale, 1));
   min-height: calc(100vh / var(--ui-scale, 1));
   margin-top: 0;
@@ -298,6 +299,11 @@ body {
   color: var(--text-primary);
   width: 100%;
   overflow-x: hidden;
+  transition: grid-template-columns 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.app-layout.sidebar-collapsed {
+  grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
 }
 
 /* Electron masaüstü modu: TitleBar (38px) için üst boşluk */
@@ -363,12 +369,11 @@ textarea,
 
 
 .main-content {
-  flex: 1 1 0%;
   display: flex;
   flex-direction: column;
   margin-left: 0;
   min-width: 0;
-  width: auto;
+  width: 100%;
   height: 100%;
   position: relative;
   overflow: hidden;
@@ -376,7 +381,8 @@ textarea,
 
 .sidebar-collapsed .main-content {
   margin-left: 0;
-  width: auto;
+  width: 100%;
+  min-width: 0;
 }
 
 .page-content {
@@ -2600,7 +2606,8 @@ textarea,
 .sidebar {
   position: relative;
   height: 100%;
-  width: var(--sidebar-width);
+  width: 100%;
+  max-width: var(--sidebar-width);
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.02);
@@ -2608,7 +2615,7 @@ textarea,
   flex-direction: column;
   flex-shrink: 0;
   /* Faster width transition */
-  transition: width 0.25s cubic-bezier(0.2, 0, 0, 1);
+  transition: max-width 0.25s cubic-bezier(0.2, 0, 0, 1);
   z-index: 50;
   overflow: hidden;
   white-space: nowrap;
@@ -2616,7 +2623,8 @@ textarea,
 }
 
 .sidebar.collapsed {
-  width: var(--sidebar-collapsed-width);
+  width: 100%;
+  max-width: var(--sidebar-collapsed-width);
 }
 
 .sidebar-header {
@@ -6859,6 +6867,7 @@ body:has(.modal-overlay) .desktop-title-bar {
   align-items: flex-end;
   padding-left: 0;
   flex: 1;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   /* Strongly prevent vertical scroll */
@@ -6873,7 +6882,7 @@ body:has(.modal-overlay) .desktop-title-bar {
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0;
+  padding: 0 8px;
   flex-shrink: 0;
 }
 
