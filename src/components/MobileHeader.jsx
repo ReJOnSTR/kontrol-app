@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { 
     X, Building2, ChevronDown, User, LogOut, Settings, 
     Crown, Bell, LayoutDashboard, Car, Users, Wallet, Briefcase, 
-    UtensilsCrossed, ChevronRight, Shield, Check, Search, Sparkles
+    UtensilsCrossed, ChevronRight, Shield, Check, Search, Sparkles,
+    ArrowUpRight
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useCompany } from '../context/CompanyContext'
@@ -13,13 +14,13 @@ import logoCollapsed from '../assets/logos/Group1.svg'
 import NotificationCenter from './NotificationCenter'
 
 const MODULE_LIST = [
-    { id: 'portal', label: 'Ana Portal', icon: LayoutDashboard, path: '/portal', color: '#14b8a6' },
-    { id: 'fleet', label: 'Filo Yönetimi', icon: Car, path: '/dashboard', color: '#3b82f6' },
-    { id: 'hr', label: 'Personel & İK', icon: Users, path: '/personel-dashboard', color: '#10b981' },
-    { id: 'finance', label: 'Kasa & Finans', icon: Wallet, path: '/finance-dashboard', color: '#f59e0b' },
-    { id: 'works', label: 'İş & Operasyon', icon: Briefcase, path: '/works', color: '#8b5cf6' },
-    { id: 'customers', label: 'Cari & Müşteri', icon: Building2, path: '/customers', color: '#06b6d4' },
-    { id: 'meals', label: 'Yemek Fişleri', icon: UtensilsCrossed, path: '/meal-tickets', color: '#f43f5e' }
+    { id: 'portal', label: 'Ana Portal', sub: 'Tüm Modüller', icon: LayoutDashboard, path: '/portal', color: '#14b8a6', gradient: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)' },
+    { id: 'fleet', label: 'Filo Yönetimi', sub: 'Araç & Bakım', icon: Car, path: '/dashboard', color: '#3b82f6', gradient: 'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)' },
+    { id: 'hr', label: 'Personel & İK', sub: 'Maaş & İzinler', icon: Users, path: '/personel-dashboard', color: '#10b981', gradient: 'linear-gradient(135deg, #059669 0%, #34d399 100%)' },
+    { id: 'finance', label: 'Kasa & Finans', sub: 'Gelir, Gider & Çek', icon: Wallet, path: '/finance-dashboard', color: '#f59e0b', gradient: 'linear-gradient(135deg, #d97706 0%, #fbbf24 100%)' },
+    { id: 'works', label: 'İş & Operasyon', sub: 'Projeler & Emirler', icon: Briefcase, path: '/works', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)' },
+    { id: 'customers', label: 'Cari & Müşteri', sub: 'Cari Hesap & Borç', icon: Building2, path: '/customers', color: '#06b6d4', gradient: 'linear-gradient(135deg, #0891b2 0%, #22d3ee 100%)' },
+    { id: 'meals', label: 'Yemek Fişleri', sub: 'Günlük Takip & Fiş', icon: UtensilsCrossed, path: '/meal-tickets', color: '#f43f5e', gradient: 'linear-gradient(135deg, #e11d48 0%, #fb7185 100%)' }
 ]
 
 function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
@@ -50,6 +51,13 @@ export default function MobileHeader() {
     const [showUserMenu, setShowUserMenu] = useState(false)
     const [selectedDrawerModule, setSelectedDrawerModule] = useState(null)
     
+    const sheetRef = useRef(null)
+    const overlayRef = useRef(null)
+    const navContentRef = useRef(null)
+    const dragStartYRef = useRef(0)
+    const dragCurrentYRef = useRef(0)
+    const isDraggingRef = useRef(false)
+
     const { user, logout, isAdmin, hasPermission } = useAuth()
     const { companies, currentCompany, selectCompany, isImpersonating, isModuleEnabled, isIntegrationEnabled } = useCompany()
     const { openNewTab } = useTabs()
@@ -61,7 +69,17 @@ export default function MobileHeader() {
 
     // Listen to global open mobile drawer event
     useEffect(() => {
-        const handleOpen = () => setDrawerOpen(true)
+        const handleOpen = () => {
+            setDrawerOpen(true)
+            if (sheetRef.current) {
+                sheetRef.current.style.transform = ''
+                sheetRef.current.style.transition = ''
+            }
+            if (overlayRef.current) {
+                overlayRef.current.style.opacity = ''
+                overlayRef.current.style.transition = ''
+            }
+        }
         window.addEventListener('kontrol:open-mobile-drawer', handleOpen)
         return () => window.removeEventListener('kontrol:open-mobile-drawer', handleOpen)
     }, [])
@@ -85,6 +103,99 @@ export default function MobileHeader() {
             document.body.style.overflow = ''
         }
     }, [drawerOpen])
+
+    // Swipe down / Drag-to-dismiss touch event handlers
+    const handleTouchStart = (e) => {
+        if (!drawerOpen) return
+        // If touching inside scrollable nav list, only allow drag-to-dismiss when scrolled to the very top
+        if (navContentRef.current && e.target && navContentRef.current.contains(e.target)) {
+            if (navContentRef.current.scrollTop > 0) {
+                return
+            }
+        }
+        dragStartYRef.current = e.touches[0].clientY
+        dragCurrentYRef.current = e.touches[0].clientY
+        isDraggingRef.current = true
+        if (sheetRef.current) {
+            sheetRef.current.style.transition = 'none'
+        }
+    }
+
+    const handleTouchMove = (e) => {
+        if (!isDraggingRef.current) return
+        const currentY = e.touches[0].clientY
+        const diff = currentY - dragStartYRef.current
+
+        // If pulling up, ignore or apply high resistance
+        if (diff < 0) {
+            if (sheetRef.current) sheetRef.current.style.transform = 'translate3d(0, 0, 0)'
+            return
+        }
+
+        // Pulling downwards: visually drag the sheet in real-time
+        if (e.cancelable) e.preventDefault()
+        dragCurrentYRef.current = currentY
+
+        if (sheetRef.current) {
+            sheetRef.current.style.transform = `translate3d(0, ${diff}px, 0)`
+        }
+        if (overlayRef.current) {
+            const opacity = Math.max(0.1, 1 - (diff / 380))
+            overlayRef.current.style.opacity = `${opacity}`
+        }
+    }
+
+    const handleTouchEnd = () => {
+        if (!isDraggingRef.current) return
+        isDraggingRef.current = false
+        const diff = dragCurrentYRef.current - dragStartYRef.current
+
+        if (sheetRef.current) {
+            sheetRef.current.style.transition = 'transform 0.26s cubic-bezier(0.2, 0.9, 0.3, 1)'
+        }
+        if (overlayRef.current) {
+            overlayRef.current.style.transition = 'opacity 0.26s cubic-bezier(0.2, 0.9, 0.3, 1)'
+        }
+
+        if (diff > 85) {
+            // Dismiss threshold reached
+            if (sheetRef.current) {
+                sheetRef.current.style.transform = 'translate3d(0, 100%, 0)'
+            }
+            if (overlayRef.current) {
+                overlayRef.current.style.opacity = '0'
+            }
+            setTimeout(() => {
+                setDrawerOpen(false)
+                if (sheetRef.current) {
+                    sheetRef.current.style.transform = ''
+                    sheetRef.current.style.transition = ''
+                }
+                if (overlayRef.current) {
+                    overlayRef.current.style.opacity = ''
+                    overlayRef.current.style.transition = ''
+                }
+            }, 240)
+        } else {
+            // Snap back to open
+            if (sheetRef.current) {
+                sheetRef.current.style.transform = 'translate3d(0, 0, 0)'
+            }
+            if (overlayRef.current) {
+                overlayRef.current.style.opacity = '1'
+            }
+            setTimeout(() => {
+                if (sheetRef.current) {
+                    sheetRef.current.style.transform = ''
+                    sheetRef.current.style.transition = ''
+                }
+                if (overlayRef.current) {
+                    overlayRef.current.style.opacity = ''
+                    overlayRef.current.style.transition = ''
+                }
+            }, 260)
+        }
+    }
 
     const activeRouteModule = (isSuperAdmin && !isImpersonating) 
         ? 'platform' 
@@ -239,22 +350,37 @@ export default function MobileHeader() {
                 </div>
             </header>
 
-            {/* Slide-over Mobile Drawer / Navigation */}
+            {/* Slide-over Mobile Drawer / Navigation (Bottom Sheet) */}
             {drawerOpen && (
                 <div 
+                    ref={overlayRef}
                     className="mobile-drawer-overlay"
                     onClick={() => setDrawerOpen(false)}
                 />
             )}
 
-            <aside className={`mobile-drawer ${drawerOpen ? 'open' : ''}`}>
-                {/* Drag Indicator Handle */}
-                <div className="bottom-sheet-handle-area" onClick={() => setDrawerOpen(false)}>
+            <aside 
+                ref={sheetRef}
+                className={`mobile-drawer ${drawerOpen ? 'open' : ''}`}
+            >
+                {/* Drag Indicator Handle Area (Drag to Dismiss) */}
+                <div 
+                    className="bottom-sheet-handle-area" 
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    onClick={() => setDrawerOpen(false)}
+                >
                     <div className="bottom-sheet-handle" />
                 </div>
 
                 {/* User & Company Header Card */}
-                <div className="mobile-drawer-header">
+                <div 
+                    className="mobile-drawer-header"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                >
                     <div 
                         className="drawer-user-info"
                         onClick={() => {
@@ -328,10 +454,13 @@ export default function MobileHeader() {
                     </div>
                 )}
 
-                {/* Module Quick Switcher */}
+                {/* Module Cards Deck (Redesigned & Visual) */}
                 <div className="drawer-modules-section">
                     <div className="drawer-section-header">
-                        <span className="drawer-section-title">Modüller</span>
+                        <div className="drawer-section-title-wrap">
+                            <span className="drawer-section-title">Modüller</span>
+                            <span className="drawer-badge">{availableModules.length}</span>
+                        </div>
                         <button
                             type="button"
                             className="drawer-portal-btn"
@@ -344,27 +473,48 @@ export default function MobileHeader() {
                             <span>Ana Portal</span>
                         </button>
                     </div>
-                    <div className="drawer-modules-grid">
+
+                    <div className="drawer-modules-deck">
                         {availableModules.map(mod => {
                             const isModActive = currentDrawerModule === mod.id || (mod.id === 'portal' && location.pathname === '/portal')
                             const IconComponent = mod.icon
                             return (
-                                <button
+                                <div
                                     key={mod.id}
-                                    type="button"
-                                    className={`drawer-module-chip ${isModActive ? 'active' : ''}`}
+                                    className={`drawer-module-card ${isModActive ? 'active' : ''}`}
                                     onClick={() => {
-                                        if (mod.id === 'portal') {
-                                            navigate('/portal')
+                                        if (isModActive && mod.path) {
+                                            navigate(mod.path)
                                             setDrawerOpen(false)
                                         } else {
                                             setSelectedDrawerModule(mod.id)
                                         }
                                     }}
+                                    style={{
+                                        '--mod-accent': mod.color || '#14b8a6',
+                                        '--mod-gradient': mod.gradient || 'linear-gradient(135deg, #0d9488, #14b8a6)'
+                                    }}
                                 >
-                                    <IconComponent size={15} style={{ color: isModActive ? '#ffffff' : (mod.color || 'var(--accent-primary)') }} />
-                                    <span>{mod.label}</span>
-                                </button>
+                                    <div className="drawer-module-card-top">
+                                        <div className="drawer-module-icon-box">
+                                            <IconComponent size={18} />
+                                        </div>
+                                        <div className="drawer-module-card-status">
+                                            {isModActive ? (
+                                                <span className="drawer-module-active-pill">
+                                                    <span className="dot" />
+                                                    Aktif
+                                                </span>
+                                            ) : (
+                                                <ChevronRight size={13} className="drawer-module-chevron" />
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="drawer-module-card-info">
+                                        <span className="drawer-module-card-title">{mod.label}</span>
+                                        <span className="drawer-module-card-sub">{mod.sub || 'Görüntüle'}</span>
+                                    </div>
+                                </div>
                             )
                         })}
                     </div>
@@ -372,9 +522,17 @@ export default function MobileHeader() {
 
                 {/* Submenu Title & Quick Access to Module Dashboard */}
                 <div className="drawer-submenus-bar">
-                    <span className="drawer-submenus-label">
-                        {availableModules.find(m => m.id === currentDrawerModule)?.label || 'Seçili'} Menüleri
-                    </span>
+                    <div className="drawer-submenus-left">
+                        <span 
+                            className="drawer-submenus-indicator" 
+                            style={{ 
+                                background: availableModules.find(m => m.id === currentDrawerModule)?.color || 'var(--accent-primary)' 
+                            }} 
+                        />
+                        <span className="drawer-submenus-label">
+                            {availableModules.find(m => m.id === currentDrawerModule)?.label || 'Seçili'} Menüleri
+                        </span>
+                    </div>
                     {availableModules.find(m => m.id === currentDrawerModule)?.path && (
                         <button
                             type="button"
@@ -387,13 +545,20 @@ export default function MobileHeader() {
                                 }
                             }}
                         >
-                            Panele Git →
+                            <span>Panele Git</span>
+                            <ArrowUpRight size={13} />
                         </button>
                     )}
                 </div>
 
                 {/* Submenu Items for Active/Selected Module */}
-                <div className="drawer-nav-content">
+                <div 
+                    ref={navContentRef}
+                    className="drawer-nav-content"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                >
                     {filteredMenus.map((group, gIdx) => (
                         <div key={gIdx} className="drawer-nav-group">
                             {group.title && (
@@ -416,7 +581,11 @@ export default function MobileHeader() {
                                                 {IconComponent && <IconComponent size={17} />}
                                             </div>
                                             <span className="drawer-nav-text">{item.label}</span>
-                                            <ChevronRight size={15} className="drawer-nav-arrow" />
+                                            {isCurrent ? (
+                                                <span className="drawer-nav-current-badge">Açık</span>
+                                            ) : (
+                                                <ChevronRight size={15} className="drawer-nav-arrow" />
+                                            )}
                                         </NavLink>
                                     )
                                 })}
