@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { 
     Menu, X, Building2, ChevronDown, User, LogOut, Settings, 
     Crown, Bell, LayoutDashboard, Car, Users, Wallet, Briefcase, 
-    UtensilsCrossed, ArrowRight, Shield, Check, Search
+    UtensilsCrossed, ChevronRight, Shield, Check, Search, Sparkles
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useCompany } from '../context/CompanyContext'
@@ -13,13 +13,13 @@ import logoCollapsed from '../assets/logos/Group1.svg'
 import NotificationCenter from './NotificationCenter'
 
 const MODULE_LIST = [
-    { id: 'portal', label: 'Ana Portal', icon: LayoutDashboard, path: '/portal' },
-    { id: 'fleet', label: 'Filo & Araçlar', icon: Car, path: '/dashboard' },
-    { id: 'hr', label: 'Personel & İK', icon: Users, path: '/personel-dashboard' },
-    { id: 'finance', label: 'Finans', icon: Wallet, path: '/finance-dashboard' },
-    { id: 'works', label: 'İş & Operasyon', icon: Briefcase, path: '/works' },
-    { id: 'customers', label: 'Müşteriler', icon: Building2, path: '/customers' },
-    { id: 'meals', label: 'Yemek Fişleri', icon: UtensilsCrossed, path: '/meal-tickets' }
+    { id: 'portal', label: 'Ana Portal', icon: LayoutDashboard, path: '/portal', color: '#14b8a6' },
+    { id: 'fleet', label: 'Filo Yönetimi', icon: Car, path: '/dashboard', color: '#3b82f6' },
+    { id: 'hr', label: 'Personel & İK', icon: Users, path: '/personel-dashboard', color: '#10b981' },
+    { id: 'finance', label: 'Kasa & Finans', icon: Wallet, path: '/finance-dashboard', color: '#f59e0b' },
+    { id: 'works', label: 'İş & Operasyon', icon: Briefcase, path: '/works', color: '#8b5cf6' },
+    { id: 'customers', label: 'Cari & Müşteri', icon: Building2, path: '/customers', color: '#06b6d4' },
+    { id: 'meals', label: 'Yemek Fişleri', icon: UtensilsCrossed, path: '/meal-tickets', color: '#f43f5e' }
 ]
 
 function canAccessPath(path, hasPermission, isAdmin, isSuperAdmin) {
@@ -255,22 +255,35 @@ export default function MobileHeader() {
             )}
 
             <aside className={`mobile-drawer ${drawerOpen ? 'open' : ''}`}>
-                <div className="bottom-sheet-handle-area">
+                {/* Drag Indicator Handle */}
+                <div className="bottom-sheet-handle-area" onClick={() => setDrawerOpen(false)}>
                     <div className="bottom-sheet-handle" />
                 </div>
+
+                {/* User & Company Header Card */}
                 <div className="mobile-drawer-header">
                     <div 
-                        className="drawer-brand"
+                        className="drawer-user-info"
                         onClick={() => {
                             navigate(user?.role === 'personnel' ? '/personnel-profile' : '/portal');
                             setDrawerOpen(false);
                         }}
-                        style={{ cursor: 'pointer' }}
                     >
-                        <img src={logoCollapsed} alt="Kontrol" className="drawer-logo" />
-                        <div>
-                            <div className="drawer-title">Kontrol</div>
-                            <div className="drawer-subtitle">{currentCompany?.name || 'Filo Yönetimi'}</div>
+                        <div className="drawer-user-avatar">
+                            {user?.username?.charAt(0).toUpperCase() || 'K'}
+                        </div>
+                        <div className="drawer-user-meta">
+                            <div className="drawer-user-name">{user?.full_name || user?.username || 'Kullanıcı'}</div>
+                            <div className="drawer-user-sub">
+                                <span className="drawer-role-tag">
+                                    {isSuperAdmin ? 'Süper Admin' : (isAdmin ? 'Yönetici' : (isPersonnel ? 'Personel' : 'Üye'))}
+                                </span>
+                                {currentCompany?.name && (
+                                    <span className="drawer-company-tag" title={currentCompany.name}>
+                                        {currentCompany.name}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <button
@@ -279,14 +292,13 @@ export default function MobileHeader() {
                         onClick={() => setDrawerOpen(false)}
                         aria-label="Kapat"
                     >
-                        <X size={20} />
+                        <X size={18} />
                     </button>
                 </div>
 
-                {/* Company Switcher in Menu (Mobile) */}
-                {!(isSuperAdmin && !isImpersonating) && companies.length > 0 && (
+                {/* Company Switcher (Multi-Company Support) */}
+                {!(isSuperAdmin && !isImpersonating) && companies.length > 1 && (
                     <div className="drawer-company-section">
-                        <div className="drawer-section-title">Şirket</div>
                         <div className="drawer-company-selector">
                             <button
                                 type="button"
@@ -294,10 +306,10 @@ export default function MobileHeader() {
                                 onClick={() => setShowCompanyMenu(!showCompanyMenu)}
                             >
                                 <div className="drawer-company-info">
-                                    <Building2 size={16} className="drawer-company-icon" />
-                                    <span className="drawer-company-name">{currentCompany?.name || 'Şirket Seçin'}</span>
+                                    <Building2 size={15} className="drawer-company-icon" />
+                                    <span className="drawer-company-name">{currentCompany?.name || 'Şirket Değiştir'}</span>
                                 </div>
-                                <ChevronDown size={15} className={`drawer-company-chevron ${showCompanyMenu ? 'rotate' : ''}`} />
+                                <ChevronDown size={14} className={`drawer-company-chevron ${showCompanyMenu ? 'rotate' : ''}`} />
                             </button>
 
                             {showCompanyMenu && (
@@ -312,7 +324,7 @@ export default function MobileHeader() {
                                                 setShowCompanyMenu(false)
                                             }}
                                         >
-                                            <Building2 size={15} />
+                                            <Building2 size={14} />
                                             <span>{c.name}</span>
                                             {currentCompany?.id === c.id && <Check size={14} className="check-icon" />}
                                         </button>
@@ -323,9 +335,22 @@ export default function MobileHeader() {
                     </div>
                 )}
 
-                {/* Module Quick Nav Chips */}
+                {/* Module Quick Switcher */}
                 <div className="drawer-modules-section">
-                    <div className="drawer-section-title">Modüller</div>
+                    <div className="drawer-section-header">
+                        <span className="drawer-section-title">Modüller</span>
+                        <button
+                            type="button"
+                            className="drawer-portal-btn"
+                            onClick={() => {
+                                navigate('/portal')
+                                setDrawerOpen(false)
+                            }}
+                        >
+                            <LayoutDashboard size={13} />
+                            <span>Ana Portal</span>
+                        </button>
+                    </div>
                     <div className="drawer-modules-grid">
                         {availableModules.map(mod => {
                             const isModActive = currentDrawerModule === mod.id || (mod.id === 'portal' && location.pathname === '/portal')
@@ -344,7 +369,7 @@ export default function MobileHeader() {
                                         }
                                     }}
                                 >
-                                    <IconComponent size={15} />
+                                    <IconComponent size={15} style={{ color: isModActive ? '#ffffff' : (mod.color || 'var(--accent-primary)') }} />
                                     <span>{mod.label}</span>
                                 </button>
                             )
@@ -352,15 +377,15 @@ export default function MobileHeader() {
                     </div>
                 </div>
 
-                {/* Submenu Title & Quick Access */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px 8px 18px', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                        {availableModules.find(m => m.id === currentDrawerModule)?.label || 'Alt'} Menüleri
+                {/* Submenu Title & Quick Access to Module Dashboard */}
+                <div className="drawer-submenus-bar">
+                    <span className="drawer-submenus-label">
+                        {availableModules.find(m => m.id === currentDrawerModule)?.label || 'Seçili'} Menüleri
                     </span>
                     {availableModules.find(m => m.id === currentDrawerModule)?.path && (
                         <button
                             type="button"
-                            style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                            className="drawer-panel-link"
                             onClick={() => {
                                 const targetPath = availableModules.find(m => m.id === currentDrawerModule)?.path
                                 if (targetPath) {
@@ -395,10 +420,10 @@ export default function MobileHeader() {
                                             onClick={() => setDrawerOpen(false)}
                                         >
                                             <div className="drawer-nav-icon">
-                                                {IconComponent && <IconComponent size={18} />}
+                                                {IconComponent && <IconComponent size={17} />}
                                             </div>
                                             <span className="drawer-nav-text">{item.label}</span>
-                                            <ArrowRight size={14} className="drawer-nav-arrow" />
+                                            <ChevronRight size={15} className="drawer-nav-arrow" />
                                         </NavLink>
                                     )
                                 })}
@@ -409,7 +434,18 @@ export default function MobileHeader() {
 
                 {/* Drawer Footer Actions */}
                 <div className="drawer-footer">
-                    {(isAdmin || hasPermission('settings', 'can_read')) ? (
+                    <button
+                        type="button"
+                        className="drawer-footer-btn"
+                        onClick={() => {
+                            navigate(user?.role === 'personnel' ? '/personnel-profile' : '/profile')
+                            setDrawerOpen(false)
+                        }}
+                    >
+                        <User size={16} />
+                        <span>Profil</span>
+                    </button>
+                    {(isAdmin || hasPermission('settings', 'can_read')) && (
                         <button
                             type="button"
                             className="drawer-footer-btn"
@@ -418,20 +454,21 @@ export default function MobileHeader() {
                                 setDrawerOpen(false)
                             }}
                         >
-                            <Settings size={17} />
+                            <Settings size={16} />
                             <span>Ayarlar</span>
                         </button>
-                    ) : (
+                    )}
+                    {isSuperAdmin && (
                         <button
                             type="button"
-                            className="drawer-footer-btn"
+                            className="drawer-footer-btn highlight"
                             onClick={() => {
-                                navigate(user?.role === 'personnel' ? '/personnel-profile' : '/profile')
+                                navigate('/platform-admin')
                                 setDrawerOpen(false)
                             }}
                         >
-                            <User size={17} />
-                            <span>Profilim</span>
+                            <Crown size={16} />
+                            <span>Platform</span>
                         </button>
                     )}
                     <button
@@ -439,7 +476,7 @@ export default function MobileHeader() {
                         className="drawer-footer-btn danger"
                         onClick={logout}
                     >
-                        <LogOut size={17} />
+                        <LogOut size={16} />
                         <span>Çıkış</span>
                     </button>
                 </div>

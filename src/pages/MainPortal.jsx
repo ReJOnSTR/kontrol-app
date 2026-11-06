@@ -119,6 +119,10 @@ const portalStyles = `
         .portal-card {
             padding: 18px 16px !important;
             border-radius: 16px !important;
+            transform: translateZ(0);
+        }
+        .portal-card .glow-orb {
+            display: none !important;
         }
         .portal-grid {
             grid-template-columns: 1fr;

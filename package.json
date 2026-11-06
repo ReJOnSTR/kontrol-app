@@ -1,6 +1,6 @@
 {
   "name": "kontrol-app",
-  "version": "1.13.177",
+  "version": "1.13.178",
   "description": "Kontrol - Filo Yönetim Sistemi",
   "author": "Halil Sak",
   "main": "electron/main.js",
