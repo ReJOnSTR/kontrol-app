@@ -179,7 +179,10 @@ function MainLayout() {
     useEffect(() => {
         const pageEl = document.querySelector('.page-content')
         if (pageEl) {
-            pageEl.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+            pageEl.scrollTop = 0
+            if (pageEl.scrollTo) {
+                try { pageEl.scrollTo(0, 0) } catch (_) {}
+            }
         }
         window.scrollTo(0, 0)
     }, [location.pathname, location.search])

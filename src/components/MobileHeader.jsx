@@ -255,6 +255,9 @@ export default function MobileHeader() {
             )}
 
             <aside className={`mobile-drawer ${drawerOpen ? 'open' : ''}`}>
+                <div className="bottom-sheet-handle-area">
+                    <div className="bottom-sheet-handle" />
+                </div>
                 <div className="mobile-drawer-header">
                     <div 
                         className="drawer-brand"
@@ -350,7 +353,7 @@ export default function MobileHeader() {
                 </div>
 
                 {/* Submenu Title & Quick Access */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px 6px 18px', borderBottom: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px 8px 18px', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         {availableModules.find(m => m.id === currentDrawerModule)?.label || 'Alt'} Menüleri
                     </span>
