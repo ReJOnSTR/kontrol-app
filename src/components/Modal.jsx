@@ -1,4 +1,5 @@
 import { useEffect, useRef, useId, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 export default function Modal({
@@ -33,6 +34,13 @@ export default function Modal({
 
     useEffect(() => {
         if (!isOpen) return
+
+        // Lock background body & page scrolling when modal is open
+        const originalBodyOverflow = document.body.style.overflow
+        const originalHtmlOverflow = document.documentElement.style.overflow
+        document.body.style.overflow = 'hidden'
+        document.documentElement.style.overflow = 'hidden'
+        document.body.classList.add('modal-open')
 
         previousFocusRef.current = document.activeElement
 
@@ -83,6 +91,9 @@ export default function Modal({
 
         window.addEventListener('keydown', handleKeyDown)
         return () => {
+            document.body.style.overflow = originalBodyOverflow
+            document.documentElement.style.overflow = originalHtmlOverflow
+            document.body.classList.remove('modal-open')
             window.removeEventListener('keydown', handleKeyDown)
             if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
                 previousFocusRef.current.focus()
@@ -104,7 +115,7 @@ export default function Modal({
         : 'modal-default'
     const modalClass = `modal ${isCenter ? 'modal-center' : 'modal-drawer'} ${sizeClass}`
 
-    return (
+    return createPortal(
         <div
             className={overlayClass}
             style={overlayStyle}
@@ -139,7 +150,8 @@ export default function Modal({
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
 

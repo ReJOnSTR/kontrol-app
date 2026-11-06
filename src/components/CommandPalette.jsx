@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Search, Car, User, Building2, X, Command, ArrowRight } from 'lucide-react'
 import { useTabs } from '../context/TabContext'
@@ -172,7 +173,7 @@ export default function CommandPalette() {
 
     if (!isOpen) return null
 
-    return (
+    return createPortal(
         <div className="command-palette-overlay" onClick={() => setIsOpen(false)}>
             <div className="command-palette-container" onClick={e => e.stopPropagation()}>
                 <div className="command-palette-header">
@@ -326,6 +327,7 @@ export default function CommandPalette() {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
