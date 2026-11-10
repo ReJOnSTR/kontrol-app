@@ -617,12 +617,15 @@ export default function WorkPdfReport({
                                                                         if (isHoliday) {
                                                                             return '-';
                                                                         }
+                                                                        const pMatch = (desc || '').match(/\[PAZAR_FIYAT:([^\]]+)\]/);
                                                                         const kMatch = (desc || '').match(/\[KATSAYI:([^\]]+)\]/);
                                                                         const baseP = item.unit_price || item.unitPriceVal || 0;
                                                                         const dailyP = baseP;
                                                                         
                                                                         let finalPrice = dailyP;
-                                                                        if (kMatch) {
+                                                                        if (pMatch && parseFloat(pMatch[1]) > 0) {
+                                                                            finalPrice = parseFloat(pMatch[1]);
+                                                                        } else if (kMatch) {
                                                                             const multVal = parseFloat(kMatch[1]) || 1;
                                                                             finalPrice = multVal === 1 ? dailyP : Number((dailyP * multVal).toFixed(6));
                                                                         } else if (item.isPazar) {

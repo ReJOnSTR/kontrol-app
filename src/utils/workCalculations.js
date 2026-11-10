@@ -225,7 +225,7 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
     const calculatedGroups = Object.values(groupedByVehicle).map(group => {
         group.items.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        const positivePriceItem = group.items.find(i => i.unitPriceVal > 0);
+        const positivePriceItem = group.items.find(i => !i.isPazar && i.unitPriceVal > 0) || group.items.find(i => i.unitPriceVal > 0);
         const rawPrimaryPrice = positivePriceItem ? positivePriceItem.unitPriceVal : 0;
         const positiveItems = group.items.filter(i => (Number(i.hours) || 0) > 0 && i.unitPriceVal > 0);
 
@@ -424,16 +424,25 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
             }
         }
 
-        // 2. PAZAR Line (calculated per-item rate)
+        // 2. PAZAR Line (calculated per-item rate or explicit [PAZAR_FIYAT:x] override)
         if (groupPazarCount > 0) {
             const pazarPricesMap = {};
             group.items.filter(i => i.isPazar).forEach(i => {
                 const hrs = Number(i.hours) || 0;
                 if (hrs > 0) {
+                    const pMatch = (i.description || '').match(/\[PAZAR_FIYAT:([^\]]+)\]/);
+                    const kMatch = (i.description || '').match(/\[KATSAYI:([^\]]+)\]/);
                     const itemDailyPrice = getItemEffectivePrice(i, dailyRate);
-                    const itemPazarPrice = itemDailyPrice > 0 
-                        ? (parsedPazarMultiplier === 1 ? itemDailyPrice : Number((itemDailyPrice * parsedPazarMultiplier).toFixed(6))) 
-                        : 0;
+                    let itemPazarPrice = 0;
+                    if (pMatch && parseFloat(pMatch[1]) > 0) {
+                        itemPazarPrice = parseFloat(pMatch[1]);
+                    } else if (kMatch && parseFloat(kMatch[1]) > 0) {
+                        itemPazarPrice = itemDailyPrice;
+                    } else {
+                        itemPazarPrice = itemDailyPrice > 0 
+                            ? (parsedPazarMultiplier === 1 ? itemDailyPrice : Number((itemDailyPrice * parsedPazarMultiplier).toFixed(6))) 
+                            : 0;
+                    }
                     const key = `${itemPazarPrice}`;
                     if (!pazarPricesMap[key]) {
                         pazarPricesMap[key] = { price: itemPazarPrice, count: 0 };

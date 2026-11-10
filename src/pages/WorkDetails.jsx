@@ -44,6 +44,7 @@ export default function WorkDetails(props) {
     const [modalError, setModalError] = useState('')
     const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
     const [isDaySettingsModalOpen, setIsDaySettingsModalOpen] = useState(false)
+    const [daySettingsTarget, setDaySettingsTarget] = useState('single') // 'single' | 'bulk'
     const [isBulkDaySettingsModalOpen, setIsBulkDaySettingsModalOpen] = useState(false)
 
     // Bulk Form State
@@ -60,7 +61,10 @@ export default function WorkDetails(props) {
         pricingType: 'daily',
         monthlyPrice: '',
         unitPrice: '',
+        multiplier: '1',
+        customColor: '',
         sundayAction: 'zero', // 'zero' (Çalışılmadı 0 Gün - 0 TL), 'skip' (Pazarları atla), 'work' (Normal çalışma)
+        sundayPrice: '',
         additions: [],
         description: ''
     })
@@ -495,7 +499,11 @@ export default function WorkDetails(props) {
             pricingType: 'daily',
             monthlyPrice: '',
             unitPrice: '',
+            multiplier: '1',
+            customColor: '',
             sundayAction: 'zero',
+            sundayPrice: '',
+            additions: [],
             travelEnabled: false,
             travelPrice: '',
             description: ''
@@ -529,8 +537,10 @@ export default function WorkDetails(props) {
 
     const openAddModal = () => {
         setEditingItem(null)
+        const todayStr = new Date().toISOString().split('T')[0]
+        const isTodaySunday = new Date(todayStr).getDay() === 0
         setFormData({
-            date: new Date().toISOString().split('T')[0],
+            date: todayStr,
             receiptNo: '',
             vehicleId: '',
             employeeId: '',
@@ -542,6 +552,9 @@ export default function WorkDetails(props) {
             unitPrice: '',
             multiplier: '1',
             customColor: '',
+            sundayAction: isTodaySunday ? 'work' : 'work',
+            sundayPrice: '',
+            additions: [],
             travelEnabled: false,
             travelPrice: '',
             description: '',
@@ -564,6 +577,14 @@ export default function WorkDetails(props) {
         } else if (desc.startsWith('[AYLIK] ') || desc.startsWith('[AYLIK]') || desc.match(/\[AYLIK:[0-9.]+\]/)) {
             determinedPricingType = 'monthly';
             desc = desc.replace(/\[AYLIK(?::[0-9.]+)?\]\s*/i, '');
+        }
+
+        // Parse fixed Sunday price tag
+        let sundayPrice = '';
+        const pazarPriceMatch = desc.match(/\[PAZAR_FIYAT:([^\]]+)\]/);
+        if (pazarPriceMatch) {
+            sundayPrice = pazarPriceMatch[1];
+            desc = desc.replace(pazarPriceMatch[0], '').trim();
         }
 
         // Parse multiplier tag
@@ -604,11 +625,14 @@ export default function WorkDetails(props) {
             });
         }
 
-        if ((multiplier && multiplier !== '1') || customColor) {
+        if ((multiplier && multiplier !== '1') || customColor || sundayPrice) {
             setShowAdvancedOptions(true)
         } else {
             setShowAdvancedOptions(false)
         }
+
+        const itemHours = item.hours !== undefined && item.hours !== null ? item.hours : 0;
+        const isHolidayOrZero = Number(itemHours) === 0 || desc.toUpperCase().includes('[PAZAR TATİLİ]') || desc.toUpperCase().includes('[TATİL]');
 
         setFormData({
             date: item.date ? new Date(item.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
@@ -617,12 +641,14 @@ export default function WorkDetails(props) {
             employeeId: item.employee_id || item.custom_employee || '',
             startTime: item.start_time || '',
             endTime: item.end_time || '',
-            hours: item.hours !== undefined && item.hours !== null ? item.hours : 0,
+            hours: itemHours,
             overtimeHours: item.overtime_hours !== undefined && item.overtime_hours !== null ? item.overtime_hours : 0,
             pricingType: determinedPricingType,
             unitPrice: item.unit_price || 0,
             multiplier: multiplier,
             customColor: customColor,
+            sundayAction: isHolidayOrZero ? 'zero' : 'work',
+            sundayPrice: sundayPrice,
             additions: additions,
             description: desc,
             _manualHours: true,
@@ -639,7 +665,8 @@ export default function WorkDetails(props) {
         try {
             const parsed = workItemSchema.parse(formData)
 
-            let finalDesc = parsed.description || '';
+            let finalDesc = (parsed.description || '').replace(/\[PAZAR_FIYAT:[^\]]+\]\s*/gi, '').trim();
+            const isDateSunday = parsed.date ? new Date(parsed.date).getDay() === 0 : false;
 
             // Clean or assign holiday tags based on parsed.hours
             if (Number(parsed.hours) > 0) {
@@ -650,7 +677,7 @@ export default function WorkDetails(props) {
                     .trim();
             } else if (Number(parsed.hours) === 0) {
                 if (!/\[(TATİL|ÇALIŞILMADI|PAZAR TATİLİ)\]/i.test(finalDesc)) {
-                    finalDesc = `[TATİL] ${finalDesc}`.trim();
+                    finalDesc = `${isDateSunday ? '[PAZAR TATİLİ]' : '[TATİL]'} ${finalDesc}`.trim();
                 }
             }
 
@@ -665,7 +692,13 @@ export default function WorkDetails(props) {
                 }
             }
 
-            if (formData.multiplier && parseFloat(formData.multiplier) !== 1) {
+            const customSundayPriceVal = formData.sundayPrice ? parseFloat(formData.sundayPrice) : 0;
+            if (Number(parsed.hours) > 0 && customSundayPriceVal > 0 && (isDateSunday || formData.sundayAction === 'work')) {
+                finalDesc = `[PAZAR_FIYAT:${customSundayPriceVal}] ` + finalDesc;
+                if (!isDateSunday && !finalDesc.toUpperCase().includes('PAZAR')) {
+                    finalDesc = `[PAZAR] ` + finalDesc;
+                }
+            } else if (formData.multiplier && parseFloat(formData.multiplier) !== 1) {
                 finalDesc = `[KATSAYI:${formData.multiplier}] ` + finalDesc;
             }
 
@@ -680,9 +713,13 @@ export default function WorkDetails(props) {
                 });
             }
 
+            const effectiveUnitPrice = (Number(parsed.hours) > 0 && (!parsed.unitPrice || Number(parsed.unitPrice) === 0) && customSundayPriceVal > 0)
+                ? customSundayPriceVal
+                : parsed.unitPrice;
+
             const payload = {
                 ...parsed,
-                unitPrice: parsed.unitPrice,
+                unitPrice: effectiveUnitPrice,
                 description: finalDesc,
                 // Still save to travelPrice if 'Yol' is in the list for backward compatibility
                 travelPrice: (formData.additions || []).find(add => add.type === 'Yol')?.price || 0,
@@ -742,6 +779,7 @@ export default function WorkDetails(props) {
             }
 
             const sundayMode = bulkFormData.sundayAction || 'zero';
+            const customSundayPrice = bulkFormData.sundayPrice ? parseFloat(bulkFormData.sundayPrice) : 0;
 
             while (currentDate <= end) {
                 const dayOfWeek = currentDate.getDay(); // 0 is Sunday
@@ -763,7 +801,7 @@ export default function WorkDetails(props) {
                     }
                 }
 
-                let itemHours = bulkFormData.hours ? parseFloat(bulkFormData.hours) : 1;
+                let itemHours = bulkFormData.hours !== undefined && bulkFormData.hours !== '' ? parseFloat(bulkFormData.hours) : 1;
                 let itemOvertime = bulkFormData.overtimeHours ? parseFloat(bulkFormData.overtimeHours) : 0;
                 let itemUnitPrice = finalUnitPrice;
                 let itemStartTime = bulkFormData.startTime;
@@ -778,6 +816,27 @@ export default function WorkDetails(props) {
                     itemEndTime = '';
                     if (!itemDesc.includes('PAZAR')) {
                         itemDesc = itemDesc ? `[PAZAR TATİLİ] ${itemDesc}` : '[PAZAR TATİLİ]';
+                    }
+                } else if (Number(itemHours) === 0) {
+                    itemOvertime = 0;
+                    itemUnitPrice = 0;
+                    itemStartTime = '';
+                    itemEndTime = '';
+                    if (!/\[(TATİL|ÇALIŞILMADI|PAZAR TATİLİ)\]/i.test(itemDesc)) {
+                        itemDesc = itemDesc ? `[TATİL] ${itemDesc}` : '[TATİL]';
+                    }
+                } else {
+                    if (isSunday && sundayMode === 'work' && customSundayPrice > 0) {
+                        itemDesc = `[PAZAR_FIYAT:${customSundayPrice}] ` + itemDesc;
+                        if (!itemUnitPrice || itemUnitPrice === 0) {
+                            itemUnitPrice = customSundayPrice;
+                        }
+                    } else if (bulkFormData.multiplier && parseFloat(bulkFormData.multiplier) !== 1) {
+                        itemDesc = `[KATSAYI:${bulkFormData.multiplier}] ` + itemDesc;
+                    }
+
+                    if (bulkFormData.customColor) {
+                        itemDesc = `[RENK:${bulkFormData.customColor}] ` + itemDesc;
                     }
                 }
 
@@ -1659,6 +1718,7 @@ export default function WorkDetails(props) {
                             if (Number(row.hours) === 0 && Number(row.overtime_hours) === 0) return '-';
 
                             const desc = row.description || '';
+                            const pMatch = desc.match(/\[PAZAR_FIYAT:([^\]]+)\]/);
                             const kMatch = desc.match(/\[KATSAYI:([^\]]+)\]/);
                             const baseP = Number(row.unit_price) || Number(row.unitPriceVal) || 0;
                             
@@ -1666,7 +1726,11 @@ export default function WorkDetails(props) {
                             let badgeText = null;
                             let isCalculated = false;
 
-                            if (kMatch) {
+                            if (pMatch && parseFloat(pMatch[1]) > 0) {
+                                finalPrice = parseFloat(pMatch[1]);
+                                badgeText = 'Pazar Ücreti';
+                                isCalculated = true;
+                            } else if (kMatch) {
                                 const multVal = parseFloat(kMatch[1]) || 1;
                                 finalPrice = multVal === 1 ? baseP : Number((baseP * multVal).toFixed(6));
                                 badgeText = multVal !== 1 ? `${multVal}x` : null;
@@ -1949,112 +2013,227 @@ export default function WorkDetails(props) {
                         />
                     </div>
 
-                    {/* Gün & Ücret Ayarları Geçiş Butonu (Sade & Modern Tasarım) */}
-                    <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setIsDaySettingsModalOpen(true)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsDaySettingsModalOpen(true) }}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '10px 14px',
-                            background: Number(formData.hours) === 0 ? 'var(--danger-bg)' : 'var(--bg-secondary)',
-                            border: '1px solid ' + (Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-color)'),
-                            borderRadius: 'var(--radius-md)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            userSelect: 'none'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = Number(formData.hours) === 0 ? '#ef4444' : 'var(--accent-primary)';
-                            e.currentTarget.style.background = Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.12)' : 'var(--bg-tertiary)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-color)';
-                            e.currentTarget.style.background = Number(formData.hours) === 0 ? 'var(--danger-bg)' : 'var(--bg-secondary)';
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '8px',
-                                background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'var(--accent-subtle)',
-                                color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--accent-primary)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0
-                            }}>
-                                <Sliders size={16} />
-                            </div>
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                        Gün & Ücret Ayarları
-                                    </span>
-                                    {/* Durum Rozeti */}
-                                    <span style={{
-                                        fontSize: '11px',
-                                        fontWeight: 600,
-                                        padding: '1px 6px',
-                                        borderRadius: '4px',
-                                        background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-tertiary)',
-                                        color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--text-secondary)',
-                                        border: '1px solid ' + (Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.25)' : 'var(--border-color)')
-                                    }}>
-                                        {Number(formData.hours) === 0 ? '⛔ Tatil (0 Gün)' : Number(formData.hours) === 0.5 ? '🌓 Yarım Gün (0.5)' : '🟢 Tam Gün (1)'}
-                                    </span>
-                                    {formData.multiplier && formData.multiplier !== '1' && (
-                                        <span style={{
-                                            fontSize: '11px',
-                                            fontWeight: 600,
-                                            padding: '1px 6px',
-                                            borderRadius: '4px',
-                                            background: 'rgba(59, 130, 246, 0.12)',
-                                            color: '#3b82f6',
-                                            border: '1px solid rgba(59, 130, 246, 0.25)'
+                    {/* Gün, Pazar & Ücret Ayarları Geçiş Kartı (Sade & Modern Tasarım) */}
+                    {(() => {
+                        const isSelectedDateSunday = formData.date ? new Date(formData.date).getDay() === 0 : false;
+                        const hasSundayPrice = formData.sundayPrice && parseFloat(formData.sundayPrice) > 0;
+                        return (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    background: Number(formData.hours) === 0 ? 'var(--danger-bg)' : 'var(--bg-secondary)',
+                                    border: '1px solid ' + (Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.3)' : (isSelectedDateSunday ? 'rgba(234, 88, 12, 0.35)' : 'var(--border-color)')),
+                                    borderRadius: 'var(--radius-md)',
+                                    overflow: 'hidden',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                <div
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => { setDaySettingsTarget('single'); setIsDaySettingsModalOpen(true); }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setDaySettingsTarget('single'); setIsDaySettingsModalOpen(true); } }}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '10px 14px',
+                                        cursor: 'pointer',
+                                        userSelect: 'none'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '8px',
+                                            background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'var(--accent-subtle)',
+                                            color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--accent-primary)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0
                                         }}>
-                                            ⚡ {formData.multiplier}x
-                                        </span>
-                                    )}
-                                    {formData.customColor && (
-                                        <span style={{
-                                            width: '8px',
-                                            height: '8px',
-                                            borderRadius: '50%',
-                                            background: WORK_COLOR_OPTIONS.find(c => c.id === formData.customColor)?.color || '#14b8a6',
-                                            display: 'inline-block',
-                                            marginLeft: '2px',
-                                            boxShadow: '0 0 0 1px var(--border-color)'
-                                        }} title={`Satır Rengi: ${WORK_COLOR_OPTIONS.find(c => c.id === formData.customColor)?.label || ''}`} />
-                                    )}
-                                </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                    {Number(formData.hours) === 0 
-                                        ? '0 Gün ve 0 TL uygulandı • Düzenlemek için tıklayın' 
-                                        : 'Puantaj çarpanı, mesai katsayısı ve tablo rengi ayarları'}
-                                </div>
-                            </div>
-                        </div>
+                                            <Sliders size={16} />
+                                        </div>
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                    Gün & Ücret Ayarları
+                                                </span>
+                                                <span style={{
+                                                    fontSize: '11px',
+                                                    fontWeight: 600,
+                                                    padding: '1px 6px',
+                                                    borderRadius: '4px',
+                                                    background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-tertiary)',
+                                                    color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--text-secondary)',
+                                                    border: '1px solid ' + (Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.25)' : 'var(--border-color)')
+                                                }}>
+                                                    {Number(formData.hours) === 0 ? '⛔ Tatil (0 Gün)' : Number(formData.hours) === 0.5 ? '🌓 Yarım Gün (0.5)' : '🟢 Tam Gün (1)'}
+                                                </span>
+                                                {hasSundayPrice && Number(formData.hours) > 0 && (
+                                                    <span style={{
+                                                        fontSize: '11px',
+                                                        fontWeight: 600,
+                                                        padding: '1px 6px',
+                                                        borderRadius: '4px',
+                                                        background: 'rgba(234, 88, 12, 0.12)',
+                                                        color: '#ea580c',
+                                                        border: '1px solid rgba(234, 88, 12, 0.28)'
+                                                    }}>
+                                                        📅 Pazar: {formatCurrency(parseFloat(formData.sundayPrice))}
+                                                    </span>
+                                                )}
+                                                {!hasSundayPrice && formData.multiplier && formData.multiplier !== '1' && (
+                                                    <span style={{
+                                                        fontSize: '11px',
+                                                        fontWeight: 600,
+                                                        padding: '1px 6px',
+                                                        borderRadius: '4px',
+                                                        background: 'rgba(59, 130, 246, 0.12)',
+                                                        color: '#3b82f6',
+                                                        border: '1px solid rgba(59, 130, 246, 0.25)'
+                                                    }}>
+                                                        ⚡ {formData.multiplier}x
+                                                    </span>
+                                                )}
+                                                {formData.customColor && (
+                                                    <span style={{
+                                                        width: '8px',
+                                                        height: '8px',
+                                                        borderRadius: '50%',
+                                                        background: WORK_COLOR_OPTIONS.find(c => c.id === formData.customColor)?.color || '#14b8a6',
+                                                        display: 'inline-block',
+                                                        marginLeft: '2px',
+                                                        boxShadow: '0 0 0 1px var(--border-color)'
+                                                    }} title={`Satır Rengi: ${WORK_COLOR_OPTIONS.find(c => c.id === formData.customColor)?.label || ''}`} />
+                                                )}
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                {Number(formData.hours) === 0 
+                                                    ? '0 Gün ve 0 TL uygulandı • Düzenlemek için tıklayın' 
+                                                    : 'Çalışma durumu, pazar ücreti, katsayı ve renk ayarları'}
+                                            </div>
+                                        </div>
+                                    </div>
 
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: 'var(--accent-primary)',
-                            padding: '5px 10px',
-                            borderRadius: 'var(--radius-sm)',
-                            background: 'var(--accent-subtle)'
-                        }}>
-                            <span>Ayarla</span>
-                            <ChevronRight size={14} />
-                        </div>
-                    </div>
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        color: 'var(--accent-primary)',
+                                        padding: '5px 10px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        background: 'var(--accent-subtle)',
+                                        flexShrink: 0
+                                    }}>
+                                        <span>Ayarla</span>
+                                        <ChevronRight size={14} />
+                                    </div>
+                                </div>
+
+                                {/* Seçili tarih Pazar günü ise veya özel Pazar ücreti girilmişse sade alt satır */}
+                                {(isSelectedDateSunday || hasSundayPrice) && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '8px',
+                                        padding: '8px 14px',
+                                        borderTop: '1px solid var(--border-color)',
+                                        background: 'var(--bg-tertiary)',
+                                        flexWrap: 'wrap'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Calendar size={13} style={{ color: '#ea580c' }} />
+                                            <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)' }}>Pazar Günü:</span>
+                                            <div style={{ display: 'inline-flex', background: 'var(--bg-primary)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-color)', gap: '2px' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({
+                                                        ...prev,
+                                                        _savedUnitPrice: prev.unitPrice && parseFloat(prev.unitPrice) > 0 ? prev.unitPrice : prev._savedUnitPrice,
+                                                        sundayAction: 'zero',
+                                                        hours: 0,
+                                                        overtimeHours: 0,
+                                                        unitPrice: 0,
+                                                        startTime: '',
+                                                        endTime: '',
+                                                        _manualHours: true,
+                                                        _manualOvertime: true
+                                                    }))}
+                                                    style={{
+                                                        padding: '3px 8px',
+                                                        fontSize: '11px',
+                                                        fontWeight: Number(formData.hours) === 0 ? 600 : 500,
+                                                        borderRadius: '4px',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        background: Number(formData.hours) === 0 ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                                                        color: Number(formData.hours) === 0 ? '#ef4444' : 'var(--text-secondary)'
+                                                    }}
+                                                >
+                                                    Tatil (0 ₺)
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const stdPrice = getVehicleStandardPrice(formData.vehicleId);
+                                                        const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
+                                                            ? formData._savedUnitPrice
+                                                            : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            sundayAction: 'work',
+                                                            hours: Number(prev.hours) === 0 ? 1 : prev.hours,
+                                                            unitPrice: restoredPrice,
+                                                            startTime: prev.startTime || work?.work_start_time || '08:00',
+                                                            endTime: prev.endTime || work?.work_end_time || '17:00',
+                                                            _manualHours: false
+                                                        }));
+                                                    }}
+                                                    style={{
+                                                        padding: '3px 8px',
+                                                        fontSize: '11px',
+                                                        fontWeight: Number(formData.hours) > 0 ? 600 : 500,
+                                                        borderRadius: '4px',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        background: Number(formData.hours) > 0 ? 'var(--accent-subtle)' : 'transparent',
+                                                        color: Number(formData.hours) > 0 ? 'var(--accent-primary)' : 'var(--text-secondary)'
+                                                    }}
+                                                >
+                                                    Çalışıldı
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {Number(formData.hours) > 0 && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 180px', maxWidth: '230px' }}>
+                                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Pazar Ücreti:</span>
+                                                <div style={{ flex: 1 }}>
+                                                    <CustomInput
+                                                        format="currency"
+                                                        maxDecimals={6}
+                                                        maxLength={18}
+                                                        value={formData.sundayPrice || ''}
+                                                        onChange={(val) => setFormData(prev => ({ ...prev, sundayPrice: val, sundayAction: 'work' }))}
+                                                        placeholder={`Boş = ${pazarMultiplier || 1.5}x Katsayı`}
+                                                        className="mb-0"
+                                                        style={{ height: '28px', fontSize: '11.5px', padding: '2px 8px' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -2344,358 +2523,542 @@ export default function WorkDetails(props) {
                 </form>
             </Modal>
 
-            {/* Gün & Ücret Ayarları Modalı (Minimalist & Modern Tasarım) */}
-            <Modal
-                isOpen={isDaySettingsModalOpen}
-                onClose={() => setIsDaySettingsModalOpen(false)}
-                title={
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Sliders size={16} style={{ color: 'var(--accent-primary)' }} />
-                            <span style={{ fontSize: '14px', fontWeight: 600 }}>Gün & Ücret Ayarları</span>
-                            {formData.date && (
-                                <span style={{
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    color: 'var(--text-muted)',
-                                    background: 'var(--bg-tertiary)',
-                                    padding: '1px 6px',
-                                    borderRadius: '4px'
-                                }}>
-                                    {formData.date}
-                                </span>
-                            )}
-                        </div>
-                        {(formData.multiplier !== '1' || formData.customColor || Number(formData.hours) !== 1) && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const stdPrice = getVehicleStandardPrice(formData.vehicleId);
-                                    const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
-                                        ? formData._savedUnitPrice
-                                        : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        startTime: prev.startTime || work?.work_start_time || '08:00',
-                                        endTime: prev.endTime || work?.work_end_time || '17:00',
-                                        hours: 1,
-                                        overtimeHours: 0,
-                                        unitPrice: restoredPrice,
-                                        multiplier: '1',
-                                        customColor: '',
-                                        _savedUnitPrice: undefined,
-                                        description: (prev.description || '')
-                                            .replace(/\[TATİL\]\s*/gi, '')
-                                            .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
-                                            .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
-                                            .trim(),
-                                        _manualHours: false,
-                                        _manualOvertime: false
-                                    }));
-                                }}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'var(--text-muted)',
-                                    fontSize: '11px',
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '3px',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px'
-                                }}
-                                title="Varsayılan değerlere sıfırla"
-                            >
-                                <RotateCcw size={11} /> Sıfırla
-                            </button>
-                        )}
-                    </div>
-                }
-                size="sm"
-                overlayStyle={{ zIndex: 1100 }}
-                footer={
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                                Yevmiye Tutarı
-                            </span>
-                            <span style={{
-                                fontSize: '15px',
-                                fontWeight: 700,
-                                color: Number(formData.hours) === 0 ? 'var(--danger)' : 'var(--text-primary)'
-                            }}>
-                                {Number(formData.hours) === 0
-                                    ? '0,00 ₺ (Tatil)'
-                                    : formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * (parseFloat(formData.multiplier) || 1) * (parseFloat(formData.hours) || 1)))}
-                            </span>
-                        </div>
+            {/* Gün & Ücret Ayarları Modalı (Minimalist & Modern Tasarım - Tekil ve Toplu Kayıt Uyumlu) */}
+            {(() => {
+                const isBulkTarget = daySettingsTarget === 'bulk';
+                const activeData = isBulkTarget ? bulkFormData : formData;
+                const setActiveData = isBulkTarget ? setBulkFormData : setFormData;
+                const isSingleSunday = !isBulkTarget && activeData.date && (() => {
+                    const p = String(activeData.date).split('-');
+                    return p.length === 3 && new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getDay() === 0;
+                })();
+                const effectiveSundayWork = isBulkTarget
+                    ? activeData.sundayAction === 'work'
+                    : (Number(activeData.hours) > 0);
+                const hasChanges = (activeData.multiplier && activeData.multiplier !== '1') || activeData.customColor || Number(activeData.hours) !== 1 || (activeData.sundayPrice && parseFloat(activeData.sundayPrice) > 0) || (isBulkTarget && activeData.sundayAction !== 'zero');
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <button
-                                type="button"
-                                className="btn btn-secondary"
-                                onClick={() => setIsDaySettingsModalOpen(false)}
-                                style={{ padding: '6px 14px', fontSize: '12px' }}
-                            >
-                                Vazgeç
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={() => setIsDaySettingsModalOpen(false)}
-                                style={{ padding: '6px 16px', fontSize: '12px' }}
-                            >
-                                Tamam
-                            </button>
-                        </div>
-                    </div>
-                }
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '2px 0' }}>
-                    {/* 1. Çalışma Durumu (Minimal Segmented Control) */}
-                    <div>
-                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
-                            Çalışma Durumu
-                        </div>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(3, 1fr)',
-                            background: 'var(--bg-tertiary)',
-                            padding: '3px',
-                            borderRadius: 'var(--radius-md)',
-                            gap: '3px'
-                        }}>
-                            {/* Tam Gün (1) */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const stdPrice = getVehicleStandardPrice(formData.vehicleId);
-                                    const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
-                                        ? formData._savedUnitPrice
-                                        : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        startTime: prev.startTime || work?.work_start_time || '08:00',
-                                        endTime: prev.endTime || work?.work_end_time || '17:00',
-                                        hours: 1,
-                                        overtimeHours: 0,
-                                        unitPrice: restoredPrice,
-                                        _savedUnitPrice: undefined,
-                                        description: (prev.description || '')
-                                            .replace(/\[TATİL\]\s*/gi, '')
-                                            .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
-                                            .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
-                                            .trim(),
-                                        _manualHours: false,
-                                        _manualOvertime: false
-                                    }));
-                                }}
-                                style={{
-                                    padding: '7px 0',
-                                    borderRadius: 'var(--radius-sm)',
-                                    border: 'none',
-                                    background: Number(formData.hours) === 1 ? 'var(--bg-primary)' : 'transparent',
-                                    color: Number(formData.hours) === 1 ? 'var(--text-primary)' : 'var(--text-muted)',
-                                    fontWeight: Number(formData.hours) === 1 ? 600 : 500,
-                                    fontSize: '12px',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '6px',
-                                    boxShadow: Number(formData.hours) === 1 ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
-                                    transition: 'all 0.15s ease'
-                                }}
-                            >
-                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981' }} />
-                                Tam Gün (1)
-                            </button>
-
-                            {/* Yarım Gün (0.5) */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const stdPrice = getVehicleStandardPrice(formData.vehicleId);
-                                    const restoredPrice = (formData._savedUnitPrice && parseFloat(formData._savedUnitPrice) > 0)
-                                        ? formData._savedUnitPrice
-                                        : (formData.unitPrice && parseFloat(formData.unitPrice) > 0 ? formData.unitPrice : (stdPrice || ''));
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        hours: 0.5,
-                                        unitPrice: restoredPrice,
-                                        _manualHours: true,
-                                        description: (prev.description || '')
-                                            .replace(/\[TATİL\]\s*/gi, '')
-                                            .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
-                                            .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
-                                            .trim()
-                                    }));
-                                }}
-                                style={{
-                                    padding: '7px 0',
-                                    borderRadius: 'var(--radius-sm)',
-                                    border: 'none',
-                                    background: Number(formData.hours) === 0.5 ? 'var(--bg-primary)' : 'transparent',
-                                    color: Number(formData.hours) === 0.5 ? 'var(--text-primary)' : 'var(--text-muted)',
-                                    fontWeight: Number(formData.hours) === 0.5 ? 600 : 500,
-                                    fontSize: '12px',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '6px',
-                                    boxShadow: Number(formData.hours) === 0.5 ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
-                                    transition: 'all 0.15s ease'
-                                }}
-                            >
-                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#f97316' }} />
-                                Yarım (0.5)
-                            </button>
-
-                            {/* Tatil (0) */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        _savedUnitPrice: prev.unitPrice && parseFloat(prev.unitPrice) > 0 ? prev.unitPrice : prev._savedUnitPrice,
-                                        startTime: '',
-                                        endTime: '',
-                                        hours: 0,
-                                        overtimeHours: 0,
-                                        unitPrice: 0,
-                                        _manualHours: true,
-                                        _manualOvertime: true,
-                                        description: (prev.description || '').includes('TATİL') || (prev.description || '').includes('ÇALIŞILMADI') || (prev.description || '').includes('PAZAR TATİLİ')
-                                            ? prev.description 
-                                            : `[TATİL] ${prev.description || ''}`.trim()
-                                    }));
-                                }}
-                                style={{
-                                    padding: '7px 0',
-                                    borderRadius: 'var(--radius-sm)',
-                                    border: 'none',
-                                    background: Number(formData.hours) === 0 ? 'var(--bg-primary)' : 'transparent',
-                                    color: Number(formData.hours) === 0 ? 'var(--danger)' : 'var(--text-muted)',
-                                    fontWeight: Number(formData.hours) === 0 ? 600 : 500,
-                                    fontSize: '12px',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '6px',
-                                    boxShadow: Number(formData.hours) === 0 ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
-                                    transition: 'all 0.15s ease'
-                                }}
-                            >
-                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444' }} />
-                                Tatil (0)
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 2. Katsayı / Çarpan (Clean Minimal Row) */}
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                                Birim Ücret Çarpanı
-                            </span>
-                            {parseFloat(formData.multiplier) > 0 && parseFloat(formData.multiplier) !== 1 && (
-                                <span style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
-                                    {formatCurrency(Math.round((parseFloat(formData.unitPrice) || 0) * parseFloat(formData.multiplier)))} / gün
-                                </span>
-                            )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            {['1', '1.25', '1.5', '2'].map(mult => {
-                                const isSelected = String(formData.multiplier || '1') === mult;
-                                return (
+                return (
+                    <Modal
+                        isOpen={isDaySettingsModalOpen}
+                        onClose={() => setIsDaySettingsModalOpen(false)}
+                        title={
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Sliders size={16} style={{ color: 'var(--accent-primary)' }} />
+                                    <span style={{ fontSize: '14px', fontWeight: 600 }}>Gün & Ücret Ayarları</span>
+                                    <span style={{
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        color: 'var(--text-muted)',
+                                        background: 'var(--bg-tertiary)',
+                                        padding: '1px 6px',
+                                        borderRadius: '4px'
+                                    }}>
+                                        {isBulkTarget ? 'Toplu Üretim' : (activeData.date || '')}
+                                    </span>
+                                </div>
+                                {hasChanges && (
                                     <button
-                                        key={mult}
                                         type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, multiplier: mult }))}
-                                        style={{
-                                            flex: 1,
-                                            padding: '6px 0',
-                                            borderRadius: 'var(--radius-sm)',
-                                            fontSize: '12px',
-                                            fontWeight: isSelected ? 600 : 500,
-                                            cursor: 'pointer',
-                                            border: isSelected ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                                            background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
-                                            color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                            transition: 'all 0.15s ease'
+                                        onClick={() => {
+                                            const stdPrice = getVehicleStandardPrice(activeData.vehicleId);
+                                            const restoredPrice = (activeData._savedUnitPrice && parseFloat(activeData._savedUnitPrice) > 0)
+                                                ? activeData._savedUnitPrice
+                                                : (activeData.unitPrice && parseFloat(activeData.unitPrice) > 0 ? activeData.unitPrice : (stdPrice || ''));
+                                            setActiveData(prev => ({
+                                                ...prev,
+                                                startTime: prev.startTime || work?.work_start_time || '08:00',
+                                                endTime: prev.endTime || work?.work_end_time || '17:00',
+                                                hours: 1,
+                                                overtimeHours: 0,
+                                                unitPrice: restoredPrice,
+                                                multiplier: '1',
+                                                customColor: '',
+                                                sundayAction: isBulkTarget ? 'zero' : 'work',
+                                                sundayPrice: '',
+                                                _savedUnitPrice: undefined,
+                                                description: (prev.description || '')
+                                                    .replace(/\[TATİL\]\s*/gi, '')
+                                                    .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                                    .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                                    .trim(),
+                                                _manualHours: false,
+                                                _manualOvertime: false
+                                            }));
                                         }}
-                                    >
-                                        {mult}x
-                                    </button>
-                                );
-                            })}
-                            <div style={{ width: '74px', flexShrink: 0 }}>
-                                <input
-                                    type="number"
-                                    step="0.05"
-                                    min="0.1"
-                                    max="10"
-                                    placeholder="Özel"
-                                    value={formData.multiplier || '1'}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, multiplier: e.target.value }))}
-                                    className="form-input"
-                                    style={{
-                                        height: '31px',
-                                        padding: '0 6px',
-                                        fontSize: '12px',
-                                        textAlign: 'center',
-                                        borderRadius: 'var(--radius-sm)'
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 3. Satır Rengi (Minimal Circle Swatches) */}
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                                Satır Vurgu Rengi
-                            </span>
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                {WORK_COLOR_OPTIONS.find(c => c.id === (formData.customColor || ''))?.label || 'Standart'}
-                            </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {WORK_COLOR_OPTIONS.map(col => {
-                                const isSelected = (formData.customColor || '') === col.id;
-                                return (
-                                    <button
-                                        key={col.id}
-                                        type="button"
-                                        title={col.label}
-                                        onClick={() => setFormData(prev => ({ ...prev, customColor: col.id }))}
                                         style={{
-                                            width: '28px',
-                                            height: '28px',
-                                            borderRadius: '50%',
-                                            border: isSelected ? '2px solid var(--text-primary)' : '1px solid var(--border-color)',
-                                            background: col.id ? col.color : 'var(--bg-tertiary)',
+                                            background: 'none',
+                                            border: 'none',
+                                            color: 'var(--text-muted)',
+                                            fontSize: '11px',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px'
+                                        }}
+                                        title="Varsayılan değerlere sıfırla"
+                                    >
+                                        <RotateCcw size={11} /> Sıfırla
+                                    </button>
+                                )}
+                            </div>
+                        }
+                        size="sm"
+                        overlayStyle={{ zIndex: 1100 }}
+                        footer={
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                        {isSingleSunday && activeData.sundayPrice && parseFloat(activeData.sundayPrice) > 0 ? 'Pazar Sabit Ücreti' : 'Yevmiye Tutarı'}
+                                    </span>
+                                    <span style={{
+                                        fontSize: '15px',
+                                        fontWeight: 700,
+                                        color: Number(activeData.hours) === 0 ? 'var(--danger)' : 'var(--text-primary)'
+                                    }}>
+                                        {Number(activeData.hours) === 0
+                                            ? '0,00 ₺ (Tatil)'
+                                            : (isSingleSunday && activeData.sundayPrice && parseFloat(activeData.sundayPrice) > 0)
+                                                ? formatCurrency(Math.round(parseFloat(activeData.sundayPrice) * (parseFloat(activeData.hours) || 1)))
+                                                : formatCurrency(Math.round((parseFloat(activeData.unitPrice) || 0) * (parseFloat(activeData.multiplier) || 1) * (parseFloat(activeData.hours) || 1)))}
+                                    </span>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => setIsDaySettingsModalOpen(false)}
+                                        style={{ padding: '6px 14px', fontSize: '12px' }}
+                                    >
+                                        Vazgeç
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary"
+                                        onClick={() => setIsDaySettingsModalOpen(false)}
+                                        style={{ padding: '6px 16px', fontSize: '12px' }}
+                                    >
+                                        Tamam
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '2px 0' }}>
+                            {/* 1. Çalışma Durumu (Minimal Segmented Control) */}
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                                    {isBulkTarget ? 'İş Günleri Çalışma Durumu' : 'Çalışma Durumu'}
+                                </div>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(3, 1fr)',
+                                    background: 'var(--bg-tertiary)',
+                                    padding: '3px',
+                                    borderRadius: 'var(--radius-md)',
+                                    gap: '3px'
+                                }}>
+                                    {/* Tam Gün (1) */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const stdPrice = getVehicleStandardPrice(activeData.vehicleId);
+                                            const restoredPrice = (activeData._savedUnitPrice && parseFloat(activeData._savedUnitPrice) > 0)
+                                                ? activeData._savedUnitPrice
+                                                : (activeData.unitPrice && parseFloat(activeData.unitPrice) > 0 ? activeData.unitPrice : (stdPrice || ''));
+                                            setActiveData(prev => ({
+                                                ...prev,
+                                                startTime: prev.startTime || work?.work_start_time || '08:00',
+                                                endTime: prev.endTime || work?.work_end_time || '17:00',
+                                                hours: 1,
+                                                overtimeHours: 0,
+                                                unitPrice: restoredPrice,
+                                                sundayAction: isSingleSunday ? 'work' : prev.sundayAction,
+                                                _savedUnitPrice: undefined,
+                                                description: (prev.description || '')
+                                                    .replace(/\[TATİL\]\s*/gi, '')
+                                                    .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                                    .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                                    .trim(),
+                                                _manualHours: false,
+                                                _manualOvertime: false
+                                            }));
+                                        }}
+                                        style={{
+                                            padding: '7px 0',
+                                            borderRadius: 'var(--radius-sm)',
+                                            border: 'none',
+                                            background: Number(activeData.hours) === 1 ? 'var(--bg-primary)' : 'transparent',
+                                            color: Number(activeData.hours) === 1 ? 'var(--text-primary)' : 'var(--text-muted)',
+                                            fontWeight: Number(activeData.hours) === 1 ? 600 : 500,
+                                            fontSize: '12px',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            color: col.id ? '#ffffff' : 'var(--text-muted)',
-                                            boxShadow: isSelected ? `0 0 0 2px var(--bg-primary), 0 0 0 4px ${col.id ? col.color : 'var(--text-primary)'}` : 'none',
+                                            gap: '6px',
+                                            boxShadow: Number(activeData.hours) === 1 ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
                                             transition: 'all 0.15s ease'
                                         }}
                                     >
-                                        {isSelected && <Check size={13} strokeWidth={3} />}
+                                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981' }} />
+                                        Tam Gün (1)
                                     </button>
-                                );
-                            })}
+
+                                    {/* Yarım Gün (0.5) */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const stdPrice = getVehicleStandardPrice(activeData.vehicleId);
+                                            const restoredPrice = (activeData._savedUnitPrice && parseFloat(activeData._savedUnitPrice) > 0)
+                                                ? activeData._savedUnitPrice
+                                                : (activeData.unitPrice && parseFloat(activeData.unitPrice) > 0 ? activeData.unitPrice : (stdPrice || ''));
+                                            setActiveData(prev => ({
+                                                ...prev,
+                                                hours: 0.5,
+                                                unitPrice: restoredPrice,
+                                                sundayAction: isSingleSunday ? 'work' : prev.sundayAction,
+                                                _manualHours: true,
+                                                description: (prev.description || '')
+                                                    .replace(/\[TATİL\]\s*/gi, '')
+                                                    .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                                    .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                                    .trim()
+                                            }));
+                                        }}
+                                        style={{
+                                            padding: '7px 0',
+                                            borderRadius: 'var(--radius-sm)',
+                                            border: 'none',
+                                            background: Number(activeData.hours) === 0.5 ? 'var(--bg-primary)' : 'transparent',
+                                            color: Number(activeData.hours) === 0.5 ? 'var(--text-primary)' : 'var(--text-muted)',
+                                            fontWeight: Number(activeData.hours) === 0.5 ? 600 : 500,
+                                            fontSize: '12px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '6px',
+                                            boxShadow: Number(activeData.hours) === 0.5 ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#f97316' }} />
+                                        Yarım (0.5)
+                                    </button>
+
+                                    {/* Tatil (0) */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setActiveData(prev => ({
+                                                ...prev,
+                                                _savedUnitPrice: prev.unitPrice && parseFloat(prev.unitPrice) > 0 ? prev.unitPrice : prev._savedUnitPrice,
+                                                startTime: '',
+                                                endTime: '',
+                                                hours: 0,
+                                                overtimeHours: 0,
+                                                unitPrice: 0,
+                                                sundayAction: isSingleSunday ? 'zero' : prev.sundayAction,
+                                                _manualHours: true,
+                                                _manualOvertime: true,
+                                                description: (prev.description || '').includes('TATİL') || (prev.description || '').includes('ÇALIŞILMADI') || (prev.description || '').includes('PAZAR TATİLİ')
+                                                    ? prev.description 
+                                                    : `[TATİL] ${prev.description || ''}`.trim()
+                                            }));
+                                        }}
+                                        style={{
+                                            padding: '7px 0',
+                                            borderRadius: 'var(--radius-sm)',
+                                            border: 'none',
+                                            background: Number(activeData.hours) === 0 ? 'var(--bg-primary)' : 'transparent',
+                                            color: Number(activeData.hours) === 0 ? 'var(--danger)' : 'var(--text-muted)',
+                                            fontWeight: Number(activeData.hours) === 0 ? 600 : 500,
+                                            fontSize: '12px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '6px',
+                                            boxShadow: Number(activeData.hours) === 0 ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444' }} />
+                                        Tatil (0)
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 2. Pazar Günü & Sabit Pazar Ücreti */}
+                            <div style={{
+                                padding: '10px',
+                                background: 'var(--bg-secondary)',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid var(--border-color)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                        <Calendar size={12} style={{ color: '#f59e0b' }} />
+                                        {isBulkTarget ? 'Pazar Günleri İşlemi & Ücreti' : 'Pazar Günü & Özel Pazar Ücreti'}
+                                    </span>
+                                    {!isBulkTarget && !isSingleSunday && (
+                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Pazar seçildiğinde aktif olur</span>
+                                    )}
+                                </div>
+
+                                {isBulkTarget ? (
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(3, 1fr)',
+                                        background: 'var(--bg-tertiary)',
+                                        padding: '2px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        gap: '2px'
+                                    }}>
+                                        {[
+                                            { id: 'zero', label: '⛔ Tatil (0 ₺)' },
+                                            { id: 'skip', label: '⏭️ Atla' },
+                                            { id: 'work', label: '💼 Çalışıldı' }
+                                        ].map(opt => {
+                                            const active = (activeData.sundayAction || 'zero') === opt.id;
+                                            return (
+                                                <button
+                                                    key={opt.id}
+                                                    type="button"
+                                                    onClick={() => setActiveData(prev => ({ ...prev, sundayAction: opt.id }))}
+                                                    style={{
+                                                        padding: '5px 4px',
+                                                        fontSize: '11px',
+                                                        fontWeight: active ? 600 : 500,
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        cursor: 'pointer',
+                                                        background: active ? 'var(--bg-primary)' : 'transparent',
+                                                        color: active ? (opt.id === 'zero' ? 'var(--danger)' : opt.id === 'work' ? 'var(--accent-primary)' : 'var(--text-primary)') : 'var(--text-muted)',
+                                                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+                                                    }}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                ) : isSingleSunday ? (
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(2, 1fr)',
+                                        background: 'var(--bg-tertiary)',
+                                        padding: '2px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        gap: '2px'
+                                    }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setActiveData(prev => ({
+                                                    ...prev,
+                                                    sundayAction: 'zero',
+                                                    _savedUnitPrice: prev.unitPrice && parseFloat(prev.unitPrice) > 0 ? prev.unitPrice : prev._savedUnitPrice,
+                                                    startTime: '',
+                                                    endTime: '',
+                                                    hours: 0,
+                                                    overtimeHours: 0,
+                                                    unitPrice: 0,
+                                                    _manualHours: true,
+                                                    _manualOvertime: true,
+                                                    description: (prev.description || '').includes('PAZAR TATİLİ') || (prev.description || '').includes('TATİL')
+                                                        ? prev.description
+                                                        : `[PAZAR TATİLİ] ${prev.description || ''}`.trim()
+                                                }));
+                                            }}
+                                            style={{
+                                                padding: '5px 6px',
+                                                fontSize: '11px',
+                                                fontWeight: Number(activeData.hours) === 0 ? 600 : 500,
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                background: Number(activeData.hours) === 0 ? 'var(--bg-primary)' : 'transparent',
+                                                color: Number(activeData.hours) === 0 ? 'var(--danger)' : 'var(--text-muted)',
+                                                boxShadow: Number(activeData.hours) === 0 ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+                                            }}
+                                        >
+                                            ⛔ Pazar Tatili (0 ₺)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const stdPrice = getVehicleStandardPrice(activeData.vehicleId);
+                                                const restoredPrice = (activeData._savedUnitPrice && parseFloat(activeData._savedUnitPrice) > 0)
+                                                    ? activeData._savedUnitPrice
+                                                    : (activeData.unitPrice && parseFloat(activeData.unitPrice) > 0 ? activeData.unitPrice : (stdPrice || ''));
+                                                setActiveData(prev => ({
+                                                    ...prev,
+                                                    sundayAction: 'work',
+                                                    startTime: prev.startTime || work?.work_start_time || '08:00',
+                                                    endTime: prev.endTime || work?.work_end_time || '17:00',
+                                                    hours: 1,
+                                                    unitPrice: restoredPrice,
+                                                    _savedUnitPrice: undefined,
+                                                    _manualHours: false,
+                                                    description: (prev.description || '')
+                                                        .replace(/\[TATİL\]\s*/gi, '')
+                                                        .replace(/\[ÇALIŞILMADI\]\s*/gi, '')
+                                                        .replace(/\[PAZAR TATİLİ\]\s*/gi, '')
+                                                        .trim()
+                                                }));
+                                            }}
+                                            style={{
+                                                padding: '5px 6px',
+                                                fontSize: '11px',
+                                                fontWeight: Number(activeData.hours) > 0 ? 600 : 500,
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                background: Number(activeData.hours) > 0 ? 'var(--bg-primary)' : 'transparent',
+                                                color: Number(activeData.hours) > 0 ? 'var(--accent-primary)' : 'var(--text-muted)',
+                                                boxShadow: Number(activeData.hours) > 0 ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+                                            }}
+                                        >
+                                            💼 Pazar Çalışıldı
+                                        </button>
+                                    </div>
+                                ) : null}
+
+                                {/* Sabit Pazar Ücreti Girişi */}
+                                {effectiveSundayWork && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '2px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                Sabit Pazar Ücreti (₺)
+                                            </span>
+                                            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                                Boş bırakılırsa {pazarMultiplier || 1.5}x katsayı uygulanır
+                                            </span>
+                                        </div>
+                                        <div style={{ width: '135px', flexShrink: 0 }}>
+                                            <CustomInput
+                                                format="currency"
+                                                placeholder={activeData.unitPrice ? `${formatCurrency(Math.round((parseFloat(activeData.unitPrice) || 0) * (parseFloat(pazarMultiplier) || 1.5)))}` : 'Örn: 18.000'}
+                                                value={activeData.sundayPrice || ''}
+                                                onChange={(val) => setActiveData(prev => ({ ...prev, sundayPrice: val }))}
+                                                style={{ height: '30px', fontSize: '12px' }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 3. Katsayı / Çarpan (Clean Minimal Row) */}
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                                        Birim Ücret Çarpanı
+                                    </span>
+                                    {parseFloat(activeData.multiplier) > 0 && parseFloat(activeData.multiplier) !== 1 && (
+                                        <span style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                            {formatCurrency(Math.round((parseFloat(activeData.unitPrice) || 0) * parseFloat(activeData.multiplier)))} / gün
+                                        </span>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    {['1', '1.25', '1.5', '2'].map(mult => {
+                                        const isSelected = String(activeData.multiplier || '1') === mult;
+                                        return (
+                                            <button
+                                                key={mult}
+                                                type="button"
+                                                onClick={() => setActiveData(prev => ({ ...prev, multiplier: mult }))}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '6px 0',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    fontSize: '12px',
+                                                    fontWeight: isSelected ? 600 : 500,
+                                                    cursor: 'pointer',
+                                                    border: isSelected ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                                                    background: isSelected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                                                    color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {mult}x
+                                            </button>
+                                        );
+                                    })}
+                                    <div style={{ width: '74px', flexShrink: 0 }}>
+                                        <input
+                                            type="number"
+                                            step="0.05"
+                                            min="0.1"
+                                            max="10"
+                                            placeholder="Özel"
+                                            value={activeData.multiplier || '1'}
+                                            onChange={(e) => setActiveData(prev => ({ ...prev, multiplier: e.target.value }))}
+                                            className="form-input"
+                                            style={{
+                                                height: '31px',
+                                                padding: '0 6px',
+                                                fontSize: '12px',
+                                                textAlign: 'center',
+                                                borderRadius: 'var(--radius-sm)'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 4. Satır Rengi (Minimal Circle Swatches) */}
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                                        Satır Vurgu Rengi
+                                    </span>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                        {WORK_COLOR_OPTIONS.find(c => c.id === (activeData.customColor || ''))?.label || 'Standart'}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {WORK_COLOR_OPTIONS.map(col => {
+                                        const isSelected = (activeData.customColor || '') === col.id;
+                                        return (
+                                            <button
+                                                key={col.id}
+                                                type="button"
+                                                title={col.label}
+                                                onClick={() => setActiveData(prev => ({ ...prev, customColor: col.id }))}
+                                                style={{
+                                                    width: '28px',
+                                                    height: '28px',
+                                                    borderRadius: '50%',
+                                                    border: isSelected ? '2px solid var(--text-primary)' : '1px solid var(--border-color)',
+                                                    background: col.id ? col.color : 'var(--bg-tertiary)',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: col.id ? '#ffffff' : 'var(--text-muted)',
+                                                    boxShadow: isSelected ? `0 0 0 2px var(--bg-primary), 0 0 0 4px ${col.id ? col.color : 'var(--text-primary)'}` : 'none',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {isSelected && <Check size={13} strokeWidth={3} />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </Modal>
+                    </Modal>
+                );
+            })()}
 
             {/* Bulk Add Modal */}
             <Modal
@@ -2707,8 +3070,7 @@ export default function WorkDetails(props) {
                     {modalError && <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '12px', borderRadius: 'var(--radius-sm)', fontSize: '14px' }}>{modalError}</div>}
 
                     <div style={{ background: 'var(--bg-secondary)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                        Seçtiğiniz <strong>Başlangıç</strong> ve <strong>Bitiş</strong> tarihi aralığındaki her bir gün için ayrı bir puantaj kaydı oluşturulacaktır.<br />
-                        <em>İpucu: Pazar günlerini aşağıdan "Çalışılmadı (0 Gün - 0 TL)" olarak seçebilir veya puantaj tablosundan istediğiniz günleri tek tıkla 0 gün yapabilirsiniz.</em>
+                        Seçtiğiniz <strong>Başlangıç</strong> ve <strong>Bitiş</strong> tarihi aralığındaki her bir gün için ayrı bir puantaj kaydı oluşturulacaktır.
                     </div>
 
                     <div className="form-grid form-grid-3" style={{ gap: '12px' }}>
@@ -2741,33 +3103,188 @@ export default function WorkDetails(props) {
                         />
                     </div>
 
-                    {/* Pazar Günleri Ayarı */}
+                    {/* Gün, Pazar & Ücret Ayarları Kartı (Toplu Üretim) */}
                     <div style={{
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '6px',
-                        padding: '10px 12px',
                         background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-md)'
+                        border: (bulkFormData.multiplier && bulkFormData.multiplier !== '1') || bulkFormData.customColor || Number(bulkFormData.hours) !== 1 || (bulkFormData.sundayPrice && parseFloat(bulkFormData.sundayPrice) > 0)
+                            ? '1px solid var(--accent-primary)'
+                            : '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)',
+                        overflow: 'hidden'
                     }}>
-                        <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Calendar size={15} style={{ color: 'var(--danger)' }} />
-                            Pazar Günleri İşlemi
-                        </label>
-                        <CustomSelect
-                            value={bulkFormData.sundayAction || 'zero'}
-                            onChange={(val) => setBulkFormData({ ...bulkFormData, sundayAction: val })}
-                            options={[
-                                { value: 'zero', label: '⛔ Pazar Günlerini Çalışılmadı Olarak Ekle (0 Gün - 0 TL)' },
-                                { value: 'skip', label: '⏭️ Pazar Günlerini Atla (Puantaja Hiç Ekleme)' },
-                                { value: 'work', label: '💼 Normal Çalışma Olarak Ekle' }
-                            ]}
-                        />
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            {bulkFormData.sundayAction === 'zero' && 'Pazar günleri puantajda 0 Gün ve 0 TL olarak listelenir, silmeye gerek kalmaz ve resmi olarak belgelenir.'}
-                            {bulkFormData.sundayAction === 'skip' && 'Pazar günleri puantaj tablosuna hiç yazılmaz, sadece iş günleri eklenir.'}
-                            {bulkFormData.sundayAction === 'work' && 'Pazar günleri normal çalışma gibi (1 gün ve pazar katsayısı ile) hesaplanarak eklenir.'}
+                        {/* Üst Satır: Gün & Ücret Ayarları Modal Tetikleyici */}
+                        <div
+                            onClick={() => {
+                                setDaySettingsTarget('bulk');
+                                setIsDaySettingsModalOpen(true);
+                            }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '9px 12px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <div style={{
+                                    width: '26px',
+                                    height: '26px',
+                                    borderRadius: '6px',
+                                    background: 'var(--bg-tertiary)',
+                                    color: 'var(--accent-primary)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    <Sliders size={14} />
+                                </div>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                    Gün & Ücret Ayarları
+                                </span>
+
+                                {/* Çalışma Durumu Özeti */}
+                                <span style={{
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    padding: '2px 7px',
+                                    borderRadius: '999px',
+                                    background: Number(bulkFormData.hours) === 0
+                                        ? 'rgba(239, 68, 68, 0.14)'
+                                        : Number(bulkFormData.hours) === 0.5
+                                            ? 'rgba(249, 115, 22, 0.14)'
+                                            : 'rgba(16, 185, 129, 0.14)',
+                                    color: Number(bulkFormData.hours) === 0
+                                        ? '#ef4444'
+                                        : Number(bulkFormData.hours) === 0.5
+                                            ? '#f97316'
+                                            : '#10b981'
+                                }}>
+                                    {Number(bulkFormData.hours) === 0 ? 'Tatil (0 Gün)' : Number(bulkFormData.hours) === 0.5 ? 'Yarım Gün (0.5)' : 'Tam Gün (1)'}
+                                </span>
+
+                                {/* Katsayı Özeti */}
+                                {bulkFormData.multiplier && parseFloat(bulkFormData.multiplier) !== 1 && (
+                                    <span style={{
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        padding: '2px 7px',
+                                        borderRadius: '999px',
+                                        background: 'rgba(99, 102, 241, 0.15)',
+                                        color: 'var(--accent-primary)'
+                                    }}>
+                                        {bulkFormData.multiplier}x Çarpan
+                                    </span>
+                                )}
+
+                                {/* Renk Özeti */}
+                                {bulkFormData.customColor && (
+                                    <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        padding: '2px 7px',
+                                        borderRadius: '999px',
+                                        background: 'var(--bg-tertiary)',
+                                        color: 'var(--text-secondary)'
+                                    }}>
+                                        <span style={{
+                                            width: '8px',
+                                            height: '8px',
+                                            borderRadius: '50%',
+                                            background: WORK_COLOR_OPTIONS.find(c => c.id === bulkFormData.customColor)?.color || 'transparent'
+                                        }} />
+                                        {WORK_COLOR_OPTIONS.find(c => c.id === bulkFormData.customColor)?.label}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--accent-primary)', fontSize: '11px', fontWeight: 600, flexShrink: 0 }}>
+                                <span>Ayarla</span>
+                                <ChevronRight size={14} />
+                            </div>
+                        </div>
+
+                        {/* Alt Şerit: Hızlı Pazar Günleri İşlemi & Sabit Pazar Ücreti */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '8px',
+                            padding: '8px 12px',
+                            borderTop: '1px solid var(--border-color)',
+                            background: 'var(--bg-tertiary)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 700, color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    <Calendar size={12} /> Pazar:
+                                </span>
+                                <div style={{
+                                    display: 'inline-flex',
+                                    background: 'var(--bg-secondary)',
+                                    padding: '2px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)',
+                                    gap: '2px'
+                                }}>
+                                    {[
+                                        { id: 'zero', label: '⛔ Tatil (0 ₺)' },
+                                        { id: 'skip', label: '⏭️ Atla' },
+                                        { id: 'work', label: '💼 Çalışıldı' }
+                                    ].map(opt => {
+                                        const active = (bulkFormData.sundayAction || 'zero') === opt.id;
+                                        return (
+                                            <button
+                                                key={opt.id}
+                                                type="button"
+                                                onClick={() => setBulkFormData(prev => ({ ...prev, sundayAction: opt.id }))}
+                                                style={{
+                                                    padding: '3px 8px',
+                                                    fontSize: '11px',
+                                                    fontWeight: active ? 600 : 500,
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer',
+                                                    background: active
+                                                        ? (opt.id === 'zero' ? 'rgba(239, 68, 68, 0.14)' : opt.id === 'work' ? 'var(--accent-subtle)' : 'var(--bg-tertiary)')
+                                                        : 'transparent',
+                                                    color: active
+                                                        ? (opt.id === 'zero' ? '#ef4444' : opt.id === 'work' ? 'var(--accent-primary)' : 'var(--text-primary)')
+                                                        : 'var(--text-muted)'
+                                                }}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {bulkFormData.sundayAction === 'work' ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 180px', justifyContent: 'flex-end' }}>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                                        Pazar Ücreti:
+                                    </span>
+                                    <div style={{ width: '130px' }}>
+                                        <CustomInput
+                                            format="currency"
+                                            placeholder={`Boş = ${pazarMultiplier || 1.5}x`}
+                                            value={bulkFormData.sundayPrice || ''}
+                                            onChange={(val) => setBulkFormData(prev => ({ ...prev, sundayPrice: val }))}
+                                            style={{ height: '27px', fontSize: '11px', padding: '0 8px' }}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                    {bulkFormData.sundayAction === 'skip' ? 'Pazar günleri tabloya eklenmez' : 'Pazar günleri 0 Gün (0 ₺) olarak eklenir'}
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -2775,7 +3292,14 @@ export default function WorkDetails(props) {
                         <CustomSelect
                             label="Araç"
                             value={bulkFormData.vehicleId}
-                            onChange={(val) => setBulkFormData({ ...bulkFormData, vehicleId: val })}
+                            onChange={(val) => {
+                                const stdPrice = getVehicleStandardPrice(val);
+                                setBulkFormData(prev => ({
+                                    ...prev,
+                                    vehicleId: val,
+                                    unitPrice: (!prev.unitPrice || parseFloat(prev.unitPrice) === 0) && stdPrice ? stdPrice : prev.unitPrice
+                                }));
+                            }}
                             options={vehicles.filter(v => v.type !== 'automobile').map(v => ({ value: v.id, label: `${v.plate} - ${v.brand || ''} ${v.model || ''}` }))}
                             creatable={true}
                         />
