@@ -59,38 +59,57 @@ export default function WorkPdfReport({
         if (pageBreakMode === 'fit_page' && contentRef.current) {
             const wrapper = contentRef.current;
 
-            // Measure the exact unscaled bottom position of the last element (immune to CSS scale transforms)
-            const grandTotalEl = wrapper.querySelector('.pdf-grand-total');
-            const summaryEls = wrapper.querySelectorAll('.pdf-summary-block');
-            const lastSummaryEl = summaryEls.length > 0 ? summaryEls[summaryEls.length - 1] : null;
-            const tableEls = wrapper.querySelectorAll('.pdf-table');
-            const lastTableEl = tableEls.length > 0 ? tableEls[tableEls.length - 1] : null;
+            const prevTransform = wrapper.style.transform;
+            const prevWidth = wrapper.style.width;
+            const prevMinWidth = wrapper.style.minWidth;
+            const prevHeight = wrapper.style.height;
+            const prevMaxHeight = wrapper.style.maxHeight;
+            const prevOverflow = wrapper.style.overflow;
+            const prevPadding = wrapper.style.padding;
 
-            const targetChild = grandTotalEl || lastSummaryEl || lastTableEl || wrapper.lastElementChild;
+            const padTopMm = tableDensity === 'compact' ? 4 : 6;
+            const padSideMm = tableDensity === 'compact' ? 6 : 8;
 
-            if (targetChild) {
-                // offsetTop + offsetHeight gives exact unscaled layout position
-                const naturalPx = targetChild.offsetTop + targetChild.offsetHeight;
+            wrapper.style.transform = 'none';
+            wrapper.style.width = '100%';
+            wrapper.style.minWidth = '100%';
+            wrapper.style.height = 'auto';
+            wrapper.style.maxHeight = 'none';
+            wrapper.style.overflow = 'visible';
+            wrapper.style.padding = `${padTopMm}mm ${padSideMm}mm 2mm ${padSideMm}mm`;
 
-                const isLandscapeMode = orientationProp === 'landscape';
-                const targetH = isLandscapeMode ? 720 : 1000; // Gerçek A4 (297mm = 1123px) güvenli baskı alan yüksekliği
+            const isLandscapeMode = orientationProp === 'landscape';
+            const targetH = isLandscapeMode ? 730 : 1050; // Gerçek A4 (297mm = 1122.5px) footer üstü güvenli baskı yüksekliği
 
-                if (naturalPx > targetH) {
-                    const exactScaleNeeded = targetH / naturalPx;
-                    // Apply exact scale so last element aligns safely above page bottom line
-                    setAutoScale(parseFloat(Math.max(0.60, Math.min(0.99, exactScaleNeeded)).toFixed(2)));
-                } else {
-                    setAutoScale(1.0);
-                }
+            const naturalPx1 = wrapper.scrollHeight || wrapper.offsetHeight;
+
+            if (naturalPx1 > targetH) {
+                const s1 = Math.max(0.35, Math.min(0.99, targetH / naturalPx1));
+                wrapper.style.width = `${100 / s1}%`;
+                wrapper.style.minWidth = `${100 / s1}%`;
+                wrapper.style.padding = `${padTopMm / s1}mm ${padSideMm / s1}mm 2mm ${padSideMm / s1}mm`;
+
+                const naturalPx2 = wrapper.scrollHeight || wrapper.offsetHeight;
+                const exactScaleNeeded = targetH / Math.max(naturalPx2, 1);
+                const finalScale = Math.floor(Math.max(0.35, Math.min(0.99, exactScaleNeeded)) * 1000) / 1000;
+                setAutoScale(finalScale);
             } else {
                 setAutoScale(1.0);
             }
+
+            wrapper.style.transform = prevTransform;
+            wrapper.style.width = prevWidth;
+            wrapper.style.minWidth = prevMinWidth;
+            wrapper.style.height = prevHeight;
+            wrapper.style.maxHeight = prevMaxHeight;
+            wrapper.style.overflow = prevOverflow;
+            wrapper.style.padding = prevPadding;
         } else {
             setAutoScale(1.0);
         }
-    }, [pageBreakMode, work, showPricesProp, showKdvProp, kdvRateProp, pazarMultiplierProp, mesaiMultiplierProp, customScaleProp, orientationProp, tableDensity, showWorkTitleProp]);
+    }, [pageBreakMode, work, showPricesProp, showGrandTotalProp, showKdvProp, kdvRateProp, pazarMultiplierProp, mesaiMultiplierProp, customScaleProp, orientationProp, tableDensity, showWorkTitleProp]);
 
-    const effectiveScale = customScaleProp ? Number(customScaleProp) : 1.0;
+    const effectiveScale = customScaleProp ? Number(customScaleProp) : (pageBreakMode === 'fit_page' ? autoScale : 1.0);
 
     useEffect(() => {
         if (manualBreakIdsProp) {
@@ -467,12 +486,16 @@ export default function WorkPdfReport({
                             <div 
                                 ref={pIdx === 0 ? contentRef : null}
                                 className="pdf-content-wrapper"
-                                style={customScaleProp && Number(customScaleProp) !== 1.0 ? {
-                                    transform: `scale(${Number(customScaleProp)})`,
-                                    transformOrigin: 'top center',
-                                    width: `calc(100% / ${Number(customScaleProp)})`,
-                                    minWidth: `calc(100% / ${Number(customScaleProp)})`,
+                                style={effectiveScale !== 1.0 ? {
+                                    transform: `scale(${effectiveScale})`,
+                                    transformOrigin: 'top left',
+                                    width: `${100 / effectiveScale}%`,
+                                    minWidth: `${100 / effectiveScale}%`,
                                     maxWidth: 'none',
+                                    height: 'auto',
+                                    maxHeight: 'none',
+                                    overflow: 'visible',
+                                    padding: `${(tableDensity === 'compact' ? 4 : 6) / effectiveScale}mm ${(tableDensity === 'compact' ? 6 : 8) / effectiveScale}mm 2mm ${(tableDensity === 'compact' ? 6 : 8) / effectiveScale}mm`,
                                     boxSizing: 'border-box'
                                 } : {
                                     width: '100%',

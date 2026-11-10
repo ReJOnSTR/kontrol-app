@@ -594,6 +594,12 @@ body:has(.is-generating-pdf),
     padding: 0 !important;
 }
 
+.pdf-report-container.pdf-fit-page .pdf-content-wrapper {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
 .pdf-fit-page .pdf-title-standard {
     font-size: 16px !important;
 }
