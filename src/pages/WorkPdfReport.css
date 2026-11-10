@@ -174,17 +174,56 @@
     display: none;
 }
 
-.pdf-vehicle-group {
-    margin-bottom: 25px;
+.pdf-vehicle-group,
+.pdf-machine-group {
+    margin-bottom: 16px;
     background: transparent;
     padding: 0;
     border: none;
+    width: 100%;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.pdf-vehicle-group h3,
+.pdf-machine-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 8px 0 6px 0;
+    padding-bottom: 2px;
+    line-height: 1.25;
+}
+
+.pdf-report-container .center {
+    text-align: center !important;
+}
+
+.pdf-report-container .right {
+    text-align: right !important;
+}
+
+.pdf-report-container .bold {
+    font-weight: 700 !important;
+}
+
+.pdf-report-container .bg-light-gray,
+.pdf-report-container .bg-light-gray td {
+    background-color: #f8fafc;
+}
+
+.pdf-report-container .total-text {
+    font-weight: 700 !important;
+    color: #000000 !important;
 }
 
 .pdf-table {
     width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     background: #fff;
     border-radius: 0;
     overflow: hidden;
@@ -206,6 +245,8 @@
     padding: 3px 5.5px;
     line-height: 1.25;
     border: 1px solid #cbd5e1;
+    box-sizing: border-box;
+    vertical-align: middle;
 }
 
 /* Remove striped rows for a minimalist formal paper look */
@@ -216,7 +257,7 @@
 .pdf-table th {
     font-size: 9.5px;
     font-weight: 700;
-    text-align: left;
+    text-align: center;
     vertical-align: middle;
     color: #1e293b;
     background-color: #f1f5f9;
@@ -308,6 +349,32 @@
 .pdf-summary-table td {
     font-size: 8.5px;
     color: #000;
+    vertical-align: middle;
+}
+
+.pdf-summary-header-cell {
+    padding: 3px 6px;
+    font-size: 9.5px;
+}
+
+.pdf-summary-total-label {
+    padding: 4px 8px;
+    font-size: 9px;
+}
+
+.pdf-summary-total-value {
+    padding: 4px 8px;
+    font-size: 10px;
+}
+
+.pdf-summary-grand-label {
+    padding: 4px 8px;
+    font-size: 9.5px;
+}
+
+.pdf-summary-grand-value {
+    padding: 4px 8px;
+    font-size: 10.5px;
 }
 
 .pdf-grand-total .pdf-summary-table {
@@ -544,11 +611,13 @@ body:has(.is-generating-pdf),
     font-size: 10px !important;
 }
 
-.pdf-fit-page .pdf-vehicle-group {
+.pdf-fit-page .pdf-vehicle-group,
+.pdf-fit-page .pdf-machine-group {
     margin-bottom: 10px !important;
 }
 
-.pdf-fit-page .pdf-vehicle-group h3 {
+.pdf-fit-page .pdf-vehicle-group h3,
+.pdf-fit-page .pdf-machine-title {
     font-size: 10px !important;
     margin-top: 6px !important;
     margin-bottom: 5px !important;
@@ -573,7 +642,14 @@ body:has(.is-generating-pdf),
 
 .pdf-fit-page .pdf-summary-table {
     width: 520px !important;
+    min-width: 520px !important;
     max-width: 520px !important;
+}
+
+.pdf-fit-page.is-landscape .pdf-summary-table {
+    width: 720px !important;
+    min-width: 720px !important;
+    max-width: 720px !important;
 }
 
 .pdf-fit-page .pdf-summary-table td {
@@ -687,16 +763,52 @@ body:has(.is-generating-pdf),
     padding: 4mm 6mm 2mm 6mm;
 }
 
+.pdf-report-container.is-compact .pdf-vehicle-group,
+.pdf-report-container.is-compact .pdf-machine-group {
+    margin-bottom: 8px !important;
+    width: 100% !important;
+    flex-shrink: 0 !important;
+}
+
+.pdf-report-container.is-compact .pdf-vehicle-group h3,
+.pdf-report-container.is-compact .pdf-machine-title {
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    margin: 4px 0 4px 0 !important;
+    padding-bottom: 2px !important;
+    line-height: 1.2 !important;
+}
+
+.pdf-report-container.is-compact .pdf-table {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    margin-bottom: 4px !important;
+}
+
 .pdf-report-container.is-compact .pdf-table th {
-    padding: 2.5px 3px !important;
+    padding: 2px 4px !important;
     font-size: 8px !important;
+    line-height: 1.15 !important;
     height: 18px !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    vertical-align: middle !important;
 }
 
 .pdf-report-container.is-compact .pdf-table td {
-    padding: 1.5px 3px !important;
-    font-size: 7.5px !important;
-    line-height: 1.1 !important;
+    padding: 2px 4px !important;
+    font-size: 8px !important;
+    line-height: 1.15 !important;
+    height: 18px !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    vertical-align: middle !important;
 }
 
 .pdf-report-container.is-compact .pdf-summary-block {
@@ -704,24 +816,35 @@ body:has(.is-generating-pdf),
 }
 
 .pdf-report-container.is-compact .pdf-summary-table {
-    width: 100% !important;
-    max-width: 480px !important;
+    width: 520px !important;
+    min-width: 520px !important;
+    max-width: 520px !important;
+    table-layout: fixed !important;
 }
 
-.pdf-report-container.is-compact .pdf-summary-table td {
-    padding: 1.5px 4px !important;
-    font-size: 7.5px !important;
-    line-height: 1.1 !important;
+.pdf-report-container.is-compact.is-landscape .pdf-summary-table {
+    width: 720px !important;
+    min-width: 720px !important;
+    max-width: 720px !important;
+}
+
+.pdf-report-container.is-compact .pdf-summary-table th,
+.pdf-report-container.is-compact .pdf-summary-table td,
+.pdf-report-container.is-compact .pdf-grand-total table td {
+    padding: 2px 4px !important;
+    font-size: 8px !important;
+    line-height: 1.15 !important;
+    height: 18px !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    vertical-align: middle !important;
 }
 
 .pdf-report-container.is-compact .pdf-grand-total {
     margin-top: 5px !important;
     padding: 0 !important;
-}
-
-.pdf-report-container.is-compact .pdf-grand-total table td {
-    padding: 1.5px 4px !important;
-    font-size: 7.5px !important;
 }
 
 /* Smart Overflow Badge on Preview */

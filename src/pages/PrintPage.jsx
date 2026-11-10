@@ -233,7 +233,7 @@ export default function PrintPage() {
                     manualBreakIdsProp={data.manualBreakIds}
                     customScaleProp={data.customScale}
                     orientationProp={data.orientation}
-                    tableDensityProp={data.tableDensity}
+                    tableDensityProp={data.tableDensity || 'compact'}
                     showWorkTitleProp={data.showWorkTitle !== undefined ? data.showWorkTitle : true}
                 />
             </div>

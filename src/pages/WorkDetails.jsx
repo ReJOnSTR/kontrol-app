@@ -107,7 +107,7 @@ export default function WorkDetails(props) {
     const [manualBreakIds, setManualBreakIds] = useState([])
     const [customScale, setCustomScale] = useState(null)
     const [orientation, setOrientation] = useState('portrait')
-    const [tableDensity, setTableDensity] = useState('normal')
+    const [tableDensity, setTableDensity] = useState('compact')
     const [showBreakTools, setShowBreakTools] = useState(false)
     const [showCustomScaleSlider, setShowCustomScaleSlider] = useState(false)
     const [sidebarCollapsed, setSidebarCollapsed] = useState({
@@ -132,8 +132,14 @@ export default function WorkDetails(props) {
                     if (parsed.manualBreakIds) setManualBreakIds(parsed.manualBreakIds)
                     if (parsed.customScale !== undefined) setCustomScale(parsed.customScale)
                     if (parsed.orientation) setOrientation(parsed.orientation)
-                    if (parsed.tableDensity) setTableDensity(parsed.tableDensity)
+                    if (parsed.tableDensity && parsed.tableDensityExplicit) {
+                        setTableDensity(parsed.tableDensity)
+                    } else {
+                        setTableDensity('compact')
+                    }
                     if (parsed.showWorkTitle !== undefined) setShowWorkTitle(parsed.showWorkTitle)
+                } else {
+                    setTableDensity('compact')
                 }
             } catch (e) {}
         }
@@ -4314,26 +4320,26 @@ export default function WorkDetails(props) {
                                             <div style={{ display: 'flex', gap: '4px' }}>
                                                 <button
                                                     type="button"
+                                                    className={`btn btn-sm ${tableDensity === 'compact' ? 'btn-primary' : 'btn-secondary'}`}
+                                                    onClick={() => {
+                                                        setTableDensity('compact');
+                                                        savePdfBreakSettings({ tableDensity: 'compact', tableDensityExplicit: true });
+                                                    }}
+                                                    style={{ flex: 1, fontSize: '10.5px', padding: '6px 4px' }}
+                                                    title="Satır boşluklarını daraltarak daha çok satır sığdırır (Standart)"
+                                                >
+                                                    Kompakt
+                                                </button>
+                                                <button
+                                                    type="button"
                                                     className={`btn btn-sm ${tableDensity !== 'compact' ? 'btn-primary' : 'btn-secondary'}`}
                                                     onClick={() => {
                                                         setTableDensity('normal');
-                                                        savePdfBreakSettings({ tableDensity: 'normal' });
+                                                        savePdfBreakSettings({ tableDensity: 'normal', tableDensityExplicit: true });
                                                     }}
                                                     style={{ flex: 1, fontSize: '10.5px', padding: '6px 4px' }}
                                                 >
                                                     Normal
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`btn btn-sm ${tableDensity === 'compact' ? 'btn-primary' : 'btn-secondary'}`}
-                                                    onClick={() => {
-                                                        setTableDensity('compact');
-                                                        savePdfBreakSettings({ tableDensity: 'compact' });
-                                                    }}
-                                                    style={{ flex: 1, fontSize: '10.5px', padding: '6px 4px' }}
-                                                    title="Satır boşluklarını daraltarak daha çok satır sığdırır"
-                                                >
-                                                    Kompakt
                                                 </button>
                                             </div>
                                         </div>

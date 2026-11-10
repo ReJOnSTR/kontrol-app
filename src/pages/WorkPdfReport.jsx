@@ -23,7 +23,7 @@ export default function WorkPdfReport({
     showBreakToolsProp = false,
     customScaleProp = null,
     orientationProp = 'portrait',
-    tableDensityProp = 'normal',
+    tableDensityProp = 'compact',
     showWorkTitleProp = true
 }) {
     const params = useParams();
@@ -51,7 +51,7 @@ export default function WorkPdfReport({
 
     const pageBreakMode = pageBreakModeProp || savedBreakSettings.pageBreakMode || 'fit_page';
     const rowsPerPage = rowsPerPageProp || savedBreakSettings.rowsPerPage || 20;
-    const tableDensity = tableDensityProp || savedBreakSettings.tableDensity || 'normal';
+    const tableDensity = tableDensityProp || (savedBreakSettings.tableDensityExplicit ? savedBreakSettings.tableDensity : null) || 'compact';
     const [manualBreakIds, setManualBreakIds] = useState(manualBreakIdsProp || savedBreakSettings.manualBreakIds || []);
     const [autoScale, setAutoScale] = useState(1);
 
@@ -516,21 +516,32 @@ export default function WorkPdfReport({
                                             <span>{(group.rawMachineName || group.machineName).toUpperCase()}{group.isContinuation ? ' (DEVAMI)' : ' DETAYLARI'}</span>
                                         </h3>
                                         <div>
-                                            <table className="pdf-table" style={{ tableLayout: 'fixed' }}>
+                                            <table className="pdf-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+                                                <colgroup>
+                                                    <col style={{ width: orientationProp === 'landscape' ? '9%' : '9.5%' }} />
+                                                    <col style={{ width: orientationProp === 'landscape' ? '8%' : '8%' }} />
+                                                    <col style={{ width: orientationProp === 'landscape' ? '8%' : '7.5%' }} />
+                                                    <col style={{ width: orientationProp === 'landscape' ? '8%' : '7.5%' }} />
+                                                    <col style={{ width: orientationProp === 'landscape' ? '8%' : '8.5%' }} />
+                                                    <col style={{ width: orientationProp === 'landscape' ? '8%' : '8.5%' }} />
+                                                    <col style={{ width: orientationProp === 'landscape' ? '14%' : '17.5%' }} />
+                                                    <col style={{ width: orientationProp === 'landscape' ? '27%' : '22%' }} />
+                                                    <col style={{ width: orientationProp === 'landscape' ? '10%' : '11%' }} />
+                                                </colgroup>
                                                 <thead>
                                                     <tr>
-                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '9%' : '11%' }}>TARİH</th>
-                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '8%' : '11%' }}>FİŞ NO</th>
-                                                        <th colSpan="2" style={{ width: orientationProp === 'landscape' ? '16%' : '22%' }}>Çalışma Süresi</th>
-                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '8%' : '11%' }}>Süre/Adet</th>
-                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '8%' : '11%' }}>Fazla Mesai</th>
-                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '14%' : '11%' }}>MAKİNA</th>
-                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '27%' : '12%' }}>AÇIKLAMA</th>
+                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '9%' : '9.5%' }}>TARİH</th>
+                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '8%' : '8%' }}>FİŞ NO</th>
+                                                        <th colSpan="2" style={{ width: orientationProp === 'landscape' ? '16%' : '15%' }}>Çalışma Süresi</th>
+                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '8%' : '8.5%' }}>Süre/Adet</th>
+                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '8%' : '8.5%' }}>Fazla Mesai</th>
+                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '14%' : '17.5%' }}>MAKİNA</th>
+                                                        <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '27%' : '22%' }}>AÇIKLAMA</th>
                                                         <th rowSpan="2" style={{ width: orientationProp === 'landscape' ? '10%' : '11%' }}>FİYAT</th>
                                                     </tr>
                                                     <tr>
-                                                        <th style={{ width: orientationProp === 'landscape' ? '8%' : '11%' }}>Başlama</th>
-                                                        <th style={{ width: orientationProp === 'landscape' ? '8%' : '11%' }}>Bitiş</th>
+                                                        <th style={{ width: orientationProp === 'landscape' ? '8%' : '7.5%' }}>Başlama</th>
+                                                        <th style={{ width: orientationProp === 'landscape' ? '8%' : '7.5%' }}>Bitiş</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -616,7 +627,7 @@ export default function WorkPdfReport({
                                                     </colgroup>
                                                     <tbody>
                                                         <tr className="bg-light-gray">
-                                                            <td colSpan="4" className="bold center" style={{ padding: '3px 6px', fontSize: '9.5px', borderBottom: '1px solid #cbd5e1' }}>
+                                                            <td colSpan="4" className="bold center pdf-summary-header-cell" style={{ borderBottom: '1px solid #cbd5e1' }}>
                                                                 {(group.rawMachineName || group.machineName).toUpperCase()}
                                                             </td>
                                                         </tr>
@@ -629,8 +640,8 @@ export default function WorkPdfReport({
                                                             </tr>
                                                         ))}
                                                         <tr style={{ borderTop: '1px solid #cbd5e1' }}>
-                                                            <td colSpan="3" className="bold right" style={{ padding: '4px 8px', fontSize: '9px', backgroundColor: '#f8fafc', color: '#333' }}>TOPLAM</td>
-                                                            <td className="right bold total-text" style={{ padding: '4px 8px', fontSize: '10px', backgroundColor: '#f1f5f9', color: '#000' }}>{formatCurrency(group.calculatedGrandTotal)}</td>
+                                                            <td colSpan="3" className="bold right pdf-summary-total-label" style={{ backgroundColor: '#f8fafc', color: '#333' }}>TOPLAM</td>
+                                                            <td className="right bold total-text pdf-summary-total-value" style={{ backgroundColor: '#f1f5f9', color: '#000' }}>{formatCurrency(group.calculatedGrandTotal)}</td>
                                                         </tr>
                                                     </tbody>
                                                 </table>
@@ -650,18 +661,18 @@ export default function WorkPdfReport({
                                         </colgroup>
                                         <tbody>
                                             <tr style={{ borderTop: '1px solid #cbd5e1' }}>
-                                                <td className="bold right" style={{ padding: '4px 8px', fontSize: '9px', backgroundColor: '#f8fafc', color: '#333' }}>GENEL TOPLAM</td>
-                                                <td className="right bold total-text" style={{ padding: '4px 8px', fontSize: '10px', backgroundColor: '#f1f5f9', color: '#000' }}>{formatCurrency(grandTotalPrice)}{showKdvProp ? '' : ' + KDV'}</td>
+                                                <td className="bold right pdf-summary-total-label" style={{ backgroundColor: '#f8fafc', color: '#333' }}>GENEL TOPLAM</td>
+                                                <td className="right bold total-text pdf-summary-total-value" style={{ backgroundColor: '#f1f5f9', color: '#000' }}>{formatCurrency(grandTotalPrice)}{showKdvProp ? '' : ' + KDV'}</td>
                                             </tr>
                                             {showKdvProp && (
                                                 <>
                                                     <tr>
-                                                        <td className="bold right" style={{ padding: '4px 8px', fontSize: '9px', backgroundColor: '#f8fafc', color: '#333' }}>KDV (%{kdvRateProp})</td>
-                                                        <td className="right bold total-text" style={{ padding: '4px 8px', fontSize: '10px', backgroundColor: '#f1f5f9', color: '#000' }}>{formatCurrency(Math.round(grandTotalPrice * (kdvRateProp / 100)))}</td>
+                                                        <td className="bold right pdf-summary-total-label" style={{ backgroundColor: '#f8fafc', color: '#333' }}>KDV (%{kdvRateProp})</td>
+                                                        <td className="right bold total-text pdf-summary-total-value" style={{ backgroundColor: '#f1f5f9', color: '#000' }}>{formatCurrency(Math.round(grandTotalPrice * (kdvRateProp / 100)))}</td>
                                                     </tr>
                                                     <tr style={{ borderTop: '1.5px solid #cbd5e1' }}>
-                                                        <td className="bold right" style={{ padding: '4px 8px', fontSize: '9.5px', backgroundColor: '#e2e8f0', color: '#000' }}>TOPLAM (KDV DAHİL)</td>
-                                                        <td className="right bold total-text" style={{ padding: '4px 8px', fontSize: '10.5px', backgroundColor: '#cbd5e1', color: '#000' }}>{formatCurrency(Math.round(grandTotalPrice * (1 + kdvRateProp / 100)))}</td>
+                                                        <td className="bold right pdf-summary-grand-label" style={{ backgroundColor: '#e2e8f0', color: '#000' }}>TOPLAM (KDV DAHİL)</td>
+                                                        <td className="right bold total-text pdf-summary-grand-value" style={{ backgroundColor: '#cbd5e1', color: '#000' }}>{formatCurrency(Math.round(grandTotalPrice * (1 + kdvRateProp / 100)))}</td>
                                                     </tr>
                                                 </>
                                             )}
