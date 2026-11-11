@@ -711,10 +711,16 @@ export default function WorkPdfReport({
 
                                                         const cleanDesc = desc.replace(/\[[^\]]*\]\s*/g, '').trim();
                                                         const hasManualBreak = Boolean(item.id && manualBreakIds.includes(item.id));
+                                                        const canClickToBreak = Boolean(isPreview && item.id && showBreakToolsProp);
 
                                                         return (
-                                                            <tr key={item.id || itemIdx} className={`${pdfRowClass} ${hasManualBreak ? 'pdf-has-manual-break' : ''}`.trim()}>
-                                                                <td className="center">
+                                                            <tr
+                                                                key={item.id || itemIdx}
+                                                                className={`${pdfRowClass} ${hasManualBreak ? 'pdf-has-manual-break' : ''} ${canClickToBreak ? 'pdf-row-breakable' : ''}`.trim()}
+                                                                onClick={canClickToBreak ? () => handleToggleBreak(item.id) : undefined}
+                                                                title={canClickToBreak ? (hasManualBreak ? 'Bu satırdaki sayfa bölmesini kaldırmak için tıklayın' : 'Bu satırdan sonra yeni sayfaya bölmek için tıklayın') : undefined}
+                                                            >
+                                                                <td className="center" style={{ position: 'relative' }}>
                                                                     {isPreview && item.id && (showBreakToolsProp || hasManualBreak) && (
                                                                         <button
                                                                             type="button"

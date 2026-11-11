@@ -4765,338 +4765,453 @@ export default function WorkDetails(props) {
                                 />
                             </div>
                             {!sidebarCollapsed.pageBreak && (
-                                <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                    {/* Hedef Sayfa Sayısına Göre Böl ve Sığdır */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                    {/* 1. Bölme Yöntemi (2x2 Modern Segmented Grid) */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                İstediğin Sayfa Sayısına Böl
-                                            </label>
-                                            {pageBreakMode === 'fit_page' && (
-                                                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--accent-primary)', background: 'var(--accent-subtle)', padding: '1px 6px', borderRadius: '999px' }}>
-                                                    {targetPages} Sayfa • Okunaklı
-                                                </span>
-                                            )}
+                                            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                                                Bölme Yöntemi
+                                            </span>
+                                            <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--accent-primary)' }}>
+                                                {pageBreakMode === 'fit_page'
+                                                    ? `${targetPages} Sayfaya Sığdır`
+                                                    : pageBreakMode === 'rows'
+                                                        ? `${rowsPerPage} Satır / Sayfa`
+                                                        : pageBreakMode === 'vehicle'
+                                                            ? 'Araç Başına'
+                                                            : 'Doğal Akış (%100)'}
+                                            </span>
                                         </div>
 
-                                        {/* Hızlı Sayfa Sayısı Seçicileri (1, 2, 3, 4 Sayfa + Özel Artır/Azalt) */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
-                                            {[1, 2, 3, 4].map(pCount => {
-                                                const isActive = pageBreakMode === 'fit_page' && Number(targetPages) === pCount;
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 1fr',
+                                            gap: '4px',
+                                            background: 'var(--bg-tertiary)',
+                                            padding: '4px',
+                                            borderRadius: '10px',
+                                            border: '1px solid var(--border-color)'
+                                        }}>
+                                            {[
+                                                { id: 'fit_page', label: 'Sayfaya Sığdır', sub: `${targetPages} Sayfa` },
+                                                { id: 'auto', label: 'Doğal Akış', sub: '%100 Ölçek' },
+                                                { id: 'vehicle', label: 'Araç Ayır', sub: 'Her Araç Ayrı' },
+                                                { id: 'rows', label: 'Satır Sınırı', sub: `${rowsPerPage} Satır` }
+                                            ].map(mode => {
+                                                const active = pageBreakMode === mode.id;
                                                 return (
                                                     <button
-                                                        key={pCount}
+                                                        key={mode.id}
                                                         type="button"
-                                                        className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
                                                         onClick={() => {
-                                                            setPageBreakMode('fit_page');
-                                                            setTargetPages(pCount);
+                                                            setPageBreakMode(mode.id);
                                                             setCustomScale(null);
-                                                            savePdfBreakSettings({ pageBreakMode: 'fit_page', targetPages: pCount, customScale: null });
+                                                            savePdfBreakSettings({ pageBreakMode: mode.id, customScale: null });
                                                         }}
                                                         style={{
-                                                            fontSize: '11px',
-                                                            fontWeight: isActive ? 700 : 600,
-                                                            padding: '7px 4px',
-                                                            borderRadius: '6px'
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'flex-start',
+                                                            gap: '1px',
+                                                            padding: '7px 9px',
+                                                            borderRadius: '7px',
+                                                            border: active ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                                                            background: active ? 'var(--bg-primary)' : 'transparent',
+                                                            color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                                            cursor: 'pointer',
+                                                            boxShadow: active ? '0 2px 6px rgba(0,0,0,0.12)' : 'none',
+                                                            transition: 'all 0.15s ease',
+                                                            textAlign: 'left'
                                                         }}
-                                                        title={`Raporu dengeli ve okunaklı şekilde tam ${pCount} sayfaya böler`}
                                                     >
-                                                        {pCount} Sayfa
+                                                        <span style={{ fontSize: '11.5px', fontWeight: active ? 700 : 600, color: active ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
+                                                            {mode.label}
+                                                        </span>
+                                                        <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                                            {mode.sub}
+                                                        </span>
                                                     </button>
                                                 );
                                             })}
                                         </div>
+                                    </div>
 
-                                        {/* Özel Sayfa Sayısı Steppers (- / +) */}
+                                    {/* 2. Seçili Moda Özel Kompakt Kontrol Kartı */}
+                                    {pageBreakMode === 'fit_page' && (
                                         <div style={{
                                             display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            padding: '6px 10px',
+                                            flexDirection: 'column',
+                                            gap: '8px',
+                                            padding: '10px 12px',
                                             background: 'var(--bg-primary)',
-                                            border: pageBreakMode === 'fit_page' ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                                            borderRadius: '6px'
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '10px'
                                         }}>
-                                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                                                Özel Sayfa Sayısı:
-                                            </span>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-secondary btn-sm"
-                                                    onClick={() => {
-                                                        const nextP = Math.max(1, Number(targetPages || 1) - 1);
-                                                        setPageBreakMode('fit_page');
-                                                        setTargetPages(nextP);
-                                                        setCustomScale(null);
-                                                        savePdfBreakSettings({ pageBreakMode: 'fit_page', targetPages: nextP, customScale: null });
-                                                    }}
-                                                    disabled={pageBreakMode === 'fit_page' && Number(targetPages) <= 1}
-                                                    style={{ width: '24px', height: '24px', padding: 0, fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                >
-                                                    -
-                                                </button>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                    Kaç Sayfaya Bölünsün?
+                                                </span>
+                                                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                                    Dengeli & Okunaklı
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                {/* Hızlı 1-2-3-4 Seçimi */}
+                                                <div style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: 'repeat(4, 1fr)',
+                                                    flex: 1,
+                                                    background: 'var(--bg-tertiary)',
+                                                    padding: '2px',
+                                                    borderRadius: '7px',
+                                                    gap: '2px'
+                                                }}>
+                                                    {[1, 2, 3, 4].map(pCount => {
+                                                        const isSelected = Number(targetPages) === pCount;
+                                                        return (
+                                                            <button
+                                                                key={pCount}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setTargetPages(pCount);
+                                                                    setCustomScale(null);
+                                                                    savePdfBreakSettings({ pageBreakMode: 'fit_page', targetPages: pCount, customScale: null });
+                                                                }}
+                                                                style={{
+                                                                    padding: '5px 0',
+                                                                    fontSize: '11.5px',
+                                                                    fontWeight: isSelected ? 700 : 500,
+                                                                    borderRadius: '5px',
+                                                                    border: 'none',
+                                                                    background: isSelected ? 'var(--accent-primary)' : 'transparent',
+                                                                    color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                                title={`Raporu ${pCount} sayfaya dengeli şekilde sığdır`}
+                                                            >
+                                                                {pCount}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Kompakt - / Sayı / + Stepper */}
+                                                <div style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    background: 'var(--bg-tertiary)',
+                                                    borderRadius: '7px',
+                                                    padding: '2px',
+                                                    border: Number(targetPages) > 4 ? '1px solid var(--accent-primary)' : '1px solid transparent'
+                                                }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const nextP = Math.max(1, Number(targetPages || 1) - 1);
+                                                            setTargetPages(nextP);
+                                                            setCustomScale(null);
+                                                            savePdfBreakSettings({ pageBreakMode: 'fit_page', targetPages: nextP, customScale: null });
+                                                        }}
+                                                        disabled={Number(targetPages) <= 1}
+                                                        style={{
+                                                            width: '22px',
+                                                            height: '25px',
+                                                            border: 'none',
+                                                            background: 'transparent',
+                                                            color: Number(targetPages) <= 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                                                            fontWeight: 700,
+                                                            fontSize: '13px',
+                                                            cursor: Number(targetPages) <= 1 ? 'default' : 'pointer',
+                                                            opacity: Number(targetPages) <= 1 ? 0.4 : 1
+                                                        }}
+                                                        title="Sayfa sayısını azalt"
+                                                    >
+                                                        −
+                                                    </button>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max="30"
+                                                        value={targetPages}
+                                                        onChange={(e) => {
+                                                            const val = Math.max(1, Math.min(30, parseInt(e.target.value, 10) || 1));
+                                                            setTargetPages(val);
+                                                            setCustomScale(null);
+                                                            savePdfBreakSettings({ pageBreakMode: 'fit_page', targetPages: val, customScale: null });
+                                                        }}
+                                                        style={{
+                                                            width: '28px',
+                                                            height: '25px',
+                                                            border: 'none',
+                                                            background: 'var(--bg-primary)',
+                                                            color: 'var(--text-primary)',
+                                                            borderRadius: '4px',
+                                                            textAlign: 'center',
+                                                            fontSize: '11.5px',
+                                                            fontWeight: 700,
+                                                            padding: 0
+                                                        }}
+                                                        title="Özel sayfa sayısı"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const nextP = Math.min(30, Number(targetPages || 1) + 1);
+                                                            setTargetPages(nextP);
+                                                            setCustomScale(null);
+                                                            savePdfBreakSettings({ pageBreakMode: 'fit_page', targetPages: nextP, customScale: null });
+                                                        }}
+                                                        style={{
+                                                            width: '22px',
+                                                            height: '25px',
+                                                            border: 'none',
+                                                            background: 'transparent',
+                                                            color: 'var(--text-primary)',
+                                                            fontWeight: 700,
+                                                            fontSize: '13px',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        title="Sayfa sayısını artır"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {pageBreakMode === 'rows' && (
+                                        <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '8px',
+                                            padding: '10px 12px',
+                                            background: 'var(--bg-primary)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '10px'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                    Sayfa Başına Satır Sayısı
+                                                </span>
+                                                <span style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                                    {rowsPerPage} Satır
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <div style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: 'repeat(4, 1fr)',
+                                                    flex: 1,
+                                                    background: 'var(--bg-tertiary)',
+                                                    padding: '2px',
+                                                    borderRadius: '7px',
+                                                    gap: '2px'
+                                                }}>
+                                                    {[15, 20, 25, 30].map(rCount => {
+                                                        const active = Number(rowsPerPage) === rCount;
+                                                        return (
+                                                            <button
+                                                                key={rCount}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setRowsPerPage(rCount);
+                                                                    savePdfBreakSettings({ rowsPerPage: rCount });
+                                                                }}
+                                                                style={{
+                                                                    padding: '5px 0',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: active ? 700 : 500,
+                                                                    borderRadius: '5px',
+                                                                    border: 'none',
+                                                                    background: active ? 'var(--accent-primary)' : 'transparent',
+                                                                    color: active ? '#ffffff' : 'var(--text-secondary)',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                {rCount}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
                                                 <input
                                                     type="number"
-                                                    min="1"
-                                                    max="30"
-                                                    value={targetPages}
+                                                    min="5"
+                                                    max="60"
+                                                    value={rowsPerPage}
                                                     onChange={(e) => {
-                                                        const val = Math.max(1, Math.min(30, parseInt(e.target.value, 10) || 1));
-                                                        setPageBreakMode('fit_page');
-                                                        setTargetPages(val);
-                                                        setCustomScale(null);
-                                                        savePdfBreakSettings({ pageBreakMode: 'fit_page', targetPages: val, customScale: null });
+                                                        const val = Math.max(5, Math.min(60, parseInt(e.target.value, 10) || 20));
+                                                        setRowsPerPage(val);
+                                                        savePdfBreakSettings({ rowsPerPage: val });
                                                     }}
                                                     style={{
-                                                        width: '38px',
-                                                        height: '24px',
+                                                        width: '44px',
+                                                        height: '29px',
                                                         textAlign: 'center',
-                                                        fontSize: '12px',
+                                                        fontSize: '11.5px',
                                                         fontWeight: 700,
                                                         background: 'var(--bg-tertiary)',
                                                         color: 'var(--text-primary)',
                                                         border: '1px solid var(--border-color)',
-                                                        borderRadius: '4px',
-                                                        padding: 0
+                                                        borderRadius: '7px'
                                                     }}
+                                                    title="Özel satır sayısı"
                                                 />
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-secondary btn-sm"
-                                                    onClick={() => {
-                                                        const nextP = Math.min(30, Number(targetPages || 1) + 1);
-                                                        setPageBreakMode('fit_page');
-                                                        setTargetPages(nextP);
-                                                        setCustomScale(null);
-                                                        savePdfBreakSettings({ pageBreakMode: 'fit_page', targetPages: nextP, customScale: null });
-                                                    }}
-                                                    style={{ width: '24px', height: '24px', padding: 0, fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                >
-                                                    +
-                                                </button>
                                             </div>
                                         </div>
+                                    )}
 
-                                        {/* Diğer Bölme Modları */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
-                                            <button
-                                                type="button"
-                                                className={`btn ${(pageBreakMode === 'auto' && !customScale) ? 'btn-primary' : 'btn-secondary'}`}
-                                                onClick={() => {
-                                                    setPageBreakMode('auto');
-                                                    setCustomScale(null);
-                                                    savePdfBreakSettings({ pageBreakMode: 'auto', customScale: null });
-                                                }}
-                                                style={{ 
-                                                    fontSize: '11.5px', 
-                                                    padding: '8px 12px', 
-                                                    display: 'flex', 
-                                                    justifyContent: 'space-between', 
-                                                    alignItems: 'center',
-                                                    borderRadius: '6px'
-                                                }}
-                                                title="Doğal %100 ölçekle standart akış"
+                                    {/* 3. Tablodan İstediğin Satırdan Elle Bölme Kartı */}
+                                    <div style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '6px',
+                                        padding: '9px 11px',
+                                        background: showBreakTools ? 'var(--accent-subtle)' : 'var(--bg-primary)',
+                                        border: showBreakTools ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                                        borderRadius: '10px',
+                                        transition: 'all 0.15s ease'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                            <div
+                                                onClick={() => setShowBreakTools(prev => !prev)}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', flex: 1 }}
                                             >
-                                                <span style={{ fontWeight: 600 }}>Standart (%100)</span>
-                                                <span style={{ fontSize: '10px', opacity: 0.75 }}>Doğal Akış</span>
-                                            </button>
+                                                <span style={{ fontSize: '13px' }}>✂️</span>
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                        Satırdan Elle Böl
+                                                    </span>
+                                                    <span style={{ fontSize: '9.5px', color: 'var(--text-muted)' }}>
+                                                        {showBreakTools ? 'Tabloda satıra tıklayarak bölün' : 'İstediğiniz satırdan sayfa ayırın'}
+                                                    </span>
+                                                </div>
+                                            </div>
 
-                                            <button
-                                                type="button"
-                                                className={`btn ${pageBreakMode === 'vehicle' ? 'btn-primary' : 'btn-secondary'}`}
-                                                onClick={() => {
-                                                    setPageBreakMode('vehicle');
-                                                    setCustomScale(null);
-                                                    savePdfBreakSettings({ pageBreakMode: 'vehicle', customScale: null });
-                                                }}
-                                                style={{ 
-                                                    fontSize: '11.5px', 
-                                                    padding: '8px 12px', 
-                                                    display: 'flex', 
-                                                    justifyContent: 'space-between', 
-                                                    alignItems: 'center',
-                                                    borderRadius: '6px'
-                                                }}
-                                                title="Her iş makinesini/aracı ayrı bir sayfadan başlatır"
-                                            >
-                                                <span style={{ fontWeight: 600 }}>Araç Başına Sayfa</span>
-                                                <span style={{ fontSize: '10px', opacity: 0.75 }}>Araçları Böl</span>
-                                            </button>
-
-                                            <button
-                                                type="button"
-                                                className={`btn ${pageBreakMode === 'rows' ? 'btn-primary' : 'btn-secondary'}`}
-                                                onClick={() => {
-                                                    setPageBreakMode('rows');
-                                                    setCustomScale(null);
-                                                    savePdfBreakSettings({ pageBreakMode: 'rows', customScale: null });
-                                                }}
-                                                style={{ 
-                                                    fontSize: '11.5px', 
-                                                    padding: '8px 12px', 
-                                                    display: 'flex', 
-                                                    justifyContent: 'space-between', 
-                                                    alignItems: 'center',
-                                                    borderRadius: '6px'
-                                                }}
-                                                title="Her sayfada belirlediğiniz satır sayısı kadar kayıt gösterir"
-                                            >
-                                                <span style={{ fontWeight: 600 }}>Satır Sayısına Göre Böl</span>
-                                                <span style={{ fontSize: '10px', opacity: 0.75 }}>{rowsPerPage} Satır / Sayfa</span>
-                                            </button>
-
-                                            {pageBreakMode === 'rows' && (
-                                                <div style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px',
-                                                    padding: '6px 8px',
-                                                    background: 'var(--bg-primary)',
-                                                    border: '1px solid var(--border-color)',
-                                                    borderRadius: '6px'
-                                                }}>
-                                                    {[15, 20, 25, 30].map(rCount => (
-                                                        <button
-                                                            key={rCount}
-                                                            type="button"
-                                                            className={`btn btn-sm ${Number(rowsPerPage) === rCount ? 'btn-primary' : 'btn-secondary'}`}
-                                                            onClick={() => {
-                                                                setRowsPerPage(rCount);
-                                                                savePdfBreakSettings({ rowsPerPage: rCount });
-                                                            }}
-                                                            style={{ flex: 1, fontSize: '10.5px', padding: '4px 2px' }}
-                                                        >
-                                                            {rCount}
-                                                        </button>
-                                                    ))}
-                                                    <input
-                                                        type="number"
-                                                        min="5"
-                                                        max="60"
-                                                        value={rowsPerPage}
-                                                        onChange={(e) => {
-                                                            const val = Math.max(5, Math.min(60, parseInt(e.target.value, 10) || 20));
-                                                            setRowsPerPage(val);
-                                                            savePdfBreakSettings({ rowsPerPage: val });
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                {manualBreakIds.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setManualBreakIds([]);
+                                                            savePdfBreakSettings({ manualBreakIds: [] });
                                                         }}
                                                         style={{
-                                                            width: '42px',
-                                                            height: '25px',
-                                                            textAlign: 'center',
-                                                            fontSize: '11px',
+                                                            fontSize: '10px',
                                                             fontWeight: 600,
-                                                            background: 'var(--bg-tertiary)',
-                                                            color: 'var(--text-primary)',
-                                                            border: '1px solid var(--border-color)',
-                                                            borderRadius: '4px'
+                                                            padding: '2px 6px',
+                                                            borderRadius: '999px',
+                                                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                                                            background: 'rgba(239, 68, 68, 0.1)',
+                                                            color: '#ef4444',
+                                                            cursor: 'pointer'
                                                         }}
-                                                        title="Sayfa başına özel satır sayısı"
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* İstediğin Satırdan Manuel Bölme Aracı */}
-                                        <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
-                                            <button
-                                                type="button"
-                                                className={`btn btn-sm ${showBreakTools ? 'btn-primary' : 'btn-secondary'}`}
-                                                onClick={() => setShowBreakTools(prev => !prev)}
-                                                style={{
-                                                    flex: 1,
-                                                    fontSize: '11px',
-                                                    padding: '7px 10px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    borderRadius: '6px'
-                                                }}
-                                                title="Önizleme tablosundaki istediğiniz satırın yanındaki makas (✂️) ikonuna tıklayarak tam o satırdan yeni sayfaya bölebilirsiniz"
-                                            >
-                                                <span style={{ fontWeight: 600 }}>✂️ Satırdan Elle Böl</span>
-                                                <span style={{ fontSize: '10px', opacity: 0.8 }}>
-                                                    {showBreakTools ? 'Açık' : 'Seç'}
-                                                </span>
-                                            </button>
-                                            {manualBreakIds.length > 0 && (
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-sm btn-secondary"
-                                                    onClick={() => {
-                                                        setManualBreakIds([]);
-                                                        savePdfBreakSettings({ manualBreakIds: [] });
-                                                    }}
-                                                    style={{ fontSize: '10.5px', padding: '7px 8px', color: 'var(--danger)' }}
-                                                    title="Manuel satır bölmelerini temizle"
-                                                >
-                                                    Sıfırla ({manualBreakIds.length})
-                                                </button>
-                                            )}
+                                                        title="Manuel satır bölmelerini temizle"
+                                                    >
+                                                        {manualBreakIds.length} Bölme ✕
+                                                    </button>
+                                                )}
+                                                <label className="toggle-switch" style={{ flexShrink: 0, transform: 'scale(0.78)' }} onClick={e => e.stopPropagation()}>
+                                                    <input type="checkbox" checked={showBreakTools} onChange={e => setShowBreakTools(e.target.checked)} />
+                                                    <span className="toggle-slider"></span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Tablo Yoğunluğu ve Sayfa Yönü Grid */}
+                                    {/* 4. Tablo Yoğunluğu ve Sayfa Yönü (Modern Segmented Tracks) */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                                         <div>
-                                            <label style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block', fontWeight: 500 }}>
+                                            <label style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                                                 Tablo Yoğunluğu
                                             </label>
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                <button
-                                                    type="button"
-                                                    className={`btn btn-sm ${tableDensity === 'compact' ? 'btn-primary' : 'btn-secondary'}`}
-                                                    onClick={() => {
-                                                        setTableDensity('compact');
-                                                        savePdfBreakSettings({ tableDensity: 'compact', tableDensityExplicit: true });
-                                                    }}
-                                                    style={{ flex: 1, fontSize: '10.5px', padding: '6px 4px' }}
-                                                    title="Satır boşluklarını daraltarak daha çok satır sığdırır (Standart)"
-                                                >
-                                                    Kompakt
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`btn btn-sm ${tableDensity !== 'compact' ? 'btn-primary' : 'btn-secondary'}`}
-                                                    onClick={() => {
-                                                        setTableDensity('normal');
-                                                        savePdfBreakSettings({ tableDensity: 'normal', tableDensityExplicit: true });
-                                                    }}
-                                                    style={{ flex: 1, fontSize: '10.5px', padding: '6px 4px' }}
-                                                >
-                                                    Normal
-                                                </button>
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: '1fr 1fr',
+                                                background: 'var(--bg-tertiary)',
+                                                padding: '2px',
+                                                borderRadius: '7px',
+                                                border: '1px solid var(--border-color)',
+                                                gap: '2px'
+                                            }}>
+                                                {[
+                                                    { id: 'compact', label: 'Kompakt' },
+                                                    { id: 'normal', label: 'Normal' }
+                                                ].map(d => {
+                                                    const active = (d.id === 'compact' ? tableDensity === 'compact' : tableDensity !== 'compact');
+                                                    return (
+                                                        <button
+                                                            key={d.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setTableDensity(d.id);
+                                                                savePdfBreakSettings({ tableDensity: d.id, tableDensityExplicit: true });
+                                                            }}
+                                                            style={{
+                                                                padding: '5px 4px',
+                                                                fontSize: '10.5px',
+                                                                fontWeight: active ? 700 : 500,
+                                                                borderRadius: '5px',
+                                                                border: 'none',
+                                                                background: active ? 'var(--bg-primary)' : 'transparent',
+                                                                color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+                                                                boxShadow: active ? '0 1px 2px rgba(0,0,0,0.12)' : 'none',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.15s ease'
+                                                            }}
+                                                        >
+                                                            {d.label}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
 
                                         <div>
-                                            <label style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block', fontWeight: 500 }}>
+                                            <label style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                                                 Sayfa Yönü
                                             </label>
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                <button
-                                                    type="button"
-                                                    className={`btn btn-sm ${orientation === 'portrait' ? 'btn-primary' : 'btn-secondary'}`}
-                                                    onClick={() => {
-                                                        setOrientation('portrait');
-                                                        savePdfBreakSettings({ orientation: 'portrait' });
-                                                    }}
-                                                    style={{ flex: 1, fontSize: '10.5px', padding: '6px 4px' }}
-                                                >
-                                                    Dikey
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`btn btn-sm ${orientation === 'landscape' ? 'btn-primary' : 'btn-secondary'}`}
-                                                    onClick={() => {
-                                                        setOrientation('landscape');
-                                                        savePdfBreakSettings({ orientation: 'landscape' });
-                                                    }}
-                                                    style={{ flex: 1, fontSize: '10.5px', padding: '6px 4px' }}
-                                                >
-                                                    Yatay
-                                                </button>
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: '1fr 1fr',
+                                                background: 'var(--bg-tertiary)',
+                                                padding: '2px',
+                                                borderRadius: '7px',
+                                                border: '1px solid var(--border-color)',
+                                                gap: '2px'
+                                            }}>
+                                                {[
+                                                    { id: 'portrait', label: 'Dikey' },
+                                                    { id: 'landscape', label: 'Yatay' }
+                                                ].map(o => {
+                                                    const active = orientation === o.id;
+                                                    return (
+                                                        <button
+                                                            key={o.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setOrientation(o.id);
+                                                                savePdfBreakSettings({ orientation: o.id });
+                                                            }}
+                                                            style={{
+                                                                padding: '5px 4px',
+                                                                fontSize: '10.5px',
+                                                                fontWeight: active ? 700 : 500,
+                                                                borderRadius: '5px',
+                                                                border: 'none',
+                                                                background: active ? 'var(--bg-primary)' : 'transparent',
+                                                                color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+                                                                boxShadow: active ? '0 1px 2px rgba(0,0,0,0.12)' : 'none',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.15s ease'
+                                                            }}
+                                                        >
+                                                            {o.label}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </div>
