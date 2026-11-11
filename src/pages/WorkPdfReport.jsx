@@ -60,8 +60,8 @@ export default function WorkPdfReport({
 
     useLayoutEffect(() => {
         if (pageBreakMode === 'fit_page') {
-            const wrappers = (pageRefs.current || []).filter(Boolean);
-            if (wrappers.length === 0 && contentRef.current) {
+            const wrappers = (pageRefs.current || []).filter(w => w && w.isConnected);
+            if (wrappers.length === 0 && contentRef.current && contentRef.current.isConnected) {
                 wrappers.push(contentRef.current);
             }
             if (wrappers.length > 0) {
@@ -114,12 +114,12 @@ export default function WorkPdfReport({
                     wrapper.style.padding = prevPadding;
                 });
 
-                setAutoScale(minRequiredScale);
+                setAutoScale(prev => Math.abs(prev - minRequiredScale) > 0.002 ? minRequiredScale : prev);
             } else {
-                setAutoScale(1.0);
+                setAutoScale(prev => prev !== 1.0 ? 1.0 : prev);
             }
         } else {
-            setAutoScale(1.0);
+            setAutoScale(prev => prev !== 1.0 ? 1.0 : prev);
         }
     }, [pageBreakMode, targetPages, rowsPerPage, manualBreakIds, work, showPricesProp, showGrandTotalProp, showKdvProp, kdvRateProp, pazarMultiplierProp, mesaiMultiplierProp, customScaleProp, orientationProp, tableDensity, showWorkTitleProp]);
 
@@ -252,7 +252,10 @@ export default function WorkPdfReport({
                     flushCurrentPage();
                 }
 
-                while (itemIdx < items.length || needSummary) {
+                let loopGuard = 0;
+                const maxLoopIterations = (items.length || 0) + 15;
+
+                while ((itemIdx < items.length || needSummary) && loopGuard++ < maxLoopIterations) {
                     const isP1 = pageList.length === 0 && currentGroups.length === 0;
                     let baseOverhead = FOOTER_H;
                     if (isP1) baseOverhead += HEADER_H;
@@ -269,7 +272,7 @@ export default function WorkPdfReport({
 
                     const minRowsRequired = disableOrphanGuard ? 1 : (itemIdx === 0 ? Math.min(3, Math.max(1, items.length)) : 1);
                     let spaceForRows = availableH - vehicleHeaderOverhead;
-                    if (spaceForRows < (minRowsRequired * rowH) && currentGroups.length > 0) {
+                    if (spaceForRows < (minRowsRequired * rowH) && currentGroups.length > 0 && itemIdx < items.length) {
                         flushCurrentPage();
                         continue;
                     }
@@ -302,7 +305,10 @@ export default function WorkPdfReport({
 
                     const remainingSpaceAfterChunk = spaceForRows - (chunk.length * rowH);
                     const requiredEndSpace = SUMMARY_H + (isLastChunk && isLastGroup && showGrandTotalProp ? GRAND_TOTAL_H : 0);
-                    const summaryFitsOnThisPage = isLastChunk && needSummary && (remainingSpaceAfterChunk >= requiredEndSpace) && !manualBreakTriggered;
+                    const summaryFitsOnThisPage = isLastChunk && needSummary && (
+                        (remainingSpaceAfterChunk >= requiredEndSpace) ||
+                        (chunk.length === 0 && currentGroups.length === 0)
+                    ) && !manualBreakTriggered;
 
                     if (chunk.length > 0 || summaryFitsOnThisPage) {
                         currentGroups.push({
@@ -333,6 +339,21 @@ export default function WorkPdfReport({
                     if (manualBreakTriggered || (maxRowsLimit > 0 && currentPageRows >= maxRowsLimit) || currentHeight >= maxPageH - 20 || !summaryFitsOnThisPage) {
                         flushCurrentPage();
                     }
+                }
+
+                // Fallback guard: ensure summary is never dropped if loop exited early
+                if (needSummary) {
+                    if (currentGroups.length > 0) {
+                        currentGroups[currentGroups.length - 1].isLastChunk = true;
+                    } else {
+                        currentGroups.push({
+                            ...g,
+                            items: [],
+                            isContinuation: true,
+                            isLastChunk: true
+                        });
+                    }
+                    needSummary = false;
                 }
             });
 
@@ -368,11 +389,11 @@ export default function WorkPdfReport({
             const totalRows = groups.reduce((acc, g) => acc + (g.items?.length || 0), 0);
             const balancedRowsPerPage = totalRows >= targetPages ? Math.ceil(totalRows / targetPages) : 0;
 
-            let low = 160;
-            let high = 60000;
+            let low = Math.max(320, HEADER_H + SUMMARY_H + GRAND_TOTAL_H + 80);
+            let high = Math.max(1200, totalRows * 35 + groups.length * 200 + 400);
             let bestPages = null;
 
-            for (let iter = 0; iter < 22; iter++) {
+            for (let iter = 0; iter < 10; iter++) {
                 const mid = (low + high) / 2;
                 const candidate = splitGroupsIntoPages({
                     maxPageH: mid,
@@ -388,10 +409,11 @@ export default function WorkPdfReport({
                 }
             }
 
-            let finalPages = bestPages || splitGroupsIntoPages({ maxPageH: 60000, breakPerVehicle: false, maxRowsLimit: balancedRowsPerPage });
+            let finalPages = bestPages || splitGroupsIntoPages({ maxPageH: high, breakPerVehicle: false, maxRowsLimit: balancedRowsPerPage });
 
             // If binary search produced fewer than targetPages and there are enough rows/groups to split further, split largest page chunks
-            while (finalPages.length < targetPages) {
+            let splitGuard = 0;
+            while (finalPages.length < targetPages && splitGuard++ < 35) {
                 let bestPageIdx = -1;
                 let bestGroupIdx = -1;
                 let maxItemsLen = 1;
