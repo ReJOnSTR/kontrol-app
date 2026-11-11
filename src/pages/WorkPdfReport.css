@@ -734,11 +734,13 @@ body:has(.is-generating-pdf),
         break-after: avoid !important;
     }
     .pdf-report-container.pdf-fit-page {
-        page-break-after: avoid !important;
-        break-after: avoid !important;
         height: 297mm !important;
         min-height: 297mm !important;
         max-height: 297mm !important;
+    }
+    .pdf-report-container.pdf-fit-page:last-child {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
     }
     .pdf-report-container.is-landscape.pdf-fit-page {
         width: 297mm !important;

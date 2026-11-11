@@ -229,6 +229,7 @@ export default function PrintPage() {
                     pazarMultiplierProp={data.pazarMultiplier}
                     mesaiMultiplierProp={data.mesaiMultiplier}
                     pageBreakModeProp={data.pageBreakMode}
+                    targetPagesProp={data.targetPages}
                     rowsPerPageProp={data.rowsPerPage}
                     manualBreakIdsProp={data.manualBreakIds}
                     customScaleProp={data.customScale}

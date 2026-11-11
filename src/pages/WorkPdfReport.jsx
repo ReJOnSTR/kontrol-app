@@ -17,6 +17,7 @@ export default function WorkPdfReport({
     pazarMultiplierProp = null, 
     mesaiMultiplierProp = null,
     pageBreakModeProp = null,
+    targetPagesProp = null,
     rowsPerPageProp = null,
     manualBreakIdsProp = null,
     onToggleManualBreakProp = null,
@@ -34,6 +35,7 @@ export default function WorkPdfReport({
     const [savingPdf, setSavingPdf] = useState(false);
     const showPrices = showPricesProp;
     const contentRef = useRef(null);
+    const pageRefs = useRef([]);
 
     // Load break settings from DB (work.pdf_settings / propWork.pdf_settings) or localStorage fallback
     const savedBreakSettings = (() => {
@@ -50,64 +52,76 @@ export default function WorkPdfReport({
     })()
 
     const pageBreakMode = pageBreakModeProp || savedBreakSettings.pageBreakMode || 'fit_page';
+    const targetPages = Math.max(1, Number(targetPagesProp || savedBreakSettings.targetPages || 1));
     const rowsPerPage = rowsPerPageProp || savedBreakSettings.rowsPerPage || 20;
     const tableDensity = tableDensityProp || (savedBreakSettings.tableDensityExplicit ? savedBreakSettings.tableDensity : null) || 'compact';
     const [manualBreakIds, setManualBreakIds] = useState(manualBreakIdsProp || savedBreakSettings.manualBreakIds || []);
     const [autoScale, setAutoScale] = useState(1);
 
     useLayoutEffect(() => {
-        if (pageBreakMode === 'fit_page' && contentRef.current) {
-            const wrapper = contentRef.current;
+        if (pageBreakMode === 'fit_page') {
+            const wrappers = (pageRefs.current || []).filter(Boolean);
+            if (wrappers.length === 0 && contentRef.current) {
+                wrappers.push(contentRef.current);
+            }
+            if (wrappers.length > 0) {
+                const padTopMm = tableDensity === 'compact' ? 4 : 6;
+                const padSideMm = tableDensity === 'compact' ? 6 : 8;
+                const isLandscapeMode = orientationProp === 'landscape';
+                const targetH = isLandscapeMode ? 730 : 1050; // Gerçek A4 (297mm = 1122.5px) footer üstü güvenli baskı yüksekliği
 
-            const prevTransform = wrapper.style.transform;
-            const prevWidth = wrapper.style.width;
-            const prevMinWidth = wrapper.style.minWidth;
-            const prevHeight = wrapper.style.height;
-            const prevMaxHeight = wrapper.style.maxHeight;
-            const prevOverflow = wrapper.style.overflow;
-            const prevPadding = wrapper.style.padding;
+                let minRequiredScale = 1.0;
 
-            const padTopMm = tableDensity === 'compact' ? 4 : 6;
-            const padSideMm = tableDensity === 'compact' ? 6 : 8;
+                wrappers.forEach(wrapper => {
+                    const prevTransform = wrapper.style.transform;
+                    const prevWidth = wrapper.style.width;
+                    const prevMinWidth = wrapper.style.minWidth;
+                    const prevHeight = wrapper.style.height;
+                    const prevMaxHeight = wrapper.style.maxHeight;
+                    const prevOverflow = wrapper.style.overflow;
+                    const prevPadding = wrapper.style.padding;
 
-            wrapper.style.transform = 'none';
-            wrapper.style.width = '100%';
-            wrapper.style.minWidth = '100%';
-            wrapper.style.height = 'auto';
-            wrapper.style.maxHeight = 'none';
-            wrapper.style.overflow = 'visible';
-            wrapper.style.padding = `${padTopMm}mm ${padSideMm}mm 2mm ${padSideMm}mm`;
+                    wrapper.style.transform = 'none';
+                    wrapper.style.width = '100%';
+                    wrapper.style.minWidth = '100%';
+                    wrapper.style.height = 'auto';
+                    wrapper.style.maxHeight = 'none';
+                    wrapper.style.overflow = 'visible';
+                    wrapper.style.padding = `${padTopMm}mm ${padSideMm}mm 2mm ${padSideMm}mm`;
 
-            const isLandscapeMode = orientationProp === 'landscape';
-            const targetH = isLandscapeMode ? 730 : 1050; // Gerçek A4 (297mm = 1122.5px) footer üstü güvenli baskı yüksekliği
+                    const naturalPx1 = wrapper.scrollHeight || wrapper.offsetHeight;
 
-            const naturalPx1 = wrapper.scrollHeight || wrapper.offsetHeight;
+                    if (naturalPx1 > targetH) {
+                        const s1 = Math.max(0.35, Math.min(0.99, targetH / naturalPx1));
+                        wrapper.style.width = `${100 / s1}%`;
+                        wrapper.style.minWidth = `${100 / s1}%`;
+                        wrapper.style.padding = `${padTopMm / s1}mm ${padSideMm / s1}mm 2mm ${padSideMm / s1}mm`;
 
-            if (naturalPx1 > targetH) {
-                const s1 = Math.max(0.35, Math.min(0.99, targetH / naturalPx1));
-                wrapper.style.width = `${100 / s1}%`;
-                wrapper.style.minWidth = `${100 / s1}%`;
-                wrapper.style.padding = `${padTopMm / s1}mm ${padSideMm / s1}mm 2mm ${padSideMm / s1}mm`;
+                        const naturalPx2 = wrapper.scrollHeight || wrapper.offsetHeight;
+                        const exactScaleNeeded = targetH / Math.max(naturalPx2, 1);
+                        const pageScale = Math.floor(Math.max(0.35, Math.min(0.99, exactScaleNeeded)) * 1000) / 1000;
+                        if (pageScale < minRequiredScale) {
+                            minRequiredScale = pageScale;
+                        }
+                    }
 
-                const naturalPx2 = wrapper.scrollHeight || wrapper.offsetHeight;
-                const exactScaleNeeded = targetH / Math.max(naturalPx2, 1);
-                const finalScale = Math.floor(Math.max(0.35, Math.min(0.99, exactScaleNeeded)) * 1000) / 1000;
-                setAutoScale(finalScale);
+                    wrapper.style.transform = prevTransform;
+                    wrapper.style.width = prevWidth;
+                    wrapper.style.minWidth = prevMinWidth;
+                    wrapper.style.height = prevHeight;
+                    wrapper.style.maxHeight = prevMaxHeight;
+                    wrapper.style.overflow = prevOverflow;
+                    wrapper.style.padding = prevPadding;
+                });
+
+                setAutoScale(minRequiredScale);
             } else {
                 setAutoScale(1.0);
             }
-
-            wrapper.style.transform = prevTransform;
-            wrapper.style.width = prevWidth;
-            wrapper.style.minWidth = prevMinWidth;
-            wrapper.style.height = prevHeight;
-            wrapper.style.maxHeight = prevMaxHeight;
-            wrapper.style.overflow = prevOverflow;
-            wrapper.style.padding = prevPadding;
         } else {
             setAutoScale(1.0);
         }
-    }, [pageBreakMode, work, showPricesProp, showGrandTotalProp, showKdvProp, kdvRateProp, pazarMultiplierProp, mesaiMultiplierProp, customScaleProp, orientationProp, tableDensity, showWorkTitleProp]);
+    }, [pageBreakMode, targetPages, rowsPerPage, manualBreakIds, work, showPricesProp, showGrandTotalProp, showKdvProp, kdvRateProp, pazarMultiplierProp, mesaiMultiplierProp, customScaleProp, orientationProp, tableDensity, showWorkTitleProp]);
 
     const effectiveScale = customScaleProp ? Number(customScaleProp) : (pageBreakMode === 'fit_page' ? autoScale : 1.0);
 
@@ -194,16 +208,6 @@ export default function WorkPdfReport({
     const pages = (() => {
         if (!groups || groups.length === 0) return [];
 
-        // 1. If fit_page mode is selected, enforce single page presentation with auto-scaling
-        if (pageBreakMode === 'fit_page') {
-            return [{
-                groups: groups.map(g => ({ ...g, isContinuation: false, isLastChunk: true })),
-                isFirst: true,
-                isLast: true,
-                pageIndex: 0
-            }];
-        }
-
         const isCompact = tableDensity === 'compact';
         const scaleVal = effectiveScale > 0 ? effectiveScale : 1.0;
         const isLandscapeMode = orientationProp === 'landscape';
@@ -214,49 +218,18 @@ export default function WorkPdfReport({
         const HEADER_H = isCompact ? 85 : 100;
         const FOOTER_H = 28;
         const GRAND_TOTAL_H = showGrandTotalProp ? (showKdvProp ? (isCompact ? 95 : 120) : (isCompact ? 55 : 70)) : 0;
-        const DESC_H = (work?.description && work.description.trim() !== '') ? 35 : 0;
         const ROW_H = isCompact ? 20.5 : 27.0; // Safe physical rendered height of each table row with margins and scaling clearance
         const SUMMARY_H = isCompact ? 72 : 90; // Rendered height of Machine Summary Table
 
-        // Split rows and blocks across pages based on exact height capacity:
-        const pageList = [];
-        let currentGroups = [];
-        let currentHeight = 0;
+        // Helper: Split rows and blocks across pages based on given height capacity & constraints
+        const splitGroupsIntoPages = ({ maxPageH, breakPerVehicle = false, maxRowsLimit = 0, disableOrphanGuard = false }) => {
+            const pageList = [];
+            let currentGroups = [];
+            let currentHeight = 0;
+            let currentPageRows = 0;
 
-        groups.forEach((g, gIdx) => {
-            const items = g.items || [];
-            let itemIdx = 0;
-            let needSummary = true;
-            const isLastGroup = gIdx === groups.length - 1;
-
-            // In vehicle mode, force each vehicle onto a new page if current page already has content
-            if (pageBreakMode === 'vehicle' && currentGroups.length > 0) {
-                pageList.push({
-                    groups: currentGroups,
-                    isFirst: pageList.length === 0,
-                    isLast: false,
-                    pageIndex: pageList.length
-                });
-                currentGroups = [];
-                currentHeight = 0;
-            }
-
-            while (itemIdx < items.length || needSummary) {
-                const isP1 = pageList.length === 0 && currentGroups.length === 0;
-                const maxPageH = TARGET_A4_HEIGHT;
-                
-                let baseOverhead = FOOTER_H;
-                if (isP1) baseOverhead += HEADER_H;
-
-                const currentUsedH = (currentHeight === 0 ? baseOverhead : currentHeight);
-                const availableH = maxPageH - currentUsedH;
-                const vehicleHeaderOverhead = (itemIdx === 0 ? 30 + 25 : 25);
-                const rowH = ROW_H;
-
-                // Orphan Row Guard: when starting a new vehicle table, require room for at least 3 rows (3 * rowH)
-                const minRowsRequired = itemIdx === 0 ? 3 : 1;
-                let spaceForRows = availableH - vehicleHeaderOverhead;
-                if (spaceForRows < (minRowsRequired * rowH) && currentGroups.length > 0) {
+            const flushCurrentPage = () => {
+                if (currentGroups.length > 0) {
                     pageList.push({
                         groups: currentGroups,
                         isFirst: pageList.length === 0,
@@ -265,105 +238,248 @@ export default function WorkPdfReport({
                     });
                     currentGroups = [];
                     currentHeight = 0;
-                    continue;
+                    currentPageRows = 0;
+                }
+            };
+
+            groups.forEach((g, gIdx) => {
+                const items = g.items || [];
+                let itemIdx = 0;
+                let needSummary = true;
+                const isLastGroup = gIdx === groups.length - 1;
+
+                if (breakPerVehicle && currentGroups.length > 0) {
+                    flushCurrentPage();
                 }
 
-                // Greedily take every single row that can physically fit
-                const maxRowsCanFit = Math.max(0, Math.floor(Math.max(0, spaceForRows) / rowH));
+                while (itemIdx < items.length || needSummary) {
+                    const isP1 = pageList.length === 0 && currentGroups.length === 0;
+                    let baseOverhead = FOOTER_H;
+                    if (isP1) baseOverhead += HEADER_H;
 
-                if (maxRowsCanFit === 0 && currentGroups.length > 0) {
-                    pageList.push({
-                        groups: currentGroups,
-                        isFirst: pageList.length === 0,
-                        isLast: false,
-                        pageIndex: pageList.length
-                    });
-                    currentGroups = [];
-                    currentHeight = 0;
-                    continue;
-                }
+                    const currentUsedH = (currentHeight === 0 ? baseOverhead : currentHeight);
+                    const availableH = maxPageH - currentUsedH;
+                    const vehicleHeaderOverhead = (itemIdx === 0 ? 30 + 25 : 25);
+                    const rowH = ROW_H;
 
-                const countToTake = Math.max(1, maxRowsCanFit);
-                let chunkEnd = Math.min(items.length, itemIdx + countToTake);
-                let candidateChunk = items.slice(itemIdx, chunkEnd);
-
-                // Manual Page Break Check: If any item in candidateChunk has manualBreak, slice right after it
-                let manualBreakTriggered = false;
-                const manualBreakIdxInChunk = candidateChunk.findIndex(it => manualBreakIds.includes(it.id));
-                if (manualBreakIdxInChunk !== -1) {
-                    chunkEnd = itemIdx + manualBreakIdxInChunk + 1;
-                    candidateChunk = items.slice(itemIdx, chunkEnd);
-                    manualBreakTriggered = true;
-                }
-
-                const chunk = candidateChunk;
-                const isLastChunk = chunkEnd >= items.length;
-
-                // Check if summary table AND Grand Total Box fit in remaining space after rows without cutoff
-                const remainingSpaceAfterChunk = spaceForRows - (chunk.length * rowH);
-                const requiredEndSpace = SUMMARY_H + (isLastChunk && isLastGroup && showGrandTotalProp ? GRAND_TOTAL_H : 0);
-                const summaryFitsOnThisPage = isLastChunk && needSummary && (remainingSpaceAfterChunk >= requiredEndSpace) && !manualBreakTriggered;
-
-                if (chunk.length > 0 || summaryFitsOnThisPage) {
-                    currentGroups.push({
-                        ...g,
-                        items: chunk,
-                        isContinuation: itemIdx > 0 || (chunk.length === 0),
-                        isLastChunk: summaryFitsOnThisPage
-                    });
-
-                    if (summaryFitsOnThisPage) {
-                        needSummary = false;
+                    if (maxRowsLimit > 0 && currentPageRows >= maxRowsLimit && currentGroups.length > 0 && itemIdx < items.length) {
+                        flushCurrentPage();
+                        continue;
                     }
 
-                    const chunkH = (chunk.length > 0 ? vehicleHeaderOverhead : 0) + (chunk.length * rowH) + (summaryFitsOnThisPage ? SUMMARY_H : 0);
-                    currentHeight = currentUsedH + chunkH;
-                }
+                    const minRowsRequired = disableOrphanGuard ? 1 : (itemIdx === 0 ? Math.min(3, Math.max(1, items.length)) : 1);
+                    let spaceForRows = availableH - vehicleHeaderOverhead;
+                    if (spaceForRows < (minRowsRequired * rowH) && currentGroups.length > 0) {
+                        flushCurrentPage();
+                        continue;
+                    }
 
-                itemIdx = chunkEnd;
+                    let maxRowsCanFit = Math.max(0, Math.floor(Math.max(0, spaceForRows) / rowH));
+                    if (maxRowsLimit > 0) {
+                        const remRows = Math.max(0, maxRowsLimit - currentPageRows);
+                        maxRowsCanFit = Math.min(maxRowsCanFit, remRows);
+                    }
 
-                if (itemIdx >= items.length && !needSummary) {
-                    if (manualBreakTriggered && currentGroups.length > 0) {
-                        pageList.push({
-                            groups: currentGroups,
-                            isFirst: pageList.length === 0,
-                            isLast: false,
-                            pageIndex: pageList.length
+                    if (maxRowsCanFit === 0 && currentGroups.length > 0 && itemIdx < items.length) {
+                        flushCurrentPage();
+                        continue;
+                    }
+
+                    const countToTake = Math.max(1, maxRowsCanFit);
+                    let chunkEnd = Math.min(items.length, itemIdx + countToTake);
+                    let candidateChunk = items.slice(itemIdx, chunkEnd);
+
+                    let manualBreakTriggered = false;
+                    const manualBreakIdxInChunk = candidateChunk.findIndex(it => manualBreakIds.includes(it.id));
+                    if (manualBreakIdxInChunk !== -1) {
+                        chunkEnd = itemIdx + manualBreakIdxInChunk + 1;
+                        candidateChunk = items.slice(itemIdx, chunkEnd);
+                        manualBreakTriggered = true;
+                    }
+
+                    const chunk = candidateChunk;
+                    const isLastChunk = chunkEnd >= items.length;
+
+                    const remainingSpaceAfterChunk = spaceForRows - (chunk.length * rowH);
+                    const requiredEndSpace = SUMMARY_H + (isLastChunk && isLastGroup && showGrandTotalProp ? GRAND_TOTAL_H : 0);
+                    const summaryFitsOnThisPage = isLastChunk && needSummary && (remainingSpaceAfterChunk >= requiredEndSpace) && !manualBreakTriggered;
+
+                    if (chunk.length > 0 || summaryFitsOnThisPage) {
+                        currentGroups.push({
+                            ...g,
+                            items: chunk,
+                            isContinuation: itemIdx > 0 || (chunk.length === 0),
+                            isLastChunk: summaryFitsOnThisPage
                         });
-                        currentGroups = [];
-                        currentHeight = 0;
-                    }
-                    break;
-                }
 
-                // If manual break or current page is full or summary table overflows to next page, flush current page
-                if (manualBreakTriggered || currentHeight >= maxPageH - 20 || !summaryFitsOnThisPage) {
-                    pageList.push({
-                        groups: currentGroups,
-                        isFirst: pageList.length === 0,
-                        isLast: false,
-                        pageIndex: pageList.length
-                    });
-                    currentGroups = [];
-                    currentHeight = 0;
+                        if (summaryFitsOnThisPage) {
+                            needSummary = false;
+                        }
+
+                        const chunkH = (chunk.length > 0 ? vehicleHeaderOverhead : 0) + (chunk.length * rowH) + (summaryFitsOnThisPage ? SUMMARY_H : 0);
+                        currentHeight = currentUsedH + chunkH;
+                        currentPageRows += chunk.length;
+                    }
+
+                    itemIdx = chunkEnd;
+
+                    if (itemIdx >= items.length && !needSummary) {
+                        if (manualBreakTriggered && currentGroups.length > 0) {
+                            flushCurrentPage();
+                        }
+                        break;
+                    }
+
+                    if (manualBreakTriggered || (maxRowsLimit > 0 && currentPageRows >= maxRowsLimit) || currentHeight >= maxPageH - 20 || !summaryFitsOnThisPage) {
+                        flushCurrentPage();
+                    }
+                }
+            });
+
+            flushCurrentPage();
+
+            if (pageList.length > 0) {
+                pageList.forEach((p, idx) => {
+                    p.isFirst = idx === 0;
+                    p.isLast = idx === pageList.length - 1;
+                    p.pageIndex = idx;
+                });
+            }
+
+            return pageList.length > 0 ? pageList : [{ groups: groups, isFirst: true, isLast: true, pageIndex: 0 }];
+        };
+
+        // 1. If fit_page mode is selected:
+        if (pageBreakMode === 'fit_page') {
+            if (targetPages <= 1 && (!manualBreakIds || manualBreakIds.length === 0)) {
+                return [{
+                    groups: groups.map(g => ({ ...g, isContinuation: false, isLastChunk: true })),
+                    isFirst: true,
+                    isLast: true,
+                    pageIndex: 0
+                }];
+            }
+
+            if (targetPages <= 1 && manualBreakIds && manualBreakIds.length > 0) {
+                return splitGroupsIntoPages({ maxPageH: 100000, breakPerVehicle: false, maxRowsLimit: 0 });
+            }
+
+            // Multi-page target splitting (2, 3, 4... pages): balance content evenly across targetPages
+            const totalRows = groups.reduce((acc, g) => acc + (g.items?.length || 0), 0);
+            const balancedRowsPerPage = totalRows >= targetPages ? Math.ceil(totalRows / targetPages) : 0;
+
+            let low = 160;
+            let high = 60000;
+            let bestPages = null;
+
+            for (let iter = 0; iter < 22; iter++) {
+                const mid = (low + high) / 2;
+                const candidate = splitGroupsIntoPages({
+                    maxPageH: mid,
+                    breakPerVehicle: false,
+                    maxRowsLimit: balancedRowsPerPage > 0 ? balancedRowsPerPage + 2 : 0,
+                    disableOrphanGuard: true
+                });
+                if (candidate.length <= targetPages) {
+                    bestPages = candidate;
+                    high = mid;
+                } else {
+                    low = mid;
                 }
             }
-        });
 
-        if (currentGroups.length > 0) {
-            pageList.push({
-                groups: currentGroups,
-                isFirst: pageList.length === 0,
-                isLast: false,
-                pageIndex: pageList.length
+            let finalPages = bestPages || splitGroupsIntoPages({ maxPageH: 60000, breakPerVehicle: false, maxRowsLimit: balancedRowsPerPage });
+
+            // If binary search produced fewer than targetPages and there are enough rows/groups to split further, split largest page chunks
+            while (finalPages.length < targetPages) {
+                let bestPageIdx = -1;
+                let bestGroupIdx = -1;
+                let maxItemsLen = 1;
+
+                finalPages.forEach((p, pIdx) => {
+                    p.groups.forEach((g, gIdx) => {
+                        const len = (g.items || []).length;
+                        if (len > maxItemsLen) {
+                            maxItemsLen = len;
+                            bestPageIdx = pIdx;
+                            bestGroupIdx = gIdx;
+                        }
+                    });
+                });
+
+                if (bestPageIdx !== -1 && maxItemsLen >= 2) {
+                    const targetPage = finalPages[bestPageIdx];
+                    const targetGroup = targetPage.groups[bestGroupIdx];
+                    const half = Math.ceil(targetGroup.items.length / 2);
+                    const firstHalfItems = targetGroup.items.slice(0, half);
+                    const secondHalfItems = targetGroup.items.slice(half);
+
+                    const page1Groups = [
+                        ...targetPage.groups.slice(0, bestGroupIdx),
+                        {
+                            ...targetGroup,
+                            items: firstHalfItems,
+                            isLastChunk: false
+                        }
+                    ];
+                    const page2Groups = [
+                        {
+                            ...targetGroup,
+                            items: secondHalfItems,
+                            isContinuation: true,
+                            isLastChunk: targetGroup.isLastChunk
+                        },
+                        ...targetPage.groups.slice(bestGroupIdx + 1)
+                    ];
+
+                    finalPages.splice(
+                        bestPageIdx,
+                        1,
+                        { groups: page1Groups, isFirst: false, isLast: false, pageIndex: 0 },
+                        { groups: page2Groups, isFirst: false, isLast: false, pageIndex: 0 }
+                    );
+                } else {
+                    // Try splitting a page that has multiple groups
+                    const multiGroupPageIdx = finalPages.findIndex(p => p.groups.length >= 2);
+                    if (multiGroupPageIdx !== -1) {
+                        const p = finalPages[multiGroupPageIdx];
+                        const midG = Math.ceil(p.groups.length / 2);
+                        finalPages.splice(
+                            multiGroupPageIdx,
+                            1,
+                            { groups: p.groups.slice(0, midG), isFirst: false, isLast: false, pageIndex: 0 },
+                            { groups: p.groups.slice(midG), isFirst: false, isLast: false, pageIndex: 0 }
+                        );
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            finalPages.forEach((p, idx) => {
+                p.isFirst = idx === 0;
+                p.isLast = idx === finalPages.length - 1;
+                p.pageIndex = idx;
+            });
+
+            return finalPages;
+        }
+
+        // 2. Rows per page mode ('rows')
+        if (pageBreakMode === 'rows') {
+            return splitGroupsIntoPages({
+                maxPageH: TARGET_A4_HEIGHT,
+                breakPerVehicle: false,
+                maxRowsLimit: Math.max(1, Number(rowsPerPage) || 20)
             });
         }
 
-        if (pageList.length > 0) {
-            pageList[pageList.length - 1].isLast = true;
-        }
-
-        return pageList.length > 0 ? pageList : [{ groups: groups, isFirst: true, isLast: true, pageIndex: 0 }];
+        // 3. Auto ('auto') or Per-Vehicle ('vehicle') mode
+        return splitGroupsIntoPages({
+            maxPageH: TARGET_A4_HEIGHT,
+            breakPerVehicle: pageBreakMode === 'vehicle',
+            maxRowsLimit: 0
+        });
     })();
 
     const handleSavePdf = async () => {
@@ -392,6 +508,7 @@ export default function WorkPdfReport({
                     pazarMultiplier: pazarMultiplierProp,
                     mesaiMultiplier: mesaiMultiplierProp,
                     pageBreakMode: pageBreakModeProp,
+                    targetPages: targetPages,
                     rowsPerPage: rowsPerPageProp,
                     manualBreakIds: manualBreakIdsProp,
                     customScale: customScaleProp,
@@ -484,7 +601,10 @@ export default function WorkPdfReport({
                             )}
 
                             <div 
-                                ref={pIdx === 0 ? contentRef : null}
+                                ref={el => {
+                                    pageRefs.current[pIdx] = el;
+                                    if (pIdx === 0) contentRef.current = el;
+                                }}
                                 className="pdf-content-wrapper"
                                 style={effectiveScale !== 1.0 ? {
                                     transform: `scale(${effectiveScale})`,
@@ -590,10 +710,26 @@ export default function WorkPdfReport({
                                                         }
 
                                                         const cleanDesc = desc.replace(/\[[^\]]*\]\s*/g, '').trim();
+                                                        const hasManualBreak = Boolean(item.id && manualBreakIds.includes(item.id));
 
                                                         return (
-                                                            <tr key={item.id || itemIdx} className={pdfRowClass}>
-                                                                <td className="center">{formatDate(item.date)}</td>
+                                                            <tr key={item.id || itemIdx} className={`${pdfRowClass} ${hasManualBreak ? 'pdf-has-manual-break' : ''}`.trim()}>
+                                                                <td className="center">
+                                                                    {isPreview && item.id && (showBreakToolsProp || hasManualBreak) && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className={`pdf-manual-break-btn no-print ${hasManualBreak ? 'active' : ''}`}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleToggleBreak(item.id);
+                                                                            }}
+                                                                            title={hasManualBreak ? 'Sayfa bölmesini kaldır' : 'Bu satırdan sonra yeni sayfaya böl'}
+                                                                        >
+                                                                            ✂️
+                                                                        </button>
+                                                                    )}
+                                                                    {formatDate(item.date)}
+                                                                </td>
                                                                 <td className="center">{item.receipt_no || '-'}</td>
                                                                 <td className="center">{isHoliday ? '-' : (item.start_time || '-')}</td>
                                                                 <td className="center">{isHoliday ? '-' : (item.end_time || '-')}</td>
