@@ -9,6 +9,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import WorkForm from '../components/forms/WorkForm'
 import { Plus, CheckCircle, Clock, AlertCircle, Calendar, Pencil, Trash2, MapPin, Truck, User, ArrowRight, Archive, ArchiveRestore, X } from 'lucide-react'
 import { formatDate, formatCurrency, getWorkStatusLabel, getWorkStatusColor } from '../utils/helpers'
+import { calculateWorkStats } from '../utils/workCalculations'
 import { dataCache } from '../utils/dataCache'
 
 export default function Works() {
@@ -81,10 +82,23 @@ export default function Works() {
     }, [currentCompany])
 
     const loadData = async (isBackground = false) => {
+        const normalizeWorksList = (list = []) => list.map(w => {
+            if (!Array.isArray(w.work_items)) return w
+            const s = calculateWorkStats(w.work_items, w.pazar_multiplier ?? 1.5, w.mesai_multiplier ?? 1.5)
+            return {
+                ...w,
+                total_hours: s.totalHours,
+                total_gun_count: s.totalGunCount,
+                total_saat_count: s.totalSaatCount,
+                duration_text: s.durationText,
+                total_price: s.grandTotal
+            }
+        })
+
         const cacheKey = `works_${currentCompany?.id}_${showArchived ? 1 : 0}`
         const cached = dataCache.get(cacheKey)
         if (cached && !isBackground) {
-            setWorks(cached.works)
+            setWorks(normalizeWorksList(cached.works))
             if (cached.customers) setCustomers(cached.customers)
             setLoading(false)
             isBackground = true
@@ -97,12 +111,13 @@ export default function Works() {
                 window.electronAPI.getWorks(currentCompany.id, showArchived ? 1 : 0),
                 window.electronAPI.getCustomers(currentCompany.id)
             ])
-            if (worksRes.success) setWorks(worksRes.data)
+            const normalizedWorks = worksRes.success ? normalizeWorksList(worksRes.data) : []
+            if (worksRes.success) setWorks(normalizedWorks)
             if (customersRes.success) setCustomers(customersRes.data)
 
             if (worksRes.success && customersRes.success) {
                 dataCache.set(cacheKey, {
-                    works: worksRes.data,
+                    works: normalizedWorks,
                     customers: customersRes.data
                 })
             }

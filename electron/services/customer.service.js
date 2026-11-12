@@ -53,10 +53,11 @@ async function getCustomers(companyId, isArchived = 0) {
                 }
             });
 
-            // Calculate total volume (cumulative and this month) from works (excluding cancelled)
+            // Calculate total volume (cumulative and this month) from works (excluding cancelled and archived)
             let cumulativeVolume = 0;
             let thisMonthVolume = 0;
-            c.works.forEach(w => {
+            const activeWorks = c.works.filter(w => w.is_archived !== 1);
+            activeWorks.forEach(w => {
                 if (w.status !== 'cancelled') {
                     const stats = calculateWorkStats(w.work_items, w.pazar_multiplier ?? 1.5, w.mesai_multiplier ?? 1.5);
                     cumulativeVolume += stats.grandTotal || 0;
@@ -73,9 +74,10 @@ async function getCustomers(companyId, isArchived = 0) {
 
             return {
                 ...c,
+                total_payments: totalPayments,
                 total_receivable: totalWorkReceivable,
                 total_volume: thisMonthVolume,
-                work_count: c.works.length
+                work_count: activeWorks.length
             }
         })
 
@@ -164,10 +166,10 @@ async function getCustomerDetails(id, companyId = null) {
             totalPayments += p.amount || 0;
         });
 
-        // Calculate total volume (debit) from enhanced works, excluding cancelled works
+        // Calculate total volume (debit) from enhanced works, excluding cancelled and archived works
         let totalVolume = 0;
         enhancedWorks.forEach(w => {
-            if (w.status !== 'cancelled') {
+            if (w.status !== 'cancelled' && w.is_archived !== 1) {
                 totalVolume += w.total_price || 0;
             }
         });

@@ -56,8 +56,11 @@ if (typeof window !== 'undefined' && window.electronAPI?.onDbUpdate) {
             if (!change?.table) return
             const table = change.table.toLowerCase()
             dataCache.invalidate(table)
+            if (table === 'work_items') {
+                dataCache.invalidate('works')
+            }
             // If related fleet tables change, also invalidate dashboard cache
-            if (['vehicles', 'maintenances', 'inspections', 'insurances', 'services', 'assignments', 'employees', 'works', 'transactions'].includes(table)) {
+            if (['vehicles', 'maintenances', 'inspections', 'insurances', 'services', 'assignments', 'employees', 'works', 'work_items', 'transactions'].includes(table)) {
                 dataCache.invalidate('dashboard')
             }
         })

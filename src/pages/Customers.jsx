@@ -9,6 +9,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import CustomerForm from '../components/forms/CustomerForm'
 import CustomerDocumentGeneratorModal from '../components/CustomerDocumentGeneratorModal'
 import { formatCurrency } from '../utils/helpers'
+import { calculateWorkStats } from '../utils/workCalculations'
 import { useAuth } from '../context/AuthContext'
 
 export default function Customers() {
@@ -50,7 +51,7 @@ export default function Customers() {
     useEffect(() => {
         if (!currentCompany) return
         const unsub = window.electronAPI?.onDbUpdate?.((change) => {
-            if (change?.table === 'customers') {
+            if (['customers', 'works', 'work_items', 'transactions'].includes(change?.table)) {
                 console.log(`[RealTime] Customers reloading for change in ${change.table}`)
                 loadCustomersRef.current(true)
             }
@@ -63,7 +64,43 @@ export default function Customers() {
         try {
             const result = await window.electronAPI.getCustomers(currentCompany.id, showArchived ? 1 : 0)
             if (result.success) {
-                setCustomers(result.data)
+                const now = new Date()
+                const currentYear = now.getFullYear()
+                const currentMonth = now.getMonth()
+                const isCurrentMonth = (dateVal) => {
+                    if (!dateVal) return false
+                    const d = new Date(dateVal)
+                    return d.getFullYear() === currentYear && d.getMonth() === currentMonth
+                }
+                const normalized = (result.data || []).map(c => {
+                    if (!Array.isArray(c.works)) return c
+                    const activeWorks = c.works.filter(w => w.is_archived !== 1)
+                    let cumulativeVolume = 0
+                    let thisMonthVolume = 0
+                    activeWorks.forEach(w => {
+                        if (w.status !== 'cancelled') {
+                            const s = Array.isArray(w.work_items)
+                                ? calculateWorkStats(w.work_items, w.pazar_multiplier ?? 1.5, w.mesai_multiplier ?? 1.5)
+                                : { grandTotal: Number(w.total_price) || 0 }
+                            const wTotal = s.grandTotal || 0
+                            cumulativeVolume += wTotal
+                            const workDate = w.start_date || w.created_at
+                            if (isCurrentMonth(workDate)) {
+                                thisMonthVolume += wTotal
+                            }
+                        }
+                    })
+                    const totalPayments = c.total_payments !== undefined
+                        ? Number(c.total_payments) || 0
+                        : 0
+                    return {
+                        ...c,
+                        work_count: activeWorks.length,
+                        total_volume: thisMonthVolume,
+                        total_receivable: c.total_payments !== undefined ? (cumulativeVolume - totalPayments) : c.total_receivable
+                    }
+                })
+                setCustomers(normalized)
             }
         } catch (error) {
             console.error('Failed to load customers:', error)

@@ -314,8 +314,11 @@ function calculateItemTotalPrice(data, pazarMultiplier = 1.5, mesaiMultiplier = 
         baseTotal = unitPrice * hours;
     } else {
         let gunRate = unitPrice;
+        const pMatch = desc.match(/\[PAZAR_FIYAT:([^\]]+)\]/);
         const kMatch = desc.match(/\[KATSAYI:([^\]]+)\]/);
-        if (kMatch) {
+        if (isPazar && pMatch && parseFloat(pMatch[1]) > 0) {
+            gunRate = parseFloat(pMatch[1]);
+        } else if (kMatch) {
             const multVal = parseFloat(kMatch[1]) || 1;
             gunRate = unitPrice * multVal;
         } else if (isAylik) {

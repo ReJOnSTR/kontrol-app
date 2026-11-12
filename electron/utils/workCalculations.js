@@ -180,9 +180,23 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
         return 'Belirtilmemiş';
     };
 
+    const getVehicleBaseKey = (item) => {
+        if (item.vehicle_id) return String(item.vehicle_id);
+        if (item.custom_vehicle) return `custom_${item.custom_vehicle}`;
+        if (item.plate) return `plate_${item.plate}`;
+        return 'diger';
+    };
+
+    // Sort items chronologically first so calculation is 100% deterministic regardless of query order (ASC vs DESC)
+    const sortedInputItems = [...items].sort((a, b) => {
+        const diff = (new Date(a.date).getTime() || 0) - (new Date(b.date).getTime() || 0);
+        if (diff !== 0) return diff;
+        return (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+
     // 1. Process items: resolution & vehicle base key
     const vehicleRateInfo = {}
-    items.forEach(item => {
+    sortedInputItems.forEach(item => {
         if (item.vehicle_id) {
             uniqueVehicles.add(String(item.vehicle_id))
         } else if (item.custom_vehicle) {
@@ -192,20 +206,31 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
         }
         if (item.employee_id) uniqueEmployees.add(item.employee_id)
 
-        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : (item.plate ? `plate_${item.plate}` : 'diger'))
+        const vehicleBaseKey = getVehicleBaseKey(item)
         const unitPriceVal = Number(item.unit_price) || 0
-        const cleanDesc = (item.description || '').replace(/\[[^\]]*\]\s*/g, '').trim()
+        const rawDesc = item.description || ''
+        const descUpper = rawDesc.toUpperCase()
+        const cleanDesc = rawDesc.replace(/\[[^\]]*\]\s*/g, '').trim()
+        const dateObj = new Date(item.date)
+        const isSunday = !isNaN(dateObj.getTime()) && dateObj.getDay() === 0
+        const isHoliday = descUpper.includes('TATİL') || descUpper.includes('ÇALIŞILMADI') || (Number(item.hours) === 0 && Number(item.overtime_hours) === 0)
+        const isPazar = !isHoliday && (isSunday || descUpper.includes('PAZAR'))
+        const hasCustomPazarPrice = /\[PAZAR_FIYAT:[^\]]+\]/i.test(rawDesc)
 
         if (!vehicleRateInfo[vehicleBaseKey]) {
             vehicleRateInfo[vehicleBaseKey] = {
                 firstPositivePrice: 0,
+                fallbackPositivePrice: 0,
                 descByPrice: {}
             }
         }
 
         if (unitPriceVal > 0) {
-            if (!vehicleRateInfo[vehicleBaseKey].firstPositivePrice) {
+            if (!isPazar && !hasCustomPazarPrice && !vehicleRateInfo[vehicleBaseKey].firstPositivePrice) {
                 vehicleRateInfo[vehicleBaseKey].firstPositivePrice = unitPriceVal
+            }
+            if (!vehicleRateInfo[vehicleBaseKey].fallbackPositivePrice) {
+                vehicleRateInfo[vehicleBaseKey].fallbackPositivePrice = unitPriceVal
             }
             if (cleanDesc && !vehicleRateInfo[vehicleBaseKey].descByPrice[unitPriceVal]) {
                 vehicleRateInfo[vehicleBaseKey].descByPrice[unitPriceVal] = cleanDesc
@@ -213,8 +238,14 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
         }
     })
 
+    Object.values(vehicleRateInfo).forEach(info => {
+        if (!info.firstPositivePrice && info.fallbackPositivePrice) {
+            info.firstPositivePrice = info.fallbackPositivePrice
+        }
+    })
+
     const resolveItemEffectiveInfo = (item) => {
-        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : 'diger')
+        const vehicleBaseKey = getVehicleBaseKey(item)
         let unitPriceVal = Number(item.unit_price) || 0
         let cleanDesc = (item.description || '').replace(/\[[^\]]*\]\s*/g, '').trim()
 
@@ -235,8 +266,8 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
     const groupedByVehicle = {}
     let hasAylikWork = false
 
-    items.forEach(item => {
-        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : (item.plate ? `plate_${item.plate}` : 'diger'))
+    sortedInputItems.forEach(item => {
+        const vehicleBaseKey = getVehicleBaseKey(item)
         const { unitPriceVal, cleanDesc } = resolveItemEffectiveInfo(item)
 
         const descUpper = (item.description || '').toUpperCase()
@@ -297,7 +328,7 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
     const calculatedGroups = Object.values(groupedByVehicle).map(group => {
         group.items.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        const positivePriceItem = group.items.find(i => i.unitPriceVal > 0);
+        const positivePriceItem = group.items.find(i => !i.isPazar && i.unitPriceVal > 0) || group.items.find(i => i.unitPriceVal > 0);
         const rawPrimaryPrice = positivePriceItem ? positivePriceItem.unitPriceVal : 0;
         const positiveItems = group.items.filter(i => (Number(i.hours) || 0) > 0 && i.unitPriceVal > 0);
 
@@ -496,16 +527,25 @@ function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier = 1.5,
             }
         }
 
-        // 2. PAZAR Line (calculated per-item rate)
+        // 2. PAZAR Line (calculated per-item rate or explicit [PAZAR_FIYAT:x] override)
         if (groupPazarCount > 0) {
             const pazarPricesMap = {};
             group.items.filter(i => i.isPazar).forEach(i => {
                 const hrs = Number(i.hours) || 0;
                 if (hrs > 0) {
+                    const pMatch = (i.description || '').match(/\[PAZAR_FIYAT:([^\]]+)\]/);
+                    const kMatch = (i.description || '').match(/\[KATSAYI:([^\]]+)\]/);
                     const itemDailyPrice = getItemEffectivePrice(i, dailyRate);
-                    const itemPazarPrice = itemDailyPrice > 0 
-                        ? (parsedPazarMultiplier === 1 ? itemDailyPrice : Number((itemDailyPrice * parsedPazarMultiplier).toFixed(6))) 
-                        : 0;
+                    let itemPazarPrice = 0;
+                    if (pMatch && parseFloat(pMatch[1]) > 0) {
+                        itemPazarPrice = parseFloat(pMatch[1]);
+                    } else if (kMatch && parseFloat(kMatch[1]) > 0) {
+                        itemPazarPrice = itemDailyPrice;
+                    } else {
+                        itemPazarPrice = itemDailyPrice > 0 
+                            ? (parsedPazarMultiplier === 1 ? itemDailyPrice : Number((itemDailyPrice * parsedPazarMultiplier).toFixed(6))) 
+                            : 0;
+                    }
                     const key = `${itemPazarPrice}`;
                     if (!pazarPricesMap[key]) {
                         pazarPricesMap[key] = { price: itemPazarPrice, count: 0 };

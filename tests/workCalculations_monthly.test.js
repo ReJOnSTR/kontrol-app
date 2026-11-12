@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateWorkStats } from '../src/utils/workCalculations';
+import backendWorkCalc from '../electron/utils/workCalculations';
 
 describe('calculateWorkStats - Monthly (Aylık) calculations', () => {
     it('calculates single monthly item with fixed monthly agreement (26 Gün)', () => {
@@ -193,5 +194,24 @@ describe('calculateWorkStats - Monthly (Aylık) calculations', () => {
         expect(pazarLine).toBeDefined();
         expect(pazarLine.countText).toBe('4 GÜN');
         expect(pazarLine.totalPrice).toBe(1867);
+    });
+
+    it('produces identical grandTotal between frontend and backend regardless of item order and custom Sunday price', () => {
+        const itemsAsc = [
+            { id: 1, date: '2026-11-01', vehicle_id: 1, hours: 1, overtime_hours: 0, unit_price: 8000, description: '[PAZAR_FIYAT:8000]' }, // Sunday
+            { id: 2, date: '2026-11-02', vehicle_id: 1, hours: 1, overtime_hours: 2, unit_price: 5000, description: null },
+            { id: 3, date: '2026-11-03', vehicle_id: 1, hours: 1, overtime_hours: 0, unit_price: 0, description: null },
+            { id: 4, date: '2026-11-08', vehicle_id: 1, hours: 1, overtime_hours: 0, unit_price: 5000, description: '[KATSAYI:1]' } // Sunday 1x
+        ];
+        const itemsDesc = [...itemsAsc].reverse();
+
+        const frontAsc = calculateWorkStats(itemsAsc, 1.5, 1.5);
+        const frontDesc = calculateWorkStats(itemsDesc, 1.5, 1.5);
+        const backAsc = backendWorkCalc.calculateWorkStats(itemsAsc, 1.5, 1.5);
+        const backDesc = backendWorkCalc.calculateWorkStats(itemsDesc, 1.5, 1.5);
+
+        expect(frontAsc.grandTotal).toBe(frontDesc.grandTotal);
+        expect(backAsc.grandTotal).toBe(frontAsc.grandTotal);
+        expect(backDesc.grandTotal).toBe(frontDesc.grandTotal);
     });
 });

@@ -5,6 +5,7 @@ import DataTable from '../components/DataTable'
 import TopProgressBar from '../components/TopProgressBar'
 import { DetailSkeleton } from '../components/Skeleton'
 import { formatDate, formatCurrency, generateUniqueFileName } from '../utils/helpers'
+import { calculateWorkStats } from '../utils/workCalculations'
 
 import Modal from '../components/Modal'
 import CustomerForm from '../components/forms/CustomerForm'
@@ -99,7 +100,7 @@ export default function CustomerDetail() {
     useEffect(() => {
         if (!id) return
         const unsub = window.electronAPI?.onDbUpdate?.((change) => {
-            if (['customers', 'works', 'documents'].includes(change?.table)) {
+            if (['customers', 'works', 'work_items', 'transactions', 'documents'].includes(change?.table)) {
                 console.log(`[RealTime] CustomerDetail reloading for change in ${change.table}`)
                 loadCustomerRef.current(true)
                 if (currentCompany) {
@@ -167,8 +168,33 @@ export default function CustomerDetail() {
         try {
             const result = await window.electronAPI.getCustomerDetails(id)
             if (result.success) {
-                setCustomer(result.data)
-                updateTabInfo(`/customers/${id}`, { label: result.data.name })
+                const rawData = result.data || {}
+                const normalizedWorks = (rawData.works || []).map(w => {
+                    if (!Array.isArray(w.work_items)) return w
+                    const s = calculateWorkStats(w.work_items, w.pazar_multiplier ?? 1.5, w.mesai_multiplier ?? 1.5)
+                    return {
+                        ...w,
+                        total_hours: s.totalHours,
+                        total_overtime: s.totalOvertime,
+                        duration_text: s.durationText,
+                        total_price: s.grandTotal
+                    }
+                })
+                const totalPayments = (rawData.payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+                const totalVolume = normalizedWorks.reduce((sum, w) => {
+                    if (w.status !== 'cancelled' && w.is_archived !== 1) {
+                        return sum + (Number(w.total_price) || 0)
+                    }
+                    return sum
+                }, 0)
+
+                setCustomer({
+                    ...rawData,
+                    works: normalizedWorks,
+                    total_volume: totalVolume,
+                    total_receivable: totalVolume - totalPayments
+                })
+                updateTabInfo(`/customers/${id}`, { label: rawData.name })
             }
         } catch (error) {
             console.error('Failed to load customer details:', error)
@@ -679,7 +705,7 @@ export default function CustomerDetail() {
         
         // 1. Add works as Debit (Borç)
         works.forEach(w => {
-            if (w.status === 'cancelled') return;
+            if (w.status === 'cancelled' || w.is_archived === 1) return;
             list.push({
                 id: `work-${w.id}`,
                 date: w.start_date || w.created_at,

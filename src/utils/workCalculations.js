@@ -108,9 +108,23 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
         return 'Belirtilmemiş';
     };
 
+    const getVehicleBaseKey = (item) => {
+        if (item.vehicle_id) return String(item.vehicle_id);
+        if (item.custom_vehicle) return `custom_${item.custom_vehicle}`;
+        if (item.plate) return `plate_${item.plate}`;
+        return 'diger';
+    };
+
+    // Sort items chronologically first so calculation is 100% deterministic regardless of query order (ASC vs DESC)
+    const sortedInputItems = [...items].sort((a, b) => {
+        const diff = (new Date(a.date).getTime() || 0) - (new Date(b.date).getTime() || 0);
+        if (diff !== 0) return diff;
+        return (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+
     // 1. Process items: resolution & vehicle base key
     const vehicleRateInfo = {}
-    items.forEach(item => {
+    sortedInputItems.forEach(item => {
         if (item.vehicle_id) {
             uniqueVehicles.add(String(item.vehicle_id))
         } else if (item.custom_vehicle) {
@@ -120,20 +134,31 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
         }
         if (item.employee_id) uniqueEmployees.add(item.employee_id)
 
-        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : (item.plate ? `plate_${item.plate}` : 'diger'))
+        const vehicleBaseKey = getVehicleBaseKey(item)
         const unitPriceVal = Number(item.unit_price) || 0
-        const cleanDesc = (item.description || '').replace(/\[[^\]]*\]\s*/g, '').trim()
+        const rawDesc = item.description || ''
+        const descUpper = rawDesc.toUpperCase()
+        const cleanDesc = rawDesc.replace(/\[[^\]]*\]\s*/g, '').trim()
+        const dateObj = new Date(item.date)
+        const isSunday = !isNaN(dateObj.getTime()) && dateObj.getDay() === 0
+        const isHoliday = descUpper.includes('TATİL') || descUpper.includes('ÇALIŞILMADI') || (Number(item.hours) === 0 && Number(item.overtime_hours) === 0)
+        const isPazar = !isHoliday && (isSunday || descUpper.includes('PAZAR'))
+        const hasCustomPazarPrice = /\[PAZAR_FIYAT:[^\]]+\]/i.test(rawDesc)
 
         if (!vehicleRateInfo[vehicleBaseKey]) {
             vehicleRateInfo[vehicleBaseKey] = {
                 firstPositivePrice: 0,
+                fallbackPositivePrice: 0,
                 descByPrice: {}
             }
         }
 
         if (unitPriceVal > 0) {
-            if (!vehicleRateInfo[vehicleBaseKey].firstPositivePrice) {
+            if (!isPazar && !hasCustomPazarPrice && !vehicleRateInfo[vehicleBaseKey].firstPositivePrice) {
                 vehicleRateInfo[vehicleBaseKey].firstPositivePrice = unitPriceVal
+            }
+            if (!vehicleRateInfo[vehicleBaseKey].fallbackPositivePrice) {
+                vehicleRateInfo[vehicleBaseKey].fallbackPositivePrice = unitPriceVal
             }
             if (cleanDesc && !vehicleRateInfo[vehicleBaseKey].descByPrice[unitPriceVal]) {
                 vehicleRateInfo[vehicleBaseKey].descByPrice[unitPriceVal] = cleanDesc
@@ -141,8 +166,14 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
         }
     })
 
+    Object.values(vehicleRateInfo).forEach(info => {
+        if (!info.firstPositivePrice && info.fallbackPositivePrice) {
+            info.firstPositivePrice = info.fallbackPositivePrice
+        }
+    })
+
     const resolveItemEffectiveInfo = (item) => {
-        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : 'diger')
+        const vehicleBaseKey = getVehicleBaseKey(item)
         let unitPriceVal = Number(item.unit_price) || 0
         let cleanDesc = (item.description || '').replace(/\[[^\]]*\]\s*/g, '').trim()
 
@@ -163,8 +194,8 @@ export function calculateWorkStats(items, pazarMultiplier = 1.5, mesaiMultiplier
     const groupedByVehicle = {}
     let hasAylikWork = false
 
-    items.forEach(item => {
-        const vehicleBaseKey = item.vehicle_id ? String(item.vehicle_id) : (item.custom_vehicle ? `custom_${item.custom_vehicle}` : (item.plate ? `plate_${item.plate}` : 'diger'))
+    sortedInputItems.forEach(item => {
+        const vehicleBaseKey = getVehicleBaseKey(item)
         const { unitPriceVal, cleanDesc } = resolveItemEffectiveInfo(item)
 
         const descUpper = (item.description || '').toUpperCase()

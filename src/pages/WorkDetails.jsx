@@ -9,6 +9,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import { ArrowLeft, Plus, Pencil, Trash2, Calendar, Clock, Truck, User, DollarSign, FileText, Printer, Download, FileDown, Settings, Wallet, ChevronDown, Save, Briefcase, CheckCircle, CheckCircle2, AlertCircle, Info, Tag, Layers, RotateCcw, Sliders, ChevronRight, Check, X, Sparkles, Zap } from 'lucide-react'
 import { formatDate, formatCurrency, safeSetLocalStorage, generateUniqueFileName, compareVehicleCapacityDesc } from '../utils/helpers'
 import { calculateWorkStats } from '../utils/workCalculations'
+import { dataCache } from '../utils/dataCache'
 import { workItemSchema } from '../schemas/workSchema'
 import WorkPdfReport from './WorkPdfReport'
 import { exportWorkToExcel } from '../utils/excelExport'
@@ -338,6 +339,8 @@ export default function WorkDetails(props) {
     const loadData = async (isBackground = false) => {
         if (!isBackground) setLoading(true)
         try {
+            dataCache.invalidate('works')
+            dataCache.invalidate('dashboard')
             // Load Work Details
             const workRes = await window.electronAPI.getWorkDetails(id)
             if (workRes.success) {
@@ -4717,6 +4720,8 @@ export default function WorkDetails(props) {
                                                 const numVal = parseFloat(pazarMultiplier);
                                                 if (!isNaN(numVal) && work?.id) {
                                                     await window.electronAPI.updateWork({ id: work.id, pazar_multiplier: Math.min(Math.max(numVal, 0), 10) });
+                                                    dataCache.invalidate('works');
+                                                    dataCache.invalidate('dashboard');
                                                 }
                                             }}
                                             style={{ fontSize: '12px', padding: '4px 10px', height: '30px', minHeight: '30px', width: '100%', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)' }}
@@ -4736,6 +4741,8 @@ export default function WorkDetails(props) {
                                                 const numVal = parseFloat(mesaiMultiplier);
                                                 if (!isNaN(numVal) && work?.id) {
                                                     await window.electronAPI.updateWork({ id: work.id, mesai_multiplier: Math.min(Math.max(numVal, 0), 10) });
+                                                    dataCache.invalidate('works');
+                                                    dataCache.invalidate('dashboard');
                                                 }
                                             }}
                                             style={{ fontSize: '12px', padding: '4px 10px', height: '30px', minHeight: '30px', width: '100%', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)' }}
