@@ -9,7 +9,7 @@ import { formatDate, formatCurrency, getVehicleTypeLabel, getMaintenanceTypeLabe
 import { useReactToPrint } from 'react-to-print'
 import { usePersistentTab } from '../hooks/usePersistentTab'
 import { exportElementToCleanPdf } from '../utils/pdfCleanExport'
-import * as XLSX from 'xlsx'
+import { downloadWorkbookAsXlsx } from '../utils/excelExportHelper'
 
 export default function Reports() {
     const { currentCompany } = useCompany()
@@ -173,19 +173,18 @@ export default function Reports() {
         }
     }
 
-    const handleExcelExport = () => {
+    const handleExcelExport = async () => {
         const processedReportList = getProcessedReportList()
-        const wb = XLSX.utils.book_new()
+        const sheets = []
 
         // Helper to add sheet
         const addSheet = (name, data, columns) => {
             if (!data || data.length === 0) return
-            const wsData = [
-                columns.map(c => c.header),
-                ...data.map(item => columns.map(c => c.value(item)))
-            ]
-            const ws = XLSX.utils.aoa_to_sheet(wsData)
-            XLSX.utils.book_append_sheet(wb, ws, name)
+            sheets.push({
+                name,
+                headers: columns.map(c => c.header),
+                rows: data.map(item => columns.map(c => c.value(item)))
+            })
         }
 
         // Aggregate data from all vehicles
@@ -276,7 +275,7 @@ export default function Reports() {
         const companyStr = currentCompany?.name || '';
         const excelFileName = generateUniqueFileName('Is_Raporu', [companyStr, monthStr], 'xlsx');
 
-        XLSX.writeFile(wb, excelFileName)
+        await downloadWorkbookAsXlsx(sheets, excelFileName)
     }
 
     useEffect(() => {

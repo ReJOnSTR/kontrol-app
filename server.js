@@ -40,6 +40,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // A missing/weak server secret is a startup error, not a development backdoor.
@@ -62,7 +63,22 @@ const requirePlatformAdmin = [requireSession, (req, res, next) => req.actor.role
 
 // Security Headers (configured to allow PDF previews & embedded assets)
 app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "blob:", "https:"],
+            fontSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "https:", "wss:"],
+            frameSrc: ["'self'", "blob:", "data:"],
+            workerSrc: ["'self'", "blob:"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            frameAncestors: ["'self'"]
+        }
+    },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
@@ -124,7 +140,7 @@ const handleHealthCheck = async (req, res) => {
         res.status(503).json({
             status: 'error',
             timestamp: new Date().toISOString(),
-            error: 'Database ping failed: ' + err.message
+            error: process.env.NODE_ENV === 'production' ? 'Database connection failed.' : ('Database ping failed: ' + err.message)
         });
     }
 };
@@ -718,7 +734,10 @@ app.post('/api/rpc/:method', async (req, res) => {
     if (typeof fn !== 'function') return res.status(404).json({ success: false, error: 'Bilinmeyen işlem.' });
     try {
         const result = await call(method, req.body?.args || [], requestToken(req), fn, getPrismaClient());
-        if (result?.token) res.cookie('kontrol_session', result.token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 12 * 60 * 60 * 1000, path: '/' });
+        if (result?.token) {
+            res.cookie('kontrol_session', result.token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 12 * 60 * 60 * 1000, path: '/' });
+            delete result.token;
+        }
         if (method === 'logout') res.clearCookie('kontrol_session', { path: '/' });
         res.json(result ?? { success: true });
     } catch (error) {
@@ -816,11 +835,14 @@ async function start() {
             await authService.ensureSuperAdminExists();
         }
 
-        // Start automated daily backup scheduler (Runs at 03:00 AM)
+        // Start automated daily backup scheduler (Runs at 03:00 AM, once per day)
         const { performBackup } = require('./scripts/backup-service');
+        let lastBackupDate = '';
         setInterval(async () => {
             const now = new Date();
-            if (now.getHours() === 3 && now.getMinutes() <= 4) {
+            const todayKey = now.toISOString().slice(0, 10);
+            if (now.getHours() === 3 && now.getMinutes() <= 4 && lastBackupDate !== todayKey) {
+                lastBackupDate = todayKey;
                 console.log('[Daily Cron] Triggering scheduled database backup...');
                 await performBackup();
             }

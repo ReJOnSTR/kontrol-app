@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
 const { getPrismaClient } = require('../prismaClient');
 const log = require('../logger');
+const { encryptSecret, decryptSecret } = require('../security/cryptoVault');
 
 const prisma = getPrismaClient();
 
@@ -95,7 +96,9 @@ async function saveEmailSettings(config) {
 
         let finalPass = existing?.smtp_pass || process.env.SMTP_PASS || '';
         if (smtpPass && smtpPass !== '••••••••') {
-            finalPass = smtpPass;
+            finalPass = encryptSecret(smtpPass);
+        } else if (finalPass) {
+            finalPass = encryptSecret(finalPass);
         }
 
         if (existing) {
@@ -139,7 +142,7 @@ async function testSmtpConnection(config) {
         let finalPass = smtpPass;
         if (!finalPass || finalPass === '••••••••') {
             const rows = await prisma.$queryRawUnsafe(`SELECT smtp_pass FROM email_settings ORDER BY id DESC LIMIT 1;`);
-            finalPass = rows?.[0]?.smtp_pass || process.env.SMTP_PASS || '';
+            finalPass = decryptSecret(rows?.[0]?.smtp_pass) || process.env.SMTP_PASS || '';
         }
 
         if (!smtpHost) {
@@ -188,7 +191,7 @@ async function sendCustomHtmlEmail({ to, cc, bcc, subject, html, senderName, sen
         const smtpPort = cfg?.smtp_port || parseInt(process.env.SMTP_PORT || '587');
         const smtpSecure = cfg ? (cfg.smtp_secure === true || cfg.smtp_secure === 1) : (process.env.SMTP_SECURE === 'true');
         const smtpUser = cfg?.smtp_user || process.env.SMTP_USER || '';
-        const smtpPass = cfg?.smtp_pass || process.env.SMTP_PASS || '';
+        const smtpPass = decryptSecret(cfg?.smtp_pass) || process.env.SMTP_PASS || '';
 
         const fromName = senderName || cfg?.sender_name || 'Kontrol Güvenlik Ekibi';
         const fromEmail = senderEmail || cfg?.sender_email || 'noreply@kontrol-app.com';

@@ -10,7 +10,7 @@ COPY package*.json ./
 COPY prisma.config.ts ./
 COPY prisma ./prisma/
 
-RUN npm install
+RUN npm ci
 
 COPY . .
 
@@ -42,7 +42,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server.js ./server.js
 COPY --from=builder /app/package.json ./package.json
 
-RUN mkdir -p /app/data/files /app/backups
+RUN mkdir -p /app/data/files /app/backups && chown -R node:node /app
+
+USER node
 
 EXPOSE 3000
 

@@ -273,9 +273,20 @@ export default function DocumentPreviewModal({ doc, onClose, onDelete }) {
                 window.open(src, '_blank', 'noopener,noreferrer')
                 return
             }
-            const w = window.open('')
+            const isSafeSrc = /^(blob:|\/uploads\/|data:(application\/pdf|image\/(png|jpe?g|webp|gif));base64,)/i.test(src);
+            if (!isSafeSrc) {
+                alert('Güvenlik nedeniyle bu dosya türü harici pencerede açılamıyor.');
+                return;
+            }
+            const w = window.open('', '_blank', 'noopener,noreferrer')
             if (w) {
-                w.document.write(`<iframe src="${src}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`)
+                w.document.body.style.margin = '0'
+                const iframe = w.document.createElement('iframe')
+                iframe.src = src
+                iframe.style.border = '0'
+                iframe.style.width = '100%'
+                iframe.style.height = '100vh'
+                w.document.body.appendChild(iframe)
                 return
             }
         }

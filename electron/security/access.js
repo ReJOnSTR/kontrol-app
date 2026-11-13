@@ -39,7 +39,7 @@ function actionFor(method) {
 }
 function assertCompany(actor, id) {
     if (!Number.isSafeInteger(Number(id)) || Number(id) <= 0) forbidden('Geçerli şirket kimliği gereklidir.');
-    if (!['superadmin', 'admin'].includes(actor?.role) && !actor?.companyIds?.includes(Number(id))) forbidden('Şirkete erişim yetkiniz yok.');
+    if (actor?.role !== 'superadmin' && !actor?.companyIds?.includes(Number(id))) forbidden('Şirkete erişim yetkiniz yok.');
 }
 async function authorize(method, args, actor, prisma) {
     if (PUBLIC.has(method)) return args;

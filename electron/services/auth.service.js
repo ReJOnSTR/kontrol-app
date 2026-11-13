@@ -381,56 +381,8 @@ async function loginUser(credentials) {
             }
         }
 
-        // 2. Fallback: If no user found and attempting 'superadmin'
-        if (!user && (lowerLookup === 'superadmin' || lowerLookup === 'superadmin@kontrolapp.com')) {
-            log.info('SuperAdmin user lookup triggered fallback. Auto-provisioning superadmin...');
-            const defaultPasswordHash = bcrypt.hashSync('SuperAdmin123!', 10);
-            user = await prisma.users.upsert({
-                where: { username: 'superadmin' },
-                update: {
-                    password_hash: defaultPasswordHash,
-                    is_active: 1,
-                    role: 'superadmin'
-                },
-                create: {
-                    username: 'superadmin',
-                    email: 'superadmin@kontrolapp.com',
-                    password_hash: defaultPasswordHash,
-                    full_name: 'SaaS Sistem Yöneticisi',
-                    role: 'superadmin',
-                    is_active: 1,
-                    must_change_password: 0
-                }
-            });
-        }
-
-        // 3. Fallback: Only on brand-new fresh database install when users table is completely empty
-        if (!user && (lowerLookup === 'admin' || lowerLookup === 'admin@kontrol.app' || lowerLookup === 'admin@muayen.com')) {
-            const totalUsersCount = await prisma.users.count().catch(() => 1);
-            if (totalUsersCount === 0) {
-                log.info('Database empty. Provisioning initial default admin account...');
-                let company = await prisma.companies.findFirst();
-                if (!company) {
-                    company = await prisma.companies.create({
-                        data: { name: 'Varsayılan Şirket' }
-                    });
-                }
-
-                const initialHash = bcrypt.hashSync('admin123', 10);
-                user = await prisma.users.create({
-                    data: {
-                        username: 'admin',
-                        email: 'admin@kontrol-app.com',
-                        password_hash: initialHash,
-                        full_name: 'Sistem Yöneticisi',
-                        role: 'admin',
-                        company_id: company.id,
-                        is_active: 1,
-                        must_change_password: 1
-                    }
-                });
-            }
-        }
+        // Auto-provisioning of superadmin/admin accounts via login fallback is disabled for security.
+        // Initial superadmin setup must be performed via ensureSuperAdminExists() with environment variables.
 
         // 3. Fallback: If still no local user, check Supabase Auth Cloud and auto-provision
         if (!user && (rawLookup.includes('@') || lowerLookup.includes('@'))) {
@@ -451,9 +403,11 @@ async function loginUser(credentials) {
                 if (!supaAuthErr && supaAuthData?.user) {
                     log.info(`[Supabase Auth Login]: User "${rawLookup}" authenticated on Supabase Cloud. Provisioning local user record.`);
                     const meta = supaAuthData.user.user_metadata || {};
+                    const appMeta = supaAuthData.user.app_metadata || {};
                     let companyIdToAssign = null;
-                    if (meta.company_id || meta.companyId) {
-                        const targetCid = Number(meta.company_id || meta.companyId);
+                    // Never trust user-editable user_metadata for company_id or role.
+                    if (appMeta.company_id) {
+                        const targetCid = Number(appMeta.company_id);
                         const cExists = await prisma.companies.findUnique({ where: { id: targetCid } }).catch(() => null);
                         if (cExists) companyIdToAssign = targetCid;
                     }
@@ -461,21 +415,14 @@ async function loginUser(credentials) {
                         const createdComp = await prisma.companies.create({ data: { name: meta.company_name } }).catch(() => null);
                         if (createdComp) companyIdToAssign = createdComp.id;
                     }
-                    if (!companyIdToAssign) {
-                        let defaultCompany = await prisma.companies.findFirst().catch(() => null);
-                        if (!defaultCompany) {
-                            defaultCompany = await prisma.companies.create({ data: { name: 'Varsayılan Şirket' } }).catch(() => null);
-                        }
-                        if (defaultCompany) companyIdToAssign = defaultCompany.id;
-                    }
-                    const newHash = bcrypt.hashSync(password, 10);
+                    const newHash = bcrypt.hashSync(password, 12);
                     user = await prisma.users.create({
                         data: {
                             username: meta.username || rawLookup.split('@')[0],
                             email: rawLookup.toLowerCase(),
                             full_name: meta.full_name || meta.username || 'Kullanıcı',
                             password_hash: newHash,
-                            role: meta.role || 'user',
+                            role: 'user',
                             company_id: companyIdToAssign,
                             is_active: 1,
                             must_change_password: 0

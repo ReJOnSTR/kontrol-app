@@ -38,12 +38,18 @@ function segment(value) {
 }
 async function authorizeFile(actor, name, prisma, write = false) {
     if (!actor) forbidden();
-    if (['superadmin', 'admin', 'company_admin'].includes(actor.role)) {
-        if (actor.role === 'company_admin') {
-            const match = /^company_(\d+)\//.exec(String(name || '').replace(/\\/g, '/').replace(/^\/+/, ''));
-            if (match && !actor.companyIds?.includes(Number(match[1]))) forbidden('Şirkete erişim yetkiniz yok.');
+    if (actor.role === 'superadmin') return;
+    if (['admin', 'company_admin'].includes(actor.role)) {
+        const match = /^company_(\d+)\//.exec(String(name || '').replace(/\\/g, '/').replace(/^\/+/, ''));
+        if (match) {
+            if (!actor.companyIds?.includes(Number(match[1]))) forbidden('Şirkete erişim yetkiniz yok.');
+            return;
         }
-        return;
+        if (write) {
+            if (!actor.companyIds?.length) forbidden('Şirkete erişim yetkiniz yok.');
+            return;
+        }
+        // Legacy flat filenames fall through to DB ownership checks below.
     }
 
     const normalized = String(name || '').replace(/\\/g, '/').replace(/^\/+/, '');
@@ -133,11 +139,7 @@ async function authorizeFile(actor, name, prisma, write = false) {
         } catch (e) {}
     }
 
-    // 3. Admin fallback for company scope
-    if (['admin', 'superadmin', 'company_admin'].includes(actor.role)) {
-        return;
-    }
-
+    // Deny access if no ownership record matched for non-superadmin users.
     forbidden('Belgeye erişim yetkiniz yok.');
 }
 module.exports = { safePath, segment, authorizeFile };

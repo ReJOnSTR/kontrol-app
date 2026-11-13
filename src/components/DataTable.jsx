@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Check, Search, X, Trash2, Download, Archive, ArchiveRestore, LayoutList, GripVertical } from 'lucide-react'
-import * as XLSX from 'xlsx'
+import { downloadWorkbookAsXlsx } from '../utils/excelExportHelper'
 import CustomSelect from './CustomSelect'
 import CustomDatePicker from './CustomDatePicker'
 import TableActionMenu from './TableActionMenu'
@@ -677,7 +677,7 @@ export default function DataTable({
         }
     }
 
-    const handleExcelExport = () => {
+    const handleExcelExport = async () => {
         // Determine which data to export: Selected rows or All filtered rows
         let dataToExport = sortedData
         if (selectedRows.size > 0) {
@@ -686,18 +686,12 @@ export default function DataTable({
 
         if (!dataToExport || dataToExport.length === 0) return
 
-        const exportData = dataToExport.map(row => {
-            const rowData = {}
-            visibleColumnsList.forEach(col => {
-                rowData[col.label] = row[col.key] || ''
-            })
-            return rowData
-        })
-
-        const wb = XLSX.utils.book_new()
-        const ws = XLSX.utils.json_to_sheet(exportData)
-        XLSX.utils.book_append_sheet(wb, ws, 'Liste')
-        XLSX.writeFile(wb, `${exportFileName}_${new Date().toLocaleDateString('tr-TR').replace(/\./g, '-')}.xlsx`)
+        const headers = visibleColumnsList.map(col => col.label)
+        const rows = dataToExport.map(row => visibleColumnsList.map(col => row[col.key] || ''))
+        await downloadWorkbookAsXlsx(
+            [{ name: 'Liste', headers, rows }],
+            `${exportFileName}_${new Date().toLocaleDateString('tr-TR').replace(/\./g, '-')}.xlsx`
+        )
     }
 
     const handleFilterChange = (key, value) => {

@@ -151,8 +151,8 @@ function getGeneratedProvider() {
     return 'postgresql';
 }
 
-// Default remote PostgreSQL database URL for desktop client distribution
-const DEFAULT_POSTGRES_URL = process.env.DATABASE_URL || 'postgresql://postgres:eyaeaj0djlbjhybz04ma4vrw7otatabf@45.147.47.56:5432/postgres';
+// Default PostgreSQL database URL must be provided via environment or user configuration (never hardcoded).
+const DEFAULT_POSTGRES_URL = process.env.DATABASE_URL || '';
 
 /**
  * Initializes and exports the Prisma Singleton
@@ -1531,39 +1531,14 @@ async function seedDefaultPublicHolidays(prisma) {
     }
     log.info('Seeding of Turkish public holidays completed.');
 
-    // 12. Ensure default admin user exists if users table is empty
+    // 12. Initial administrator must be provisioned via SUPERADMIN_* environment variables, never hardcoded weak passwords.
     try {
         const userCount = await p.users.count();
         if (userCount === 0) {
-            const bcrypt = require('bcryptjs');
-            const defaultPasswordHash = bcrypt.hashSync('admin', 10);
-
-            // Ensure a company exists first
-            let company = await p.companies.findFirst();
-            if (!company) {
-                company = await p.companies.create({
-                    data: {
-                        name: 'Varsayılan Şirket'
-                    }
-                });
-            }
-
-            await p.users.create({
-                data: {
-                    username: 'admin',
-                    email: 'admin@kontrol.app',
-                    password_hash: defaultPasswordHash,
-                    full_name: 'Yönetici',
-                    role: 'admin',
-                    company_id: company.id,
-                    is_active: 1,
-                    must_change_password: 0
-                }
-            });
-            log.info('Bootstrap: Created default admin user (username: admin, password: admin)');
+            log.warn('Bootstrap: No users found. Configure SUPERADMIN_EMAIL, SUPERADMIN_USERNAME, and SUPERADMIN_INITIAL_PASSWORD (min 16 chars) to provision initial admin.');
         }
     } catch (error) {
-        log.error('Bootstrap step 12 (default user) error:', error.message);
+        log.error('Bootstrap step 12 check error:', error.message);
     }
 }
 

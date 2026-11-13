@@ -252,7 +252,7 @@ export function AuthProvider({ children }) {
                 setUser(result.user)
                 localStorage.setItem('aractakip_user', JSON.stringify(result.user))
                 sessionStorage.setItem('aractakip_session_active', 'true')
-                if (result.token) {
+                if (result.token && window.electronAPI?.isElectron) {
                     localStorage.setItem('token', result.token)
                     localStorage.setItem('aractakip_token', result.token)
                 }
@@ -276,10 +276,11 @@ export function AuthProvider({ children }) {
             if (window.electronAPI?.verifyMfaLogin) {
                 result = await window.electronAPI.verifyMfaLogin(userId, tokenOrBackupCode, challenge);
             } else if (authService?.verifyMfaLogin) {
-                result = await authService.verifyMfaLogin({ userId, token: tokenOrBackupCode });
+                result = await authService.verifyMfaLogin(userId, tokenOrBackupCode, challenge);
             } else {
                 result = await fetch('/api/rpc/verifyMfaLogin', {
                     method: 'POST',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ args: [userId, tokenOrBackupCode, challenge] })
                 }).then(r => r.json());
@@ -293,7 +294,7 @@ export function AuthProvider({ children }) {
                 setUser(result.user)
                 localStorage.setItem('aractakip_user', JSON.stringify(result.user))
                 sessionStorage.setItem('aractakip_session_active', 'true')
-                if (result.token) {
+                if (result.token && window.electronAPI?.isElectron) {
                     localStorage.setItem('token', result.token)
                     localStorage.setItem('aractakip_token', result.token)
                 }
@@ -327,7 +328,7 @@ export function AuthProvider({ children }) {
                 setUser(result.user)
                 localStorage.setItem('aractakip_user', JSON.stringify(result.user))
                 sessionStorage.setItem('aractakip_session_active', 'true')
-                if (result.token) {
+                if (result.token && window.electronAPI?.isElectron) {
                     localStorage.setItem('token', result.token)
                     localStorage.setItem('aractakip_token', result.token)
                 }

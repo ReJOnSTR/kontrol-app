@@ -8,6 +8,7 @@ try {
 
 const { getPrismaClient } = require('../prismaClient')
 const log = require('../logger')
+const { decryptSecret } = require('../security/cryptoVault')
 
 const settingsPath = (app && typeof app.getPath === 'function')
     ? path.join(app.getPath('userData'), 'settings.json')
@@ -29,8 +30,8 @@ async function getArventoCredentials(companyId = null) {
                     if (arvento && (arvento.username || arvento.pin1)) {
                         return {
                             username: arvento.username || '',
-                            pin1: arvento.pin1 || '',
-                            pin2: arvento.pin2 || '',
+                            pin1: decryptSecret(arvento.pin1 || ''),
+                            pin2: decryptSecret(arvento.pin2 || ''),
                             language: arvento.language || 'tr',
                             enabled: !!arvento.enabled
                         }

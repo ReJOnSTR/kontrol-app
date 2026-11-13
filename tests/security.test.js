@@ -39,4 +39,36 @@ describe('Security & Protection Rules', () => {
         expect(normalized).toBe('company_1/documents/contract.pdf');
         expect(path.basename(normalized)).toBe('contract.pdf');
     });
+
+    it('enforces tenant isolation for admin and company_admin in assertCompany', async () => {
+        const { assertCompany } = await import('../electron/security/access.js');
+
+        expect(() => assertCompany({ role: 'admin', companyIds: [1] }, 1)).not.toThrow();
+        expect(() => assertCompany({ role: 'admin', companyIds: [1] }, 2)).toThrow();
+        expect(() => assertCompany({ role: 'company_admin', companyIds: [1] }, 2)).toThrow();
+        expect(() => assertCompany({ role: 'superadmin', companyIds: [] }, 999)).not.toThrow();
+    });
+
+    it('enforces tenant isolation for admin in authorizeFile and blocks traversal in safePath', async () => {
+        const { authorizeFile, safePath } = await import('../electron/security/files.js');
+
+        await expect(authorizeFile({ role: 'admin', companyIds: [1] }, 'company_1/vehicles/a.pdf', {})).resolves.toBeUndefined();
+        await expect(authorizeFile({ role: 'admin', companyIds: [1] }, 'company_2/vehicles/a.pdf', {})).rejects.toThrow();
+        await expect(authorizeFile({ role: 'superadmin', companyIds: [] }, 'company_2/vehicles/a.pdf', {})).resolves.toBeUndefined();
+
+        expect(() => safePath('/tmp/kontrol-files', '../../etc/passwd')).toThrow();
+        expect(() => safePath('/tmp/kontrol-files', 'file\0.pdf')).toThrow();
+    });
+
+    it('encrypts and decrypts secrets symmetrically and preserves legacy plaintext compatibility', async () => {
+        process.env.JWT_SECRET = process.env.JWT_SECRET || '0123456789abcdef0123456789abcdef';
+        const { encryptSecret, decryptSecret } = await import('../electron/security/cryptoVault.js');
+
+        const cipher = encryptSecret('my-smtp-secret');
+        expect(cipher).toMatch(/^enc:v1:/);
+        expect(cipher).not.toContain('my-smtp-secret');
+        expect(decryptSecret(cipher)).toBe('my-smtp-secret');
+        expect(encryptSecret(cipher)).toBe(cipher);
+        expect(decryptSecret('legacy-plain')).toBe('legacy-plain');
+    });
 });

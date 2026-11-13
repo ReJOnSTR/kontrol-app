@@ -100,6 +100,7 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
 
                         const uploadRes = await fetch('/api/upload', {
                             method: 'POST',
+                            credentials: 'include',
                             headers: {
                                 'Content-Type': 'application/json',
                                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -171,6 +172,7 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                                 const token = localStorage.getItem('token') || localStorage.getItem('aractakip_token') || sessionStorage.getItem('token');
                                 const uploadRes = await fetch('/api/upload', {
                                     method: 'POST',
+                                    credentials: 'include',
                                     headers: {
                                         'Content-Type': 'application/json',
                                         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -421,6 +423,7 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                             const token = localStorage.getItem('token') || localStorage.getItem('aractakip_token') || sessionStorage.getItem('token');
                             const res = await fetch('/api/rpc/importCompanyData', {
                                 method: 'POST',
+                                credentials: 'include',
                                 headers: {
                                     'Content-Type': 'application/json',
                                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -461,6 +464,7 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
                 try {
                     const res = await fetch(`/api/rpc/${propStr}`, {
                         method: 'POST',
+                        credentials: 'include',
                         headers: {
                             'Content-Type': 'application/json',
                             ...(token ? { 'Authorization': `Bearer ${token}` } : {})

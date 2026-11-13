@@ -31,7 +31,7 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       # Rebuild native modules correctly for Electron
       - name: Rebuild Native Modules

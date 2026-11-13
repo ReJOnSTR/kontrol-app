@@ -74,6 +74,7 @@ export async function resolveDroppedFile(file, options = {}) {
         const token = localStorage.getItem('token') || localStorage.getItem('aractakip_token') || sessionStorage.getItem('token');
         const uploadRes = await fetch('/api/upload', {
             method: 'POST',
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})

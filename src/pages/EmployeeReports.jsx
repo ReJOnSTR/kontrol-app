@@ -10,7 +10,7 @@ import { formatDate, formatCurrency, calculateRemainingLeaves, formatDayBalance,
 import { calculateEmployeeMonthlyPayroll, calculateEmployeeMonthlyOvertime } from '../utils/payrollCalculator'
 import { usePersistentTab } from '../hooks/usePersistentTab'
 import { exportElementToCleanPdf } from '../utils/pdfCleanExport'
-import * as XLSX from 'xlsx'
+import { downloadWorkbookAsXlsx } from '../utils/excelExportHelper'
 
 export default function EmployeeReports() {
     const [searchParams] = useSearchParams()
@@ -186,18 +186,17 @@ export default function EmployeeReports() {
         }
     }
 
-    const handleExcelExport = () => {
+    const handleExcelExport = async () => {
         const processedReportList = getProcessedReportList()
-        const wb = XLSX.utils.book_new()
+        const sheets = []
 
         const addSheet = (name, data, columns) => {
             if (!data || data.length === 0) return
-            const wsData = [
-                columns.map(c => c.header),
-                ...data.map(item => columns.map(c => c.value(item)))
-            ]
-            const ws = XLSX.utils.aoa_to_sheet(wsData)
-            XLSX.utils.book_append_sheet(wb, ws, name)
+            sheets.push({
+                name,
+                headers: columns.map(c => c.header),
+                rows: data.map(item => columns.map(c => c.value(item)))
+            })
         }
 
         if (reportType === 'payroll') {
@@ -255,16 +254,13 @@ export default function EmployeeReports() {
                 totals.netRemaining
             ])
 
-            const wsData = [
-                payrollCols.map(c => c.header),
-                ...rows
-            ]
-            const ws = XLSX.utils.aoa_to_sheet(wsData)
-            XLSX.utils.book_append_sheet(wb, ws, `Maas_${selectedPayrollMonth}`)
-
             const companyStr = currentCompany?.name || ''
             const excelFileName = generateUniqueFileName(`Maas_Tablosu_${selectedPayrollMonth}`, [companyStr], 'xlsx')
-            XLSX.writeFile(wb, excelFileName)
+            await downloadWorkbookAsXlsx([{
+                name: `Maas_${selectedPayrollMonth}`,
+                headers: payrollCols.map(c => c.header),
+                rows
+            }], excelFileName)
             return
         } else if (reportType === 'overtime') {
             const otCols = [
@@ -317,16 +313,13 @@ export default function EmployeeReports() {
                 totals.remainingAmount
             ])
 
-            const wsData = [
-                otCols.map(c => c.header),
-                ...rows
-            ]
-            const ws = XLSX.utils.aoa_to_sheet(wsData)
-            XLSX.utils.book_append_sheet(wb, ws, `Mesai_${selectedPayrollMonth}`)
-
             const companyStr = currentCompany?.name || ''
             const excelFileName = generateUniqueFileName(`Mesai_Tablosu_${selectedPayrollMonth}`, [companyStr], 'xlsx')
-            XLSX.writeFile(wb, excelFileName)
+            await downloadWorkbookAsXlsx([{
+                name: `Mesai_${selectedPayrollMonth}`,
+                headers: otCols.map(c => c.header),
+                rows
+            }], excelFileName)
             return
         } else if (reportType === 'list') {
             const listCols = []
@@ -389,7 +382,7 @@ export default function EmployeeReports() {
         const companyStr = currentCompany?.name || '';
         const excelFileName = generateUniqueFileName('Personel_Raporu', [companyStr], 'xlsx');
 
-        XLSX.writeFile(wb, excelFileName)
+        await downloadWorkbookAsXlsx(sheets, excelFileName)
     }
 
     useEffect(() => {

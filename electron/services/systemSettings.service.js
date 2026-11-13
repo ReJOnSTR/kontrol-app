@@ -1,5 +1,6 @@
 const { getPrismaClient } = require('../prismaClient');
 const prisma = getPrismaClient();
+const { encryptSecret, decryptSecret } = require('../security/cryptoVault');
 
 let log = console;
 try {
@@ -100,18 +101,21 @@ function isObject(item) {
     return (item && typeof item === 'object' && !Array.isArray(item));
 }
 
+const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 function deepMerge(target, source) {
     const output = { ...target };
     if (isObject(target) && isObject(source)) {
         Object.keys(source).forEach(key => {
+            if (FORBIDDEN_KEYS.has(key)) return;
             if (isObject(source[key])) {
-                if (!(key in target)) {
-                    Object.assign(output, { [key]: source[key] });
+                if (!Object.prototype.hasOwnProperty.call(target, key)) {
+                    output[key] = deepMerge({}, source[key]);
                 } else {
                     output[key] = deepMerge(target[key], source[key]);
                 }
             } else {
-                Object.assign(output, { [key]: source[key] });
+                output[key] = source[key];
             }
         });
     }
@@ -172,14 +176,18 @@ async function getCompanyDbSettings(companyId) {
         const cid = parseInt(companyId, 10);
         if (!cid) return { success: true, data: DEFAULT_COMPANY_SETTINGS };
 
-        const rows = await prisma.$queryRawUnsafe(
-            `SELECT settings_json FROM company_settings WHERE company_id = ${cid} LIMIT 1;`
-        );
+        const rows = await prisma.$queryRaw`
+            SELECT settings_json FROM company_settings WHERE company_id = ${cid} LIMIT 1;
+        `;
 
         if (Array.isArray(rows) && rows.length > 0 && rows[0].settings_json) {
             try {
                 const parsed = JSON.parse(rows[0].settings_json);
                 const merged = deepMerge(DEFAULT_COMPANY_SETTINGS, parsed);
+                if (merged?.integrations?.arvento) {
+                    merged.integrations.arvento.pin1 = decryptSecret(merged.integrations.arvento.pin1);
+                    merged.integrations.arvento.pin2 = decryptSecret(merged.integrations.arvento.pin2);
+                }
                 return { success: true, data: merged };
             } catch (pErr) {
                 log.error('[systemSettings] JSON parse error:', pErr.message);
@@ -204,21 +212,26 @@ async function saveCompanyDbSettings(companyId, settings) {
 
         const current = await getCompanyDbSettings(cid);
         const merged = deepMerge(current.data || DEFAULT_COMPANY_SETTINGS, settings || {});
-        const jsonStr = JSON.stringify(merged).replace(/'/g, "''");
+        const toStore = structuredClone(merged);
+        if (toStore?.integrations?.arvento) {
+            if (toStore.integrations.arvento.pin1) toStore.integrations.arvento.pin1 = encryptSecret(toStore.integrations.arvento.pin1);
+            if (toStore.integrations.arvento.pin2) toStore.integrations.arvento.pin2 = encryptSecret(toStore.integrations.arvento.pin2);
+        }
+        const jsonStr = JSON.stringify(toStore);
 
         try {
-            await prisma.$executeRawUnsafe(`
+            await prisma.$executeRaw`
                 INSERT INTO company_settings (company_id, settings_json, updated_at)
-                VALUES (${cid}, '${jsonStr}', CURRENT_TIMESTAMP)
+                VALUES (${cid}, ${jsonStr}, CURRENT_TIMESTAMP)
                 ON CONFLICT (company_id) DO UPDATE SET
                     settings_json = EXCLUDED.settings_json,
                     updated_at = CURRENT_TIMESTAMP;
-            `);
+            `;
         } catch (pgError) {
-            await prisma.$executeRawUnsafe(`
+            await prisma.$executeRaw`
                 INSERT OR REPLACE INTO company_settings (company_id, settings_json, updated_at)
-                VALUES (${cid}, '${jsonStr}', CURRENT_TIMESTAMP);
-            `);
+                VALUES (${cid}, ${jsonStr}, CURRENT_TIMESTAMP);
+            `;
         }
 
         log.info(`[systemSettings] Saved company settings for company ${cid}`);
@@ -238,14 +251,17 @@ async function getUserPreferences(userId) {
         const uid = parseInt(userId, 10);
         if (!uid) return { success: true, data: DEFAULT_USER_PREFERENCES };
 
-        const rows = await prisma.$queryRawUnsafe(
-            `SELECT preferences_json FROM user_preferences WHERE user_id = ${uid} LIMIT 1;`
-        );
+        const rows = await prisma.$queryRaw`
+            SELECT preferences_json FROM user_preferences WHERE user_id = ${uid} LIMIT 1;
+        `;
 
         if (Array.isArray(rows) && rows.length > 0 && rows[0].preferences_json) {
             try {
                 const parsed = JSON.parse(rows[0].preferences_json);
                 const merged = deepMerge(DEFAULT_USER_PREFERENCES, parsed);
+                if (merged?.lock?.customPassword) {
+                    merged.lock.customPassword = decryptSecret(merged.lock.customPassword);
+                }
                 return { success: true, data: merged };
             } catch (pErr) {
                 log.error('[systemSettings] user preferences parse error:', pErr.message);
@@ -277,21 +293,25 @@ async function saveUserPreferences(userId, preferences) {
             return { success: true, data: merged };
         }
 
-        const jsonStr = newJson.replace(/'/g, "''");
+        const toStore = structuredClone(merged);
+        if (toStore?.lock?.customPassword) {
+            toStore.lock.customPassword = encryptSecret(toStore.lock.customPassword);
+        }
+        const storeJson = JSON.stringify(toStore);
 
         try {
-            await prisma.$executeRawUnsafe(`
+            await prisma.$executeRaw`
                 INSERT INTO user_preferences (user_id, preferences_json, updated_at)
-                VALUES (${uid}, '${jsonStr}', CURRENT_TIMESTAMP)
+                VALUES (${uid}, ${storeJson}, CURRENT_TIMESTAMP)
                 ON CONFLICT (user_id) DO UPDATE SET
                     preferences_json = EXCLUDED.preferences_json,
                     updated_at = CURRENT_TIMESTAMP;
-            `);
+            `;
         } catch (pgError) {
-            await prisma.$executeRawUnsafe(`
+            await prisma.$executeRaw`
                 INSERT OR REPLACE INTO user_preferences (user_id, preferences_json, updated_at)
-                VALUES (${uid}, '${jsonStr}', CURRENT_TIMESTAMP);
-            `);
+                VALUES (${uid}, ${storeJson}, CURRENT_TIMESTAMP);
+            `;
         }
 
         log.info(`[systemSettings] Saved user preferences for user ${uid}`);

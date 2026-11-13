@@ -61,9 +61,10 @@ async function createOrUpdateSupabaseAuthUser(userData) {
         }
 
         // Try creating the user
+        const generatedPassword = password || require('crypto').randomBytes(16).toString('base64url');
         const { data, error } = await supabaseAdmin.auth.admin.createUser({
             email: cleanEmail,
-            password: password || '123456',
+            password: generatedPassword,
             email_confirm: true,
             user_metadata: userMetadata
         })
